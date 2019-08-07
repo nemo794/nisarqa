@@ -18,10 +18,10 @@ class SLCFile(h5py.File):
         self.flname = flname
         h5py.File.__init__(self, flname, mode)
 
+        print("Opening file %s" % flname)
         self.SWATHS = self["/science/LSAR/SLC/swaths"]
         self.IDENTIFICATION = self["/science/LSAR/identification/"]
-        self.FREQUENCIES = {"A": self["/science/LSAR/SLC/swaths/frequencyA"], \
-                            "B": self["/science/LSAR/SLC/swaths/frequencyB"]}
+        self.FREQUENCIES = {}
 
         self.images = {}
         self.polarizations = {}
@@ -33,6 +33,7 @@ class SLCFile(h5py.File):
             raise errors_derived.IdentificationFatal("Invalid frequency list of %s" % self.frequencies)
 
         for f in self.frequencies:
+            self.FREQUENCIES[f] = self["/science/LSAR/SLC/swaths/frequency%s" % f]
             self.polarizations[f] = [p.decode() for p in self.FREQUENCIES[f].get("listOfPolarizations")[...]]
 
         missing_images = []
@@ -108,7 +109,7 @@ class SLCFile(h5py.File):
         if (len(error_string) > 0):
             raise errors_derived.IdentificationFatal(error_string)
 
-    def check_images(self, flname_pdf):
+    def check_images(self, fpdf):
 
         min_value = np.array([np.finfo(np.float64).max, np.finfo(np.float64).max])
         max_value = np.array([np.finfo(np.float64).min, np.finfo(np.float64).min])
@@ -147,7 +148,6 @@ class SLCFile(h5py.File):
 
         counts = {}
         edges = {}
-        fpdf = PdfPages(flname_pdf)
         
         for key in self.images.keys():
 
@@ -177,8 +177,6 @@ class SLCFile(h5py.File):
             fpdf.savefig(fig)
             pyplot.close(fig)
 
-        fpdf.close()
-        
         # Raise Warning if any NaNs are found
             
         nbad = len(number_nan.keys())
@@ -199,7 +197,7 @@ class SLCFile(h5py.File):
         try:
             time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
             time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-            assert(time2 < time1)
+            assert(time2 > time1)
             assert( (time1.year >= 2000) and (time1.year < 2100) )
             assert( (time2.year >= 2000) and (time2.year < 2100) )
         except (AssertionError, ValueError):

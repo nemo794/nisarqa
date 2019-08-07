@@ -1,3 +1,5 @@
+import params
+
 import numpy as np
 
 import datetime
@@ -28,7 +30,7 @@ def check_spacing(data, spacing, dname, warning, fatal):
     log_string = ""
     
     try:
-        assert(np.all(delta == 0.0))
+        assert(np.all(delta > 0.0))
     except AssertionError:
         idx = np.where(delta <= 0.0)
         raise fatal("%s: Found %i elements with negative spacing: %s" \

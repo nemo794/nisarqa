@@ -9,6 +9,7 @@ import os, os.path
 import sys
 
 import h5py
+from matplotlib.backends.backend_pdf import PdfPages
 
 if __name__ == "__main__":
 
@@ -18,63 +19,73 @@ if __name__ == "__main__":
     parser.add_option("--pdf", "--fpdf", dest="fpdf", type="string", action="store")
     (kwds, args) = utility.parse_args(parser)
 
-    try:
-        fhdf = SLCFile(args[0], "r")
-    except errors_base.FatalError:
-        errors_base.FatalError.print_log(errors_base.FatalError, os.path.basename(args[0]), \
-                                         kwds["flog"])        
-        sys.exit(1)
-
-    # Verify identification information
-
-    try:
-        fhdf.check_identification()
-    except errors_base.FatalError:
-        pass
-
-    # Verify frequencies and polarizations
-
-    try:
-        fhdf.check_frequencies()
-    except errors_base.FatalError:
-        pass
-
-    # Verify time tags
+    fpdf = PdfPages(kwds["fpdf"])
     
-    try:
-        fhdf.check_time()
-    except (errors_base.WarningError, errors_base.FatalError):
-        pass
+    for slc_file in args:
+
+        errors_base.WarningError.reset(errors_base.WarningError)
+        errors_base.FatalError.reset(errors_base.FatalError)
+        
+        try:
+            fhdf = SLCFile(slc_file, "r")
+        except errors_base.FatalError:
+            errors_base.FatalError.print_log(errors_base.FatalError, os.path.basename(args[0]), \
+                                             kwds["flog"])        
+            sys.exit(1)
+
+        # Verify identification information
+
+        try:
+            fhdf.check_identification()
+        except errors_base.FatalError:
+            pass
+
+        # Verify frequencies and polarizations
+
+        try:
+            fhdf.check_frequencies()
+        except errors_base.FatalError:
+            pass
+
+        # Verify time tags
     
-    # Verify slant path tags
-
-    try:
-        fhdf.check_slant_range()
-    except (errors_base.WarningError, errors_base.FatalError):
-        pass
-
-    # Verify SubSwath boundaries
-
-    try:
-        fhdf.check_subswaths()
-    except errors_base.FatalError:
-        pass
+        try:
+            fhdf.check_time()
+        except (errors_base.WarningError, errors_base.FatalError):
+            pass
     
-    # Check for NaN's and plot images
+        # Verify slant path tags
 
-    try:
-        fhdf.check_images(kwds["fpdf"])
-    except errors_base.WarningError:
-        pass
+        try:
+            fhdf.check_slant_range()
+        except (errors_base.WarningError, errors_base.FatalError):
+            pass
+
+        # Verify SubSwath boundaries
+
+        try:
+            fhdf.check_subswaths()
+        except errors_base.FatalError:
+            pass
     
-    # Close files
+        # Check for NaN's and plot images
 
-    fhdf.close()
+        try:
+            fhdf.check_images(fpdf)
+        except errors_base.WarningError:
+            pass
+    
+        # Close files
+
+        fhdf.close()
+        errors_base.WarningError.print_log(errors_base.WarningError, \
+                                           os.path.basename(slc_file), kwds["flog"])
+        errors_base.FatalError.print_log(errors_base.FatalError, \
+                                         os.path.basename(slc_file), kwds["flog"])
 
     # Print summary
-    
-    errors_base.WarningError.print_log(errors_base.WarningError, os.path.basename(args[0]), kwds["flog"])
-    errors_base.FatalError.print_log(errors_base.FatalError, os.path.basename(args[0]), kwds["flog"])
+
+    fpdf.close()
                                        
     
     

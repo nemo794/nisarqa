@@ -15,6 +15,10 @@ class CustomError(Exception):
         if (self.ninstance > 0):
             file_id.write(self.log_string)
         file_id.close()
+
+    def reset(self):
+        CustomError.log_string = ""
+        CustomError.ninstance = 0 
     
 class WarningError(CustomError):
     ninstance = 0
