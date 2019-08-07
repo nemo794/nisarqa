@@ -1,0 +1,85 @@
+import check_time
+import errors_base
+import errors_derived
+from SLCFile import SLCFile
+import utility
+
+import optparse
+import os, os.path
+import sys
+
+import h5py
+
+if __name__ == "__main__":
+
+    parser = optparse.OptionParser()
+    parser.add_option("--log", "--flog", dest="flog", type="string", action="store")
+    parser.add_option("--hdf", "--fhdf", dest="fhdf", type="string", action="store")
+    parser.add_option("--pdf", "--fpdf", dest="fpdf", type="string", action="store")
+    (kwds, args) = utility.parse_args(parser)
+
+    try:
+        fhdf = SLCFile(args[0], "r")
+    except errors_base.FatalError:
+        errors_base.FatalError.print_log(errors_base.FatalError, os.path.basename(args[0]), \
+                                         kwds["flog"])        
+        sys.exit(1)
+
+    # Verify identification information
+
+    try:
+        fhdf.check_identification()
+    except errors_base.FatalError:
+        pass
+
+    # Verify frequencies and polarizations
+
+    try:
+        fhdf.check_frequencies()
+    except errors_base.FatalError:
+        pass
+
+    # Verify time tags
+    
+    try:
+        fhdf.check_time()
+    except (errors_base.WarningError, errors_base.FatalError):
+        pass
+    
+    # Verify slant path tags
+
+    try:
+        fhdf.check_slant_range()
+    except (errors_base.WarningError, errors_base.FatalError):
+        pass
+
+    # Verify SubSwath boundaries
+
+    try:
+        fhdf.check_subswaths()
+    except errors_base.FatalError:
+        pass
+    
+    # Check for NaN's and plot images
+
+    try:
+        fhdf.check_images(kwds["fpdf"])
+    except errors_base.WarningError:
+        pass
+    
+    # Close files
+
+    fhdf.close()
+
+    # Print summary
+    
+    errors_base.WarningError.print_log(errors_base.WarningError, os.path.basename(args[0]), kwds["flog"])
+    errors_base.FatalError.print_log(errors_base.FatalError, os.path.basename(args[0]), kwds["flog"])
+                                       
+    
+    
+        
+
+        
+        
+    
