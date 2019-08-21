@@ -1,6 +1,7 @@
 import check_time
 import errors_base
 import errors_derived
+from LogError import LogError
 from SLCFile import SLCFile
 import utility
 
@@ -20,11 +21,14 @@ if __name__ == "__main__":
     (kwds, args) = utility.parse_args(parser)
 
     fpdf = PdfPages(kwds["fpdf"])
+
+    flog = LogError(kwds["flog"])
+    flog.make_header(args)
     
     for slc_file in args:
 
-        errors_base.WarningError.reset(errors_base.WarningError)
-        errors_base.FatalError.reset(errors_base.FatalError)
+        #errors_base.WarningError.reset(errors_base.WarningError)
+        #errors_base.FatalError.reset(errors_base.FatalError)
         
         try:
             fhdf = SLCFile(slc_file, "r")
@@ -78,13 +82,12 @@ if __name__ == "__main__":
         # Close files
 
         fhdf.close()
-        errors_base.WarningError.print_log(errors_base.WarningError, \
-                                           os.path.basename(slc_file), kwds["flog"])
-        errors_base.FatalError.print_log(errors_base.FatalError, \
-                                         os.path.basename(slc_file), kwds["flog"])
+        flog.print_file_summary(slc_file)
 
     # Print summary
 
+    #flog.print_summary()
+    flog.print_logs()
     fpdf.close()
                                        
     

@@ -9,13 +9,14 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import numpy as np
 
+import copy
 import datetime
 import os
 
 class SLCFile(h5py.File):
 
     def __init__(self, flname, mode):
-        self.flname = flname
+        self.flname = os.path.basename(flname)
         h5py.File.__init__(self, flname, mode)
 
         print("Opening file %s" % flname)
@@ -30,7 +31,7 @@ class SLCFile(h5py.File):
         try:
             assert(self.frequencies in params.FREQUENCIES)
         except AssertionError:
-            raise errors_derived.IdentificationFatal("Invalid frequency list of %s" % self.frequencies)
+            raise errors_derived.IdentificationFatal(self.flname, "Invalid frequency list of %s" % self.frequencies)
 
         for f in self.frequencies:
             self.FREQUENCIES[f] = self["/science/LSAR/SLC/swaths/frequency%s" % f]
@@ -41,7 +42,7 @@ class SLCFile(h5py.File):
             try:
                 assert(self.polarizations[f] in params.POLARIZATIONS)
             except AssertionError:
-                raise errors_derived.IdentificationFatal("Frequency%s has Invalid polarization list %s" \
+                raise errors_derived.IdentificationFatal(self.flname, "Frequency%s has Invalid polarization list %s" \
                                                          % (f, self.polarizations[f]))
 
             for p in self.polarizations[f]:
@@ -52,7 +53,7 @@ class SLCFile(h5py.File):
                     missing_images.append(key)
 
         if (len(missing_images) > 0):
-            raise errors_derived.ArrayMissingFatal("Missing %i images in file: %s" \
+            raise errors_derived.ArrayMissingFatal(self.flname, "Missing %i images: %s" \
                                                    % (len(missing_images), missing_images))
             
     def check_identification(self):
@@ -70,9 +71,9 @@ class SLCFile(h5py.File):
         end_time = self.IDENTIFICATION.get("zeroDopplerEndTime")[...]
 
         try:
-            assert(str(end_time) > str(start_time))
+            assert(str(end_time) < str(start_time))
         except AssertionError:
-            error_string += ["Start Time %s not less than End Time %s" % (time_start, time_end)]
+            error_string += ["Start Time %s not less than End Time %s" % (start_time, end_time)]
 
         try:
             assert(orbit > 0)
@@ -107,7 +108,7 @@ class SLCFile(h5py.File):
             error_string += ["Invalid Look Number: %s" % lookdir]
 
         if (len(error_string) > 0):
-            raise errors_derived.IdentificationFatal(error_string)
+            raise errors_derived.IdentificationFatal(self.flname, error_string)
 
     def check_images(self, fpdf):
 
@@ -120,7 +121,19 @@ class SLCFile(h5py.File):
         # Get min/max value of all images and also check for NaNs.
         
         for key in self.images.keys():
-            xdata = self.images[key][...]
+            ximg = self.images[key]
+            complex32 = False
+            try:
+                dtype = ximg.dtype
+            except TypeError:
+                complex32 = True
+
+            if (complex32):
+                with ximg.astype(np.complex64):
+                    xdata = ximg[...]
+            else:
+                xdata = ximg[...]
+
             xnan = np.isnan(xdata.real) | np.isnan(xdata.imag)
             if (np.any(xnan)):
                 number_nan[i] = xnan.sum()
@@ -146,33 +159,47 @@ class SLCFile(h5py.File):
         else:
             bounds = 10**i
 
-        counts = {}
-        edges = {}
-        
+        bounds_plot_data = (np.finfo(np.float32).max, np.finfo(np.float32).min)
+        bounds_plot_diff = (np.finfo(np.float32).max, np.finfo(np.float32).min)
+            
         for key in self.images.keys():
 
             # Histogram with huge number of bins to find out where the bounds of the real
-            # distribution lie
+            # distribution lie and then rehistogram with more sensible bounds.  Do this for
+            # individual real and complex components and then the difference between the two.
             
             real = data[key].real[~mask_nan[key]]
             imag = data[key].imag[~mask_nan[key]]
-            bounds = np.maximum(np.fabs(real), np.fabs(imag)).max()
-            (counts[0], edges[0]) = np.histogram(real, range=(-bounds, bounds), bins=1000)
-            (counts[1], edges[1]) = np.histogram(imag, range=(-bounds, bounds), bins=1000)
+            diff = real - imag
 
-            # Histogram again, this time with sensible bounds (set at 90% of the peak value).
+            (counts1r, edges1r) = np.histogram(real, bins=1000)
+            (counts1c, edges1c) = np.histogram(imag, bins=1000)
+            bounds1 = utility.hist_bounds(counts1r+counts1c, edges1r)
+ 
+            (counts2, edges2) = np.histogram(diff, bins=1000)
+            bounds2 = utility.hist_bounds(counts2, edges2)
 
-            bounds = utility.hist_bounds(counts[0]+counts[1], edges[0], thresh=0.10)
-            (counts[0], edges[0]) = np.histogram(real, range=(-bounds, bounds), bins=100)
-            (counts[1], edges[1]) = np.histogram(imag, range=(-bounds, bounds), bins=100)
+            if (bounds1 < bounds_plot_data[0]) or (bounds1 > bounds_plot_data[1]):
+                bounds_plot_data = (-bounds1, bounds1)
+
+            if (bounds2 < bounds_plot_diff[0]) or (bounds2 > bounds_plot_diff[1]):
+                bounds_plot_diff = (-bounds2, bounds2)
+
+        for key in self.images.keys():
+
+            # Use same bounds for plotting all images of a given type
             
-            (fig, axes) = pyplot.subplots(nrows=1, ncols=1, sharex=True, sharey=False)
-            axes.plot(edges[0][:-1], counts[0], label="real")
-            axes.plot(edges[1][:-1], counts[1], label="imaginary")
-            #axes[0].set_title("Real")
-            #axes[1].set_title("Imaginary")
-            axes.legend(loc="upper right", fontsize="small")
-            fig.suptitle("%s\n(Frequency%s)" % (os.path.basename(self.flname), key))
+            (counts1r, edges1r) = np.histogram(real, range=bounds_plot_data, bins=100)
+            (counts1c, edges1c) = np.histogram(imag, range=bounds_plot_data, bins=100)
+            (counts2, edges2) = np.histogram(diff, range=bounds_plot_diff, bins=100)
+            
+            (fig, axes) = pyplot.subplots(nrows=2, ncols=1, sharex=False, sharey=False)
+            axes[0].plot(edges1r[:-1], counts1r, label="real")
+            axes[0].plot(edges1c[:-1], counts1c, label="imaginary")
+            axes[1].plot(edges2[:-1], counts2, label="real-imaginary")
+            axes[0].legend(loc="upper right", fontsize="small")
+            axes[1].legend(loc="upper right", fontsize="small")
+            fig.suptitle("%s\n(Frequency%s)" % (self.flname, key))
 
             fpdf.savefig(fig)
             pyplot.close(fig)
@@ -181,7 +208,7 @@ class SLCFile(h5py.File):
             
         nbad = len(number_nan.keys())
         if (nbad > 0):
-            raise errors_base.NaNWarning("%i images had NaN's: %s" % (nbad, number_nan))
+            raise errors_base.NaNWarning(self.flname, "%i images had NaN's: %s" % (nbad, number_nan))
 
     def check_time(self):
 
@@ -193,7 +220,6 @@ class SLCFile(h5py.File):
         start_time = str(start_time, "utf-8").rstrip("\x00").split(".")[0]
         end_time = str(end_time, "utf-8").rstrip("\x00").split(".")[0]
     
-        print("Times %s to %s" % (start_time, end_time))
         try:
             time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
             time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
@@ -201,10 +227,10 @@ class SLCFile(h5py.File):
             assert( (time1.year >= 2000) and (time1.year < 2100) )
             assert( (time2.year >= 2000) and (time2.year < 2100) )
         except (AssertionError, ValueError):
-            raise errors_derived.IdentificationFatal("Invalid Times of %s and %s" % (start_time, end_time))
+            raise errors_derived.IdentificationFatal(self.flname, "Invalid Times of %s and %s" % (start_time, end_time))
 
         try:
-            utility.check_spacing(time, spacing, "Time", errors_derived.TimeSpacingWarning, \
+            utility.check_spacing(self.flname, time, spacing, "Time", errors_derived.TimeSpacingWarning, \
                                   errors_derived.TimeSpacingFatal)
         except (errors_base.WarningError, errors_base.FatalError):
             pass
@@ -218,9 +244,9 @@ class SLCFile(h5py.File):
                 acquired_freq[f] = self.FREQUENCIES[f]["processedCenterFrequency"][...]
 
             try:
-                assert(acquired_freq["A"] < acquired_freq["B"])
+                assert(acquired_freq["A"] > acquired_freq["B"])
             except AssertionError:
-                raise errors_derived.FrequencyOrderFatal("Frequency A=%f not less than Frequency B=%f" \
+                raise errors_derived.FrequencyOrderFatal(self.flname, "Frequency A=%f not less than Frequency B=%f" \
                                                          % (acquired_freq["A"], acquired_freq["B"]))
 
     def check_slant_range(self):
@@ -230,7 +256,7 @@ class SLCFile(h5py.File):
             spacing = self.FREQUENCIES[f]["slantRangeSpacing"]
 
             try:
-                utility.check_spacing(slant_path[...], spacing[...], "%sSlantPath" % f, \
+                utility.check_spacing(self.flname, slant_path[...], spacing[...], "%sSlantPath" % f, \
                                       errors_derived.SlantSpacingWarning, \
                                       errors_derived.SlantSpacingFatal)
             except (errors_base.WarningError, errors_base.FatalError):
@@ -246,7 +272,7 @@ class SLCFile(h5py.File):
             try:
                 assert(nslant == nslant0)
             except AssertionError:
-                raise errors_derived.ArraySizeFatal("Dataset %s has slantpath size of %i instead of %i" \
+                raise errors_derived.ArraySizeFatal(self.flname, "Dataset %s has slantpath size of %i instead of %i" \
                                                     % (key, nslant, nslant0))
 
 
@@ -257,7 +283,7 @@ class SLCFile(h5py.File):
            try:
                assert( (nsubswath >= 0) and (nsubswath <= params.NSUBSWATHS) )
            except AssertionError:
-               raise errors_derived.NumSubswathFatal("Frequency%s had invalid number of subswaths: %i" \
+               raise errors_derived.NumSubswathFatal(self.flname, "Frequency%s had invalid number of subswaths: %i" \
                                                      % (f, nsubswath))
 
            nslantrange = self.FREQUENCIES[f]["slantRange"].size
@@ -266,7 +292,7 @@ class SLCFile(h5py.File):
                try:
                    sub_bounds = self.FREQUENCIES[f]["validSamplesSubSwath%i" % (isub+1)][...]
                except KeyError:
-                   raise errors_derived.MissingSubswathFatal("Frequency%s had missing SubSwath%i bounds" \
+                   raise errors_derived.MissingSubswathFatal(self.flname, "Frequency%s had missing SubSwath%i bounds" \
                                                              % (f, isub))
 
                try:
@@ -274,7 +300,8 @@ class SLCFile(h5py.File):
                    assert(np.all(sub_bounds[:, 0] >= 0))
                    assert(np.all(sub_bounds[:, 1] <= nslantrange))
                except AssertionError:
-                   raise errors_derived.BoundsSubSwathFatal("Frequency%s with nSlantRange %i had invalid SubSwath bounds: %s" \
+                   raise errors_derived.BoundsSubSwathFatal(self.flname, \
+                                                            "Frequency%s with nSlantRange %i had invalid SubSwath bounds: %s" \
                                                             % (f, nslantrange, sub_bounds))
                
 

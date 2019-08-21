@@ -3,6 +3,7 @@ import params
 import numpy as np
 
 import datetime
+import math
 
 def parse_args(parser, required=[], keep_none=[]):
     
@@ -22,7 +23,7 @@ def parse_args(parser, required=[], keep_none=[]):
 
     return kwds, args
 
-def check_spacing(data, spacing, dname, warning, fatal):
+def check_spacing(flname, data, spacing, dname, warning, fatal):
     
     data_shift = np.roll(data, 1)
     delta = data[1:] - data_shift[1:]
@@ -33,51 +34,68 @@ def check_spacing(data, spacing, dname, warning, fatal):
         assert(np.all(delta > 0.0))
     except AssertionError:
         idx = np.where(delta <= 0.0)
-        raise fatal("%s: Found %i elements with negative spacing: %s" \
+        raise fatal(flname, "%s: Found %i elements with negative spacing: %s" \
                     % (dname, len(idx[0]), data[idx]))
         
-    print("%s" % log_string)
     try:
         assert(np.all(diff <= params.EPS))
     except AssertionError:
         idx = np.where(diff > params.EPS)
-        raise warning(log_string = "%s: Found %i elements with unexpected steps: %s" \
+        raise warning(flname, "%s: Found %i elements with unexpected steps: %s" \
                       % (dname, len(idx[0]), diff[idx]))
 
     return log_string
 
 def round(num):
 
-    print("Rounding %s" % num)
+    #print("Rounding %s" % num)
     
-    if (num > 1.0):
-        for i in range(1, 100):
-            if (1.0**i > num):
-                break
-
-        if (num < 10**i/2.0):
-            bounds = 10**i/2
-        else:
-            bounds = 10**i
-
-    else:
-        for i in range(1, 100):
-            if (1.0/(10**i) > num):
-                break
-
-        if (num < 1.0/(10**i)/2.0):
-            bounds = 1.0/10**i/2
-        else:
-            bounds = 1.0/10**i
-            
-    return bounds
-
-def hist_bounds(counts, edges, thresh=0.10):
-
-    max = counts.max()
-    for istep in range(0, counts.size):
-        if (counts[istep] >= thresh*max) and (counts[-istep-1] >= thresh*max):
-            bounds = round(edges[istep])
+    for i in range(0, 100):
+        if (10.0**i > num):
             break
 
+    if (num < 10**i/5.0):
+        bounds = 10.0**i/5
+    else:
+        bounds = 10.0**i
+
     return bounds
+
+def hist_bounds(counts, edges, thresh_of_max=0.10, thresh_increase=1.05):
+
+    max_value = counts.max()
+    max_idx = np.where(counts == max_value)[0][0]
+    bin_left = -9999
+    bin_right = -9999
+    #print("Max value in array: %i at location %i" % (max_value, max_idx))
+    
+    for i in range(0, int(counts.size/2)):
+        binl1 = max_idx - i
+        binl2 = max_idx - i - 1
+        binr1 = max_idx + i + 1
+        binr2 = max_idx + i + 2
+
+        if ( (binl1 < 0) and (bin_left == -9999) ) or \
+           ( (binr2 >= counts.size) and (bin_right == -9999) ):
+            return
+        
+        #print("Lbins %i %i, counts %i %i, increase %f, perc_of_max %f" \
+        #      % (binl1, binl2, counts[binl1], counts[binl2], \
+        #         1.0*counts[binl1]/counts[binl2], 1.0*counts[binl1]/max_value))
+        #print("Rbins %i %i, counts %i %i, increase %f, perc_of_max %f\n" \
+        #      % (binr1, binr2, counts[binr1], counts[binr2], \
+        #         1.0*counts[binr1]/counts[binr2], 1.0*counts[binr1]/max_value))
+
+        if (1.0*counts[binl1]/counts[binl2] > thresh_increase) and \
+           (counts[binl1] <= thresh_of_max*max_value) and (bin_left == -9999):
+            #print("Selecting left_bin")
+            bin_left = edges[binl1]
+        if (1.0*counts[binr1]/counts[binr2] > thresh_increase) and \
+           (counts[binr1] <= thresh_of_max*max_value) and (bin_right == -9999):
+            #print("Selecting right bin")
+            bin_right = edges[binr1]
+        if (bin_left != -9999) and (bin_right != -9999):
+            bounds = round(max(math.fabs(bin_right), math.fabs(bin_left)))
+            #print("min %f, max %f, bounds %f" % (bin_left, bin_right, bounds))
+            return bounds
+        

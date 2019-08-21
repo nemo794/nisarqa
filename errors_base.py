@@ -1,38 +1,58 @@
 
 class CustomError(Exception):
-    log_string = ""
+    log_string = {}
     spacing = "    "
-    def __init__(self, error_string):
+
+    def __init__(self, flname, error_string):
+        pass
+
+    @classmethod
+    def log_error(cls, flname, error_string):
+
+        cls.ninstance_total += 1
+        if (flname not in cls.ninstance_file.keys()):
+            cls.ninstance_file[flname] = 1
+        else:
+            cls.ninstance_file[flname] += 1
+            
+        if (flname not in cls.log_string.keys()):
+            cls.log_string[flname] = ""
+
         if (isinstance(error_string, str)):
-            CustomError.log_string += "%s%s\n" % (CustomError.spacing, error_string)
+            for xstring in error_string.split("\n"):
+                cls.log_string[flname] += "%s%s\n" % (cls.spacing, xstring)
         elif (isinstance(error_string, list)):
               for s in error_string:
-                  CustomError.log_string += "%s%s\n" % (CustomError.spacing, s)
+                  cls.log_string[flname] += "%s%s\n" % (cls.spacing, s)
 
-    def print_log(self, fname, flog):
-        file_id = open(flog, "a+")
-        file_id.write("File %s had %i %s errors.\n" % (fname, self.ninstance, self.xtype))
-        if (self.ninstance > 0):
-            file_id.write(self.log_string)
-        file_id.close()
+class WarningError(CustomError):
+    log_string = {}
+    ninstance_file = {}
+    ninstance_total = 0
+    xtype = "WARNING"
+    def __init__(self, flname, error_string):
+
+        self.log_error(flname, error_string)
+        CustomError.__init__(self, flname, error_string)
 
     def reset(self):
-        CustomError.log_string = ""
-        CustomError.ninstance = 0 
-    
-class WarningError(CustomError):
-    ninstance = 0
-    xtype = "WARNING"
-    def __init__(self, error_string):
-        WarningError.ninstance += 1
-        CustomError.__init__(self, error_string)
+        WarningError.ninstance_file = 0 
 
 class FatalError(CustomError):
-    ninstance = 0
+    log_string = {}
+    ninstance_file = {}
+    ninstance_total = 0
     xtype = "FATAL"
-    def __init__(self, error_string):
-        FatalError.ninstance += 1
-        CustomError.__init__(self, error_string)
+    def __init__(self, flname, error_string):
+        self.log_error(flname, error_string)
+        CustomError.__init__(self, flname, error_string)
+        
+    def reset(self):
+        FatalError.ninstance_file = 0 
+
+
+
+
 
 
    
