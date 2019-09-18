@@ -12,6 +12,9 @@ import sys
 import h5py
 from matplotlib.backends.backend_pdf import PdfPages
 
+WORKFLOW_NAME = "Q/A"
+PGE_NAME = "Q/A"
+
 if __name__ == "__main__":
 
     parser = optparse.OptionParser()
@@ -82,12 +85,11 @@ if __name__ == "__main__":
         # Close files
 
         fhdf.close()
-        flog.print_file_summary(slc_file)
+        flog.print_file_logs(os.path.basename(slc_file))
+        #flog.print_error_matrix(os.path.basename(slc_file))
 
-    # Print summary
-
-    #flog.print_summary()
-    flog.print_logs()
+    # Close pdf file
+        
     fpdf.close()
                                        
     

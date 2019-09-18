@@ -11,7 +11,11 @@ import numpy as np
 
 import copy
 import datetime
+import logging
 import os
+import sys
+import tempfile
+import traceback
 
 class SLCFile(h5py.File):
 
@@ -26,12 +30,15 @@ class SLCFile(h5py.File):
 
         self.images = {}
         self.polarizations = {}
+        self.start_time = self.IDENTIFICATION.get("zeroDopplerStartTime")[...]
 
         self.frequencies = [f.decode() for f in self.IDENTIFICATION.get("listOfFrequencies")[...]]
         try:
             assert(self.frequencies in params.FREQUENCIES)
-        except AssertionError:
-            raise errors_derived.IdentificationFatal(self.flname, "Invalid frequency list of %s" % self.frequencies)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
+                                                     ["Invalid frequency list of %s" % self.frequencies])
 
         for f in self.frequencies:
             self.FREQUENCIES[f] = self["/science/LSAR/SLC/swaths/frequency%s" % f]
@@ -41,9 +48,11 @@ class SLCFile(h5py.File):
         for f in self.frequencies:
             try:
                 assert(self.polarizations[f] in params.POLARIZATIONS)
-            except AssertionError:
-                raise errors_derived.IdentificationFatal(self.flname, "Frequency%s has Invalid polarization list %s" \
-                                                         % (f, self.polarizations[f]))
+            except AssertionError as e:
+                traceback_string = [utility.get_traceback(e, AssertionError)]
+                raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
+                                                         ["Frequency%s has Invalid polarization list %s" \
+                                                          % (f, self.polarizations[f])])
 
             for p in self.polarizations[f]:
                 key = "%s_%s" % (f, p)
@@ -52,13 +61,17 @@ class SLCFile(h5py.File):
                 except KeyError:
                     missing_images.append(key)
 
-        if (len(missing_images) > 0):
-            raise errors_derived.ArrayMissingFatal(self.flname, "Missing %i images: %s" \
-                                                   % (len(missing_images), missing_images))
+        try:
+            assert(len(missing_images) == 0)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            raise errors_derived.ArrayMissingFatal(self.flname, self.start_time, traceback_string, \
+                                                   ["Missing %i images: %s" % (len(missing_images), missing_images)])
             
     def check_identification(self):
 
         error_string = []
+        traceback_string = []
     
         orbit = self.IDENTIFICATION.get("absoluteOrbitNumber")[...]
         track = self.IDENTIFICATION.get("trackNumber")[...]
@@ -72,43 +85,56 @@ class SLCFile(h5py.File):
 
         try:
             assert(str(end_time) < str(start_time))
-        except AssertionError:
+        except AssertionError as e:
             error_string += ["Start Time %s not less than End Time %s" % (start_time, end_time)]
-
+            traceback_string.append(utility.get_traceback(e, AssertionError))
+            
         try:
             assert(orbit > 0)
-        except AssertionError:
+        except AssertionError as e:
             error_string += ["Invalid Orbit Number: %i" % orbit]
-
+            traceback_string.append(utility.get_traceback(e, AssertionError))
+            
         try:
             assert( (track > 0) and (track <= params.NTRACKS) )
-        except AssertionError:
+        except AssertionError as e:
             error_string += ["Invalid Track Number: %i" % track]
-
+            traceback_string.append(utility.get_traceback(e, AssertionError))
+            
         try:
             assert(frame > 0)
-        except AssertionError:
+        except AssertionError as e:
             error_string += ["Invalid Frame Number: %i" % frame]
-
+            traceback_string.append(utility.get_traceback(e, AssertionError))
+            
         #try:
         #    assert(cycle > 0)
-        #except AssertionError:
+        #except AssertionError as e:
         #    error_string += ["Invalid Cycle Number: %i" % cycle]
+        #    traceback_string.append(utility.get_traceback(e, AssertionError))
 
         #try:
         #    assert(str(ptype) in ("b'RRST'", "b'RRSD'", "b'RSLC'", "b'RMLC'", \
         #                          "b'RCOV'", "b'RIFG'", "b'RUNW'", "b'GUNW'", \
         #                          "b'CGOV'", "b'GSLC'"))
-        #except AssertionError:
+        #except AssertionError as e:
         #    error_string += ["Invalid Product Type: %i" % ptype]
+        #    traceback_string.append(utility.get_traceback(e, AssertionError))
 
         try:
             assert(str(lookdir) in ("b'left'", "b'right'"))
-        except AssertionError:
+        except AssertionError as e:
             error_string += ["Invalid Look Number: %s" % lookdir]
+            traceback_string.append(utility.get_traceback(e, AssertionError))
 
-        if (len(error_string) > 0):
-            raise errors_derived.IdentificationFatal(self.flname, error_string)
+        assert(len(error_string) == len(traceback_string))
+            
+        try:
+            assert(len(error_string) == 0)
+        except AssertionError as e:
+            #print("error_string: %s" % error_string)
+            #print("traceback_string: %s" % traceback_string)
+            raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, error_string)
 
     def check_images(self, fpdf):
 
@@ -207,8 +233,12 @@ class SLCFile(h5py.File):
         # Raise Warning if any NaNs are found
             
         nbad = len(number_nan.keys())
-        if (nbad > 0):
-            raise errors_base.NaNWarning(self.flname, "%i images had NaN's: %s" % (nbad, number_nan))
+        try:
+            assert(nbad == 0)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            raise errors_derived.NaNWarning(self.flname, self.start_time, traceback_string, \
+                                            ["%i images had NaN's: %s" % (nbad, number_nan)])
 
     def check_time(self):
 
@@ -226,12 +256,14 @@ class SLCFile(h5py.File):
             assert(time2 > time1)
             assert( (time1.year >= 2000) and (time1.year < 2100) )
             assert( (time2.year >= 2000) and (time2.year < 2100) )
-        except (AssertionError, ValueError):
-            raise errors_derived.IdentificationFatal(self.flname, "Invalid Times of %s and %s" % (start_time, end_time))
+        except (AssertionError, ValueError) as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
+                                                     ["Invalid Times of %s and %s" % (start_time, end_time)])
 
         try:
-            utility.check_spacing(self.flname, time, spacing, "Time", errors_derived.TimeSpacingWarning, \
-                                  errors_derived.TimeSpacingFatal)
+            utility.check_spacing(self.flname, self.start_time, time, spacing, "Time", \
+                                  errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
         except (errors_base.WarningError, errors_base.FatalError):
             pass
 
@@ -245,9 +277,11 @@ class SLCFile(h5py.File):
 
             try:
                 assert(acquired_freq["A"] > acquired_freq["B"])
-            except AssertionError:
-                raise errors_derived.FrequencyOrderFatal(self.flname, "Frequency A=%f not less than Frequency B=%f" \
-                                                         % (acquired_freq["A"], acquired_freq["B"]))
+            except AssertionError as e:
+                traceback_string = [utility.get_traceback(e, AssertionError)]
+                raise errors_derived.FrequencyOrderFatal(self.flname, self.start_time, traceback_string, \
+                                                         ["Frequency A=%f not less than Frequency B=%f" \
+                                                          % (acquired_freq["A"], acquired_freq["B"])])
 
     def check_slant_range(self):
 
@@ -256,8 +290,8 @@ class SLCFile(h5py.File):
             spacing = self.FREQUENCIES[f]["slantRangeSpacing"]
 
             try:
-                utility.check_spacing(self.flname, slant_path[...], spacing[...], "%sSlantPath" % f, \
-                                      errors_derived.SlantSpacingWarning, \
+                utility.check_spacing(self.flname, self.start_time, slant_path[...], spacing[...], \
+                                      "%sSlantPath" % f, errors_derived.SlantSpacingWarning, \
                                       errors_derived.SlantSpacingFatal)
             except (errors_base.WarningError, errors_base.FatalError):
                 pass
@@ -271,8 +305,10 @@ class SLCFile(h5py.File):
 
             try:
                 assert(nslant == nslant0)
-            except AssertionError:
-                raise errors_derived.ArraySizeFatal(self.flname, "Dataset %s has slantpath size of %i instead of %i" \
+            except AssertionError as e:
+                traceback_string = [utility.get_traceback(e, AssertionError)]
+                raise errors_derived.ArraySizeFatal(self.flname, self.start_time, traceback_string, \
+                                                    "Dataset %s has slantpath size of %i instead of %i" \
                                                     % (key, nslant, nslant0))
 
 
@@ -282,27 +318,30 @@ class SLCFile(h5py.File):
            nsubswath = self.FREQUENCIES[f]["numberOfSubSwaths"][...]
            try:
                assert( (nsubswath >= 0) and (nsubswath <= params.NSUBSWATHS) )
-           except AssertionError:
-               raise errors_derived.NumSubswathFatal(self.flname, "Frequency%s had invalid number of subswaths: %i" \
-                                                     % (f, nsubswath))
+           except AssertionError as e:
+               traceback_string = [utility.get_traceback(e, AssertionError)]
+               raise errors_derived.NumSubswathFatal(self.flname, self.start_time, traceback_string, \
+                                                     ["Frequency%s had invalid number of subswaths: %i" % (f, nsubswath)])
 
            nslantrange = self.FREQUENCIES[f]["slantRange"].size
            
            for isub in range(0, nsubswath):
                try:
                    sub_bounds = self.FREQUENCIES[f]["validSamplesSubSwath%i" % (isub+1)][...]
-               except KeyError:
-                   raise errors_derived.MissingSubswathFatal(self.flname, "Frequency%s had missing SubSwath%i bounds" \
-                                                             % (f, isub))
+               except KeyError as e:
+                   traceback_string = [utility.get_traceback(e, KeyError)]
+                   raise errors_derived.MissingSubswathFatal(self.flname, self.start_time, traceback_string, \
+                                                             ["Frequency%s had missing SubSwath%i bounds" % (f, isub)])
 
                try:
                    assert(np.all(sub_bounds[:, 0] < sub_bounds[:, 1]))
                    assert(np.all(sub_bounds[:, 0] >= 0))
                    assert(np.all(sub_bounds[:, 1] <= nslantrange))
-               except AssertionError:
-                   raise errors_derived.BoundsSubSwathFatal(self.flname, \
-                                                            "Frequency%s with nSlantRange %i had invalid SubSwath bounds: %s" \
-                                                            % (f, nslantrange, sub_bounds))
+               except AssertionError as e:
+                   traceback_string = [utility.get_traceback(e, KeyError)]
+                   raise errors_derived.BoundsSubSwathFatal(self.flname, self.start_time, traceback_string, \
+                                                            ["Frequency%s with nSlantRange %i had invalid SubSwath bounds: %s" \
+                                                             % (f, nslantrange, sub_bounds)])
                
 
                

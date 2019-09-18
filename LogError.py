@@ -4,7 +4,7 @@ import errors_derived
 import os
 
 class LogError(object):
-
+    
     def __init__(self, flname):
         self.flname = flname
         self.errors_fatal = [e for e in dir(errors_derived) if (e.endswith("Fatal"))]
@@ -31,7 +31,7 @@ class LogError(object):
         self.fid.write("%s\n" % self.header)
         self.fid.close()
             
-    def print_file_summary(self, flname_slc):
+    def print_error_matrix(self, flname_slc):
 
         self.fid = open(self.flname, "a+")
         self.fid.write(os.path.basename(flname_slc).ljust(self.max_len_files))
@@ -46,7 +46,18 @@ class LogError(object):
             
         self.fid.close()
 
-    def print_logs(self):
+    def print_file_logs(self, flname_slc):
+
+        self.fid = open(self.flname, "w+")
+        
+        xerror = getattr(errors_base, "CustomError")
+        if (flname_slc in xerror.error_strings.keys()):
+            for xline in xerror.error_strings[flname_slc]:
+                self.fid.write("%s\n" % xline)
+
+        self.fid.close()
+        
+    def print_file_logs_bak(self):
 
         self.fid = open(self.flname, "a+")
         self.fid.write("\n\n")

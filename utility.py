@@ -4,6 +4,8 @@ import numpy as np
 
 import datetime
 import math
+import tempfile
+import traceback
 
 def parse_args(parser, required=[], keep_none=[]):
     
@@ -23,7 +25,22 @@ def parse_args(parser, required=[], keep_none=[]):
 
     return kwds, args
 
-def check_spacing(flname, data, spacing, dname, warning, fatal):
+def get_traceback(error, error_type):
+
+    traceback_string = []
+    
+    fid = tempfile.NamedTemporaryFile(mode="w", delete=False)
+    traceback.print_exception(error_type, "", error.__traceback__, file=fid)
+    fid.close()
+    
+    fid = open(fid.name)
+    for xline in fid:
+        traceback_string.append(xline)
+    fid.close()
+    
+    return traceback_string
+
+def check_spacing(flname, start_time, data, spacing, dname, warning, fatal):
     
     data_shift = np.roll(data, 1)
     delta = data[1:] - data_shift[1:]
@@ -32,17 +49,19 @@ def check_spacing(flname, data, spacing, dname, warning, fatal):
     
     try:
         assert(np.all(delta > 0.0))
-    except AssertionError:
+    except AssertionError as e:
         idx = np.where(delta <= 0.0)
-        raise fatal(flname, "%s: Found %i elements with negative spacing: %s" \
-                    % (dname, len(idx[0]), data[idx]))
+        traceback_string = [get_traceback(e, AssertionError)]
+        raise fatal(flname, start_time, traceback_string, \
+                    ["%s: Found %i elements with negative spacing: %s" % (dname, len(idx[0]), data[idx])])
         
     try:
         assert(np.all(diff <= params.EPS))
-    except AssertionError:
+    except AssertionError as e:
         idx = np.where(diff > params.EPS)
-        raise warning(flname, "%s: Found %i elements with unexpected steps: %s" \
-                      % (dname, len(idx[0]), diff[idx]))
+        traceback_string = [get_traceback(e, AssertionError)]
+        raise warning(flname, start_time, traceback_string, \
+                      ["%s: Found %i elements with unexpected steps: %s" % (dname, len(idx[0]), diff[idx])])
 
     return log_string
 
