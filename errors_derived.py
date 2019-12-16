@@ -119,6 +119,15 @@ class ArraySizeFatal(errors_base.FatalError):
         ArraySizeFatal.file_list.append(os.path.basename(flname))
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
+class NaNFatal(errors_base.FatalError):
+    file_list = []
+    ninstance = 0
+    name = "FatalNaN"
+    def __init__(self, flname, start_time, traceback, description):
+        NanFatal.ninstance += 1
+        NaNFatal.file_list.append(os.path.basename(flname))
+        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+
 class NaNWarning(errors_base.WarningError):
     file_list = []
     ninstance = 0

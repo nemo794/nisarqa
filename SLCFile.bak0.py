@@ -1,11 +1,10 @@
 import errors_base
 import errors_derived
 import params
-from SLCImage import SLCImage
 import utility
 
 import h5py
-from matplotlib import cm, pyplot, ticker
+from matplotlib import cm, pyplot
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import numpy as np
@@ -20,7 +19,7 @@ import traceback
 
 class SLCFile(h5py.File):
 
-    def __init__(self, flname, mode, time_step=1, range_step=1):
+    def __init__(self, flname, mode):
         self.flname = os.path.basename(flname)
         h5py.File.__init__(self, flname, mode)
 
@@ -56,11 +55,9 @@ class SLCFile(h5py.File):
                                                           % (f, self.polarizations[f])])
 
             for p in self.polarizations[f]:
-                key = "%s %s" % (f, p)
+                key = "%s_%s" % (f, p)
                 try:
-                    self.images[key] = SLCImage(f, p, self.FREQUENCIES[f]["processedCenterFrequency"][...], \
-                                                self.FREQUENCIES[f]["slantRangeSpacing"][...])
-                    self.images[key].read(self.FREQUENCIES, time_step=time_step, range_step=range_step)
+                    self.images[key] = self.FREQUENCIES[f]["%s" % p]
                 except KeyError:
                     missing_images.append(key)
 
@@ -70,7 +67,6 @@ class SLCFile(h5py.File):
             traceback_string = [utility.get_traceback(e, AssertionError)]
             raise errors_derived.ArrayMissingFatal(self.flname, self.start_time, traceback_string, \
                                                    ["Missing %i images: %s" % (len(missing_images), missing_images)])
-
             
     def check_identification(self):
 
@@ -101,12 +97,6 @@ class SLCFile(h5py.File):
             error_string += ["Invalid Orbit Number: %i" % orbit]
             traceback_string.append(utility.get_traceback(e, AssertionError))
             
-        try:
-            print("Track type %s shape %s" % (type(track), track.shape))
-            dummy = (track >= 0)
-        except TypeError:
-            track = int(track)
-
         try:
             assert( (track > 0) and (track <= params.NTRACKS) )
         except AssertionError as e:
@@ -148,23 +138,42 @@ class SLCFile(h5py.File):
             #print("traceback_string: %s" % traceback_string)
             raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, error_string)
 
-    def check_images(self, fpdf, fhdf):
+    def check_images(self, fpdf):
 
         min_value = np.array([np.finfo(np.float64).max, np.finfo(np.float64).max])
         max_value = np.array([np.finfo(np.float64).min, np.finfo(np.float64).min])
-        nan_warning = []
-        nan_fatal = []
+        number_nan = {}
+        data = {}
+        mask_nan = {}
 
         # Get min/max value of all images and also check for NaNs.
         
         for key in self.images.keys():
             ximg = self.images[key]
-            ximg.check_for_nan()
-            if (ximg.num_nan > 0):
-                if (not ximg.empty):
-                    nan_warning.append(key)
-                else:
-                    nan_fatal.append(key)
+            complex32 = False
+            try:
+                dtype = ximg.dtype
+            except TypeError:
+                complex32 = True
+
+            if (complex32):
+                with ximg.astype(np.complex64):
+                    xdata = ximg[...]
+            else:
+                xdata = ximg[...]
+
+            xnan = np.isnan(xdata.real) | np.isnan(xdata.imag)
+            if (np.any(xnan)):
+                number_nan[i] = xnan.sum()
+
+            data[key] = xdata
+            mask_nan[key] = xnan
+                
+            xmin = np.array([xdata.real[~xnan].min(), xdata.imag[~xnan].min()])
+            xmax = np.array([xdata.imag[~xnan].max(), xdata.imag[~xnan].max()])
+
+            min_value = np.minimum(min_value, xmin)
+            max_value = np.maximum(max_value, xmax)
  
         # Generate histograms (real and imaginary components separately) and plot them
 
@@ -178,183 +187,60 @@ class SLCFile(h5py.File):
         else:
             bounds = 10**i
 
-        sums_linear = {}
-        sums_power = {}
+        bounds_plot_data = (np.finfo(np.float32).max, np.finfo(np.float32).min)
+        bounds_plot_diff = (np.finfo(np.float32).max, np.finfo(np.float32).min)
             
         for key in self.images.keys():
 
             # Histogram with huge number of bins to find out where the bounds of the real
             # distribution lie and then rehistogram with more sensible bounds.  Do this for
             # individual real and complex components and then the difference between the two.
+            
+            real = data[key].real[~mask_nan[key]]
+            imag = data[key].imag[~mask_nan[key]]
+            diff = real - imag
 
-            (f, p) = key.split()
-            ximg = self.images[key]
-            ximg.calc()
-
-            # Use same bounds for plotting all linear images of a given type
-
-            #bounds_linear = [np.finfo(np.float32).max, np.finfo(np.float32).min]
-            #bounds_power = [np.finfo(np.float32).max, np.finfo(np.float32).min]
-            if (f not in sums_linear.keys()):
-                sums_linear[f] = np.zeros(ximg.real.shape, dtype=np.float32)
-                sums_power[f] = np.zeros(ximg.power.shape, dtype=np.float32)
-
-            sums_linear[f] += ximg.real
-            sums_linear[f] += ximg.imag
-            sums_power[f] += ximg.power
-
-        for (i, f) in enumerate(sums_linear.keys()):
-
-            (counts, edges) = np.histogram(sums_linear[f], bins=1000)
-            if (i == 0):
-                counts_linear = np.copy(counts)
-                edges_linear = np.copy(edges)
-            else:
-                counts_linear += counts
-
-            (counts, edges) = np.histogram(sums_power[f], bins=1000)
-            if (i == 0):
-                counts_power = np.copy(counts)
-                edges_power = np.copy(edges)
-            else:
-                counts_power += counts
-
-        print("Linear bin selection")
-        bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        #print("Power bin selection")
-        #bounds_power = utility.hist_bounds(counts_power, edges_power)
-        #print("bounds linear %s, power %s" % (bounds_linear, bounds_power))
-                
-            #bounds[f] = utility.hist_bounds(counts_linear[f], edges_linear[f])
-            #if (bounds1 < bounds_linear[0]) or (bounds1 > bounds_linear[1]):
-            #    bounds_linear = (-bounds1, bounds1)
-
-            #(counts_power[f], edges_power[f]) = np.histogram(sums_power[f], bins=1000)
-            #bounds1 = utility.hist_bounds(counts_power[f], edges_power[f])
-            #bounds2 = utility.hist_bounds(counts1pw, edges1pw)
+            (counts1r, edges1r) = np.histogram(real, bins=1000)
+            (counts1c, edges1c) = np.histogram(imag, bins=1000)
+            bounds1 = utility.hist_bounds(counts1r+counts1c, edges1r)
  
-            #if (bounds2 < bounds_power[0]):
-            #    bounds_power[0] = -bounds2
-            #    bounds_power[1] = 0
+            (counts2, edges2) = np.histogram(diff, bins=1000)
+            bounds2 = utility.hist_bounds(counts2, edges2)
 
-        
-                
-        # Generate figures
-        
+            if (bounds1 < bounds_plot_data[0]) or (bounds1 > bounds_plot_data[1]):
+                bounds_plot_data = (-bounds1, bounds1)
+
+            if (bounds2 < bounds_plot_diff[0]) or (bounds2 > bounds_plot_diff[1]):
+                bounds_plot_diff = (-bounds2, bounds2)
+
         for key in self.images.keys():
 
-            ximg = self.images[key]
-            fig = ximg.plot4a("%s\n(Frequency%s)" % (self.flname, key), (-1.0*bounds_linear, bounds_linear), \
-                              (-100.0, 0))
-            fpdf.savefig(fig)
+            # Use same bounds for plotting all images of a given type
+            
+            (counts1r, edges1r) = np.histogram(real, range=bounds_plot_data, bins=100)
+            (counts1c, edges1c) = np.histogram(imag, range=bounds_plot_data, bins=100)
+            (counts2, edges2) = np.histogram(diff, range=bounds_plot_diff, bins=100)
+            
+            (fig, axes) = pyplot.subplots(nrows=2, ncols=1, sharex=False, sharey=False)
+            axes[0].plot(edges1r[:-1], counts1r, label="real")
+            axes[0].plot(edges1c[:-1], counts1c, label="imaginary")
+            axes[1].plot(edges2[:-1], counts2, label="real-imaginary")
+            axes[0].legend(loc="upper right", fontsize="small")
+            axes[1].legend(loc="upper right", fontsize="small")
+            fig.suptitle("%s\n(Frequency%s)" % (self.flname, key))
 
-        # Plot and summarize polarization-differences
-
-        polarizations_all = ("HH", "VV", "HV", "VH")
-        for f in self.frequencies:
-            (fig, axes) = pyplot.subplots(nrows=4, ncols=4, sharex=False, sharey=False, \
-                                          constrained_layout=True)
-
-            diff_plots = np.zeros((len(polarizations_all), len(polarizations_all)), dtype=np.bool)
-            for (ip1, p1) in enumerate(polarizations_all):
-                for (ip2, p2) in enumerate(polarizations_all):
-                    if (p1 in self.polarizations[f]) and (p2 in self.polarizations[f]) and \
-                       (p1 != p2) and (not diff_plots[ip1, ip2]):
-
-                        diff_plots[ip1, ip2] = True
-                        diff_plots[ip2, ip1] = True
-                                     
-                        ref_img = self.images["%s %s" % (f, p1)]
-                        cmp_img = self.images["%s %s" % (f, p2)]
-                        xdata = ref_img.xdata*cmp_img.xdata.conj()
-
-                        key_new = "%s %s-%s" % (f, p1, p2)
-                        self.images[key_new] = SLCImage(f, "%s-%s" % (p1, p2), \
-                                                        self.FREQUENCIES[f]["processedCenterFrequency"][...], \
-                                                        self.FREQUENCIES[f]["slantRangeSpacing"][...])
-                        self.images[key_new].initialize(xdata, ref_img.nan_mask | cmp_img.nan_mask)
-                        self.images[key_new].calc()
-                        self.images[key_new].plot4b(axes[ip1, ip2], "%s - %s" % (p1, p2))
-                        
-            #for (i, a) in enumerate(axes.flatten()):
-            #    if (i < 3):
-            #        key = keys_differences[i]
-            #        self.images[key].plot4b(a, key.split()[-1])
-
-
-            axes[0, 0].set_xlabel("SLC Phase\n(degrees)")
-            axes[0, 0].set_ylabel("Number\nof Counts")
-            fig.suptitle("%s\nFrequency %s" % (self.flname, f))
             fpdf.savefig(fig)
             pyplot.close(fig)
 
-
-        # Plot power spectrum
-
-        nplots = 0
-        for f in self.frequencies:
-            (fig, axis) = pyplot.subplots(nrows=1, ncols=1, sharex=False, sharey=False, \
-                                          constrained_layout=True)
-            for p in self.polarizations[f]:
-                nplots += 1
-                key = "%s %s" % (f, p)
-                ximg = self.images[key]
-                xpower = 20.0*np.log10(ximg.avg_power)
-                axis.plot(ximg.fft_space, xpower, label=key)
-                print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s" \
-                      % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), \
-                         ximg.shape))
-
-                if (nplots == 1):
-                    print("space %s" % ximg.fft_space)
-                    print("power %s" % xpower)
-                
-            axis.legend(loc="upper right", fontsize="small")
-            axis.set_xlabel("Frequency (MHz)")
-            axis.set_ylabel("Power Spectrum (dB)")
-            #axis.set_xlim(left=-100.0, right=100.0)
-            fig.suptitle("Power Spectrum for Frequency %s" % f)
-            fpdf.savefig(fig)
-                
-        # Write histogram summaries to an hdf5 file
+        # Raise Warning if any NaNs are found
             
-        print("File %s mode %s" % (fhdf.filename, fhdf.mode))
-        fname_in = os.path.basename(self.filename)
-        extension = fname_in.split(".")[-1]
-        group1 = fhdf.create_group("%s/LSAR/ImageAttributes" % fname_in.replace(".%s" % extension, ""))
-        for key in self.images.keys():
-            ximg = self.images[key]
-            group = group1.create_group(key)
-            for (name, data) in zip( ("MeanPower", "SDevPower", "MeanPhase", "SDevPhase"), \
-                                     ("mean_power", "sdev_power", "mean_phase", "sdev_phase") ):
-                xdata = getattr(ximg, data)
-                dset = group.create_dataset(name, (), dtype='f4')
-                dset.write_direct(np.array(xdata).astype(np.float32))
-
-            dset = group.create_dataset("FFT Spacing", ximg.fft_space.shape, dtype='f4')
-            dset.write_direct(ximg.fft_space.astype(np.float32))
-            dset = group.create_dataset("Average Power", ximg.fft_space.shape, dtype='f4')
-            dset.write_direct(20.0*np.log10(ximg.avg_power).astype(np.float32))
-
-        #fhdf.close()
-                    
-        # Raise Warning if any NaNs are found and Fatal if an image is entirely NaN
-            
+        nbad = len(number_nan.keys())
         try:
-            assert(len(nan_warning) == 0)
+            assert(nbad == 0)
         except AssertionError as e:
             traceback_string = [utility.get_traceback(e, AssertionError)]
-            error_string = "%i images had NaN's:" % len(nan_warning)
-            for key in nan_warnings:
-                error_string += " (%s, %i=%f%%)" % (key, self.images[key].num_nan, self.images[key].perc_nan)
-            raise errors_derived.NaNWarning(self.flname, self.start_time, traceback_string, error_string)
-
-        try:
-            assert(len(nan_fatal) == 0)
-        except AssertionError as e:
-            traceback_string = [utility.get_traceback(e, AssertionError)]
-            error_string = "%i images were empty: %s" % (len(nan_fatal), nan_fatal)
-            raise errors_derived.NaNFatal(self.flname, self.start_time, traceback_string, error_string)
+            raise errors_derived.NaNWarning(self.flname, self.start_time, traceback_string, \
+                                            ["%i images had NaN's: %s" % (nbad, number_nan)])
 
     def check_time(self):
 
@@ -415,11 +301,10 @@ class SLCFile(h5py.File):
 
         
         for key in self.images.keys():
-            print("Looking at key %s" % key)
-            (f, p) = key.split()
+            (f, p) = key.split("_")
             
             nslant0 = self.FREQUENCIES[f]["slantRange"].shape[0]
-            nslant = self.images[key].xdata.shape[1]
+            nslant = self.images[key].shape[1]
 
             try:
                 assert(nslant == nslant0)

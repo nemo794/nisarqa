@@ -107,14 +107,14 @@ def hist_bounds(counts, edges, thresh_of_max=0.10, thresh_increase=1.05):
 
         if (1.0*counts[binl1]/counts[binl2] > thresh_increase) and \
            (counts[binl1] <= thresh_of_max*max_value) and (bin_left == -9999):
-            #print("Selecting left_bin")
+            print("Selecting left_bin %i" % edges[binl1])
             bin_left = edges[binl1]
         if (1.0*counts[binr1]/counts[binr2] > thresh_increase) and \
            (counts[binr1] <= thresh_of_max*max_value) and (bin_right == -9999):
-            #print("Selecting right bin")
+            print("Selecting right bin %i" % edges[binr1])
             bin_right = edges[binr1]
         if (bin_left != -9999) and (bin_right != -9999):
             bounds = round(max(math.fabs(bin_right), math.fabs(bin_left)))
-            #print("min %f, max %f, bounds %f" % (bin_left, bin_right, bounds))
+            print("min %f, max %f, bounds %f" % (bin_left, bin_right, bounds))
             return bounds
         

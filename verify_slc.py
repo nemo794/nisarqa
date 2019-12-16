@@ -8,6 +8,7 @@ import utility
 import optparse
 import os, os.path
 import sys
+import time
 
 import h5py
 from matplotlib.backends.backend_pdf import PdfPages
@@ -21,9 +22,18 @@ if __name__ == "__main__":
     parser.add_option("--log", "--flog", dest="flog", type="string", action="store")
     parser.add_option("--hdf", "--fhdf", dest="fhdf", type="string", action="store")
     parser.add_option("--pdf", "--fpdf", dest="fpdf", type="string", action="store")
+    parser.add_option("--time_step", dest="time_step", type="int", action="store", default=1)
+    parser.add_option("--range_step", dest="range_step", type="int", action="store", default=1)
+    parser.add_option("--validate", dest="validate", action="store_true", default=False)
+    parser.add_option("--quality", dest="quality", action="store_true", default=False)
     (kwds, args) = utility.parse_args(parser)
 
-    fpdf = PdfPages(kwds["fpdf"])
+    time1 = time.time()
+    
+    if (kwds["quality"]):
+        assert("fpdf" in kwds.keys())
+        fhdf_out = h5py.File(kwds["fhdf"], "w")
+        fpdf_out = PdfPages(kwds["fpdf"])
 
     flog = LogError(kwds["flog"])
     flog.make_header(args)
@@ -34,7 +44,7 @@ if __name__ == "__main__":
         #errors_base.FatalError.reset(errors_base.FatalError)
         
         try:
-            fhdf = SLCFile(slc_file, "r")
+            fhdf = SLCFile(slc_file, "r", time_step=kwds["time_step"], range_step=kwds["range_step"])
         except errors_base.FatalError:
             errors_base.FatalError.print_log(errors_base.FatalError, os.path.basename(args[0]), \
                                              kwds["flog"])        
@@ -42,45 +52,51 @@ if __name__ == "__main__":
 
         # Verify identification information
 
-        try:
-            fhdf.check_identification()
-        except errors_base.FatalError:
-            pass
+        if (kwds["validate"]):
+            try:
+                fhdf.check_identification()
+            except errors_base.FatalError:
+                pass
 
         # Verify frequencies and polarizations
 
-        try:
-            fhdf.check_frequencies()
-        except errors_base.FatalError:
-            pass
+        if (kwds["validate"]):
+            try:
+                fhdf.check_frequencies()
+            except errors_base.FatalError:
+                pass
 
         # Verify time tags
-    
-        try:
-            fhdf.check_time()
-        except (errors_base.WarningError, errors_base.FatalError):
-            pass
+
+        if (kwds["validate"]):
+            try:
+                fhdf.check_time()
+            except (errors_base.WarningError, errors_base.FatalError):
+                pass
     
         # Verify slant path tags
 
-        try:
-            fhdf.check_slant_range()
-        except (errors_base.WarningError, errors_base.FatalError):
-            pass
+        if (kwds["validate"]):
+            try:
+                fhdf.check_slant_range()
+            except (errors_base.WarningError, errors_base.FatalError):
+                pass
 
         # Verify SubSwath boundaries
 
-        try:
-            fhdf.check_subswaths()
-        except errors_base.FatalError:
-            pass
+        if (kwds["validate"]):
+            try:
+                fhdf.check_subswaths()
+            except errors_base.FatalError:
+                pass
     
         # Check for NaN's and plot images
 
-        try:
-            fhdf.check_images(fpdf)
-        except errors_base.WarningError:
-            pass
+        if (kwds["quality"]):
+            try:
+                fhdf.check_images(fpdf_out, fhdf_out)
+            except errors_base.WarningError:
+                pass
     
         # Close files
 
@@ -89,11 +105,14 @@ if __name__ == "__main__":
         #flog.print_error_matrix(os.path.basename(slc_file))
 
     # Close pdf file
-        
-    fpdf.close()
+
+    if (kwds["quality"]):
+        fpdf_out.close()
+        fhdf_out.close()
                                        
     
-    
+    time2 = time.time()
+    print("Runtime = %i seconds" % (time2-time1))
         
 
         
