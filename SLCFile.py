@@ -26,6 +26,7 @@ class SLCFile(h5py.File):
 
         print("Opening file %s" % flname)
         self.SWATHS = self["/science/LSAR/SLC/swaths"]
+        self.METADATA = self["/science/LSAR/SLC/metadata"]
         self.IDENTIFICATION = self["/science/LSAR/identification/"]
         self.FREQUENCIES = {}
 
@@ -90,7 +91,7 @@ class SLCFile(h5py.File):
         print("start_time %s, end_time %s" % (start_time, end_time))
         
         try:
-            assert(str(end_time) < str(start_time))
+            assert(str(end_time) > str(start_time))
         except AssertionError as e:
             error_string += ["Start Time %s not less than End Time %s" % (start_time, end_time)]
             traceback_string.append(utility.get_traceback(e, AssertionError))
@@ -219,25 +220,7 @@ class SLCFile(h5py.File):
             else:
                 counts_power += counts
 
-        print("Linear bin selection")
         bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        #print("Power bin selection")
-        #bounds_power = utility.hist_bounds(counts_power, edges_power)
-        #print("bounds linear %s, power %s" % (bounds_linear, bounds_power))
-                
-            #bounds[f] = utility.hist_bounds(counts_linear[f], edges_linear[f])
-            #if (bounds1 < bounds_linear[0]) or (bounds1 > bounds_linear[1]):
-            #    bounds_linear = (-bounds1, bounds1)
-
-            #(counts_power[f], edges_power[f]) = np.histogram(sums_power[f], bins=1000)
-            #bounds1 = utility.hist_bounds(counts_power[f], edges_power[f])
-            #bounds2 = utility.hist_bounds(counts1pw, edges1pw)
- 
-            #if (bounds2 < bounds_power[0]):
-            #    bounds_power[0] = -bounds2
-            #    bounds_power[1] = 0
-
-        
                 
         # Generate figures
         
@@ -301,14 +284,9 @@ class SLCFile(h5py.File):
                 ximg = self.images[key]
                 xpower = 20.0*np.log10(ximg.avg_power)
                 axis.plot(ximg.fft_space, xpower, label=key)
-                print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s" \
-                      % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), \
-                         ximg.shape))
+                #print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s" \
+                #      % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), ximg.shape))
 
-                if (nplots == 1):
-                    print("space %s" % ximg.fft_space)
-                    print("power %s" % xpower)
-                
             axis.legend(loc="upper right", fontsize="small")
             axis.set_xlabel("Frequency (MHz)")
             axis.set_ylabel("Power Spectrum (dB)")
@@ -379,11 +357,18 @@ class SLCFile(h5py.File):
                                                      ["Invalid Times of %s and %s" % (start_time, end_time)])
 
         try:
-            utility.check_spacing(self.flname, self.start_time, time, spacing, "Time", \
+            utility.check_spacing(self.flname, self.start_time, time, spacing, "zeroDopplerTime", \
                                   errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
         except (errors_base.WarningError, errors_base.FatalError):
             pass
 
+        time = self.METADATA["orbit/time"]
+        try:
+            utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "orbitTime", \
+                                  errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
+        except (errors_base.WarningError, errors_base.FatalError):
+            pass
+        
     def check_frequencies(self):
 
         nfrequencies = len(self.frequencies)
@@ -393,7 +378,7 @@ class SLCFile(h5py.File):
                 acquired_freq[f] = self.FREQUENCIES[f]["processedCenterFrequency"][...]
 
             try:
-                assert(acquired_freq["A"] > acquired_freq["B"])
+                assert(acquired_freq["A"] < acquired_freq["B"])
             except AssertionError as e:
                 traceback_string = [utility.get_traceback(e, AssertionError)]
                 raise errors_derived.FrequencyOrderFatal(self.flname, self.start_time, traceback_string, \
@@ -415,7 +400,7 @@ class SLCFile(h5py.File):
 
         
         for key in self.images.keys():
-            print("Looking at key %s" % key)
+            #print("Looking at key %s" % key)
             (f, p) = key.split()
             
             nslant0 = self.FREQUENCIES[f]["slantRange"].shape[0]

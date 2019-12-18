@@ -26,6 +26,9 @@ class SLCImage(object):
         self.xdata = np.copy(data_in)
         self.nan_mask = nan_mask
         self.shape = self.xdata.shape
+
+        self.zero_mask = np.where( (self.xdata.real == 0.0) & (self.xdata.imag == 0.0), True, False)
+        self.mask_ok = np.where(~self.nan_mask & ~self.zero_mask, True, False)
         
     def read(self, handle, time_step=1, range_step=1):
 
@@ -46,7 +49,9 @@ class SLCImage(object):
             
     def check_for_nan(self):
 
-        self.nan_mask = np.isnan(self.xdata.real) | np.isnan(self.xdata.imag)
+        self.zero_mask = np.where( (self.xdata.real == 0.0) & (self.xdata.imag == 0.0), True, False)
+        self.nan_mask = np.isnan(self.xdata.real) | np.isnan(self.xdata.imag) \
+                      | np.isinf(self.xdata.real) | np.isinf(self.xdata.imag)
         self.num_nan = self.nan_mask.sum()
         self.perc_nan = 100.0*self.num_nan/self.xdata.size
 
@@ -67,15 +72,26 @@ class SLCImage(object):
 
     def calc(self):
 
-        self.power = np.where(~self.nan_mask, self.xdata.real*self.xdata.real + self.xdata.imag*self.xdata.imag, self.BADVALUE)
-        self.power = np.where(~self.nan_mask, 10.0*np.log10(self.power), self.BADVALUE)
-        self.phase = np.where(~self.nan_mask, np.degrees(np.angle(self.xdata)), self.BADVALUE)
+        try:
+            self.mask_ok = np.where(~self.nan_mask & ~self.zero_mask, True, False)
+        except AttributeError:
+            print("Missing zero mask for image %s (%s)" % (self.frequency, self.polarization))
+            raise AttributeError("Missing zero mask")
+        
+        self.power = np.where(self.mask_ok, self.xdata.real*self.xdata.real + self.xdata.imag*self.xdata.imag, self.BADVALUE)
+        self.power = np.where(self.mask_ok, 10.0*np.log10(self.power), self.BADVALUE)
+        self.phase = np.where(self.mask_ok, np.degrees(np.angle(self.xdata)), self.BADVALUE)
 
-        self.mean_power = self.power[~self.nan_mask].mean()
-        self.sdev_power = self.power[~self.nan_mask].std()
+        #idx_infinity = np.where(np.isinf(self.power))
+        #print("%i Infinity Points: %s" % (len(idx_infinity[0]), idx_infinity))
+        #print("Real for infinity %s, Imag for infinity %s" \
+        #      % (np.unique(self.xdata.real[idx_infinity]), np.unique(self.xdata.imag[idx_infinity])))
 
-        self.mean_phase = self.phase[~self.nan_mask].mean()
-        self.sdev_phase = self.phase[~self.nan_mask].std()
+        self.mean_power = self.power[self.mask_ok].mean()
+        self.sdev_power = self.power[self.mask_ok].std()
+
+        self.mean_phase = self.phase[self.mask_ok].mean()
+        self.sdev_phase = self.phase[self.mask_ok].std()
 
         self.fft = np.fft.fft(self.xdata)
         self.fft_space = np.fft.fftfreq(self.shape[1], 1.0/self.tspacing)*1.0E-06
@@ -88,7 +104,7 @@ class SLCImage(object):
     def compare(self, image, frequency, polarization):
 
         key = "Frequency%s_%s" % (frequency, polarization)
-        mask_nan = self.nan_mask | image.nan_mask
+        mask_nan = self.nan_mask | image.nan_mask | self.zero_mask | image.zero_mask
         self.diff[key] = SLCImage(frequency, polarization)
 
         xdata = self.xdata*image.data.conj()

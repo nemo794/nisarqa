@@ -53,7 +53,8 @@ def check_spacing(flname, start_time, data, spacing, dname, warning, fatal):
         idx = np.where(delta <= 0.0)
         traceback_string = [get_traceback(e, AssertionError)]
         raise fatal(flname, start_time, traceback_string, \
-                    ["%s: Found %i elements with negative spacing: %s" % (dname, len(idx[0]), data[idx])])
+                    ["%s: Found %i elements with negative spacing: %s at locations %s" \
+                     % (dname, len(idx[0]), data[idx], idx)])
         
     try:
         assert(np.all(diff <= params.EPS))
@@ -61,7 +62,8 @@ def check_spacing(flname, start_time, data, spacing, dname, warning, fatal):
         idx = np.where(diff > params.EPS)
         traceback_string = [get_traceback(e, AssertionError)]
         raise warning(flname, start_time, traceback_string, \
-                      ["%s: Found %i elements with unexpected steps: %s" % (dname, len(idx[0]), diff[idx])])
+                      ["%s: Found %i elements with unexpected steps: %s at locations %s" \
+                       % (dname, len(idx[0]), diff[idx], idx)])
 
     return log_string
 
@@ -107,14 +109,14 @@ def hist_bounds(counts, edges, thresh_of_max=0.10, thresh_increase=1.05):
 
         if (1.0*counts[binl1]/counts[binl2] > thresh_increase) and \
            (counts[binl1] <= thresh_of_max*max_value) and (bin_left == -9999):
-            print("Selecting left_bin %i" % edges[binl1])
+            #print("Selecting left_bin %i" % edges[binl1])
             bin_left = edges[binl1]
         if (1.0*counts[binr1]/counts[binr2] > thresh_increase) and \
            (counts[binr1] <= thresh_of_max*max_value) and (bin_right == -9999):
-            print("Selecting right bin %i" % edges[binr1])
+            #print("Selecting right bin %i" % edges[binr1])
             bin_right = edges[binr1]
         if (bin_left != -9999) and (bin_right != -9999):
             bounds = round(max(math.fabs(bin_right), math.fabs(bin_left)))
-            print("min %f, max %f, bounds %f" % (bin_left, bin_right, bounds))
+            #print("min %f, max %f, bounds %f" % (bin_left, bin_right, bounds))
             return bounds
         
