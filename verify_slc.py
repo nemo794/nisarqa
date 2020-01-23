@@ -35,8 +35,9 @@ if __name__ == "__main__":
         fhdf_out = h5py.File(kwds["fhdf"], "w")
         fpdf_out = PdfPages(kwds["fpdf"])
 
-    flog = LogError(kwds["flog"])
-    flog.make_header(args)
+    if (kwds["validate"]):
+        flog = LogError(kwds["flog"])
+        flog.make_header(args)
     
     for slc_file in args:
 
@@ -101,8 +102,9 @@ if __name__ == "__main__":
         # Close files
 
         fhdf.close()
-        flog.print_file_logs(os.path.basename(slc_file))
-        #flog.print_error_matrix(os.path.basename(slc_file))
+        if (kwds["validate"]):
+            flog.print_file_logs(os.path.basename(slc_file))
+            #flog.print_error_matrix(os.path.basename(slc_file))
 
     # Close pdf file
 
