@@ -28,9 +28,11 @@ Two sample files are being included with this delivery ("good" and "bad").  The 
 
 This software generates three types of outputs:  
 
-<flog> = textual listing of errors encountered
-<fhdf> = statistical summary of file in HDF5 format
-<fpdf> = graphical summary of file
+flog = textual listing of errors encountered
+
+fhdf = statistical summary of file in HDF5 format
+
+fpdf = graphical summary of file
   
 This delivery includes the output files: "good.pdf", "good.h5", "good.log" as well as their "bad" counterparts.  
 
