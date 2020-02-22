@@ -12,9 +12,11 @@ import traceback
 class SLCImage(object):
 
     BADVALUE = -9999
+    EPS = 1.0e-03
     
-    def __init__(self, frequency, polarization, hertz, rspacing):
+    def __init__(self, band, frequency, polarization, hertz, rspacing):
 
+        self.band = band
         self.frequency = frequency
         self.polarization = polarization
         self.hertz = hertz
@@ -27,8 +29,24 @@ class SLCImage(object):
         self.nan_mask = nan_mask
         self.shape = self.xdata.shape
 
-        self.zero_mask = np.where( (self.xdata.real == 0.0) & (self.xdata.imag == 0.0), True, False)
+        #self.zero_real = np.where( (self.xdata.real == 0.0), True, False)
+        #self.zero_imag = np.where( (self.xdata.imag == 0.0), True, False)
+        self.zero_real = np.where(np.abs(self.xdata.real < self.EPS), True, False)
+        self.zero_imag = np.where(np.abs(self.xdata.imag < self.EPS), True, False)
+                                  
+        self.zero_mask = np.where( self.zero_real & self.zero_imag, True, False)
         self.mask_ok = np.where(~self.nan_mask & ~self.zero_mask, True, False)
+
+        print("%s (%s) Nzero real elements %i=%f%%" \
+              % (self.frequency, self.polarization, self.zero_real.sum(), \
+                 100.0*self.zero_real.sum()/self.xdata.size))
+        print("%s (%s) Nzero imag elements %i=%f%%" \
+              % (self.frequency, self.polarization, self.zero_imag.sum(), \
+                 100.0*self.zero_imag.sum()/self.xdata.size))
+        print("%s (%s) Nzero both elements %i=%f%%" \
+              % (self.frequency, self.polarization, self.zero_mask.sum(), \
+                 100.0*self.zero_mask.sum()/self.xdata.size))
+        print("\n")
         
     def read(self, handle, time_step=1, range_step=1):
 
@@ -46,6 +64,8 @@ class SLCImage(object):
             self.xdata = ximg[::time_step, ::range_step]
 
         self.shape = self.xdata.shape
+
+        print("Read %s %s %s image" % (self.band, self.frequency, self.polarization))
             
     def check_for_nan(self):
 
@@ -113,11 +133,11 @@ class SLCImage(object):
     def plot4a(self, title, bounds_linear, bounds_power):
 
         # Compute histograms and plot them
-            
+
         (counts1r, edges1r) = np.histogram(self.real, range=bounds_linear, bins=100)
         (counts1c, edges1c) = np.histogram(self.imag, range=bounds_linear, bins=100)
-        (counts1pr, edges1pr) = np.histogram(self.power, range=bounds_power, bins=100)
-        (counts1ph, edges1ph) = np.histogram(self.phase, range=(-180.0, 180.0), bins=100)
+        (counts1pr, edges1pr) = np.histogram(self.power[self.mask_ok], range=bounds_power, bins=100)
+        (counts1ph, edges1ph) = np.histogram(self.phase[self.mask_ok], range=(-180.0, 180.0), bins=100)
             
         (fig, axes) = pyplot.subplots(nrows=2, ncols=2, sharex=False, sharey=False, constrained_layout=True)
         axes[0][0].plot(edges1r[:-1], counts1r, label="real")
@@ -136,6 +156,9 @@ class SLCImage(object):
                 a.set_xlabel("SLC (linear)")
             elif (i == 2):
                 a.set_xlabel("SLC Power (dB)")
+                print("%s(%s) Power: min %f, max %f, mean %f" \
+                      % (self.frequency, self.polarization, self.power[self.mask_ok].min(), \
+                         self.power[self.mask_ok].max(), self.power[self.mask_ok].mean()))
             else:
                 a.set_xlabel("SLC Phase (degrees)")
 
@@ -144,12 +167,17 @@ class SLCImage(object):
         
     def plot4b(self, axis, title):
 
-        (counts, edges) = np.histogram(self.phase, range=(-180.0, 180.0), bins=100)
+        (counts, edges) = np.histogram(self.phase[self.mask_ok], range=(-180.0, 180.0), bins=100)
         axis.plot(edges[:-1], counts, label="phase")
+        axis.xaxis.set_tick_params(rotation=90)
+        #axis.yaxis.set_tick_params(rotation=90)
         axis.set_title(title)
         #axis.legend(loc="upper right", fontsize="small")
         #axis.set_xlabel("SLC Phase (degrees)")
         #axis.set_ylabel("Number of Counts")
+
+        print("%s (%s): min phase %f" % (self.frequency, self.polarization, \
+                                         self.phase[self.mask_ok].min()))
 
     def plotfft(self, axis, title):
 

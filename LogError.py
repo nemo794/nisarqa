@@ -51,6 +51,7 @@ class LogError(object):
         self.fid = open(self.flname, "w+")
         
         xerror = getattr(errors_base, "CustomError")
+        #print("Errors: %s" % xerror.error_strings)
         if (flname_slc in xerror.error_strings.keys()):
             for xline in xerror.error_strings[flname_slc]:
                 self.fid.write("%s\n" % xline)

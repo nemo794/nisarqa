@@ -7,7 +7,7 @@ class CustomError(Exception):
     spacing = "    "
 
     NFIELDS = 7
-    DELIMITER = ";"
+    DELIMITER = "::"
     PGE = "Q/A"
     MODULE = "Verify_slc"
 
@@ -23,6 +23,7 @@ class CustomError(Exception):
 
         estring = cls.retrieve_error_string(start_time, ename, error_traceback, error_description)
         cls.error_strings[flname] += estring
+        print("Logged %s error" % ename)
         
     @classmethod
     def log_error(cls, flname, error_traceback, error_description):
@@ -70,8 +71,10 @@ class CustomError(Exception):
             assert(len(tstring) > 0)
             estring = "%s%s%s" % (estring, cls.DELIMITER, tstring)
             estring = "%s%s%s" % (estring, cls.DELIMITER, d)
+            estring_split = estring.split(cls.DELIMITER)
 
-            assert(len(estring.split(cls.DELIMITER)) == cls.NFIELDS)
+            #print("Expect %i fields, found %i: %s" % (cls.NFIELDS, len(estring_split), estring_split))
+            assert(len(estring_split) == cls.NFIELDS)
             estrings.append(estring)
             
         return estrings

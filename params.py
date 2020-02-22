@@ -7,3 +7,4 @@ PRODUCT_TYPE = ("b'RRST'", "b'RRSD'", "b'RSLC'", "b'RMLC'", "b'RCOV'", "b'RIFG'"
 POLARIZATIONS = (["HH"], ["HH", "HV"], ["VV"], ["VV", "VH"], ["HH", "HV", "VH", "VV"], ["RH", "RV"])
 
 EPS = 1.0E-05
+TIMELEN = 26

@@ -44,12 +44,19 @@ if __name__ == "__main__":
         #errors_base.WarningError.reset(errors_base.WarningError)
         #errors_base.FatalError.reset(errors_base.FatalError)
         
+        fhdf = SLCFile(slc_file, "r")
+        
         try:
-            fhdf = SLCFile(slc_file, "r", time_step=kwds["time_step"], range_step=kwds["range_step"])
+            fhdf.get_bands()
         except errors_base.FatalError:
-            errors_base.FatalError.print_log(errors_base.FatalError, os.path.basename(args[0]), \
-                                             kwds["flog"])        
-            sys.exit(1)
+            print("File %s has a Fatal Error" % slc_file)
+
+        fhdf.get_freq_pol()
+            
+        try:
+            fhdf.check_freq_pol()
+        except errors_base.FatalError:
+            print("File %s has a Fatal Error" % slc_file)
 
         # Verify identification information
 
@@ -94,6 +101,12 @@ if __name__ == "__main__":
         # Check for NaN's and plot images
 
         if (kwds["quality"]):
+
+            try:
+                fhdf.create_images(time_step=kwds["time_step"], range_step=kwds["range_step"])
+            except errors_base.FatalError:
+                pass
+            
             try:
                 fhdf.check_images(fpdf_out, fhdf_out)
             except errors_base.WarningError:
