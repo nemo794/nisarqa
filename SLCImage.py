@@ -117,6 +117,12 @@ class SLCImage(object):
         self.fft_space = np.fft.fftfreq(self.shape[1], 1.0/self.tspacing)*1.0E-06
         self.avg_power = np.sum(np.abs(self.fft), axis=0)/(1.0*self.shape[0])
 
+        print("Looking at image %s Frequency%s %s" % (self.band, self.frequency, self.polarization))
+        print("tspacing %f, shape %s" % (self.tspacing, self.shape))
+        print("fft: min %f, max %f, mean %f" % (self.fft.min(), self.fft.max(), self.fft.mean()))
+        print("fft_space: min %f, max %f, mean %f" % (self.fft_space.min(), self.fft_space.max(), self.fft_space.mean()))
+        print("avg_power: min %f, max %f, mean %f" % (self.avg_power.min(), self.avg_power.max(), self.avg_power.mean()))
+        
         idx = np.argsort(self.fft_space)
         self.fft_space = self.fft_space[idx]
         self.avg_power = self.avg_power[idx]

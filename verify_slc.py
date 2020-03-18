@@ -106,11 +106,11 @@ if __name__ == "__main__":
                 fhdf.create_images(time_step=kwds["time_step"], range_step=kwds["range_step"])
             except errors_base.FatalError:
                 pass
-            
-            try:
-                fhdf.check_images(fpdf_out, fhdf_out)
-            except errors_base.WarningError:
-                pass
+            else:
+                try:
+                    fhdf.check_images(fpdf_out, fhdf_out)
+                except (errors_base.WarningError, errors_base.FatalError):
+                    pass
     
         # Close files
 

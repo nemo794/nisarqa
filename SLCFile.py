@@ -30,6 +30,10 @@ class SLCFile(h5py.File):
         self.METADATA = {}
         self.IDENTIFICATION = {}
 
+        self.images = {}
+        self.start_time = {}
+        self.plotted_slant = False
+
     def get_bands(self):
         
         for band in ("LSAR", "SSAR"):
@@ -53,9 +57,6 @@ class SLCFile(h5py.File):
 
         print("Found bands: %s" % self.bands)
                 
-        self.images = {}
-        self.start_time = {}
-        self.plotted_slant = False
 
     def get_freq_pol(self):
 
@@ -100,7 +101,7 @@ class SLCFile(h5py.File):
             try:
                 frequencies = [f.decode() for f in self.IDENTIFICATION[b].get("listOfFrequencies")[...]]
                 assert(frequencies in params.FREQUENCIES)
-            except (AssertionError, KeyError, UnicodeDecodeError) as e:
+            except (AssertionError, KeyError, TypeError, UnicodeDecodeError) as e:
                 traceback_string += [utility.get_traceback(e, AssertionError)]
                 error_string += ["%s Band has invalid frequency list" % b]
 
@@ -109,9 +110,9 @@ class SLCFile(h5py.File):
                 print("Looking at %s Frequency%s" % (b, f))
                 try:
                     polarization_ok = False
-                    self.polarizations[b][f] = [p.decode() for p in self.FREQUENCIES[b][f].get("listOfPolarizations")[...]]
+                    polarizations_found = [p.decode() for p in self.FREQUENCIES[b][f].get("listOfPolarizations")[...]]
                     for plist in params.POLARIZATIONS:
-                        if (set(self.polarizations[b][f]) == set(plist)):
+                        if (set(polarizations_found) == set(plist)):
                             polarization_ok = True
                             break
                     assert(polarization_ok)
@@ -130,6 +131,7 @@ class SLCFile(h5py.File):
     def create_images(self, time_step=1, range_step=1):
 
         missing_images = []
+        print("Polarizations: %s" % self.polarizations)
         
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
@@ -144,6 +146,7 @@ class SLCFile(h5py.File):
                     key = "%s %s %s" % (b, f, p)
 
                     try:
+                        print("Creating image %s %s %s" % (b, f, p2))
                         self.images[key] = SLCImage(b, f, p2, self.FREQUENCIES[b][f]["processedCenterFrequency"][...], \
                                                     self.FREQUENCIES[b][f]["slantRangeSpacing"][...])
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
@@ -349,7 +352,7 @@ class SLCFile(h5py.File):
 
             (b, f, p) = key.split()
             ximg = self.images[key]
-            fig = ximg.plot4a("%s\n(%s Frequency%s)" % (self.flname, b, f), \
+            fig = ximg.plot4a("%s\n(%s Frequency%s %s)" % (self.flname, b, f, p), \
                               (-1.0*bounds_linear, bounds_linear), (-100.0, 100.0))
             fpdf.savefig(fig)
 
@@ -415,8 +418,9 @@ class SLCFile(h5py.File):
                 axis.legend(loc="upper right", fontsize="small")
                 axis.set_xlabel("Frequency (MHz)")
                 axis.set_ylabel("Power Spectrum (dB)")
+                axis.set_ylim(bottom=40.0, top=100.0)
                 #axis.set_xlim(left=-100.0, right=100.0)
-                fig.suptitle("Power Spectrum for %s Frequency %s" % (b, f))
+                fig.suptitle("%s\nPower Spectrum for %s Frequency %s" % (self.flname, b, f))
                 fpdf.savefig(fig)
 
                 if (self.plotted_slant):
@@ -527,24 +531,6 @@ class SLCFile(h5py.File):
 
         self.figures_slant = {}
 
-        for b in self.bands:
-            for f in list(self.FREQUENCIES[b].keys()):
-                slant_path = self.FREQUENCIES[b][f]["slantRange"]
-                spacing = self.FREQUENCIES[b][f]["slantRangeSpacing"]
-
-            try:
-                utility.check_spacing(self.flname, self.start_time[b], slant_path[...], spacing[...], \
-                                      "%s %s SlantPath" % (b, f), errors_derived.SlantSpacingWarning, \
-                                      errors_derived.SlantSpacingFatal)
-            except (errors_base.WarningError, errors_base.FatalError):
-                xslant = slant_path[...]
-                self.plotted_slant = True
-                (self.figures_slant[f], axis) = pyplot.subplots(nrows=1, ncols=1, sharex=False, sharey=False, \
-                                                                constrained_layout=True)
-                axis.plot(np.arange(0, xslant.size), xslant, label="%s Frequency%s SlantPath" % (b, f))
-                self.figures_slant[f].suptitle("%s Frequency%s slantRange" % (b, f))
-                pass
-        
         for key in self.images.keys():
             #print("Looking at key %s" % key)
             (b, f, p) = key.split()
@@ -561,6 +547,22 @@ class SLCFile(h5py.File):
                                                     ["Dataset %s has shape %s, expected (%i, %i)" \
                                                      % (key, ximg.shape, ntime, nslant)])
 
+        for b in self.bands:
+            for f in list(self.FREQUENCIES[b].keys()):
+                slant_path = self.FREQUENCIES[b][f]["slantRange"]
+                spacing = self.FREQUENCIES[b][f]["slantRangeSpacing"]
+
+            try:
+                utility.check_spacing(self.flname, self.start_time[b], slant_path[...], spacing[...], \
+                                      "%s %s SlantPath" % (b, f), errors_derived.SlantSpacingWarning, \
+                                      errors_derived.SlantSpacingFatal)
+            except (errors_base.WarningError, errors_base.FatalError) as e:
+                xslant = slant_path[...]
+                self.plotted_slant = True
+                (self.figures_slant[f], axis) = pyplot.subplots(nrows=1, ncols=1, sharex=False, sharey=False, \
+                                                                constrained_layout=True)
+                axis.plot(np.arange(0, xslant.size), xslant, label="%s Frequency%s SlantPath" % (b, f))
+                self.figures_slant[f].suptitle("%s Frequency%s slantRange" % (b, f))
 
     def check_subswaths(self):
 
@@ -580,7 +582,7 @@ class SLCFile(h5py.File):
 
                 for isub in range(0, int(nsubswath)):
                     try:
-                        sub_bounds = self.FREQUENCIES[f]["validSamplesSubSwath%i" % (isub+1)][...]
+                        sub_bounds = self.FREQUENCIES[b][f]["validSamplesSubSwath%i" % (isub+1)][...]
                     except KeyError as e:
                         traceback_string = [utility.get_traceback(e, KeyError)]
                         raise errors_derived.MissingSubswathFatal(self.flname, self.start_time[b], traceback_string, \

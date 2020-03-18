@@ -53,18 +53,18 @@ def check_spacing(flname, start_time, data, spacing, dname, warning, fatal):
     except AssertionError as e:
         idx = np.where(delta <= 0.0)
         traceback_string = [get_traceback(e, AssertionError)]
-        raise fatal(flname, start_time, traceback_string, \
-                    ["%s: Found %i elements with negative spacing: %s at locations %s" \
-                     % (dname, len(idx[0]), data[idx], idx)])
+        log_string = ["%s: Found %i elements with negative spacing: %s at locations %s" \
+                     % (dname, len(idx[0]), data[idx], idx)]
+        raise fatal(flname, start_time, traceback_string, log_string)
         
     try:
         assert(np.all(diff <= params.EPS))
     except AssertionError as e:
         idx = np.where(diff > params.EPS)
         traceback_string = [get_traceback(e, AssertionError)]
-        raise warning(flname, start_time, traceback_string, \
-                      ["%s: Found %i elements with unexpected steps: %s at locations %s" \
-                       % (dname, len(idx[0]), diff[idx], idx)])
+        log_string = ["%s: Found %i elements with unexpected steps: %s at locations %s" \
+                       % (dname, len(idx[0]), diff[idx], idx)]
+        raise warning(flname, start_time, traceback_string, log_string)
 
     return log_string
 
