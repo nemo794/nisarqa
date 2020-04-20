@@ -11,6 +11,8 @@ import sys
 import time
 
 import h5py
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib.backends.backend_pdf import PdfPages
 
 WORKFLOW_NAME = "Q/A"
