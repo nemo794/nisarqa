@@ -406,25 +406,30 @@ class SLCFile(h5py.File):
             for f in self.FREQUENCIES[b].keys():
                 (fig, axis) = pyplot.subplots(nrows=1, ncols=1, sharex=False, sharey=False, \
                                               constrained_layout=True)
+                print("List of polarizations for %s %s = %s" % (b, f, self.polarizations[b][f]))
                 for p in self.polarizations[b][f]:
                     nplots += 1
                     key = "%s %s %s" % (b, f, p)
                     ximg = self.images[key]
                     xpower = 20.0*np.log10(ximg.avg_power)
                     axis.plot(ximg.fft_space, xpower, label=key)
-                    #print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s" \
-                        #      % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), ximg.shape))
+                    print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s and power %f to %f" \
+                          % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), ximg.shape, \
+                             xpower.min(), xpower.max()))
 
+                #raise RuntimeError("Stopping")
+                    
                 axis.legend(loc="upper right", fontsize="small")
                 axis.set_xlabel("Frequency (MHz)")
                 axis.set_ylabel("Power Spectrum (dB)")
-                axis.set_ylim(bottom=40.0, top=100.0)
+                #axis.set_ylim(bottom=40.0, top=100.0)
                 #axis.set_xlim(left=-100.0, right=100.0)
                 fig.suptitle("%s\nPower Spectrum for %s Frequency %s" % (self.flname, b, f))
                 fpdf.savefig(fig)
 
                 if (self.plotted_slant):
                     for f in self.FREQUENCIES[b].keys():
+                        print("Saving power spectrum plot")
                         fpdf.savefig(self.figures_slant[f])
                 
             # Write histogram summaries to an hdf5 file
