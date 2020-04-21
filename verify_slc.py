@@ -11,6 +11,10 @@ import sys
 import time
 
 import h5py
+# Switch backend to one that doesn't require DISPLAY to be set since we're
+# just plotting to file anyway. (Some compute notes do not allow X connections)
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib.backends.backend_pdf import PdfPages
 
 WORKFLOW_NAME = "Q/A"
