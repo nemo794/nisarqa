@@ -54,6 +54,11 @@ if __name__ == "__main__":
             fhdf.get_bands()
         except errors_base.FatalError:
             print("File %s has a Fatal Error" % slc_file)
+            fhdf.close()
+            if (kwds["validate"]):
+                flog.print_file_logs(os.path.basename(slc_file))
+            sys.exit(1)
+             
 
         fhdf.get_freq_pol()
             
@@ -61,6 +66,11 @@ if __name__ == "__main__":
             fhdf.check_freq_pol()
         except errors_base.FatalError:
             print("File %s has a Fatal Error" % slc_file)
+            fhdf.close()
+            if (kwds["validate"]):
+                flog.print_file_logs(os.path.basename(slc_file))
+            sys.exit(1)
+             
 
         # Verify identification information
 

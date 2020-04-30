@@ -1,8 +1,8 @@
-import errors_base
-import errors_derived
-import params
-from SLCImage import SLCImage
-import utility
+from quality import errors_base
+from quality import errors_derived
+from quality import params
+from quality.SLCImage import SLCImage
+from quality import utility
 
 import h5py
 from matplotlib import cm, pyplot, ticker
@@ -51,7 +51,7 @@ class SLCFile(h5py.File):
                     self.IDENTIFICATION[band] = self["/science/%s/identification/" % band]
                 except KeyError as e:
                     traceback_string = [utility.get_traceback(e, KeyError)]
-                    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", \
+                    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", traceback_string, \
                                                              ["File missing swath, metadata or identification data for %s." % band])
 
 

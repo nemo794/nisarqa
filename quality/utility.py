@@ -1,4 +1,4 @@
-import params
+from quality import params
 
 import numpy as np
 

@@ -1,4 +1,4 @@
-import errors_base
+from quality import errors_base
 
 import os
 

@@ -1,4 +1,4 @@
-import utility
+from quality import utility
 
 from matplotlib import cm, pyplot, ticker
 from matplotlib.backends.backend_pdf import PdfPages
