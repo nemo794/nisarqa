@@ -2,3 +2,4 @@ SanAnd_05024_18038_006_180730_L090_CX_129_03.h5 filter=lfs diff=lfs merge=lfs -t
 SanAnd_05024_18038_006_180730_L090_CX_138_03.h5 filter=lfs diff=lfs merge=lfs -text
 SanAnd_05024_18038_006_180730_L090_CX_143_03.h5 filter=lfs diff=lfs merge=lfs -text
 winnip_09002_12055_006_120703_L090_CX_129_02.h5 filter=lfs diff=lfs merge=lfs -text
+test_data/*.h5 filter=lfs diff=lfs merge=lfs -text
