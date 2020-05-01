@@ -104,8 +104,22 @@ class SLCFile(h5py.File):
             except (AssertionError, KeyError, TypeError, UnicodeDecodeError) as e:
                 traceback_string += [utility.get_traceback(e, AssertionError)]
                 error_string += ["%s Band has invalid frequency list" % b]
+            else:
+                for f in frequencies:
+                    try:
+                        assert("frequency%s" % f in self.SWATHS[b].keys())
+                    except AssertionError as e:
+                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        error_string += ["%s Band missing Frequency%s" % (b, f)]
 
-            print("Finished logging Frequency List error")
+                for f in self.FREQUENCIES[b].keys():
+                    try:
+                        assert(f in frequencies)
+                    except AssertionError as e:
+                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        error_string += ["%s Band frequency list missing %s" % (b, f)]
+
+
             for f in self.FREQUENCIES[b].keys():
                 print("Looking at %s Frequency%s" % (b, f))
                 try:
@@ -246,12 +260,11 @@ class SLCFile(h5py.File):
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         try:
-            ptype = str(identifications["productType"][0])
-            assert(str(ptype) in ("RRST'", "RRSD", "RSLC", "RMLC", \
-                                  "RCOV", "RIFG", "RUNW", "GUNW", \
-                                  "CGOV", "GSLC"))
+            ptype = str(identifications["productType"][0]).lstrip("b").replace("'", "")
+            assert(ptype in ("RRST", "RRSD", "RSLC", "RMLC", "RCOV", \
+                             "RIFG", "RUNW", "GUNW", "CGOV", "GSLC", "SLC"))
         except AssertionError as e:
-            error_string += ["Invalid Product Type"]
+            error_string += ["Invalid Product Type: %s" % ptype]
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         try:

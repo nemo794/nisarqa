@@ -1,5 +1,5 @@
-import errors_base
-import errors_derived
+from quality import errors_base
+from quality import errors_derived
 
 import os
 

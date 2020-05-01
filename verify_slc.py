@@ -1,9 +1,9 @@
-import check_time
-import errors_base
-import errors_derived
-from LogError import LogError
-from SLCFile import SLCFile
-import utility
+from quality import check_time
+from quality import errors_base
+from quality import errors_derived
+from quality.LogError import LogError
+from quality.SLCFile import SLCFile
+from quality import utility
 
 import optparse
 import os, os.path

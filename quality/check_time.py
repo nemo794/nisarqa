@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import errors_base
-import errors_derived
-import utility
+from quality import errors_base
+from quality import errors_derived
+from quality import utility
 
 import optparse
 import os
