@@ -52,7 +52,23 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations1.h5"), "r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency [A,B] has invalid polarization list", \
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has invalid polarization list", \
+                               self.slc_file.check_freq_pol)
+        
+    def test_missing_polarizations(self):
+
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations2.h5"), "r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] missing polarization [HH,VV,HV,VH]", \
+                               self.slc_file.check_freq_pol)
+        
+    def test_extra_polarizations(self):
+
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations3.h5"), "r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has extra polarization [HH,VV,HV,VH]", \
                                self.slc_file.check_freq_pol)
         
         
