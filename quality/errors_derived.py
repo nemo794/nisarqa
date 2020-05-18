@@ -124,7 +124,7 @@ class NaNFatal(errors_base.FatalError):
     ninstance = 0
     name = "FatalNaN"
     def __init__(self, flname, start_time, traceback, description):
-        NanFatal.ninstance += 1
+        NaNFatal.ninstance += 1
         NaNFatal.file_list.append(os.path.basename(flname))
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
@@ -133,7 +133,8 @@ class NaNWarning(errors_base.WarningError):
     ninstance = 0
     name = "WarningNaN"
     def __init__(self, flname, start_time, traceback, description):
-        NanWarning.ninstance += 1
+        print("Raising NaN Warning")
+        NaNWarning.ninstance += 1
         NaNWarning.file_list.append(os.path.basename(flname))
         raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 

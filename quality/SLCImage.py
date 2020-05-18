@@ -92,6 +92,8 @@ class SLCImage(object):
 
     def calc(self):
 
+        import matplotlib.pyplot as pyplot
+        
         try:
             self.mask_ok = np.where(~self.nan_mask & ~self.zero_mask, True, False)
         except AttributeError:
@@ -100,12 +102,7 @@ class SLCImage(object):
         
         self.power = np.where(self.mask_ok, self.xdata.real*self.xdata.real + self.xdata.imag*self.xdata.imag, self.BADVALUE)
         self.power = np.where(self.mask_ok, 10.0*np.log10(self.power), self.BADVALUE)
-        self.phase = np.where(self.mask_ok, np.degrees(np.angle(self.xdata)), self.BADVALUE)
-
-        #idx_infinity = np.where(np.isinf(self.power))
-        #print("%i Infinity Points: %s" % (len(idx_infinity[0]), idx_infinity))
-        #print("Real for infinity %s, Imag for infinity %s" \
-        #      % (np.unique(self.xdata.real[idx_infinity]), np.unique(self.xdata.imag[idx_infinity])))
+        self.phase = np.where(self.mask_ok, np.angle(self.xdata, deg=True), self.BADVALUE)
 
         self.mean_power = self.power[self.mask_ok].mean()
         self.sdev_power = self.power[self.mask_ok].std()
@@ -117,12 +114,6 @@ class SLCImage(object):
         self.fft_space = np.fft.fftfreq(self.shape[1], 1.0/self.tspacing)*1.0E-06
         self.avg_power = np.sum(np.abs(self.fft), axis=0)/(1.0*self.shape[0])
 
-        #print("Looking at image %s Frequency%s %s" % (self.band, self.frequency, self.polarization))
-        #print("tspacing %f, shape %s" % (self.tspacing, self.shape))
-        #print("fft: min %f, max %f, mean %f" % (self.fft.min(), self.fft.max(), self.fft.mean()))
-        #print("fft_space: min %f, max %f, mean %f" % (self.fft_space.min(), self.fft_space.max(), self.fft_space.mean()))
-        #print("avg_power: min %f, max %f, mean %f" % (self.avg_power.min(), self.avg_power.max(), self.avg_power.mean()))
-        
         idx = np.argsort(self.fft_space)
         self.fft_space = self.fft_space[idx]
         self.avg_power = self.avg_power[idx]
@@ -144,7 +135,10 @@ class SLCImage(object):
         (counts1c, edges1c) = np.histogram(self.imag, range=bounds_linear, bins=100)
         (counts1pr, edges1pr) = np.histogram(self.power[self.mask_ok], range=bounds_power, bins=100)
         (counts1ph, edges1ph) = np.histogram(self.phase[self.mask_ok], range=(-180.0, 180.0), bins=100)
-            
+
+        print("%s %s %s: edges %s, counts %s" % (self.band, self.frequency, self.polarization, \
+                                                 edges1ph, counts1ph))
+        
         (fig, axes) = pyplot.subplots(nrows=2, ncols=2, sharex=False, sharey=False, constrained_layout=True)
         axes[0][0].plot(edges1r[:-1], counts1r, label="real")
         axes[0][1].plot(edges1c[:-1], counts1c, label="imaginary")
@@ -162,9 +156,6 @@ class SLCImage(object):
                 a.set_xlabel("SLC (linear)")
             elif (i == 2):
                 a.set_xlabel("SLC Power (dB)")
-                print("%s(%s) Power: min %f, max %f, mean %f" \
-                      % (self.frequency, self.polarization, self.power[self.mask_ok].min(), \
-                         self.power[self.mask_ok].max(), self.power[self.mask_ok].mean()))
             else:
                 a.set_xlabel("SLC Phase (degrees)")
 
@@ -182,8 +173,8 @@ class SLCImage(object):
         #axis.set_xlabel("SLC Phase (degrees)")
         #axis.set_ylabel("Number of Counts")
 
-        print("%s (%s): min phase %f" % (self.frequency, self.polarization, \
-                                         self.phase[self.mask_ok].min()))
+        #print("%s (%s): min phase %f" % (self.frequency, self.polarization, \
+        #                                 self.phase[self.mask_ok].min()))
 
     def plotfft(self, axis, title):
 

@@ -134,6 +134,23 @@ class SLCFile(h5py.File):
                     traceback_string += [utility.get_traceback(e, AssertionError)]
                     error_string += ["%s Frequency%s has invalid polarization list" % (b, f)]
 
+                else:
+                    for p in polarizations_found:
+                        try:
+                            assert(p in self.FREQUENCIES[b][f].keys())
+                        except AssertionError as e:
+                            traceback_string += [utility.get_traceback(e, AssertionError)]
+                            error_string += ["%s Frequency%s missing polarization %s" % (b, f, p)]
+
+                    plist = [p for p in self.FREQUENCIES[b][f].keys() if p in ("HH", "HV", "VH", "VV")]
+                    for p in plist:
+                        try:
+                            assert(p in polarizations_found)
+                        except AssertionError as e:
+                            traceback_string += [utility.get_traceback(e, AssertionError)]
+                            error_string += ["%s Frequency%s has extra polarization %s" % (b, f, p)]
+                            
+
         assert(len(traceback_string) == len(error_string))
         try:
             assert(len(error_string) == 0)
@@ -150,21 +167,14 @@ class SLCFile(h5py.File):
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
                 for p in self.polarizations[b][f]:
-                    p2 = p
-                    #if (p == "VV"):
-                    #    p2 = "VH"
-                    #elif (p == "VH"):
-                    #    p2 = "VV"
-                    #else:
-                    #    p2 = p
                     key = "%s %s %s" % (b, f, p)
 
                     try:
-                        print("Creating image %s %s %s" % (b, f, p2))
-                        self.images[key] = SLCImage(b, f, p2, self.FREQUENCIES[b][f]["processedCenterFrequency"][...], \
+                        #print("Creating image %s %s %s" % (b, f, p))
+                        self.images[key] = SLCImage(b, f, p, self.FREQUENCIES[b][f]["processedCenterFrequency"][...], \
                                                     self.FREQUENCIES[b][f]["slantRangeSpacing"][...])
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
-                        print("Created image with key %s" % key)
+                        #print("Created image with key %s" % key)
                     except KeyError:
                         missing_images.append(key)
 
@@ -184,38 +194,23 @@ class SLCFile(h5py.File):
         identifications = {}
         for dname in ("absoluteOrbitNumber", "trackNumber", "frameNumber", "cycleNumber", "lookDirection", \
                       "orbitPassDirection", "productType", "zeroDopplerStartTime", "zeroDopplerEndTime"):
+            identifications[dname] = []
             for b in self.bands:
-                identifications[dname] = []
                 try:
                     identifications[dname].append(self.IDENTIFICATION[b].get(dname)[...])
-                    #print("%s: Read %s of type %s and size %s and values %s" \
-                    #      % (b, dname, type(identifications[dname][0]), identifications[dname][0]))
                 except KeyError:
-                    error_string += ["%s missing dataset %s" % (b, dname)]
+                    if (dname != "cycleNumber"):
+                        error_string += ["%s missing dataset %s" % (b, dname)]
                 except TypeError as e:
                     if (dname == "cycleNumber"):
                         identifications[dname].append(-9999)
 
             try:
-                #print("%s: values %s %s" % (dname, type(identifications[dname]), identifications[dname]))
                 assert( (len(self.bands) == 1) or (identifications[dname][0] == identifications[dname][1]) )
             except AssertionError as e:
                 traceback_string.append(utility.get_traceback(e, AssertionError))
                 error_string += ["Values of %s differ between bands" % dname]
                 
-            #orbit = self.IDENTIFICATION.get("absoluteOrbitNumber")[...]
-            #track = self.IDENTIFICATION.get("trackNumber")[...]
-            #frame = self.IDENTIFICATION.get("frameNumber")[...]
-            #try:
-            #    cycle = self.IDENTIFICATION.get("cycleNumber")[...]
-            #except TypeError:
-            #    cycle = -9999
-            #    lookdir = self.IDENTIFICATION.get("lookDirection")[...]
-            #    passdir = self.IDENTIFICATION.get("orbitPassDirection")[...]
-            #    ptype = self.IDENTIFICATION.get("productType")[...]
-            #    start_time = self.IDENTIFICATION.get("zeroDopplerStartTime")[...]
-            #    end_time = self.IDENTIFICATION.get("zeroDopplerEndTime")[...]
-
         # Verify that all identification parameters are correct
             
         try:
@@ -254,7 +249,10 @@ class SLCFile(h5py.File):
             
         try:
             cycle = int(identifications["cycleNumber"][0])
-            assert(cycle > 0)
+            if (cycle != -9999):
+                assert(cycle > 0)
+        except KeyError:
+            pass
         except AssertionError as e:
             error_string += ["Invalid Cycle Number: %i" % cycle]
             traceback_string.append(utility.get_traceback(e, AssertionError))
@@ -271,7 +269,7 @@ class SLCFile(h5py.File):
             lookdir = str(identifications["lookDirection"][0])
             assert(str(lookdir).lower() in ("b'left'", "b'right'"))
         except AssertionError as e:
-            error_string += ["Invalid Look Number:"]
+            error_string += ["Invalid Look Direction: %s" % lookdir]
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         # raise errors if needed
@@ -281,18 +279,13 @@ class SLCFile(h5py.File):
         try:
             assert(len(error_string) == 0)
         except AssertionError as e:
-            #print("error_string: %s" % error_string)
-            #print("traceback_string: %s" % traceback_string)
-            raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, error_string)
+            raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], \
+                                                     traceback_string, error_string)
 
-    def check_images(self, fpdf, fhdf):
+    def check_nans(self):
 
-        min_value = np.array([np.finfo(np.float64).max, np.finfo(np.float64).max])
-        max_value = np.array([np.finfo(np.float64).min, np.finfo(np.float64).min])
         nan_warning = []
         nan_fatal = []
-
-        # Get min/max value of all images and also check for NaNs.
         
         for key in self.images.keys():
             ximg = self.images[key]
@@ -302,7 +295,39 @@ class SLCFile(h5py.File):
                     nan_warning.append(key)
                 else:
                     nan_fatal.append(key)
- 
+
+        # Raise Warning if any NaNs are found and Fatal if an image is entirely NaN
+            
+        try:
+            assert(len(nan_warning) == 0)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            error_string = ["%i images had NaN's:" % len(nan_warning)]
+            for key in nan_warning:
+                band = self.images[key].band
+                error_string[0] += " (%s, %i=%.0f%%)" % (key, self.images[key].num_nan, \
+                                                         self.images[key].perc_nan)
+            raise errors_derived.NaNWarning(self.flname, self.start_time[band], \
+                                            traceback_string, error_string)
+
+        try:
+            assert(len(nan_fatal) == 0)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            error_string = ["%i images were empty:" % (len(nan_fatal))]
+            for key in nan_fatal:
+                band = self.images[key].band
+                error_string[0] += " (%s)" % key
+            raise errors_derived.NaNFatal(self.flname, self.start_time[band], \
+                                          traceback_string, error_string)          
+
+    def check_images(self, fpdf, fhdf):
+
+        min_value = np.array([np.finfo(np.float64).max, np.finfo(np.float64).max])
+        max_value = np.array([np.finfo(np.float64).min, np.finfo(np.float64).min])
+        nan_warning = []
+        nan_fatal = []
+
         # Generate histograms (real and imaginary components separately) and plot them
 
         xmax = np.maximum(np.fabs(min_value), np.fabs(max_value)).max()
@@ -358,6 +383,7 @@ class SLCFile(h5py.File):
                 counts_power += counts
 
         bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
+        print("bounds_linear %s" % bounds_linear)
                 
         # Generate figures
         
@@ -426,9 +452,9 @@ class SLCFile(h5py.File):
                     ximg = self.images[key]
                     xpower = 20.0*np.log10(ximg.avg_power)
                     axis.plot(ximg.fft_space, xpower, label=key)
-                    print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s and power %f to %f" \
-                          % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), ximg.shape, \
-                             xpower.min(), xpower.max()))
+                    #print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s and power %f to %f" \
+                    #      % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), ximg.shape, \
+                    #         xpower.min(), xpower.max()))
 
                 #raise RuntimeError("Stopping")
                     
@@ -456,6 +482,7 @@ class SLCFile(h5py.File):
             (b, f, p) = key.split()
             ximg = self.images[key]
             group2 = groups[b].create_group(key)
+
             for (name, data) in zip( ("MeanPower", "SDevPower", "MeanPhase", "SDevPhase"), \
                                      ("mean_power", "sdev_power", "mean_phase", "sdev_phase") ):
                 xdata = getattr(ximg, data)
@@ -467,23 +494,7 @@ class SLCFile(h5py.File):
             dset = group2.create_dataset("Average Power", ximg.fft_space.shape, dtype='f4')
             dset.write_direct(20.0*np.log10(ximg.avg_power).astype(np.float32))
 
-            # Raise Warning if any NaNs are found and Fatal if an image is entirely NaN
-            
-            try:
-                assert(len(nan_warning) == 0)
-            except AssertionError as e:
-                traceback_string = [utility.get_traceback(e, AssertionError)]
-                error_string = "%i images had NaN's:" % len(nan_warning)
-                for key in nan_warnings:
-                    error_string += " (%s, %i=%f%%)" % (key, self.images[key].num_nan, self.images[key].perc_nan)
-                    raise errors_derived.NaNWarning(self.flname, self.start_time[b], traceback_string, error_string)
 
-            try:
-                assert(len(nan_fatal) == 0)
-            except AssertionError as e:
-                traceback_string = [utility.get_traceback(e, AssertionError)]
-                error_string = "%i images were empty: %s" % (len(nan_fatal), nan_fatal)
-                raise errors_derived.NaNFatal(self.flname, self.start_time[b], traceback_string, error_string)
 
     def check_time(self):
 
@@ -503,17 +514,19 @@ class SLCFile(h5py.File):
                                                          ["%s Start/End Times could not be read." % b])
             else:
                 print("time %f to %f" % (time.min(), time.max()))
-                try:
-                    time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
-                    time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-                    assert(time2 > time1)
-                    assert( (time1.year >= 2000) and (time1.year < 2100) )
-                    assert( (time2.year >= 2000) and (time2.year < 2100) )
-                except (AssertionError, ValueError) as e:
-                    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                                                             ["%s Invalid Start and End Times" % b])
-                                                              #% (b, start_time[0:10].strip(), end_time[0:10].strip())])
+                
+                #try:
+                #    time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
+                #    time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
+                #    print("Time1 %s, Time2 %s" % (time1, time2))
+                #    assert(time2 > time1)
+                #    assert( (time1.year >= 2000) and (time1.year < 2100) )
+                #    assert( (time2.year >= 2000) and (time2.year < 2100) )
+                #except (AssertionError, ValueError) as e:
+                #    traceback_string = [utility.get_traceback(e, AssertionError)]
+                #    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
+                #                                             ["%s Invalid Start and End Times" % b])
+                #                                              #% (b, start_time[0:10].strip(), end_time[0:10].strip())])
 
             try:
                 utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
@@ -533,17 +546,18 @@ class SLCFile(h5py.File):
         for b in self.bands:
             nfrequencies = len(self.FREQUENCIES[b])
             if (nfrequencies == 2):
-                acquired_freq = {}
-                for f in list(self.FREQUENCIES[b].keys()):
-                    acquired_freq[f] = self.FREQUENCIES[b][f]["processedCenterFrequency"][...]
+                for freq_name in ("acquiredCenterFrequency", "processedCenterFrequency"):
+                    freq = {}
+                    for f in list(self.FREQUENCIES[b].keys()):
+                        freq[f] = self.FREQUENCIES[b][f][freq_name][...]
 
-                try:
-                    assert(acquired_freq["A"] < acquired_freq["B"])
-                except AssertionError as e:
-                    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.FrequencyOrderFatal(self.flname, self.start_time[b], traceback_string, \
-                                                             ["Frequency A=%f not less than Frequency B=%f" \
-                                                              % (acquired_freq["A"], acquired_freq["B"])])
+                    try:
+                        assert(freq["A"] < freq["B"])
+                    except AssertionError as e:
+                        traceback_string = [utility.get_traceback(e, AssertionError)]
+                        raise errors_derived.FrequencyOrderFatal(self.flname, self.start_time[b], traceback_string, \
+                                                                 ["%s A=%f not less than B=%f" \
+                                                                  % (freq_name, freq["A"], freq["B"])])
 
     def check_slant_range(self):
 
