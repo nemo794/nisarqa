@@ -122,6 +122,11 @@ if __name__ == "__main__":
                 pass
             else:
                 try:
+                    fhdf.check_nans()
+                except (errors_base.WarningError, errors_base.FatalError):
+                    pass
+                
+                try:
                     fhdf.check_images(fpdf_out, fhdf_out)
                 except (errors_base.WarningError, errors_base.FatalError):
                     pass
@@ -136,6 +141,7 @@ if __name__ == "__main__":
     # Close pdf file
 
     if (kwds["quality"]):
+        print("Closing output files")
         fpdf_out.close()
         fhdf_out.close()
                                        

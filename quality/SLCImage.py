@@ -136,9 +136,6 @@ class SLCImage(object):
         (counts1pr, edges1pr) = np.histogram(self.power[self.mask_ok], range=bounds_power, bins=100)
         (counts1ph, edges1ph) = np.histogram(self.phase[self.mask_ok], range=(-180.0, 180.0), bins=100)
 
-        print("%s %s %s: edges %s, counts %s" % (self.band, self.frequency, self.polarization, \
-                                                 edges1ph, counts1ph))
-        
         (fig, axes) = pyplot.subplots(nrows=2, ncols=2, sharex=False, sharey=False, constrained_layout=True)
         axes[0][0].plot(edges1r[:-1], counts1r, label="real")
         axes[0][1].plot(edges1c[:-1], counts1c, label="imaginary")
