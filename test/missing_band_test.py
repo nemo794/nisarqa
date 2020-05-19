@@ -20,8 +20,15 @@ class SLCFile_test(unittest.TestCase):
     def test_missing_band(self):
 
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_band.h5"), "r")
-        self.assertRaisesRegex(errors_base.FatalError, "File missing swath, metadata or identification data for [L,S]SAR", \
+        self.assertRaisesRegex(errors_base.FatalError, "Unable to find dataset: /science/[L,S]SAR/.*metadata", \
                                self.slc_file.get_bands)
+
+    def test_inconsistent_bands(self):
+
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "inconsistent_bands.h5"), "r")
+        self.assertRaisesRegex(errors_base.FatalError, "Metadata and swath have inconsistent naming", \
+                               self.slc_file.get_bands)
+                                
 
     def test_incorrect_frequency(self):
 

@@ -44,20 +44,88 @@ class SLCFile(h5py.File):
                 pass
             else:
                 print("Found band %s" % band)
+                self.bands.append(band)
+                traceback_strings = []
+                error_strings = []
+                
+                (name_swath, traceback_swath, error_swath) \
+                    = self.get_metadata(self.SWATHS, band, "/science/%s/%s/swaths", ["SLC", "RSLC"])
+                (name_metadata, traceback_metadata, error_metadata) \
+                    = self.get_metadata(self.METADATA, band, "/science/%s/%s/metadata", ["SLC", "RSLC"])
+
+                assert(len(traceback_swath) == len(error_swath))
+                assert(len(traceback_metadata) == len(error_metadata))
                 try:
-                    self.bands.append(band)
-                    self.SWATHS[band] = self["/science/%s/SLC/swaths" % band]
-                    self.METADATA[band] = self["/science/%s/SLC/metadata" % band]
+                    assert(len(traceback_swath) == 0)
+                    assert(len(traceback_metadata) == 0)
+                except AssertionError as e:
+                    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", \
+                                                             traceback_swath+traceback_metadata, \
+                                                             error_swath+error_metadata)
+
+                try:
+                    assert(name_swath == name_metadata)
+                except AssertionError as e:
+                    traceback_string = [utility.get_traceback(e, AssertionError)]
+                    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", \
+                                                             traceback_string, ["Metadata and swath have inconsistent naming"])
+
+                try:
                     self.IDENTIFICATION[band] = self["/science/%s/identification/" % band]
                 except KeyError as e:
                     traceback_string = [utility.get_traceback(e, KeyError)]
                     raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", traceback_string, \
-                                                             ["File missing swath, metadata or identification data for %s." % band])
+                                                             ["File missing identification data for %s." % band])
+
+                    
+                #except errors_derived.FatalIdentificationError as e:
+                #    traceback_string = [utility.get_traceback(e, KeyError)]
+
+                #    for (dict, name) in zip( (self.SWATHS, self.METADATA, self.IDENTIFICATION), \
+                #                         ("SLC", "RSLC") ):
+                #    ntry = 0
+                #    try:
+                #        dict[band] = self["/science/%s/%s/swaths" % (band, name)]
+                #    except KeyError:
+                #        ntry += 1
+                    
+                #    self.METADATA[band] = self["/science/%s/SLC/metadata" % band]
+                #    self.IDENTIFICATION[band] = self["/science/%s/identification/" % band]
+                #except KeyError as e:
+                #    traceback_string = [utility.get_traceback(e, KeyError)]
+                #    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", traceback_string, \
+                #                                             ["File missing swath, metadata or identification data for %s." % band])
 
 
         print("Found bands: %s" % self.bands)
                 
+    def get_metadata(self, xdict, band, location, names):
 
+        ntry = 0
+        name_good = None
+        
+        for name in names:
+            location_try = location % (band, name)
+            try:
+                xdict[band] = self[location_try]
+            except KeyError:
+                ntry += 1
+            else:
+                name_good = name
+                xdict[band] = self[location_try]
+                break
+
+        traceback_string = []
+        error_string = []
+        try:
+            assert(name_good is not None)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, KeyError)]
+            name_list = ",".join(names)
+            error_string = ["Unable to find dataset: %s" % location_try.replace(name, "[%s]" % name_list)]
+
+        return name_good, traceback_string, error_string
+        
     def get_freq_pol(self):
 
         self.FREQUENCIES = {}
