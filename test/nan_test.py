@@ -17,7 +17,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_partial(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "nan1.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "nan1.h5"), mode="r")
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
@@ -29,7 +29,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_full(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "nan2.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "nan2.h5"), mode="r")
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()

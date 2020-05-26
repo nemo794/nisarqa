@@ -19,7 +19,7 @@ class SLCFile_test(unittest.TestCase):
     
     def test_start_end_time(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification1.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification1.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -29,7 +29,7 @@ class SLCFile_test(unittest.TestCase):
 
     def test_orbit(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification2.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification2.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -38,7 +38,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_track(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification3.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification3.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -47,7 +47,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_frame(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification4.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification4.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -56,7 +56,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_cycle(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification5.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification5.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -65,7 +65,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_product_type(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification6.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification6.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -74,7 +74,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_look_direction(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification7.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification7.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -84,7 +84,7 @@ class SLCFile_test(unittest.TestCase):
          
     def test_acquired_frequencies(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification8.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification8.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -95,7 +95,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_processed_frequencies(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification9.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification9.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
@@ -106,7 +106,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_orbit_track(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification2b.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "identification2b.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()

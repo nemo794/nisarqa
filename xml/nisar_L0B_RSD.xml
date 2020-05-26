@@ -1,0 +1,1166 @@
+<?xml version="1.0"?>
+<algorithm name="L0B_RadarSignalData"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://github.jpl.nasa.gov/niessner/SDS/blob/master/pix/schema.xsd">
+    <product template="L0B_RSD_template">
+    <!-- Start of the science section of product -->
+    <science uid="sci_1">
+      <!-- Global attributes for the product -->
+      <annotation app="conformance" Conventions="CF-1.7"
+                                    title="NISAR L0B RSD Product"
+                                    institution="NASA JPL"
+                                    mission_name="NISAR"
+                                    reference_document="TBD"
+                                    contact="nisarops@jpl.nasa.gov"/>
+      <nodes>
+        <!-- Product Identification -->
+        <integer name="/science/LSAR/identification/absoluteOrbitNumber"
+                 shape="scalar"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Absolute orbit number</annotation>
+        </integer>
+        <string length="0"
+                name="/science/LSAR/identification/missionId"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Mission identifier</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/productType"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Product type</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/productVersion"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Product type</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/lookDirection"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Look direction can be left or right</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/orbitPassDirection"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Orbit direction can be ascending or descending</annotation>
+        </string>
+        <string length="27"
+                name="/science/LSAR/identification/zeroDopplerStartTime"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Azimuth start time of product</annotation>
+        </string>
+        <string length="27"
+                name="/science/LSAR/identification/zeroDopplerEndTime"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Azimuth stop time of product</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/plannedDatatakeId"
+                shape="numberOfDatatakes">
+          <annotation app="conformance"
+                      lang="en">List of planned datatakes included in the product</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/plannedObservationId"
+                shape="numberOfObservations">
+          <annotation app="conformance"
+                      lang="en">List of planned observations included in the product</annotation>
+        </string>
+        <string  length="0"
+                 name="/science/LSAR/identification/isUrgentObservation"
+                 shape="numberOfObservations">
+          <annotation app="conformance"
+                      lang="en">List of booleans indicating if datatakes are nominal or urgent</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/listOfFrequencies"
+                shape="numberOfFrequencies">
+          <annotation app="conformance"
+                      lang="en">List of frequency layers available in the product</annotation>
+        </string>
+        <string  length="0"
+                 name="/science/LSAR/identification/diagnosticModeFlag"
+                 shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Indicates if the radar mode is a diagnostic mode or not: True or False</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/isGeocoded"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Flag to indicate radar geometry or geocoded product</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/boundingPolygon"
+                shape="scalar">
+                <annotation app="conformance"
+                            lang="en">OGR compatible WKT representation of bounding polygon of the image</annotation>
+                <annotation app="conformance"
+                            ogr_geometry="polygon"
+                            epsg="4326"></annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/processingType"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED</annotation>
+        </string>
+        <!-- End of product identification -->
+
+        <!-- Identify data acquisition mode -->
+        <string length="0"
+                name="/science/LSAR/RSD/instrumentConfigID"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Instrument configuration ID</annotation>
+        </string>
+
+        <!-- Main layers for frequencyA -->
+        <string length="2"
+              name="/science/LSAR/RSD/swaths/frequencyA/listOfTxPolarizations"
+              shape="numberOfFrequencyAPolarizations">
+          <annotation app="conformance"
+                      lang="en">List of processed polarization layers with frequencyA</annotation>
+        </string>
+        <!-- H polarization transmit -->
+        <!-- Scalars -->
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/sceneCenterAlongTrackSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the SLC image</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/sceneCenterGroundRangeSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the SLC image</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rangeBandwidth"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="Hz">Acquisition range bandwidth in Hz.</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/chirpSlope"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      shape="scalar"
+                      width="64"
+                      units="Hz per second">Nominal chirp slope in Hz/s</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/chirpDuration"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      shape="scalar"
+                      width="64"
+                      units="seconds">Chirp duration in seconds</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/nominalAcquisitionPRF"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="Hz">Nominal PRF of acquisition.</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/centerFrequency"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="Hz">Center frequency of the acquisition in Hz. In case of mode combination, this corresponds to the mode with lowest Center Frequency.</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/slantRangeSpacing"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range spacing of grid. Same as difference between consecutive samples in slantRange array</annotation>
+        </real>
+        
+        <!-- 1D arrays / dimensions -->
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/slantRange"
+              shape="frequencyASlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">CF compliant dimension associated with slant range</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/listOfTxTRMs"
+                 shape="TRMLength"
+                 signed="true"
+                 width="8">
+              <annotation app="conformance"
+                          lang="en">TR modules used for transmit</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/listOfRxTRMs"
+                 shape="TRMLength"
+                 signed="true"
+                 width="8">
+              <annotation app="conformance"
+                          lang="en">TR modules used for receive</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/listOfRxTRMs"
+                 shape="TRMLength"
+                 signed="true"
+                 width="8">
+              <annotation app="conformance"
+                          lang="en">TR modules used for receive</annotation>
+        </integer>
+
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/HH"
+              shape="complexDataFrequencyAShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="DN">HH raw data</annotation>
+          <annotation app="io" kwd="complex" />
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/HV"
+              shape="complexDataFrequencyAShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="DN">HV raw data</annotation>
+          <annotation app="io" kwd="complex" />
+        </real>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/radarTime"
+                 shape="alongTrackTimeLength"
+                 signed="false"
+                 width="64">
+          <annotation app="conformance"
+                      lang="en">64-bit L-SAR radar clock time tag</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rangeLineIndex"
+                 shape="alongTrackTimeLength"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en">32-bit L-SAR range line index</annotation>
+        </integer>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/UTCTime"
+                 shape="alongTrackTimeLength"
+                 width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">UTC transmit time tag</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/numberOfSubSwaths"
+                 shape="scalar"
+                 signed="false"
+                 width="8">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Number of swaths of continuous imagery, due to transmit gaps</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath1"
+                 shape="validSamplesShape"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">First and last valid sample in each line of 1st subswath</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath2"
+                 shape="validSamplesShape"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">First and last valid sample in each line of 2nd subswath</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath3"
+                 shape="validSamplesShape"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath4"
+                 shape="validSamplesShape"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
+        </integer>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/txPhase"
+              shape="TRMPulseShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Pulse-by-pulse phase shifter value</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/txCal"
+              shape="TRM3TapPulseShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en">Pulse-by-pulse phase estimated from TxCal</annotation>
+          <annotation app="io" kwd="complex" />
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/attenuation"
+              shape="TRMPulseShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en">Pulse-by-pulse receiver attenuation on H-polarization</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/attenuation"
+              shape="TRMPulseShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en">Pulse-by-pulse receiver attenuation on H-polarization</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/caltone"
+              shape="TRM3TapPulseShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en">Pulse-by-pulse phase estimated from Caltone on H-polarization</annotation>
+          <annotation app="io" kwd="complex" />
+        </real>
+        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/caltone"
+              shape="TRM3TapPulseShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en">Pulse-by-pulse phase estimated from Caltone on V-polarization</annotation>
+          <annotation app="io" kwd="complex" />
+        </real>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/TRMDataWindow"
+                 shape="TRMPulseShape"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en">Pulse-by-pulse list of active receivers on H-polarization</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/TRMDataWindow"
+                 shape="TRMPulseShape"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en">Pulse-by-pulse list of active receivers on V-polarization</annotation>
+        </integer>
+
+        <!-- GPS DRT -->
+        <real name="/science/LSAR/RSD/telemetry/orbit/time"
+              shape="orbitListLength"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">Downlinked state vector time</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/orbit/position"
+              shape="orbitShape"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">GPS state vector position</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/orbit/velocity"
+              shape="orbitShape"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">GPS state vector velocity</annotation>
+        </real>
+        <string length="0"
+                name="/science/LSAR/RSD/telemetry/orbit/orbitType"
+                shape="scalar">
+                <annotation app="conformance"
+                            lang="en">DOE (or) PeOE (or) NOE (or) MOE (or) POE (or) Custom</annotation>
+        </string>
+        <!-- End of GPS DRT -->
+
+        <!-- PDS DRT -->
+        <real name="/science/LSAR/RSD/telemetry/attitude/time"
+              shape="attitudeListLength"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-MM-DD HH:MM:SS">Time vector record. This record contains the time corresponding to attitude and quaternion records</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/attitude/quaternions"
+              shape="attitudeQuaternionShape"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Attitude quaternions (q0, q1, q2, q3)</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/attitude/angularVelocity"
+              shape="attitudeShape"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="radians per second">Attitude angular velocity vectors (wx, wy, wz)</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/attitude/eulerAngles"
+              shape="attitudeShape"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Attitude Euler angles (roll, pitch, yaw)</annotation>
+        </real>
+        <string length="0"
+                name="/science/LSAR/RSD/telemetry/attitude/attitudeType"
+                shape="scalar">
+                <annotation app="conformance"
+                            lang="en">PrOE (or) NOE (or) MOE (or) POE (or) Custom</annotation>
+        </string>
+        <!-- End of PDS DRT -->
+ 
+        <!-- QFSP DRT -->
+        <!-- H-receive-->
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Time"
+              shape="QFSPLength"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/ADCDelay"
+              shape="QFSPShape"
+              width="64">
+            <annotation app="conformance"
+                        lang="en"
+                        units="seconds">ADC channel delays from Bypass Cal</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/DBFAngleOffset"
+              shape="QFSPShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">DBF Angle Offsets</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/ADCPower"
+              shape="QFSPShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="watts">Power at ADC</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/RFFilterTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">TRM RF Filter Temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/AAFilterTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">TRM Anti-Aliasing Filter Temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/FrapTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">FRAP temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/CRTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Calibration resistor temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/HPATemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">HPA temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/CirculatorTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">TRM Circulator Temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/PowerGoodVoltages"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Power Good Voltages for TRMs</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage3P3"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 3.3V Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage3P3CD1"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 3.3V CD1 Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage2P5"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 2.5V Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage1P2MGT"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 1.2V MGT Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage1P0"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 1.0V Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/GroundVoltage"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Ground Voltage</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/StatusFlags"
+                 shape="QFSPStatusShape"
+                 signed="false"
+                 width="8">
+          <annotation app="conformance"
+                      lang="en">QFSP Status Flags</annotation>
+        </integer>
+
+        <!-- V-Receive -->
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Time"
+              shape="QFSPLength"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/ADCDelay"
+              shape="QFSPShape"
+              width="64">
+            <annotation app="conformance"
+                        lang="en"
+                        units="seconds">ADC channel delays from Bypass Cal</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/DBFAngleOffset"
+              shape="QFSPShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">DBF Angle Offsets</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/ADCPower"
+              shape="QFSPShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="watts">Power at ADC</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/RFFilterTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">TRM RF Filter Temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/AAFilterTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">TRM Anti-Aliasing Filter Temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/FrapTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">FRAP temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/CRTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Calibration resistor temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/HPATemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">HPA temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/CirculatorTemperatures"
+              shape="QFSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">TRM Circulator Temperatures</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/PowerGoodVoltages"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Power Good Voltages for TRMs</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage3P3"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 3.3V Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage3P3CD1"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 3.3V CD1 Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage2P5"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 2.5V Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage1P2MGT"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 1.2V MGT Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage1P0"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Voltage of 1.0V Power Rail</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/GroundVoltage"
+              shape="QFSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Ground Voltage</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/StatusFlags"
+                 shape="QFSPStatusShape"
+                 signed="false"
+                 width="8">
+          <annotation app="conformance"
+                      lang="en">QFSP Status Flags</annotation>
+        </integer>
+        <!-- End of QFSP -->
+
+        <!-- SSP DRT -->
+        <!-- H-Receive -->
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/Time"
+              shape="SSPLength"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/Temperatures"
+              shape="SSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">SSP Temperature Readings</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/Voltages"
+              shape="SSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">SSP Voltage Readings</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/StatusFlags"
+                 shape="SSPStatusShape"
+                 signed="false"
+                 width="8">
+          <annotation app="conformance"
+                      lang="en">SSP Status Flags</annotation>
+        </integer>
+        <!-- V-Receive -->
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/Time"
+              shape="SSPLength"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/Temperatures"
+              shape="SSPTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">SSP Temperature Readings</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/Voltages"
+              shape="SSPVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="volts">SSP Voltage Readings</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/StatusFlags"
+                 shape="SSPStatusShape"
+                 signed="false"
+                 width="8">
+          <annotation app="conformance"
+                      lang="en">SSP Status Flags</annotation>
+        </integer>
+        <!-- End of SSP DRT -->
+
+        <!-- SIF DRT -->
+        <!-- H-Receive -->
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/Time"
+              shape="SIFLength"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">Time tags for SIF telemetry entries</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/Voltages"
+              shape="SIFVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="volts">Different voltage measurements</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/Temperatures"
+              shape="SIFTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="degrees">Different temperature measurments</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/StatusFlags"
+                 shape="SIFStatusShape"
+                 signed="false"
+                 width="8">
+          <annotation app="conformance"
+                      lang="en">SIF Status Flags</annotation>
+        </integer>
+
+        <!-- V-Receive -->
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/Time"
+              shape="SIFLength"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="seconds since yyyy-mm-dd">Time tags for SIF telemetry entries</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/Voltages"
+              shape="SIFVoltageShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="volts">Different voltage measurements</annotation>
+        </real>
+        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/Temperatures"
+              shape="SIFTemperatureShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="volts">Different temperature measurments</annotation>
+        </real>
+        <integer name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/StatusFlags"
+                 shape="SSPStatusShape"
+                 signed="false"
+                 width="8">
+          <annotation app="conformance"
+                      lang="en">SIF Status Flags</annotation>
+        </integer>
+        <!-- End of SIF DRT-->
+
+
+        <!-- V polarization transmit -->
+        <!-- End of V polarization transmit-->
+
+        <!-- R polarization transmit -->
+        <!-- End of R polariaztion transmit-->
+
+
+        <!-- Versions of various algorithm modules used -->
+        <string length="27"
+                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/internalCalibration"
+                shape="scalar">
+          <annotation algorithm_type="pre-processing"
+                      app="conformance"
+                      lang="en"
+                      name="internal calibration"
+                      software_ID="x"
+                      version="x"></annotation>
+        </string>
+        <string length="27"
+                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/rangeReferenceFunctionGenerator"
+                shape="scalar">
+          <annotation algorithm_type="range processing"
+                      app="conformance"
+                      lang="en"
+                      name="range reference function generator"
+                      software_ID="x"
+                      version="x"></annotation>
+        </string>
+        <string length="27"
+                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/driftCompensator"
+                shape="scalar">
+          <annotation algorithm_type="range processing"
+                      app="conformance"
+                      lang="en"
+                      name="drift compensation generator"
+                      software_ID="x"
+                      version="x"></annotation>
+        </string>
+        <string length="27"
+                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/rangeCompression"
+                shape="scalar">
+          <annotation algorithm_type="range processing"
+                      app="conformance"
+                      lang="en"
+                      name="range compression"
+                      software_ID="x"
+                      version="x"></annotation>
+        </string>
+
+        <!-- List of inputs -->
+        <string length="0"
+                name="/science/LSAR/RSD/metadata/processingInformation/inputs/l0aGranules"
+                shape="numberOfInputL0AFiles">
+          <annotation app="conformance"
+                      lang="en">List of input L0A products used</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/RSD/metadata/processingInformation/inputs/auxcalFiles"
+                shape="numberOfInputAuxcalFiles">
+          <annotation app="conformance"
+                      lang="en">List of input calibration files used</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/RSD/metadata/processingInformation/inputs/configFiles"
+                shape="numberOfInputConfigFiles">
+          <annotation app="conformance"
+                      lang="en">List of input config files used</annotation>
+        </string>
+      </nodes>
+    </science>
+
+
+    <!-- Different shapes used in this XML for defining layers -->
+    <!-- Simple scalar -->
+    <shape name="scalar"
+           order="irrelevant">
+      <annotation app="conformance"
+                  lang="en"
+                  description="scalar values"/>
+    </shape>
+
+    <!-- Number of data takes in identification -->
+    <shape name="numberOfDatatakes"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">number of datatakes in product</annotation>
+           <dimension extent="0"
+                      name="numberOfDatatakes"/>
+    </shape>
+
+    <!-- Number of observations in identification -->
+    <shape name="numberOfObservations"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">number of observations in product</annotation>
+           <dimension extent="0"
+                      name="numberOfObservations"/>
+    </shape>
+
+    <!-- Number of frequencies -->
+    <shape name="numberOfFrequencies"
+           order="slowest...fastest">
+            <annotation app="conformance"
+                        lang="en">Number of L-SAR frequencies in product</annotation>
+           <dimension extent="0"
+                      name="numberOfFrequencies"/>
+    </shape>
+    <shape name="alongTrackTimeLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of range lines in datasets</annotation>
+           <dimension extent="0"
+                      name="alongTrackTimeLength"/>
+    </shape>
+
+    <!-- Frequency A related shapes -->
+    <shape name="numberOfFrequencyAPolarizations"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of polarization layers associated with L-SAR frequency A</annotation>
+           <dimension extent="0"
+                      name="numberOfFrequencyAPolarizations"/>
+    </shape>
+    <shape name="frequencyASlantRangeWidth"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of pixels in all L-SAR frequency A imagery datasets</annotation>
+           <dimension extent="0"
+                      name="frequencyASlantRangeWidth"/>
+
+    </shape>
+    <shape name="complexDataFrequencyAShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape associated with L-SAR frequency A imagery datasets</annotation> 
+           <dimension extent="0"
+                      name="alongTrackTimeLength"/>
+           <dimension extent="0"
+                      name="frequencyASlantRangeWidth"/>
+           <dimension name="complex" extent="2"/>
+    </shape>
+    <shape name="TRMPulseShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape associated with L-SAR TxCal datasets</annotation> 
+           <dimension extent="0"
+                      name="alongTrackTimeLength"/>
+           <dimension extent="0"
+                      name="TRMLength"/>
+    </shape>
+    <shape name="TRM3TapPulseShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape associated with L-SAR Caltone datasets</annotation> 
+           <dimension extent="0"
+                      name="alongTrackTimeLength"/>
+           <dimension extent="0"
+                      name="TRMLength"/>
+           <dimension name="triplet" extent="3"/>
+           <dimension name="complex" extent="2"/>
+    </shape>
+    <!-- For marking valid samples in an image -->
+    <shape name="validSamplesShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape associated with L-SAR valid samples dataset</annotation>
+           <dimension extent="0"
+                      name="alongTrackTimeLength"/>
+           <dimension extent="2"
+                      name="firstLastPair"/>
+    </shape>
+
+    <!-- Orbit related shape -->
+    <shape name="orbitListLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">description="Number of orbit state vectors</annotation>
+           <dimension extent="0"
+                      name="orbitListLength"/>
+    </shape>
+    <shape name="orbitShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape of orbit state vector triplets dataset</annotation>
+           <dimension extent="0"
+                      name="orbitListLength"/>
+           <dimension extent="3"
+                      name="tripletxyz"/>
+    </shape>
+
+    <!-- Attitude related shape -->
+    <shape name="attitudeListLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of attitude state vectors</annotation>
+           <dimension extent="0"
+                      name="attitudeListLength"/>
+    </shape>
+    <shape name="attitudeQuaternionShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape of attitude quaternion dataset</annotation>
+           <dimension extent="0"
+                      name="attitudeListLength"/>
+           <dimension extent="4"
+                      name="quaternions"/>
+    </shape>
+    <shape name="attitudeShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape of attitude Euler angle triplets dataset</annotation>
+           <dimension extent="0"
+                      name="attitudeListLength"/>
+           <dimension extent="3"
+                      name="tripletxyz"/>
+    </shape>
+
+    <!-- Shapes related to calibration -->
+    <shape name="TRMLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of TRMs</annotation>
+           <dimension extent="0"
+                      name="TRMLength"/>
+    </shape>
+    <shape name="QFSPLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of QFSP records</annotation>
+           <dimension extent="0"
+                      name="QFSPLength"/>
+    </shape>
+    <shape name="QFSPShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape of QFSP DRT records</annotation>
+           <dimension extent="0"
+                      name="QFSPLength"/>
+           <dimension extent="0"
+                      name="TRMLength"/>
+    </shape>
+    <shape name="QFSPTemperatureShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of QFSP Temperature records</annotation>
+          <dimension extent="0"
+                     name="QFSPLength"/>
+          <dimension extent="0"
+                     name="QFSPTemperatureLength"/>
+    </shape>
+    <shape name="QFSPVoltageShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of QFSP Voltage records</annotation>
+          <dimension extent="0"
+                     name="QFSPLength"/>
+          <dimension extent="0"
+                     name="QFSPVoltageLength"/>
+    </shape>
+    <shape name="QFSPStatusShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of QFSP Status records</annotation>
+          <dimension extent="0"
+                     name="QFSPLength"/>
+          <dimension extent="0"
+                     name="QFSPStatusLength"/>
+    </shape>
+    <shape name="SSPLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of SSP records</annotation>
+           <dimension extent="0"
+                      name="SSPLength"/>
+    </shape>
+    <shape name="SSPTemperatureShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of SSP Temperature records</annotation>
+          <dimension extent="0"
+                     name="SSPLength"/>
+          <dimension extent="0"
+                     name="SSPTemperatureLength"/>
+    </shape>
+    <shape name="SSPVoltageShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of SSP Voltage records</annotation>
+          <dimension extent="0"
+                     name="SSPLength"/>
+          <dimension extent="0"
+                     name="SSPVoltageLength"/>
+    </shape>
+    <shape name="SSPStatusShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of SSP Status records</annotation>
+          <dimension extent="0"
+                     name="SSPLength"/>
+          <dimension extent="0"
+                     name="SSPStatusLength"/>
+    </shape>
+    <shape name="SIFLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of SIF records</annotation>
+           <dimension extent="0"
+                      name="SIFLength"/>
+    </shape>
+    <shape name="SIFTemperatureShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of SIF Temperature records</annotation>
+          <dimension extent="0"
+                     name="SIFLength"/>
+          <dimension extent="0"
+                     name="SIFTemperatureLength"/>
+    </shape>
+    <shape name="SIFVoltageShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of SIF Voltage records</annotation>
+          <dimension extent="0"
+                     name="SIFLength"/>
+          <dimension extent="0"
+                     name="SIFVoltageLength"/>
+    </shape>
+    <shape name="SIFStatusShape"
+           order="slowest...fastest">
+          <annotation app="conformance"
+                      lang="en">Shape of SSP Status records</annotation>
+          <dimension extent="0"
+                     name="SIFLength"/>
+          <dimension extent="0"
+                     name="SIFStatusLength"/>
+    </shape>
+    <!-- Shapes for capturing inputs -->
+    <shape name="numberOfInputL0AFiles"
+           order="slowest...fastest">
+      <annotation app="conformance"
+                  lang="en">Number of input L0A granules</annotation>
+      <dimension extent="0"
+                 name="numberOfInputL0AFiles"/>
+    </shape>
+    <shape name="numberOfInputAuxcalFiles"
+           order="slowest...fastest">
+      <annotation app="conformance"
+                  lang="en">Number of input calibration files</annotation>
+      <dimension extent="0"
+                 name="numberOfInputAuxcalFiles"/>
+    </shape>
+    <shape name="numberOfInputConfigFiles"
+           order="slowest...fastest">
+      <annotation app="conformance"
+                  lang="en">Number of input configuration files</annotation>
+      <dimension extent="0"
+                 name="numberOfInputConfigFiles"/>
+    </shape>
+  </product>
+</algorithm>

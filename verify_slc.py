@@ -7,8 +7,10 @@ from quality import utility
 
 import optparse
 import os, os.path
+import pathlib
 import sys
 import time
+import xml.etree.ElementTree as ET
 
 import h5py
 # Switch backend to one that doesn't require DISPLAY to be set since we're
@@ -30,6 +32,9 @@ if __name__ == "__main__":
     parser.add_option("--range_step", dest="range_step", type="int", action="store", default=1)
     parser.add_option("--validate", dest="validate", action="store_true", default=False)
     parser.add_option("--quality", dest="quality", action="store_true", default=False)
+    parser.add_option("--xml_dir", dest="xml_dir", type="string", action="store", default="xml")
+    parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L1_SLC.xml")
+
     (kwds, args) = utility.parse_args(parser)
 
     time1 = time.time()
@@ -39,16 +44,22 @@ if __name__ == "__main__":
         fhdf_out = h5py.File(kwds["fhdf"], "w")
         fpdf_out = PdfPages(kwds["fpdf"])
 
+    xml_tree = None
     if (kwds["validate"]):
         flog = LogError(kwds["flog"])
         flog.make_header(args)
-    
+
+        xml_path = os.path.join(pathlib.Path(__file__).parent.absolute(), kwds["xml_dir"], kwds["xml_file"])
+        print("Looking for xml file %s" % xml_path)
+        assert(os.path.exists(xml_path))
+        xml_tree = ET.parse(xml_path)
+        
     for slc_file in args:
 
         #errors_base.WarningError.reset(errors_base.WarningError)
         #errors_base.FatalError.reset(errors_base.FatalError)
         
-        fhdf = SLCFile(slc_file, "r")
+        fhdf = SLCFile(slc_file, xml_tree=xml_tree, mode="r")
         
         try:
             fhdf.get_bands()
@@ -71,6 +82,11 @@ if __name__ == "__main__":
                 flog.print_file_logs(os.path.basename(slc_file))
             sys.exit(1)
              
+        if (kwds["validate"]):
+            try:
+                fhdf.find_missing_datasets()
+            except errors_base.FatalError:
+                pass
 
         # Verify identification information
 
@@ -88,6 +104,7 @@ if __name__ == "__main__":
             except errors_base.FatalError:
                 pass
 
+            
         # Verify time tags
 
         if (kwds["validate"]):

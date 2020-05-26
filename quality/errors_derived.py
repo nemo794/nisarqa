@@ -11,6 +11,15 @@ class IdentificationFatal(errors_base.FatalError):
         IdentificationFatal.file_list.append(os.path.basename(flname))
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
+class MissingDatasetFatal(errors_base.FatalError):
+    file_list = []
+    ninstance = 0
+    name = "FatalMissingDatasetError"
+    def __init__(self, flname, start_time, traceback, description):
+        MissingDatasetFatal.ninstance += 1
+        MissingDatasetFatal.file_list.append(os.path.basename(flname))
+        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+
 class TimeSpacingWarning(errors_base.WarningError):
     file_list = []
     ninstance = 0

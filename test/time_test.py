@@ -17,7 +17,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_negative_spacing(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "time_spacing1.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "time_spacing1.h5"), mode="r")
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
@@ -35,7 +35,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_unexpected_spacing(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "time_spacing2.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "time_spacing2.h5"), mode="r")
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()

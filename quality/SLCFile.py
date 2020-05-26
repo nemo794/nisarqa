@@ -1,5 +1,6 @@
 from quality import errors_base
 from quality import errors_derived
+from quality.HdfGroup import HdfGroup
 from quality import params
 from quality.SLCImage import SLCImage
 from quality import utility
@@ -20,11 +21,13 @@ import traceback
 
 class SLCFile(h5py.File):
 
-    def __init__(self, flname, mode):
+    def __init__(self, flname, xml_tree=None, mode="r"):
         self.flname = os.path.basename(flname)
         h5py.File.__init__(self, flname, mode)
         print("Opening file %s" % flname)
 
+        self.xml_tree = xml_tree
+        
         self.bands = []
         self.SWATHS = {}
         self.METADATA = {}
@@ -34,6 +37,21 @@ class SLCFile(h5py.File):
         self.start_time = {}
         self.plotted_slant = False
 
+        for b in ("LSAR", "SSAR"):
+            try:
+                self.start_time[b] = self["/science/%s/identification/zeroDopplerStartTime" % b][...]
+            except KeyError:
+                self.start_time[b] = "9999-99-99T99:99:99"
+            else:
+                break
+
+    def get_fields_from_xml(self, xstring):
+
+        xlist = [i.get("name") for i in self.xml_tree.iter() if ("name" in i.keys())]
+        xlist = [x for x in xlist if (x.startswith(xstring))]
+
+        return xlist
+        
     def get_bands(self):
         
         for band in ("LSAR", "SSAR"):
@@ -45,86 +63,81 @@ class SLCFile(h5py.File):
             else:
                 print("Found band %s" % band)
                 self.bands.append(band)
-                traceback_strings = []
-                error_strings = []
-                
-                (name_swath, traceback_swath, error_swath) \
-                    = self.get_metadata(self.SWATHS, band, "/science/%s/%s/swaths", ["SLC", "RSLC"])
-                (name_metadata, traceback_metadata, error_metadata) \
-                    = self.get_metadata(self.METADATA, band, "/science/%s/%s/metadata", ["SLC", "RSLC"])
+                traceback_string = []
+                error_string = []
 
-                assert(len(traceback_swath) == len(error_swath))
-                assert(len(traceback_metadata) == len(error_metadata))
-                try:
-                    assert(len(traceback_swath) == 0)
-                    assert(len(traceback_metadata) == 0)
-                except AssertionError as e:
-                    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", \
-                                                             traceback_swath+traceback_metadata, \
-                                                             error_swath+error_metadata)
+                # Determine if data is SLC or RSLC and create HdfGroups.
 
+                name_swath = None
+                name_metadata = None
+                for (gname, name_found, xdict, dict_name) in zip( ("/science/%s/%s/swaths", "/science/%s/%s/metadata"), \
+                                                                  (name_swath, name_metadata), \
+                                                                  (self.SWATHS, self.METADATA), \
+                                                                  ("%s Swath" % band, "%s Metadata" % band) ):
+                    for dtype in ("SLC", "RSLC"):
+                        try:
+                            group = self[gname % (band, dtype)]
+                        except KeyError:
+                            continue
+                        else:
+                            if (dict_name.endswith("Swath")):
+                                name_swath = dtype
+                            elif (dict_name.endswith("Metadata")):
+                                name_metadata = dtype
+                            name_found = dtype
+                            xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype))
+                            break
+
+                        
+                    try:
+                        assert(name_found is not None)
+                    except AssertionError as e:
+                        gname2 = gname % (band, dtype)
+                        gname2 = gname2.replace("RSLC", "[SLC,RSLC]")
+                        traceback_string = [utility.get_traceback(e, AssertionError)]
+                        error_string += ["%s does not exist" % gname2]
+
+
+                # Check for missing Swath and/or Metadata groups
+                        
+                assert(len(traceback_string) == len(error_string))
+                if (len(error_string) > 0):
+                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
+                                                             error_string)
+                        
+                # Check that both Swath and Metadata groups are either SLC or RLSC
+                    
                 try:
                     assert(name_swath == name_metadata)
+                    self.ftype = name_swath
                 except AssertionError as e:
                     traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", \
-                                                             traceback_string, ["Metadata and swath have inconsistent naming"])
+                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
+                                                             ["Metadata and swath have inconsistent naming"])
 
+                # Check that Identification group exists
+                
                 try:
-                    self.IDENTIFICATION[band] = self["/science/%s/identification/" % band]
+                    self.IDENTIFICATION[band] = HdfGroup(self, "%s Identification" % band, \
+                                                         "/science/%s/identification/" % band)
                 except KeyError as e:
                     traceback_string = [utility.get_traceback(e, KeyError)]
-                    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", traceback_string, \
+                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
                                                              ["File missing identification data for %s." % band])
 
-                    
-                #except errors_derived.FatalIdentificationError as e:
-                #    traceback_string = [utility.get_traceback(e, KeyError)]
+        # Get entire list of expected fields from xml file format specifications document
 
-                #    for (dict, name) in zip( (self.SWATHS, self.METADATA, self.IDENTIFICATION), \
-                #                         ("SLC", "RSLC") ):
-                #    ntry = 0
-                #    try:
-                #        dict[band] = self["/science/%s/%s/swaths" % (band, name)]
-                #    except KeyError:
-                #        ntry += 1
-                    
-                #    self.METADATA[band] = self["/science/%s/SLC/metadata" % band]
-                #    self.IDENTIFICATION[band] = self["/science/%s/identification/" % band]
-                #except KeyError as e:
-                #    traceback_string = [utility.get_traceback(e, KeyError)]
-                #    raise errors_derived.IdentificationFatal(self.flname, "0000-00-00T00:00:00.000000", traceback_string, \
-                #                                             ["File missing swath, metadata or identification data for %s." % band])
-
-
-        print("Found bands: %s" % self.bands)
-                
-    def get_metadata(self, xdict, band, location, names):
-
-        ntry = 0
-        name_good = None
+        #return
         
-        for name in names:
-            location_try = location % (band, name)
-            try:
-                xdict[band] = self[location_try]
-            except KeyError:
-                ntry += 1
-            else:
-                name_good = name
-                xdict[band] = self[location_try]
-                break
+        #swath_expected = self.get_fields_from_xml("/science/LSAR/SLC/swaths")
+        #metadata_expected = self.get_fields_from_xml("/science/LSAR/SLC/metadata")
+        #identification_expected = self.get_fields_from_xml("/science/LSAR/identification")
 
-        traceback_string = []
-        error_string = []
-        try:
-            assert(name_good is not None)
-        except AssertionError as e:
-            traceback_string = [utility.get_traceback(e, KeyError)]
-            name_list = ",".join(names)
-            error_string = ["Unable to find dataset: %s" % location_try.replace(name, "[%s]" % name_list)]
+           
+            #self.swath_expected[b] = [s.replace("LSAR", b).replace("SLC", name_swath) for s in swath_expected]
+            #self.metadata_expected[b] = [s.replace("LSAR", b).replace("SLC", name_metadata) for s in metadata_expected]
+            #self.identification_expected[b] = [s.replace("LSAR", b) for s in identification_expected]
 
-        return name_good, traceback_string, error_string
         
     def get_freq_pol(self):
 
@@ -164,7 +177,10 @@ class SLCFile(h5py.File):
          
         for b in self.bands:
 
-            self.start_time[b] = bytes(self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...])[0:params.TIMELEN]
+            #try:
+            #    self.start_time[b] = bytes(self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...])[0:params.TIMELEN]
+            #except KeyError:
+            #    self.start_time[b] = "9999-99-99T99:99:99Z"
 
             try:
                 frequencies = [f.decode() for f in self.IDENTIFICATION[b].get("listOfFrequencies")[...]]
@@ -253,7 +269,54 @@ class SLCFile(h5py.File):
                     raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
                                                            ["Missing %i images: %s" % (len(missing_images), missing_images)])
 
-            
+    def find_missing_datasets(self):
+
+        for b in self.bands:
+            self.SWATHS[b].get_dataset_list(self.xml_tree, b)
+            self.METADATA[b].get_dataset_list(self.xml_tree, b)
+            self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
+
+        error_string = []
+        traceback_string = []
+        
+        for b in self.bands:
+            no_look = []
+            for f in ("A", "B"):
+                for p in ("HH", "VV", "HV", "VH", "RH", "RV"):
+                    print("Looking at %s frequency%s %s" % (b, f, p))
+                    if (f not in self.FREQUENCIES[b].keys()):
+                        no_look.append("frequency%s" % f)
+                    elif (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
+                        no_look.append("frequency%s/%s" % (f, p))
+                    else:
+                        try:
+                            nsubswaths = self.FREQUENCIES[b][f]["numberOfSubSwaths"][...]
+                        except KeyError:
+                            pass
+                        else:
+                            for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
+                                no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
+
+            self.SWATHS[b].verify_dataset_list(no_look=no_look)
+            self.METADATA[b].verify_dataset_list(no_look=no_look)
+            self.IDENTIFICATION[b].verify_dataset_list(no_look=no_look)
+
+            for xdict in (self.SWATHS[b], self.METADATA[b], self.IDENTIFICATION[b]):
+                try:
+                    assert(len(xdict.missing) == 0)
+                except AssertionError as e:
+                    traceback_string += [utility.get_traceback(e, AssertionError)]
+                    error_string += ["%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
+                                                                   ":".join(xdict.missing))]
+
+            assert(len(error_string) == len(traceback_string))
+            try:
+                assert(len(error_string) == 0)
+            except AssertionError as e:
+                print("Missing %i datasets: %s" % (len(error_string), error_string))
+                raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, \
+                                                         traceback_string, error_string)
+                
     def check_identification(self):
 
         error_string = []
@@ -262,19 +325,31 @@ class SLCFile(h5py.File):
         identifications = {}
         for dname in ("absoluteOrbitNumber", "trackNumber", "frameNumber", "cycleNumber", "lookDirection", \
                       "orbitPassDirection", "productType", "zeroDopplerStartTime", "zeroDopplerEndTime"):
+            is_present = True
             identifications[dname] = []
             for b in self.bands:
+                if (dname in self.IDENTIFICATION[b].missing):
+                    print("%s %s is not present" % (b, dname))
+                    is_present = False
+                    continue
+
                 try:
                     identifications[dname].append(self.IDENTIFICATION[b].get(dname)[...])
-                except KeyError:
+                except KeyError as e:
                     if (dname != "cycleNumber"):
+                        traceback_string.append(utility.get_traceback(e, KeyError))
                         error_string += ["%s missing dataset %s" % (b, dname)]
                 except TypeError as e:
                     if (dname == "cycleNumber"):
                         identifications[dname].append(-9999)
 
+            if (not is_present):
+                continue
+                        
             try:
                 assert( (len(self.bands) == 1) or (identifications[dname][0] == identifications[dname][1]) )
+            except IndexError:
+                print("Dataset %s, identifications %s" % (dname, identifications[dname]))
             except AssertionError as e:
                 traceback_string.append(utility.get_traceback(e, AssertionError))
                 error_string += ["Values of %s differ between bands" % dname]
@@ -285,6 +360,8 @@ class SLCFile(h5py.File):
             start_time = str(identifications["zeroDopplerStartTime"][0])
             end_time = str(identifications["zeroDopplerEndTime"][0])
             assert(end_time > start_time)
+        except IndexError as e:
+            pass
         except AssertionError as e:
             error_string += ["Start Time %s not less than End Time %s" % (start_time, end_time)]
             traceback_string.append(utility.get_traceback(e, AssertionError))
@@ -292,6 +369,8 @@ class SLCFile(h5py.File):
         try:
             orbit = int(identifications["absoluteOrbitNumber"][0])
             assert(orbit > 0)
+        except IndexError as e:
+            pass
         except AssertionError as e:
             error_string += ["Invalid Orbit Number: %i" % orbit]
             traceback_string.append(utility.get_traceback(e, AssertionError))
@@ -299,11 +378,15 @@ class SLCFile(h5py.File):
         try:
             track = int(identifications["trackNumber"][0])
             dummy = (track >= 0)
+        except IndexError as e:
+            pass
         except TypeError:
             track = int(track)
 
         try:
             assert( (track > 0) and (track <= params.NTRACKS) )
+        except IndexError as e:
+            pass
         except AssertionError as e:
             error_string += ["Invalid Track Number: %i" % track]
             traceback_string.append(utility.get_traceback(e, AssertionError))
@@ -311,6 +394,8 @@ class SLCFile(h5py.File):
         try:
             frame = int(identifications["frameNumber"][0])
             assert(frame > 0)
+        except IndexError as e:
+            pass
         except AssertionError as e:
             error_string += ["Invalid Frame Number: %i" % frame]
             traceback_string.append(utility.get_traceback(e, AssertionError))
@@ -319,7 +404,7 @@ class SLCFile(h5py.File):
             cycle = int(identifications["cycleNumber"][0])
             if (cycle != -9999):
                 assert(cycle > 0)
-        except KeyError:
+        except IndexError as e:
             pass
         except AssertionError as e:
             error_string += ["Invalid Cycle Number: %i" % cycle]
@@ -329,6 +414,8 @@ class SLCFile(h5py.File):
             ptype = str(identifications["productType"][0]).lstrip("b").replace("'", "")
             assert(ptype in ("RRST", "RRSD", "RSLC", "RMLC", "RCOV", \
                              "RIFG", "RUNW", "GUNW", "CGOV", "GSLC", "SLC"))
+        except IndexError as e:
+            pass
         except AssertionError as e:
             error_string += ["Invalid Product Type: %s" % ptype]
             traceback_string.append(utility.get_traceback(e, AssertionError))
@@ -336,18 +423,21 @@ class SLCFile(h5py.File):
         try:
             lookdir = str(identifications["lookDirection"][0])
             assert(str(lookdir).lower() in ("b'left'", "b'right'"))
+        except IndexError as e:
+            pass
         except AssertionError as e:
             error_string += ["Invalid Look Direction: %s" % lookdir]
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         # raise errors if needed
-            
+
         assert(len(error_string) == len(traceback_string))
             
         try:
             assert(len(error_string) == 0)
         except AssertionError as e:
-            raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], \
+            print("start time %s" % self.start_time)
+            raise errors_derived.IdentificationFatal(self.flname, self.start_time[self.bands[0]], \
                                                      traceback_string, error_string)
 
     def check_nans(self):
@@ -567,11 +657,16 @@ class SLCFile(h5py.File):
     def check_time(self):
 
         for b in self.bands:
-        
-            time = self.SWATHS[b]["zeroDopplerTime"][...]
-            spacing = self.SWATHS[b]["zeroDopplerTimeSpacing"][...]
-            start_time = self.IDENTIFICATION[b]["zeroDopplerStartTime"][...]
-            end_time = self.IDENTIFICATION[b]["zeroDopplerEndTime"][...]
+
+            for dset in ("zeroDopplerTime", "zeroDopplerTimeSpacing", "ZeroDopplerStartTime", \
+                         "zeroDopplerEndTime"):
+                if (dset in self.SWATHS[b].missing):
+                    continue
+            
+            time = self.SWATHS[b].get("zeroDopplerTime")[...]
+            spacing = self.SWATHS[b].get("zeroDopplerTimeSpacing")[...]
+            start_time = self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...]
+            end_time = self.IDENTIFICATION[b].get("zeroDopplerEndTime")[...]
 
             try:
                 start_time = bytes(start_time).split(b".")[0].decode("utf-8")
@@ -599,14 +694,14 @@ class SLCFile(h5py.File):
             try:
                 utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
                                       errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-            except (errors_base.WarningError, errors_base.FatalError):
+            except (KeyError, errors_base.WarningError, errors_base.FatalError):
                 pass
 
-            time = self.METADATA[b]["orbit/time"]
+            time = self.METADATA[b].get("orbit/time")
             try:
                 utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "%s orbitTime" % b, \
                                       errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-            except (errors_base.WarningError, errors_base.FatalError):
+            except (KeyError, errors_base.WarningError, errors_base.FatalError):
                 pass
         
     def check_frequencies(self):
@@ -636,8 +731,8 @@ class SLCFile(h5py.File):
             (b, f, p) = key.split()
 
             ximg = self.images[key]
-            nslant = self.FREQUENCIES[b][f]["slantRange"].shape[0]
-            ntime = self.SWATHS[b]["zeroDopplerTime"].shape[0]
+            nslant = self.FREQUENCIES[b][f].get("slantRange").shape[0]
+            ntime = self.SWATHS[b].get("zeroDopplerTime").shape[0]
 
             try:
                 assert(ximg.shape == (ntime, nslant))

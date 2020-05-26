@@ -27,7 +27,7 @@ class SLCFile_test(unittest.TestCase):
 
         # Open for the first time and insert dummy data
         
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "frequency1.h5"), "r+")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "frequency1.h5"), mode="r+")
  
         dset = self.slc_file["/science/LSAR/SLC/swaths/frequencyA/HH"]
         frequency = self.slc_file["/science/LSAR/SLC/swaths/frequencyA/processedCenterFrequency"]
@@ -54,7 +54,7 @@ class SLCFile_test(unittest.TestCase):
 
         # Re-open file and calculate power vs. frequency
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "frequency1.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "frequency1.h5"), mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "frequency1_out.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "frequency1_out.pdf"))
         
@@ -87,7 +87,7 @@ class SLCFile_test(unittest.TestCase):
 
     def test_power_phase(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase1.h5"), "r+")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase1.h5"), mode="r+")
 
         dset = self.slc_file["/science/LSAR/SLC/swaths/frequencyA/VV"]
         shape = dset.shape
@@ -112,7 +112,7 @@ class SLCFile_test(unittest.TestCase):
 
         # Re-open file and calculate power and phase
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase1.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase1.h5"), mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out1.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out1.pdf"))
         
@@ -145,7 +145,7 @@ class SLCFile_test(unittest.TestCase):
 
     def test_power_phase_nan(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase2.h5"), "r+")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase2.h5"), mode="r+")
 
         dset = self.slc_file["/science/LSAR/SLC/swaths/frequencyA/VV"]
         shape = dset.shape
@@ -170,7 +170,7 @@ class SLCFile_test(unittest.TestCase):
 
         # Re-open file and calculate power and phase
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase2.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase2.h5"), mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out2.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out2.pdf"))
         
@@ -205,7 +205,7 @@ class SLCFile_test(unittest.TestCase):
 
     def test_power_phase_combination(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase3.h5"), "r+")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase3.h5"), mode="r+")
 
         dset_hh = self.slc_file["/science/LSAR/SLC/swaths/frequencyA/HH"]
         dset_vv = self.slc_file["/science/LSAR/SLC/swaths/frequencyA/VV"]
@@ -235,7 +235,7 @@ class SLCFile_test(unittest.TestCase):
 
         # Re-open file and calculate power and phase
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase3.h5"), "r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase3.h5"), mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out3.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out3.pdf"))
         
