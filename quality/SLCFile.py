@@ -125,20 +125,6 @@ class SLCFile(h5py.File):
                     raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
                                                              ["File missing identification data for %s." % band])
 
-        # Get entire list of expected fields from xml file format specifications document
-
-        #return
-        
-        #swath_expected = self.get_fields_from_xml("/science/LSAR/SLC/swaths")
-        #metadata_expected = self.get_fields_from_xml("/science/LSAR/SLC/metadata")
-        #identification_expected = self.get_fields_from_xml("/science/LSAR/identification")
-
-           
-            #self.swath_expected[b] = [s.replace("LSAR", b).replace("SLC", name_swath) for s in swath_expected]
-            #self.metadata_expected[b] = [s.replace("LSAR", b).replace("SLC", name_metadata) for s in metadata_expected]
-            #self.identification_expected[b] = [s.replace("LSAR", b) for s in identification_expected]
-
-        
     def get_freq_pol(self):
 
         self.FREQUENCIES = {}
@@ -152,10 +138,11 @@ class SLCFile(h5py.File):
             self.polarizations[b] = {}
             for f in ("A", "B"):
                 try:
-                    f2 = self["/science/%s/SLC/swaths/frequency%s" % (b, f)]
+                    f2 = self["/science/%s/%s/swaths/frequency%s" % (b, self.ftype, f)]
                 except KeyError:
                     pass
                 else:
+                    print("Found %s Frequency%s" % (b, f))
                     self.FREQUENCIES[b][f] = f2
                     self.polarizations[b][f] = []
                     for p in ("HH", "VV", "HV", "VH"):
@@ -165,8 +152,7 @@ class SLCFile(h5py.File):
                             pass
                         else:
                             self.polarizations[b][f].append(p)
-
-            print("%s has Frequencies %s and polarizations %s" % (b, self.FREQUENCIES[b].keys(), self.polarizations[b]))
+                            
 
     def check_freq_pol(self):
 
@@ -177,15 +163,13 @@ class SLCFile(h5py.File):
          
         for b in self.bands:
 
-            #try:
-            #    self.start_time[b] = bytes(self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...])[0:params.TIMELEN]
-            #except KeyError:
-            #    self.start_time[b] = "9999-99-99T99:99:99Z"
-
             try:
                 frequencies = [f.decode() for f in self.IDENTIFICATION[b].get("listOfFrequencies")[...]]
                 assert(frequencies in params.FREQUENCIES)
-            except (AssertionError, KeyError, TypeError, UnicodeDecodeError) as e:
+            except KeyError as e:
+                traceback_string += [utility.get_traceback(e, KeyError)]
+                error_string += ["%s Band is missing frequency list" % b]
+            except (AssertionError, TypeError, UnicodeDecodeError) as e:
                 traceback_string += [utility.get_traceback(e, AssertionError)]
                 error_string += ["%s Band has invalid frequency list" % b]
             else:
@@ -205,20 +189,25 @@ class SLCFile(h5py.File):
 
 
             for f in self.FREQUENCIES[b].keys():
-                print("Looking at %s Frequency%s" % (b, f))
-                try:
+                 try:
                     polarization_ok = False
-                    polarizations_found = [p.decode() for p in self.FREQUENCIES[b][f].get("listOfPolarizations")[...]]
+                    try:
+                        polarizations_found = [p.decode() for p in self.FREQUENCIES[b][f].get("listOfPolarizations")[...]]
+                    except KeyError as e:
+                        traceback_string += [utility.get_traceback(e, KeyError)]
+                        error_string += ["%s %s is missing polarization list" % (b, f)]
+                        continue
+
                     for plist in params.POLARIZATIONS:
                         if (set(polarizations_found) == set(plist)):
                             polarization_ok = True
                             break
                     assert(polarization_ok)
-                except (AssertionError, KeyError, UnicodeDecodeError) as e:
+                 except (AssertionError, UnicodeDecodeError) as e:
                     traceback_string += [utility.get_traceback(e, AssertionError)]
                     error_string += ["%s Frequency%s has invalid polarization list" % (b, f)]
 
-                else:
+                 else:
                     for p in polarizations_found:
                         try:
                             assert(p in self.FREQUENCIES[b][f].keys())
@@ -246,28 +235,49 @@ class SLCFile(h5py.File):
     def create_images(self, time_step=1, range_step=1):
 
         missing_images = []
-        print("Polarizations: %s" % self.polarizations)
+        missing_params = []
+        traceback_string = []
+        error_string = []
+
+        freq = {}
+        srange = {}
         
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
+                try:
+                    freq["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("processedCenterFrequency")
+                    srange["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("slantRangeSpacing")
+                except KeyError:
+                    missing_params += ["%s %s" % (b, f)]
+                    error_string += ["%s %s cannot initialize SLCImage due to missing frequency or spacing" % (b, f)]
+
+        for b in self.bands:
+            for f in self.FREQUENCIES[b].keys():
+                if ("%s %s" % (b, f) in missing_params):
+                    break
+
                 for p in self.polarizations[b][f]:
                     key = "%s %s %s" % (b, f, p)
-
                     try:
-                        #print("Creating image %s %s %s" % (b, f, p))
-                        self.images[key] = SLCImage(b, f, p, self.FREQUENCIES[b][f]["processedCenterFrequency"][...], \
-                                                    self.FREQUENCIES[b][f]["slantRangeSpacing"][...])
+                        self.images[key] = SLCImage(b, f, p, freq["%s %s" % (b, f)][...], \
+                                                    srange["%s %s" % (b, f)][...])
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
-                        #print("Created image with key %s" % key)
                     except KeyError:
                         missing_images.append(key)
-
-                try:
-                    assert(len(missing_images) == 0)
-                except AssertionError as e:
-                    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
-                                                           ["Missing %i images: %s" % (len(missing_images), missing_images)])
+                        
+        try:
+            assert(len(missing_images) == 0)
+            assert(len(missing_params) == 0)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            error_string = ""
+            if (len(missing_images) > 0):
+                error_string += "Missing %i images: %s" % (len(missing_images), missing_images)
+            if (len(missing_params) > 0):
+                error_string += "Could not initialize %i images" % (len(missing_params), missing_params)
+            raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
+                                                   [error_string])
+                
 
     def find_missing_datasets(self):
 
@@ -283,7 +293,6 @@ class SLCFile(h5py.File):
             no_look = []
             for f in ("A", "B"):
                 for p in ("HH", "VV", "HV", "VH", "RH", "RV"):
-                    print("Looking at %s frequency%s %s" % (b, f, p))
                     if (f not in self.FREQUENCIES[b].keys()):
                         no_look.append("frequency%s" % f)
                     elif (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
@@ -316,6 +325,7 @@ class SLCFile(h5py.File):
                 print("Missing %i datasets: %s" % (len(error_string), error_string))
                 raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, \
                                                          traceback_string, error_string)
+            
                 
     def check_identification(self):
 
@@ -329,7 +339,6 @@ class SLCFile(h5py.File):
             identifications[dname] = []
             for b in self.bands:
                 if (dname in self.IDENTIFICATION[b].missing):
-                    print("%s %s is not present" % (b, dname))
                     is_present = False
                     continue
 
@@ -349,7 +358,7 @@ class SLCFile(h5py.File):
             try:
                 assert( (len(self.bands) == 1) or (identifications[dname][0] == identifications[dname][1]) )
             except IndexError:
-                print("Dataset %s, identifications %s" % (dname, identifications[dname]))
+                continue
             except AssertionError as e:
                 traceback_string.append(utility.get_traceback(e, AssertionError))
                 error_string += ["Values of %s differ between bands" % dname]
@@ -436,7 +445,6 @@ class SLCFile(h5py.File):
         try:
             assert(len(error_string) == 0)
         except AssertionError as e:
-            print("start time %s" % self.start_time)
             raise errors_derived.IdentificationFatal(self.flname, self.start_time[self.bands[0]], \
                                                      traceback_string, error_string)
 
@@ -526,6 +534,7 @@ class SLCFile(h5py.File):
 
         for (i, key) in enumerate(sums_linear.keys()):
 
+            print("Looking at %i-th image: %s" % (i, key))
             (counts, edges) = np.histogram(sums_linear[key], bins=1000)
             if (i == 0):
                 counts_linear = np.copy(counts)
@@ -541,7 +550,7 @@ class SLCFile(h5py.File):
                 counts_power += counts
 
         bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        print("bounds_linear %s" % bounds_linear)
+        #print("bounds_linear %s" % bounds_linear)
                 
         # Generate figures
         
@@ -603,18 +612,12 @@ class SLCFile(h5py.File):
             for f in self.FREQUENCIES[b].keys():
                 (fig, axis) = pyplot.subplots(nrows=1, ncols=1, sharex=False, sharey=False, \
                                               constrained_layout=True)
-                print("List of polarizations for %s %s = %s" % (b, f, self.polarizations[b][f]))
                 for p in self.polarizations[b][f]:
                     nplots += 1
                     key = "%s %s %s" % (b, f, p)
                     ximg = self.images[key]
                     xpower = 20.0*np.log10(ximg.avg_power)
                     axis.plot(ximg.fft_space, xpower, label=key)
-                    #print("Image %s, has Frequency %f to %f with acquired frequency %s and shape %s and power %f to %f" \
-                    #      % (key, ximg.fft_space.min(), ximg.fft_space.max(), 1.0/(ximg.tspacing), ximg.shape, \
-                    #         xpower.min(), xpower.max()))
-
-                #raise RuntimeError("Stopping")
                     
                 axis.legend(loc="upper right", fontsize="small")
                 axis.set_xlabel("Frequency (MHz)")
@@ -626,7 +629,6 @@ class SLCFile(h5py.File):
 
                 if (self.plotted_slant):
                     for f in self.FREQUENCIES[b].keys():
-                        print("Saving power spectrum plot")
                         fpdf.savefig(self.figures_slant[f])
                 
             # Write histogram summaries to an hdf5 file
@@ -653,55 +655,56 @@ class SLCFile(h5py.File):
             dset.write_direct(20.0*np.log10(ximg.avg_power).astype(np.float32))
 
 
-
     def check_time(self):
 
         for b in self.bands:
 
-            for dset in ("zeroDopplerTime", "zeroDopplerTimeSpacing", "ZeroDopplerStartTime", \
-                         "zeroDopplerEndTime"):
-                if (dset in self.SWATHS[b].missing):
-                    continue
-            
-            time = self.SWATHS[b].get("zeroDopplerTime")[...]
-            spacing = self.SWATHS[b].get("zeroDopplerTimeSpacing")[...]
-            start_time = self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...]
-            end_time = self.IDENTIFICATION[b].get("zeroDopplerEndTime")[...]
-
             try:
-                start_time = bytes(start_time).split(b".")[0].decode("utf-8")
-                end_time = bytes(end_time).split(b".")[0].decode("utf-8")
-            except UnicodeDecodeError as e:
-                traceback_string = [utility.get_traceback(e, UnicodeDecodeError)]
-                raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                                                         ["%s Start/End Times could not be read." % b])
-            else:
-                print("time %f to %f" % (time.min(), time.max()))
-                
-                #try:
-                #    time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
-                #    time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-                #    print("Time1 %s, Time2 %s" % (time1, time2))
-                #    assert(time2 > time1)
-                #    assert( (time1.year >= 2000) and (time1.year < 2100) )
-                #    assert( (time2.year >= 2000) and (time2.year < 2100) )
-                #except (AssertionError, ValueError) as e:
-                #    traceback_string = [utility.get_traceback(e, AssertionError)]
-                #    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                #                                             ["%s Invalid Start and End Times" % b])
-                #                                              #% (b, start_time[0:10].strip(), end_time[0:10].strip())])
-
-            try:
-                utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
-                                      errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-            except (KeyError, errors_base.WarningError, errors_base.FatalError):
+                time = self.SWATHS[b].get("zeroDopplerTime")[...]
+                spacing = self.SWATHS[b].get("zeroDopplerTimeSpacing")[...]
+                start_time = self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...]
+                end_time = self.IDENTIFICATION[b].get("zeroDopplerEndTime")[...]
+            except KeyError:
                 pass
+            else:
 
+                try:
+                    start_time = bytes(start_time).split(b".")[0].decode("utf-8")
+                    end_time = bytes(end_time).split(b".")[0].decode("utf-8")
+                except UnicodeDecodeError as e:
+                    traceback_string = [utility.get_traceback(e, UnicodeDecodeError)]
+                    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
+                                                         ["%s Start/End Times could not be read." % b])
+                else:
+                
+                    #try:
+                    #    time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
+                    #    time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
+                    #    print("Time1 %s, Time2 %s" % (time1, time2))
+                    #    assert(time2 > time1)
+                    #    assert( (time1.year >= 2000) and (time1.year < 2100) )
+                    #    assert( (time2.year >= 2000) and (time2.year < 2100) )
+                    #except (AssertionError, ValueError) as e:
+                    #    traceback_string = [utility.get_traceback(e, AssertionError)]
+                    #    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
+                    #                                             ["%s Invalid Start and End Times" % b])
+                    
+                    try:
+                        utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
+                                              errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
+                    except (KeyError, errors_base.WarningError, errors_base.FatalError):
+                        pass
+
+
+        try:
             time = self.METADATA[b].get("orbit/time")
+        except KeyError:
+            contine
+        else:
             try:
                 utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "%s orbitTime" % b, \
                                       errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-            except (KeyError, errors_base.WarningError, errors_base.FatalError):
+            except (errors_base.WarningError, errors_base.FatalError):
                 pass
         
     def check_frequencies(self):
@@ -727,15 +730,16 @@ class SLCFile(h5py.File):
         self.figures_slant = {}
 
         for key in self.images.keys():
-            #print("Looking at key %s" % key)
-            (b, f, p) = key.split()
 
+            (b, f, p) = key.split()
             ximg = self.images[key]
-            nslant = self.FREQUENCIES[b][f].get("slantRange").shape[0]
-            ntime = self.SWATHS[b].get("zeroDopplerTime").shape[0]
 
             try:
+                nslant = self.FREQUENCIES[b][f].get("slantRange").shape[0]
+                ntime = self.SWATHS[b].get("zeroDopplerTime").shape[0]
                 assert(ximg.shape == (ntime, nslant))
+            except KeyError:
+                continue
             except AssertionError as e:
                 traceback_string = [utility.get_traceback(e, AssertionError)]
                 raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], traceback_string, \
@@ -744,37 +748,36 @@ class SLCFile(h5py.File):
 
         for b in self.bands:
             for f in list(self.FREQUENCIES[b].keys()):
-                slant_path = self.FREQUENCIES[b][f]["slantRange"]
-                spacing = self.FREQUENCIES[b][f]["slantRangeSpacing"]
+                try:
+                    slant_path = self.FREQUENCIES[b][f].get("slantRange")
+                    spacing = self.FREQUENCIES[b][f].get("slantRangeSpacing")
+                except KeyError:
+                    continue
 
-            try:
                 utility.check_spacing(self.flname, self.start_time[b], slant_path[...], spacing[...], \
                                       "%s %s SlantPath" % (b, f), errors_derived.SlantSpacingWarning, \
                                       errors_derived.SlantSpacingFatal)
-            except (errors_base.WarningError, errors_base.FatalError) as e:
-                xslant = slant_path[...]
-                self.plotted_slant = True
-                (self.figures_slant[f], axis) = pyplot.subplots(nrows=1, ncols=1, sharex=False, sharey=False, \
-                                                                constrained_layout=True)
-                axis.plot(np.arange(0, xslant.size), xslant, label="%s Frequency%s SlantPath" % (b, f))
-                self.figures_slant[f].suptitle("%s Frequency%s slantRange" % (b, f))
 
     def check_subswaths(self):
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
-                nsubswath = self.FREQUENCIES[b][f]["numberOfSubSwaths"][...]
-                print("%s Frequency%s has %s subswaths" % (b, f, nsubswath))
+
                 try:
+                    nsubswath = self.FREQUENCIES[b][f]["numberOfSubSwaths"][...]
                     assert( (nsubswath >= 0) and (nsubswath <= params.NSUBSWATHS) )
+                except KeyError:
+                    continue
                 except AssertionError as e:
                     traceback_string = [utility.get_traceback(e, AssertionError)]
                     raise errors_derived.NumSubswathFatal(self.flname, self.start_time[b], traceback_string, \
                                                           ["%s Frequency%s had invalid number of subswaths: %i" \
                                                            % (b, f, nsubswath)])
 
-                nslantrange = self.FREQUENCIES[b][f]["slantRange"].size
 
+                if (nsubswath == 0):
+                    continue
+                
                 for isub in range(0, int(nsubswath)):
                     try:
                         sub_bounds = self.FREQUENCIES[b][f]["validSamplesSubSwath%i" % (isub+1)][...]
@@ -785,14 +788,17 @@ class SLCFile(h5py.File):
                                                                    % (b, f, isub)])
 
                     try:
+                        nslantrange = self.FREQUENCIES[b][f]["slantRange"].size
                         assert(np.all(sub_bounds[:, 0] < sub_bounds[:, 1]))
                         assert(np.all(sub_bounds[:, 0] >= 0))
                         assert(np.all(sub_bounds[:, 1] <= nslantrange))
+                    except KeyError:
+                        continue
                     except AssertionError as e:
                         traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.BoundsSubSwathFatal(self.flname, self.start_time[b], traceback_string, \
-                                                                 ["%s Frequency%s with nSlantRange %i had invalid SubSwath bounds: %s" \
-                                                                  % (b, f, nslantrange, sub_bounds)])
+                        raise errors_derived.BoundsSubswathFatal(self.flname, self.start_time[b], traceback_string, \
+                                                                 ["%s Frequency%s with nSlantRange %i had invalid SubSwath bounds" \
+                                                                  % (b, f, nslantrange)])
                
 
                
