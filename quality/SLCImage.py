@@ -47,6 +47,7 @@ class SLCImage(object):
         #      % (self.frequency, self.polarization, self.zero_mask.sum(), \
         #         100.0*self.zero_mask.sum()/self.xdata.size))
         #print("\n")
+
         
     def read(self, handle, time_step=1, range_step=1):
 
