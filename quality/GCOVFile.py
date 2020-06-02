@@ -1,9 +1,9 @@
 from quality import errors_base
 from quality import errors_derived
+from quality.GCOVImage import GCOVImage
 from quality.HdfGroup import HdfGroup
 from quality.NISARFile import NISARFile
 from quality import params
-from quality.SLCImage import SLCImage
 from quality import utility
 
 import h5py
@@ -20,7 +20,7 @@ import sys
 import tempfile
 import traceback
 
-class SLCFile(NISARFile):
+class GCOVFile(GCOVFile):
 
     def __init__(self, flname, xml_tree=None, mode="r"):
         self.flname = os.path.basename(flname)
@@ -38,15 +38,14 @@ class SLCFile(NISARFile):
         self.start_time = {}
         self.plotted_slant = False
 
-        self.ftype_list = ("SLC", "RSLC")
+        self.ftype_list = ["GCOV"]
         self.product_type = "SLC"
-        self.polarization_list = params.SLC_POLARIZATION_LIST
-        self.polarization_groups = params.SLC_POLARIZATION_GROUPS
+        self.polarization_list = params.SLC_POLARIZATIONS
         self.identification_list = params.SLC_ID_PARAMS
         self.frequency_checks = params.SLC_FREQUENCY_NAMES
-        self.swath_path = "/science/%s/%s/swaths"
-        self.metadata_path = "/science/%s/%s/metadata"
-        self.identification_path = "/science/%s/identification/"
+        self.swath_path = "/science/%s/GCOV/%s/grids"
+        self.metadata_path = "/science/%s/GCOV/%s/metadata"
+        self.identification_path = "/science/%s/GCOV/identification/"
 
         self.get_start_time()        
 
@@ -57,7 +56,7 @@ class SLCFile(NISARFile):
             
         return slant_path, spacing
             
-    def junk_get_fields_from_xml(self, xstring):
+    def get_fields_from_xml(self, xstring):
 
         xlist = [i.get("name") for i in self.xml_tree.iter() if ("name" in i.keys())]
         xlist = [x for x in xlist if (x.startswith(xstring))]
@@ -80,35 +79,18 @@ class SLCFile(NISARFile):
 
                 # Determine if data is SLC or RSLC and create HdfGroups.
 
-                name_swath = None
-                name_metadata = None
-                for (gname, name_found, xdict, dict_name) in zip( ("/science/%s/%s/swaths", "/science/%s/%s/metadata"), \
+                for (gname, name_found, xdict, dict_name) in zip( ("/science/%s/GCOV/swaths", "/science/%s/GCOV/metadata"), \
                                                                   (name_swath, name_metadata), \
                                                                   (self.SWATHS, self.METADATA), \
                                                                   ("%s Swath" % band, "%s Metadata" % band) ):
-                    for dtype in ("SLC", "RSLC"):
-                        try:
-                            group = self[gname % (band, dtype)]
-                        except KeyError:
-                            continue
-                        else:
-                            if (dict_name.endswith("Swath")):
-                                name_swath = dtype
-                            elif (dict_name.endswith("Metadata")):
-                                name_metadata = dtype
-                            name_found = dtype
-                            xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype))
-                            break
-
-                        
                     try:
-                        assert(name_found is not None)
-                    except AssertionError as e:
-                        gname2 = gname % (band, dtype)
-                        gname2 = gname2.replace("RSLC", "[SLC,RSLC]")
+                        group = self[gname % (band, dtype)]
+                    except KeyError:
                         traceback_string = [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s does not exist" % gname2]
-
+                        error_string += ["%s does not exist" % gname]
+                    else:
+                        xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype))
+                        break
 
                 # Check for missing Swath and/or Metadata groups
                         
@@ -117,16 +99,6 @@ class SLCFile(NISARFile):
                     raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
                                                              error_string)
                         
-                # Check that both Swath and Metadata groups are either SLC or RLSC
-                    
-                try:
-                    assert(name_swath == name_metadata)
-                    self.ftype = name_swath
-                except AssertionError as e:
-                    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["Metadata and swath have inconsistent naming"])
-
                 # Check that Identification group exists
                 
                 try:
@@ -137,7 +109,7 @@ class SLCFile(NISARFile):
                     raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
                                                              ["File missing identification data for %s." % band])
 
-    def junk_get_freq_pol(self):
+    def get_freq_pol(self):
 
         self.FREQUENCIES = {}
         self.polarizations = {}
@@ -148,9 +120,9 @@ class SLCFile(NISARFile):
 
             self.FREQUENCIES[b] = {}
             self.polarizations[b] = {}
-            for f in ("A", "B"):
+            for f in ("HHHH", "VVVV", "HVHV", "VHVH"):
                 try:
-                    f2 = self["/science/%s/%s/swaths/frequency%s" % (b, self.ftype, f)]
+                    f2 = self["/science/%s/GCOV/grids/frequency%s" % (b, f)]
                 except KeyError:
                     pass
                 else:
@@ -165,11 +137,9 @@ class SLCFile(NISARFile):
                         else:
                             self.polarizations[b][f].append(p)
                             
-
     def create_images(self, time_step=1, range_step=1):
 
         missing_images = []
-        missing_params = []
         traceback_string = []
         error_string = []
 
@@ -193,27 +163,23 @@ class SLCFile(NISARFile):
                 for p in self.polarizations[b][f]:
                     key = "%s %s %s" % (b, f, p)
                     try:
-                        self.images[key] = SLCImage(b, f, p, freq["%s %s" % (b, f)][...], \
-                                                    srange["%s %s" % (b, f)][...])
+                        self.images[key] = GCOVImage(b, f, p)
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
                     except KeyError:
                         missing_images.append(key)
                         
         try:
             assert(len(missing_images) == 0)
-            assert(len(missing_params) == 0)
         except AssertionError as e:
             traceback_string = [utility.get_traceback(e, AssertionError)]
             error_string = ""
             if (len(missing_images) > 0):
                 error_string += "Missing %i images: %s" % (len(missing_images), missing_images)
-            if (len(missing_params) > 0):
-                error_string += "Could not initialize %i images" % (len(missing_params), missing_params)
             raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
                                                    [error_string])
                 
 
-    def junk_find_missing_datasets(self):
+    def find_missing_datasets(self):
 
         for b in self.bands:
             self.SWATHS[b].get_dataset_list(self.xml_tree, b)
@@ -226,19 +192,16 @@ class SLCFile(NISARFile):
         for b in self.bands:
             no_look = []
             for f in ("A", "B"):
-                for p in ("HH", "VV", "HV", "VH", "RH", "RV"):
+                for p in ("HHHH", "VVVV", "HVHV", "VHVH"):
                     if (f not in self.FREQUENCIES[b].keys()):
                         no_look.append("frequency%s" % f)
                     elif (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
                         no_look.append("frequency%s/%s" % (f, p))
                     else:
                         try:
-                            nsubswaths = self.FREQUENCIES[b][f]["numberOfSubSwaths"][...]
+                            nsubswaths = self.FREQUENCIES[b][f].get("numberOfSubSwaths")[...]
                         except KeyError:
                             pass
-                        else:
-                            for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
-                                no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
 
             self.SWATHS[b].verify_dataset_list(no_look=no_look)
             self.METADATA[b].verify_dataset_list(no_look=no_look)
@@ -259,7 +222,6 @@ class SLCFile(NISARFile):
                 print("Missing %i datasets: %s" % (len(error_string), error_string))
                 raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, \
                                                          traceback_string, error_string)
-            
 
     def check_images(self, fpdf, fhdf):
 
@@ -299,23 +261,13 @@ class SLCFile(NISARFile):
             #bounds_linear = [np.finfo(np.float32).max, np.finfo(np.float32).min]
             #bounds_power = [np.finfo(np.float32).max, np.finfo(np.float32).min]
             if (key not in sums_linear.keys()):
-                sums_linear[key] = np.zeros(ximg.real.shape, dtype=np.float32)
                 sums_power[key] = np.zeros(ximg.power.shape, dtype=np.float32)
 
-            sums_linear[key] += ximg.real
-            sums_linear[key] += ximg.imag
             sums_power[key] += ximg.power
 
         for (i, key) in enumerate(sums_linear.keys()):
 
             print("Looking at %i-th image: %s" % (i, key))
-            (counts, edges) = np.histogram(sums_linear[key], bins=1000)
-            if (i == 0):
-                counts_linear = np.copy(counts)
-                edges_linear = np.copy(edges)
-            else:
-                counts_linear += counts
-
             (counts, edges) = np.histogram(sums_power[key], bins=1000)
             if (i == 0):
                 counts_power = np.copy(counts)
@@ -323,114 +275,29 @@ class SLCFile(NISARFile):
             else:
                 counts_power += counts
 
-        bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        #print("bounds_linear %s" % bounds_linear)
-                
         # Generate figures
+
+        figures = []
         
-        for key in self.images.keys():
-
-            (b, f, p) = key.split()
-            ximg = self.images[key]
-            fig = ximg.plot4a("%s\n(%s Frequency%s %s)" % (self.flname, b, f, p), \
-                              (-1.0*bounds_linear, bounds_linear), (-100.0, 100.0))
-            fpdf.savefig(fig)
-
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
+                keys = [k for self.images.keys() if k.startswith("%s %s" % (b, f))]
                 (fig, axis) = pyplot.subplots(nrows=1, ncols=1, constrained_layout=True)
-                for p in self.polarizations[b][f]:
-                    key = "%s %s %s" % (b, f, p)
-                    self.images[key].plot4a1(axis)
+                for k in keys:
+                    self.images[k].plot4a(axis)
+
                 axis.legend(loc="upper right")
-                axis.set_xlabel("SLC Power (dB)")
+                axis.set_xlabel("Power (dB)")
                 axis.set_ylabel("Number of Counts")
-                fig.suptitle("%s\n(%s Frequency %s)" % (self.flname, b, f))
-                fpdf.savefig(fig)
-                pyplot.close(fig)
-                    
-        # Plot and summarize polarization-differences
+                fig.suptitle("%s/n(%s Frequency%s" % (self.flname, b, f))
+                figures.append(fig)
 
-        polarizations_all = ("HH", "VV", "HV", "VH")
-        for b in self.bands:
-            for f in self.FREQUENCIES[b].keys():
-                if (len(self.polarizations[b][f]) <= 1):
-                    continue
-                
-                (fig, axes) = pyplot.subplots(nrows=3, ncols=4, sharex=False, sharey=False, \
-                                              constrained_layout=True)
 
-                diff_plots = np.zeros((len(polarizations_all), len(polarizations_all)), dtype=np.bool)
-                for (ip1, p1) in enumerate(polarizations_all):
-                    for (ip2, p2) in enumerate(polarizations_all):
-                        if (p1 in self.polarizations[b][f]) and (p2 in self.polarizations[b][f]) and \
-                           (p1 != p2) and (not diff_plots[ip1, ip2]):
-
-                            diff_plots[ip1, ip2] = True
-                            diff_plots[ip2, ip1] = True
-                                     
-                            ref_img = self.images["%s %s %s" % (b, f, p1)]
-                            cmp_img = self.images["%s %s %s" % (b, f, p2)]
-                            xdata = ref_img.xdata*cmp_img.xdata.conj()
-
-                            key_new = "%s %s %s-%s" % (b, f, p1, p2)
-                            self.images[key_new] = SLCImage(b, f, "%s-%s" % (p1, p2), \
-                                                            self.FREQUENCIES[b][f]["processedCenterFrequency"][...], \
-                                                            self.FREQUENCIES[b][f]["slantRangeSpacing"][...])
-                            self.images[key_new].initialize(xdata, ref_img.nan_mask | cmp_img.nan_mask)
-                            self.images[key_new].calc()
-                            self.images[key_new].plot4b(axes[ip1, ip2], title="%s - %s" % (p1, p2))
-                        
-                axes[0, 0].set_xlabel("SLC Phase\n(degrees)")
-                axes[0, 0].set_ylabel("Number\nof Counts")
-                fig.suptitle("%s\n%s Frequency %s Phase Histograms" % (self.flname, b, f))
-                fpdf.savefig(fig)
-                pyplot.close(fig)
-
-                keys = ["%s %s %s" % (b, f, k) for k in ("HH-VV", "HV-VH")]
-                keys = [k for k in keys if k in self.images.keys()]
-                if (len(keys) > 0):
-                    (fig, axis) = pyplot.subplots(nrows=1, ncols=1, constrained_layout=True)
-                    for k in keys:
-                        self.images[k].plot4b(axis, label=k.replace(b, "").replace(f, ""))
-                    axis.legend(loc="upper right")
-                    axis.set_xlabel("SLC Phase (degrees)")
-                    axis.set_ylabel("Number of Counts")
-                    fig.suptitle("%s\n(%s Frequency %s)" % (self.flname, b, f))
-                    fpdf.savefig(fig)
-                    pyplot.close(fig)
-
-        # Plot power spectrum
-
-        nplots = 0
-        groups = {}
-        for b in self.bands:
-            for f in self.FREQUENCIES[b].keys():
-                (fig, axis) = pyplot.subplots(nrows=1, ncols=1, sharex=False, sharey=False, \
-                                              constrained_layout=True)
-                for p in self.polarizations[b][f]:
-                    nplots += 1
-                    key = "%s %s %s" % (b, f, p)
-                    ximg = self.images[key]
-                    xpower = 20.0*np.log10(ximg.avg_power)
-                    axis.plot(ximg.fft_space, xpower, label=key)
-                    
-                axis.legend(loc="upper right", fontsize="small")
-                axis.set_xlabel("Frequency (MHz)")
-                axis.set_ylabel("Power Spectrum (dB)")
-                #axis.set_ylim(bottom=40.0, top=100.0)
-                #axis.set_xlim(left=-100.0, right=100.0)
-                fig.suptitle("%s\nPower Spectrum for %s Frequency %s" % (self.flname, b, f))
-                fpdf.savefig(fig)
-
-                if (self.plotted_slant):
-                    for f in self.FREQUENCIES[b].keys():
-                        fpdf.savefig(self.figures_slant[f])
                 
             # Write histogram summaries to an hdf5 file
             
             print("File %s mode %s" % (fhdf.filename, fhdf.mode))
-            fname_in = os.path.basename(self.filename)
+            fname_in = os.path.basename(self.flname)
             extension = fname_in.split(".")[-1]
             groups[b] = fhdf.create_group("%s/%s/ImageAttributes" % (fname_in.replace(".%s" % extension, ""), b))
 
@@ -439,16 +306,83 @@ class SLCFile(NISARFile):
             ximg = self.images[key]
             group2 = groups[b].create_group(key)
 
-            for (name, data) in zip( ("MeanPower", "SDevPower", "MeanPhase", "SDevPhase"), \
-                                     ("mean_power", "sdev_power", "mean_phase", "sdev_phase") ):
+            for (name, data) in zip( ("MeanBackScatter", "SDevBackScatter", "MeanPower", "SDevPower", \
+                                      "5PercentileBackScatter", "95PercentileBackScatter"), \
+                                     ("mean_backscatter", "sdev_backscatter", "mean_power", "sdev_power", \
+                                      "5pcnt, 95pcnt") ):
                 xdata = getattr(ximg, data)
                 dset = group2.create_dataset(name, (), dtype='f4')
                 dset.write_direct(np.array(xdata).astype(np.float32))
 
-            dset = group2.create_dataset("FFT Spacing", ximg.fft_space.shape, dtype='f4')
-            dset.write_direct(ximg.fft_space.astype(np.float32))
-            dset = group2.create_dataset("Average Power", ximg.fft_space.shape, dtype='f4')
-            dset.write_direct(20.0*np.log10(ximg.avg_power).astype(np.float32))
+    def junk_check_time(self):
+
+        for b in self.bands:
+
+            try:
+                time = self.SWATHS[b].get("zeroDopplerTime")[...]
+                spacing = self.SWATHS[b].get("zeroDopplerTimeSpacing")[...]
+                start_time = self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...]
+                end_time = self.IDENTIFICATION[b].get("zeroDopplerEndTime")[...]
+            except KeyError:
+                pass
+            else:
+
+                try:
+                    start_time = bytes(start_time).split(b".")[0].decode("utf-8")
+                    end_time = bytes(end_time).split(b".")[0].decode("utf-8")
+                except UnicodeDecodeError as e:
+                    traceback_string = [utility.get_traceback(e, UnicodeDecodeError)]
+                    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
+                                                         ["%s Start/End Times could not be read." % b])
+                else:
+                
+                    #try:
+                    #    time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
+                    #    time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
+                    #    print("Time1 %s, Time2 %s" % (time1, time2))
+                    #    assert(time2 > time1)
+                    #    assert( (time1.year >= 2000) and (time1.year < 2100) )
+                    #    assert( (time2.year >= 2000) and (time2.year < 2100) )
+                    #except (AssertionError, ValueError) as e:
+                    #    traceback_string = [utility.get_traceback(e, AssertionError)]
+                    #    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
+                    #                                             ["%s Invalid Start and End Times" % b])
+                    
+                    try:
+                        utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
+                                              errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
+                    except (KeyError, errors_base.WarningError, errors_base.FatalError):
+                        pass
+
+
+        try:
+            time = self.METADATA[b].get("orbit/time")
+        except KeyError:
+            contine
+        else:
+            try:
+                utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "%s orbitTime" % b, \
+                                      errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
+            except (errors_base.WarningError, errors_base.FatalError):
+                pass
+        
+    def junk_check_frequencies(self):
+
+        for b in self.bands:
+            nfrequencies = len(self.FREQUENCIES[b])
+            if (nfrequencies == 2):
+                for freq_name in ("acquiredCenterFrequency", "processedCenterFrequency"):
+                    freq = {}
+                    for f in list(self.FREQUENCIES[b].keys()):
+                        freq[f] = self.FREQUENCIES[b][f][freq_name][...]
+
+                    try:
+                        assert(freq["A"] < freq["B"])
+                    except AssertionError as e:
+                        traceback_string = [utility.get_traceback(e, AssertionError)]
+                        raise errors_derived.FrequencyOrderFatal(self.flname, self.start_time[b], traceback_string, \
+                                                                 ["%s A=%f not less than B=%f" \
+                                                                  % (freq_name, freq["A"], freq["B"])])
 
     def check_slant_range(self):
 
@@ -472,27 +406,15 @@ class SLCFile(NISARFile):
                                                     ["Dataset %s has shape %s, expected (%i, %i)" \
                                                      % (key, ximg.shape, ntime, nslant)])
 
-        for b in self.bands:
-            for f in list(self.FREQUENCIES[b].keys()):
-                try:
-                    slant_path = self.FREQUENCIES[b][f].get("slantRange")
-                    spacing = self.FREQUENCIES[b][f].get("slantRangeSpacing")
-                except KeyError:
-                    continue
 
-                utility.check_spacing(self.flname, self.start_time[b], slant_path[...], spacing[...], \
-                                      "%s %s SlantPath" % (b, f), errors_derived.SlantSpacingWarning, \
-                                      errors_derived.SlantSpacingFatal)
-
-    def check_subswaths_bounds(self):
+    def junk_check_subswaths_bounds(self):
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
 
-                try:
-                    nsubswath = self.check_num_subswaths(b, f)
-                    assert(nsubswath > 0)
-                except (KeyError, AssertionError):
+                nsubswath = self.get_num_subswath(b, f)
+                
+                if (nsubswath == 0):
                     continue
                 
                 for isub in range(0, int(nsubswath)):

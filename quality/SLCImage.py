@@ -159,20 +159,21 @@ class SLCImage(object):
 
         fig.suptitle(title)
         return fig
+
+    def plot4a1(self, axis):
+
+        (counts, edges) = np.histogram(self.power[~self.nan_mask], bins=100)
+        axis.plot(edges[:-1], counts, label=self.polarization)
         
-    def plot4b(self, axis, title):
+        axis.plot
+        
+    def plot4b(self, axis, title="", label=""):
 
         (counts, edges) = np.histogram(self.phase[self.mask_ok], range=(-180.0, 180.0), bins=100)
-        axis.plot(edges[:-1], counts, label="phase")
+        axis.plot(edges[:-1], counts, label=label)
         axis.xaxis.set_tick_params(rotation=90)
         #axis.yaxis.set_tick_params(rotation=90)
         axis.set_title(title)
-        #axis.legend(loc="upper right", fontsize="small")
-        #axis.set_xlabel("SLC Phase (degrees)")
-        #axis.set_ylabel("Number of Counts")
-
-        #print("%s (%s): min phase %f" % (self.frequency, self.polarization, \
-        #                                 self.phase[self.mask_ok].min()))
 
     def plotfft(self, axis, title):
 

@@ -49,7 +49,8 @@ if __name__ == "__main__":
         flog = LogError(kwds["flog"])
         flog.make_header(args)
 
-        xml_path = os.path.join(pathlib.Path(__file__).parent.absolute(), kwds["xml_dir"], kwds["xml_file"])
+        xml_path = os.path.realpath(pathlib.Path(__file__))
+        xml_path = os.path.join(pathlib.Path(xml_path).parent, kwds["xml_dir"], kwds["xml_file"])
         print("Looking for xml file %s" % xml_path)
         assert(os.path.exists(xml_path))
         xml_tree = ET.parse(xml_path)
@@ -125,7 +126,7 @@ if __name__ == "__main__":
 
         if (kwds["validate"]):
             try:
-                fhdf.check_subswaths()
+                fhdf.check_subswaths_bounds()
             except errors_base.FatalError:
                 pass
     
