@@ -16,8 +16,7 @@ class HdfGroup(object):
         self.missing = []
 
         self.default_band = "LSAR"
-
-        print("Initializing %s with %s" % (name, group_name))
+        print("Initializing HDF Group %s with %s" % (name, group_name))
 
     def get(self, name):
 

@@ -147,6 +147,15 @@ class NaNWarning(errors_base.WarningError):
         NaNWarning.file_list.append(os.path.basename(flname))
         raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 
+class NegativeBackscatterWarning(errors_base.WarningError):
+    file_list = []
+    ninstance = 0
+    name = "WarningNegativeBackscatter"
+    def __init__(self, flname, start_time, traceback, description):
+        print("Raising NegativeBackScatter Warning")
+        NegativeBackscatterWarning.ninstance += 1
+        NegativeBackscatterWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
     
 
  

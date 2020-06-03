@@ -52,8 +52,8 @@ class SLCFile(NISARFile):
 
     def get_slant_range(self, band, frequency):
 
-        slant_path = self.FREQUENCIES[b][f].get("slantRangeSpacing")
-        spacing = self.FREQUENCIES[b][f].get("slantRangeSpacing")
+        slant_path = self.FREQUENCIES[band][frequency].get("slantRange")
+        spacing = self.FREQUENCIES[band][frequency].get("slantRangeSpacing")
             
         return slant_path, spacing
             
@@ -332,7 +332,7 @@ class SLCFile(NISARFile):
 
             (b, f, p) = key.split()
             ximg = self.images[key]
-            fig = ximg.plot4a("%s\n(%s Frequency%s %s)" % (self.flname, b, f, p), \
+            fig = ximg.plot4a("%s\n(%s Frequency%s %s SLC Histograms)" % (self.flname, b, f, p), \
                               (-1.0*bounds_linear, bounds_linear), (-100.0, 100.0))
             fpdf.savefig(fig)
 
@@ -345,7 +345,7 @@ class SLCFile(NISARFile):
                 axis.legend(loc="upper right")
                 axis.set_xlabel("SLC Power (dB)")
                 axis.set_ylabel("Number of Counts")
-                fig.suptitle("%s\n(%s Frequency %s)" % (self.flname, b, f))
+                fig.suptitle("%s\n(%s Frequency %s Power Histograms)" % (self.flname, b, f))
                 fpdf.savefig(fig)
                 pyplot.close(fig)
                     
@@ -396,7 +396,7 @@ class SLCFile(NISARFile):
                     axis.legend(loc="upper right")
                     axis.set_xlabel("SLC Phase (degrees)")
                     axis.set_ylabel("Number of Counts")
-                    fig.suptitle("%s\n(%s Frequency %s)" % (self.flname, b, f))
+                    fig.suptitle("%s\n(%s Frequency %s Phase Histograms)" % (self.flname, b, f))
                     fpdf.savefig(fig)
                     pyplot.close(fig)
 
@@ -453,7 +453,11 @@ class SLCFile(NISARFile):
     def check_slant_range(self):
 
         self.figures_slant = {}
+        size_error = []
+        size_traceback = []
 
+        # Check sizes for all images
+        
         for key in self.images.keys():
 
             (b, f, p) = key.split()
@@ -467,11 +471,21 @@ class SLCFile(NISARFile):
             except KeyError:
                 continue
             except AssertionError as e:
-                traceback_string = [utility.get_traceback(e, AssertionError)]
-                raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], traceback_string, \
-                                                    ["Dataset %s has shape %s, expected (%i, %i)" \
-                                                     % (key, ximg.shape, ntime, nslant)])
+                size_traceback += [utility.get_traceback(e, AssertionError)]
+                size_error += ["Dataset %s has shape %s, expected (%i, %i)" \
+                               % (key, ximg.shape, ntime, nslant)]
 
+        # Raise array-size errors if appropriate
+                
+        assert(len(size_error) == len(size_traceback))
+        try:
+            assert(len(size_error) == 0)
+        except AssertionError as e:
+            raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], size_traceback, \
+                                                size_error)
+            
+        # Check slant-path spacing
+        
         for b in self.bands:
             for f in list(self.FREQUENCIES[b].keys()):
                 try:
