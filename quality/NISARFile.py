@@ -195,13 +195,14 @@ class NISARFile(h5py.File):
                         continue
 
                     for plist in self.polarization_groups:
+                        #print("Comparing %s against %s" % (polarizations_found, plist))
                         if (set(polarizations_found) == set(plist)):
                             polarization_ok = True
                             break
                     assert(polarization_ok)
                  except (AssertionError, UnicodeDecodeError) as e:
                     traceback_string += [utility.get_traceback(e, AssertionError)]
-                    error_string += ["%s Frequency%s has invalid polarization list" % (b, f)]
+                    error_string += ["%s Frequency%s has invalid polarization list: %s" % (b, f, polarizations_found)]
 
                  else:
                     for p in polarizations_found:
@@ -328,7 +329,7 @@ class NISARFile(h5py.File):
             try:
                 assert(len(error_string) == 0)
             except AssertionError as e:
-                print("Missing %i datasets: %s" % (len(error_string), error_string))
+                #print("Missing %i datasets: %s" % (len(error_string), error_string))
                 raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, \
                                                          traceback_string, error_string)
             
@@ -410,7 +411,7 @@ class NISARFile(h5py.File):
         try:
             cycle = int(identifications["cycleNumber"][0])
             assert(cycle > 0)
-        except (IndexError, TypeError, ValueError) as e:
+        except (IndexError, TypeError, ValueError, KeyError) as e:
             pass
         except AssertionError as e:
             error_string += ["Invalid Cycle Number: %i" % cycle]
@@ -508,7 +509,6 @@ class NISARFile(h5py.File):
                     try:
                         time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
                         time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-                        print("Time1 %s, Time2 %s" % (time1, time2))
                         assert(time2 > time1)
                         assert( (time1.year >= 2000) and (time1.year < 2100) )
                         assert( (time2.year >= 2000) and (time2.year < 2100) )

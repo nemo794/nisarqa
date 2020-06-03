@@ -1,3 +1,4 @@
+from quality import errors_derived
 from quality import utility
 
 from matplotlib import cm, pyplot, ticker
@@ -9,7 +10,7 @@ from scipy import constants, fftpack
 import copy
 import traceback
 
-class SLCImage(object):
+class GCOVImage(object):
 
     BADVALUE = -9999
     EPS = 1.0e-03
@@ -52,9 +53,7 @@ class SLCImage(object):
         if (self.empty):
             return
         
-        self.min = self.xdata.min()
-        self.max = self.xdata.max()
-        (self.5pcnt, self.95pcnt) = numpy.percentile(self.xdata[~self.nan_mask], (5.0, 95.0)) 
+        (self.pcnt5, self.pcnt95) = np.percentile(self.xdata[~self.nan_mask], (5.0, 95.0)) 
 
     def calc(self):
 
@@ -66,26 +65,36 @@ class SLCImage(object):
         
         self.power = np.where(self.mask_ok, self.xdata.real*self.xdata.real, self.BADVALUE)
         self.power = np.where(self.mask_ok, 10.0*np.log10(self.power), self.BADVALUE)
+        (self.pcnt5, self.pcnt95) = np.percentile(self.xdata[~self.nan_mask], (5.0, 95.0))
 
         self.mean_backscatter = self.xdata[~self.nan_mask].mean()
         self.sdev_backscatter = self.xdata[~self.nan_mask].std()
         self.mean_power = self.power[~self.nan_mask].mean()
         self.sdev_power = self.power[~self.nan_mask].std()
 
-        self.fft = np.fft.fft(self.xdata)
-        self.fft_space = np.fft.fftfreq(self.shape[1], 1.0/self.tspacing)*1.0E-06
-        self.avg_power = np.sum(np.abs(self.fft), axis=0)/(1.0*self.shape[0])
+        #self.fft = np.fft.fft(self.xdata)
+        #self.fft_space = np.fft.fftfreq(self.shape[1], 1.0/self.tspacing)*1.0E-06
+        #self.avg_power = np.sum(np.abs(self.fft), axis=0)/(1.0*self.shape[0])
 
-        idx = np.argsort(self.fft_space)
-        self.fft_space = self.fft_space[idx]
-        self.avg_power = self.avg_power[idx]
-        
+        #idx = np.argsort(self.fft_space)
+        #self.fft_space = self.fft_space[idx]
+        #self.avg_power = self.avg_power[idx]
+
+        try:
+            self.nnegative = np.where( (self.mask_ok) & (self.xdata <= 0.0), True, False).sum()            
+            assert(self.nnegative == 0)
+        except AssertionError as e:
+            raise AssertionError()
+            
     def plot4a(self, axis):
 
         # Compute histograms and plot them
 
         (counts1pr, edges1pr) = np.histogram(self.power[self.mask_ok], bins=100)
-        axis.plot(edges1pr[:-1], counts1pr, label="%s" % self.polarization)
+        idx_mode = np.argmax(counts1pr)
+        self.modal_power = edges1pr[idx_mode]
+        axis.plot(edges1pr[:-1], counts1pr, label="%s Mode %s" \
+                  % (self.polarization, self.modal_power))
 
     def plotfft(self, axis, title):
 

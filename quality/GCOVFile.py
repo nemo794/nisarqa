@@ -20,7 +20,7 @@ import sys
 import tempfile
 import traceback
 
-class GCOVFile(GCOVFile):
+class GCOVFile(NISARFile):
 
     def __init__(self, flname, xml_tree=None, mode="r"):
         self.flname = os.path.basename(flname)
@@ -40,9 +40,10 @@ class GCOVFile(GCOVFile):
 
         self.ftype_list = ["GCOV"]
         self.product_type = "SLC"
-        self.polarization_list = params.SLC_POLARIZATIONS
-        self.identification_list = params.SLC_ID_PARAMS
-        self.frequency_checks = params.SLC_FREQUENCY_NAMES
+        self.polarization_list = params.GCOV_POLARIZATION_LIST
+        self.polarization_groups = params.GCOV_POLARIZATION_GROUPS
+        self.identification_list = params.GCOV_ID_PARAMS
+        self.frequency_checks = params.GCOV_FREQUENCY_NAMES
         self.swath_path = "/science/%s/GCOV/%s/grids"
         self.metadata_path = "/science/%s/GCOV/%s/metadata"
         self.identification_path = "/science/%s/GCOV/identification/"
@@ -51,8 +52,8 @@ class GCOVFile(GCOVFile):
 
     def get_slant_range(self, band, frequency):
 
-        slant_path = self.FREQUENCIES[b][f].get("slantRangeSpacing")
-        spacing = self.FREQUENCIES[b][f].get("slantRangeSpacing")
+        slant_path = self.FREQUENCIES[band][frequency].get("slantRange")
+        spacing = self.FREQUENCIES[band][frequency].get("slantRangeSpacing")
             
         return slant_path, spacing
             
@@ -64,6 +65,9 @@ class GCOVFile(GCOVFile):
         return xlist
         
     def get_bands(self):
+
+        traceback_string = []
+        error_string = []
         
         for band in ("LSAR", "SSAR"):
             try:
@@ -72,44 +76,32 @@ class GCOVFile(GCOVFile):
                 print("%s not present" % band)
                 pass
             else:
-                print("Found band %s" % band)
+                print("Found %s band" % band)
                 self.bands.append(band)
-                traceback_string = []
-                error_string = []
 
                 # Determine if data is SLC or RSLC and create HdfGroups.
 
-                for (gname, name_found, xdict, dict_name) in zip( ("/science/%s/GCOV/swaths", "/science/%s/GCOV/metadata"), \
-                                                                  (name_swath, name_metadata), \
-                                                                  (self.SWATHS, self.METADATA), \
-                                                                  ("%s Swath" % band, "%s Metadata" % band) ):
+                for (gname, xdict, dict_name) in zip( ("/science/%s/GCOV/grids", "/science/%s/GCOV/metadata", \
+                                                       "/science/%s/identification"), \
+                                                      (self.SWATHS, self.METADATA, self.IDENTIFICATION), \
+                                                      ("%s Swath" % band, "%s Metadata" % band, "%s Identification") ):
                     try:
-                        group = self[gname % (band, dtype)]
-                    except KeyError:
-                        traceback_string = [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s does not exist" % gname]
+                        gname2 = gname % band
+                        group = self[gname2]
+                    except KeyError as e:
+                        traceback_string += [utility.get_traceback(e, KeyError)]
+                        error_string += ["%s does not exist" % gname2]
                     else:
-                        xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype))
-                        break
+                        xdict[band] = HdfGroup(self, dict_name, gname2)
 
-                # Check for missing Swath and/or Metadata groups
+        # Raise any errors
                         
-                assert(len(traceback_string) == len(error_string))
-                if (len(error_string) > 0):
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             error_string)
+        assert(len(traceback_string) == len(error_string))
+        if (len(error_string) > 0):
+            raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
+                                                     error_string)
                         
-                # Check that Identification group exists
-                
-                try:
-                    self.IDENTIFICATION[band] = HdfGroup(self, "%s Identification" % band, \
-                                                         "/science/%s/identification/" % band)
-                except KeyError as e:
-                    traceback_string = [utility.get_traceback(e, KeyError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["File missing identification data for %s." % band])
-
-    def get_freq_pol(self):
+    def junk_get_freq_pol(self):
 
         self.FREQUENCIES = {}
         self.polarizations = {}
@@ -120,7 +112,7 @@ class GCOVFile(GCOVFile):
 
             self.FREQUENCIES[b] = {}
             self.polarizations[b] = {}
-            for f in ("HHHH", "VVVV", "HVHV", "VHVH"):
+            for f in ("A", "B"):
                 try:
                     f2 = self["/science/%s/GCOV/grids/frequency%s" % (b, f)]
                 except KeyError:
@@ -129,7 +121,7 @@ class GCOVFile(GCOVFile):
                     print("Found %s Frequency%s" % (b, f))
                     self.FREQUENCIES[b][f] = f2
                     self.polarizations[b][f] = []
-                    for p in ("HH", "VV", "HV", "VH"):
+                    for p in self.polarization_list:
                         try:
                             p2 = self.FREQUENCIES[b][f][p]
                         except KeyError:
@@ -145,27 +137,20 @@ class GCOVFile(GCOVFile):
 
         freq = {}
         srange = {}
-        
-        for b in self.bands:
-            for f in self.FREQUENCIES[b].keys():
-                try:
-                    freq["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("processedCenterFrequency")
-                    srange["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("slantRangeSpacing")
-                except KeyError:
-                    missing_params += ["%s %s" % (b, f)]
-                    error_string += ["%s %s cannot initialize SLCImage due to missing frequency or spacing" % (b, f)]
 
         for b in self.bands:
+            print("%s band has frequencies %s" % (b, self.FREQUENCIES[b].keys()))
             for f in self.FREQUENCIES[b].keys():
-                if ("%s %s" % (b, f) in missing_params):
-                    break
-
+                print("%s band frequency%s has polarizations %s" \
+                      % (b, f, self.polarizations[b][f]))
                 for p in self.polarizations[b][f]:
                     key = "%s %s %s" % (b, f, p)
                     try:
+                        print("Creating %s image" % key)
                         self.images[key] = GCOVImage(b, f, p)
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
                     except KeyError:
+                        print("Missing %s image" % key)
                         missing_images.append(key)
                         
         try:
@@ -179,7 +164,7 @@ class GCOVFile(GCOVFile):
                                                    [error_string])
                 
 
-    def find_missing_datasets(self):
+    def junk_find_missing_datasets(self):
 
         for b in self.bands:
             self.SWATHS[b].get_dataset_list(self.xml_tree, b)
@@ -192,7 +177,7 @@ class GCOVFile(GCOVFile):
         for b in self.bands:
             no_look = []
             for f in ("A", "B"):
-                for p in ("HHHH", "VVVV", "HVHV", "VHVH"):
+                for p in self.polarization_list:
                     if (f not in self.FREQUENCIES[b].keys()):
                         no_look.append("frequency%s" % f)
                     elif (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
@@ -246,6 +231,9 @@ class GCOVFile(GCOVFile):
         sums_power = {}
 
         print("Found %i images: %s" % (len(self.images.keys()), self.images.keys()))
+
+        traceback_string = []
+        error_string = []
         for key in self.images.keys():
 
             # Histogram with huge number of bins to find out where the bounds of the real
@@ -254,7 +242,15 @@ class GCOVFile(GCOVFile):
 
             (b, f, p) = key.split()
             ximg = self.images[key]
-            ximg.calc()
+            try:
+                ximg.calc()
+            except AssertionError as e:
+                traceback_string += [utility.get_traceback(e, AssertionError)]
+                error_string += ["%s %s %s image has %i negative backscatter pixels" \
+                                % (b, f, p, ximg.nnegative)]
+                #raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time, \
+                #                                                traceback_string, error_string)
+                 
 
             # Use same bounds for plotting all linear images of a given type
 
@@ -277,11 +273,12 @@ class GCOVFile(GCOVFile):
 
         # Generate figures
 
-        figures = []
+        groups = {}
         
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
-                keys = [k for self.images.keys() if k.startswith("%s %s" % (b, f))]
+                keys = [k for k in self.images.keys() if k.startswith("%s %s" % (b, f))]
+                print("Plotting %i images: %s" % (len(keys), keys))
                 (fig, axis) = pyplot.subplots(nrows=1, ncols=1, constrained_layout=True)
                 for k in keys:
                     self.images[k].plot4a(axis)
@@ -289,11 +286,9 @@ class GCOVFile(GCOVFile):
                 axis.legend(loc="upper right")
                 axis.set_xlabel("Power (dB)")
                 axis.set_ylabel("Number of Counts")
-                fig.suptitle("%s/n(%s Frequency%s" % (self.flname, b, f))
-                figures.append(fig)
+                fig.suptitle("%s\n(%s Frequency%s)" % (self.flname, b, f))
+                fpdf.savefig(fig)
 
-
-                
             # Write histogram summaries to an hdf5 file
             
             print("File %s mode %s" % (fhdf.filename, fhdf.mode))
@@ -309,11 +304,21 @@ class GCOVFile(GCOVFile):
             for (name, data) in zip( ("MeanBackScatter", "SDevBackScatter", "MeanPower", "SDevPower", \
                                       "5PercentileBackScatter", "95PercentileBackScatter"), \
                                      ("mean_backscatter", "sdev_backscatter", "mean_power", "sdev_power", \
-                                      "5pcnt, 95pcnt") ):
+                                      "pcnt5", "pcnt95") ):
                 xdata = getattr(ximg, data)
                 dset = group2.create_dataset(name, (), dtype='f4')
                 dset.write_direct(np.array(xdata).astype(np.float32))
 
+        # Raise errors about negative backscatter if applicable
+
+        assert(len(error_string) == len(traceback_string))
+        try:
+            assert(len(error_string) == 0)
+        except AssertionError as e:
+            raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time, \
+                                                            traceback_string, error_string)
+             
+                
     def junk_check_time(self):
 
         for b in self.bands:
@@ -336,17 +341,16 @@ class GCOVFile(GCOVFile):
                                                          ["%s Start/End Times could not be read." % b])
                 else:
                 
-                    #try:
-                    #    time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
-                    #    time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-                    #    print("Time1 %s, Time2 %s" % (time1, time2))
-                    #    assert(time2 > time1)
-                    #    assert( (time1.year >= 2000) and (time1.year < 2100) )
-                    #    assert( (time2.year >= 2000) and (time2.year < 2100) )
-                    #except (AssertionError, ValueError) as e:
-                    #    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    #    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                    #                                             ["%s Invalid Start and End Times" % b])
+                    try:
+                        time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
+                        time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
+                        assert( (time2 > time1) )
+                        assert( (time1.year >= 2000) and (time1.year < 2100) )
+                        assert( (time2.year >= 2000) and (time2.year < 2100) )
+                    except (AssertionError, ValueError) as e:
+                        traceback_string = [utility.get_traceback(e, AssertionError)]
+                        raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
+                                                                 ["%s Invalid Start and End Times" % b])
                     
                     try:
                         utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
@@ -387,6 +391,8 @@ class GCOVFile(GCOVFile):
     def check_slant_range(self):
 
         self.figures_slant = {}
+        traceback_string = []
+        error_string = []
 
         for key in self.images.keys():
 
@@ -401,44 +407,34 @@ class GCOVFile(GCOVFile):
             except KeyError:
                 continue
             except AssertionError as e:
-                traceback_string = [utility.get_traceback(e, AssertionError)]
-                raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], traceback_string, \
-                                                    ["Dataset %s has shape %s, expected (%i, %i)" \
-                                                     % (key, ximg.shape, ntime, nslant)])
+                traceback_string += [utility.get_traceback(e, AssertionError)]
+                error_string += ["Dataset %s has shape %s, expected (%i, %i)" \
+                                 % (key, ximg.shape, ntime, nslant)]
 
 
-    def junk_check_subswaths_bounds(self):
+        assert(len(error_string) == len(traceback_string))
+        try:
+            assert(len(error_string) == 0)
+        except AssertionError:
+            raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], traceback_string, error_string)
+
+    def check_subswaths_bounds(self):
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
 
-                nsubswath = self.get_num_subswath(b, f)
-                
-                if (nsubswath == 0):
+                try:
+                    nsubswath = self.check_num_subswaths(b, f)
+                    assert(nsubswath >= 0)
+                except KeyError:
                     continue
+                except AssertionError as e:
+                    traceback_string = [utility.get_traceback(e, AssertionError)]
+                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, traceback_string, \
+                                                             ["%s %s has invalid numberofSubSwaths: %i", \
+                                                              (b, f, nsubswath)])
                 
-                for isub in range(0, int(nsubswath)):
-                    try:
-                        sub_bounds = self.FREQUENCIES[b][f]["validSamplesSubSwath%i" % (isub+1)][...]
-                    except KeyError as e:
-                        traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.MissingSubswathFatal(self.flname, self.start_time[b], traceback_string, \
-                                                                  ["%s Frequency%s had missing SubSwath%i bounds" \
-                                                                   % (b, f, isub)])
-
-                    try:
-                        nslantrange = self.FREQUENCIES[b][f]["slantRange"].size
-                        assert(np.all(sub_bounds[:, 0] < sub_bounds[:, 1]))
-                        assert(np.all(sub_bounds[:, 0] >= 0))
-                        assert(np.all(sub_bounds[:, 1] <= nslantrange))
-                    except KeyError:
-                        continue
-                    except AssertionError as e:
-                        traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.BoundsSubswathFatal(self.flname, self.start_time[b], traceback_string, \
-                                                                 ["%s Frequency%s with nSlantRange %i had invalid SubSwath bounds" \
-                                                                  % (b, f, nslantrange)])
-               
+                
 
                
 
