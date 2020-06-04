@@ -94,7 +94,7 @@ class GCOVImage(object):
         idx_mode = np.argmax(counts1pr)
         self.modal_power = edges1pr[idx_mode]
         axis.plot(edges1pr[:-1], counts1pr, label="%s Mode %s" \
-                  % (self.polarization, self.modal_power))
+                  % (self.polarization, round(self.modal_power, 1)))
 
     def plotfft(self, axis, title):
 

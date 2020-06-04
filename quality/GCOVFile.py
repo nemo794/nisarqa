@@ -283,7 +283,8 @@ class GCOVFile(NISARFile):
                 for k in keys:
                     self.images[k].plot4a(axis)
 
-                axis.legend(loc="upper right")
+                axis.set_xlim(left=-60.0, right=None)
+                axis.legend(bbox_to_anchor=(1.01, 1), loc="upper left")
                 axis.set_xlabel("Power (dB)")
                 axis.set_ylabel("Number of Counts")
                 fig.suptitle("%s\n(%s Frequency%s)" % (self.flname, b, f))
