@@ -57,7 +57,7 @@ class SLCFile(NISARFile):
             
         return slant_path, spacing
             
-     def get_bands(self):
+    def get_bands(self):
         
         for band in ("LSAR", "SSAR"):
             try:
@@ -130,7 +130,7 @@ class SLCFile(NISARFile):
                     raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
                                                              ["File missing identification data for %s." % band])
 
-     def create_images(self, time_step=1, range_step=1):
+    def create_images(self, time_step=1, range_step=1):
 
         missing_images = []
         missing_params = []
