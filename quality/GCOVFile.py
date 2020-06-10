@@ -84,7 +84,8 @@ class GCOVFile(NISARFile):
                 for (gname, xdict, dict_name) in zip( ("/science/%s/GCOV/grids", "/science/%s/GCOV/metadata", \
                                                        "/science/%s/identification"), \
                                                       (self.SWATHS, self.METADATA, self.IDENTIFICATION), \
-                                                      ("%s Swath" % band, "%s Metadata" % band, "%s Identification") ):
+                                                      ("%s Grid" % band, "%s Metadata" % band, \
+                                                       "%s Identification" % band) ):
                     try:
                         gname2 = gname % band
                         group = self[gname2]
@@ -98,37 +99,10 @@ class GCOVFile(NISARFile):
                         
         assert(len(traceback_string) == len(error_string))
         if (len(error_string) > 0):
-            raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                     error_string)
+            raise errors_derived.IdentificationFatal(self.flname, self.start_time[self.bands[0]], \
+                                                     traceback_string, error_string)
                         
-    def junk_get_freq_pol(self):
-
-        self.FREQUENCIES = {}
-        self.polarizations = {}
-        
-        for b in self.bands:
-
-            # Find list of frequencies by directly querying dataset
-
-            self.FREQUENCIES[b] = {}
-            self.polarizations[b] = {}
-            for f in ("A", "B"):
-                try:
-                    f2 = self["/science/%s/GCOV/grids/frequency%s" % (b, f)]
-                except KeyError:
-                    pass
-                else:
-                    print("Found %s Frequency%s" % (b, f))
-                    self.FREQUENCIES[b][f] = f2
-                    self.polarizations[b][f] = []
-                    for p in self.polarization_list:
-                        try:
-                            p2 = self.FREQUENCIES[b][f][p]
-                        except KeyError:
-                            pass
-                        else:
-                            self.polarizations[b][f].append(p)
-                            
+                             
     def create_images(self, time_step=1, range_step=1):
 
         missing_images = []
@@ -164,49 +138,6 @@ class GCOVFile(NISARFile):
                                                    [error_string])
                 
 
-    def junk_find_missing_datasets(self):
-
-        for b in self.bands:
-            self.SWATHS[b].get_dataset_list(self.xml_tree, b)
-            self.METADATA[b].get_dataset_list(self.xml_tree, b)
-            self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
-
-        error_string = []
-        traceback_string = []
-        
-        for b in self.bands:
-            no_look = []
-            for f in ("A", "B"):
-                for p in self.polarization_list:
-                    if (f not in self.FREQUENCIES[b].keys()):
-                        no_look.append("frequency%s" % f)
-                    elif (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
-                        no_look.append("frequency%s/%s" % (f, p))
-                    else:
-                        try:
-                            nsubswaths = self.FREQUENCIES[b][f].get("numberOfSubSwaths")[...]
-                        except KeyError:
-                            pass
-
-            self.SWATHS[b].verify_dataset_list(no_look=no_look)
-            self.METADATA[b].verify_dataset_list(no_look=no_look)
-            self.IDENTIFICATION[b].verify_dataset_list(no_look=no_look)
-
-            for xdict in (self.SWATHS[b], self.METADATA[b], self.IDENTIFICATION[b]):
-                try:
-                    assert(len(xdict.missing) == 0)
-                except AssertionError as e:
-                    traceback_string += [utility.get_traceback(e, AssertionError)]
-                    error_string += ["%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
-                                                                   ":".join(xdict.missing))]
-
-            assert(len(error_string) == len(traceback_string))
-            try:
-                assert(len(error_string) == 0)
-            except AssertionError as e:
-                print("Missing %i datasets: %s" % (len(error_string), error_string))
-                raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, \
-                                                         traceback_string, error_string)
 
     def check_images(self, fpdf, fhdf):
 
@@ -248,7 +179,7 @@ class GCOVFile(NISARFile):
                 traceback_string += [utility.get_traceback(e, AssertionError)]
                 error_string += ["%s %s %s image has %i negative backscatter pixels" \
                                 % (b, f, p, ximg.nnegative)]
-                #raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time, \
+                #raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time[b], \
                 #                                                traceback_string, error_string)
                  
 
@@ -316,78 +247,10 @@ class GCOVFile(NISARFile):
         try:
             assert(len(error_string) == 0)
         except AssertionError as e:
-            raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time, \
+            raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time[self.bands[0]], \
                                                             traceback_string, error_string)
              
                 
-    def junk_check_time(self):
-
-        for b in self.bands:
-
-            try:
-                time = self.SWATHS[b].get("zeroDopplerTime")[...]
-                spacing = self.SWATHS[b].get("zeroDopplerTimeSpacing")[...]
-                start_time = self.IDENTIFICATION[b].get("zeroDopplerStartTime")[...]
-                end_time = self.IDENTIFICATION[b].get("zeroDopplerEndTime")[...]
-            except KeyError:
-                pass
-            else:
-
-                try:
-                    start_time = bytes(start_time).split(b".")[0].decode("utf-8")
-                    end_time = bytes(end_time).split(b".")[0].decode("utf-8")
-                except UnicodeDecodeError as e:
-                    traceback_string = [utility.get_traceback(e, UnicodeDecodeError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                                                         ["%s Start/End Times could not be read." % b])
-                else:
-                
-                    try:
-                        time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
-                        time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-                        assert( (time2 > time1) )
-                        assert( (time1.year >= 2000) and (time1.year < 2100) )
-                        assert( (time2.year >= 2000) and (time2.year < 2100) )
-                    except (AssertionError, ValueError) as e:
-                        traceback_string = [utility.get_traceback(e, AssertionError)]
-                        raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                                                                 ["%s Invalid Start and End Times" % b])
-                    
-                    try:
-                        utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
-                                              errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-                    except (KeyError, errors_base.WarningError, errors_base.FatalError):
-                        pass
-
-
-        try:
-            time = self.METADATA[b].get("orbit/time")
-        except KeyError:
-            contine
-        else:
-            try:
-                utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "%s orbitTime" % b, \
-                                      errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-            except (errors_base.WarningError, errors_base.FatalError):
-                pass
-        
-    def junk_check_frequencies(self):
-
-        for b in self.bands:
-            nfrequencies = len(self.FREQUENCIES[b])
-            if (nfrequencies == 2):
-                for freq_name in ("acquiredCenterFrequency", "processedCenterFrequency"):
-                    freq = {}
-                    for f in list(self.FREQUENCIES[b].keys()):
-                        freq[f] = self.FREQUENCIES[b][f][freq_name][...]
-
-                    try:
-                        assert(freq["A"] < freq["B"])
-                    except AssertionError as e:
-                        traceback_string = [utility.get_traceback(e, AssertionError)]
-                        raise errors_derived.FrequencyOrderFatal(self.flname, self.start_time[b], traceback_string, \
-                                                                 ["%s A=%f not less than B=%f" \
-                                                                  % (freq_name, freq["A"], freq["B"])])
 
     def check_slant_range(self):
 
@@ -431,7 +294,7 @@ class GCOVFile(NISARFile):
                     continue
                 except AssertionError as e:
                     traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, traceback_string, \
+                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[b], traceback_string, \
                                                              ["%s %s has invalid numberofSubSwaths: %i", \
                                                               (b, f, nsubswath)])
                 

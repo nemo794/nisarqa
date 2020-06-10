@@ -57,14 +57,7 @@ class SLCFile(NISARFile):
             
         return slant_path, spacing
             
-    def junk_get_fields_from_xml(self, xstring):
-
-        xlist = [i.get("name") for i in self.xml_tree.iter() if ("name" in i.keys())]
-        xlist = [x for x in xlist if (x.startswith(xstring))]
-
-        return xlist
-        
-    def get_bands(self):
+     def get_bands(self):
         
         for band in ("LSAR", "SSAR"):
             try:
@@ -137,36 +130,7 @@ class SLCFile(NISARFile):
                     raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
                                                              ["File missing identification data for %s." % band])
 
-    def junk_get_freq_pol(self):
-
-        self.FREQUENCIES = {}
-        self.polarizations = {}
-        
-        for b in self.bands:
-
-            # Find list of frequencies by directly querying dataset
-
-            self.FREQUENCIES[b] = {}
-            self.polarizations[b] = {}
-            for f in ("A", "B"):
-                try:
-                    f2 = self["/science/%s/%s/swaths/frequency%s" % (b, self.ftype, f)]
-                except KeyError:
-                    pass
-                else:
-                    print("Found %s Frequency%s" % (b, f))
-                    self.FREQUENCIES[b][f] = f2
-                    self.polarizations[b][f] = []
-                    for p in ("HH", "VV", "HV", "VH"):
-                        try:
-                            p2 = self.FREQUENCIES[b][f][p]
-                        except KeyError:
-                            pass
-                        else:
-                            self.polarizations[b][f].append(p)
-                            
-
-    def create_images(self, time_step=1, range_step=1):
+     def create_images(self, time_step=1, range_step=1):
 
         missing_images = []
         missing_params = []
@@ -212,54 +176,6 @@ class SLCFile(NISARFile):
             raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
                                                    [error_string])
                 
-
-    def junk_find_missing_datasets(self):
-
-        for b in self.bands:
-            self.SWATHS[b].get_dataset_list(self.xml_tree, b)
-            self.METADATA[b].get_dataset_list(self.xml_tree, b)
-            self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
-
-        error_string = []
-        traceback_string = []
-        
-        for b in self.bands:
-            no_look = []
-            for f in ("A", "B"):
-                for p in ("HH", "VV", "HV", "VH", "RH", "RV"):
-                    if (f not in self.FREQUENCIES[b].keys()):
-                        no_look.append("frequency%s" % f)
-                    elif (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
-                        no_look.append("frequency%s/%s" % (f, p))
-                    else:
-                        try:
-                            nsubswaths = self.FREQUENCIES[b][f]["numberOfSubSwaths"][...]
-                        except KeyError:
-                            pass
-                        else:
-                            for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
-                                no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
-
-            self.SWATHS[b].verify_dataset_list(no_look=no_look)
-            self.METADATA[b].verify_dataset_list(no_look=no_look)
-            self.IDENTIFICATION[b].verify_dataset_list(no_look=no_look)
-
-            for xdict in (self.SWATHS[b], self.METADATA[b], self.IDENTIFICATION[b]):
-                try:
-                    assert(len(xdict.missing) == 0)
-                except AssertionError as e:
-                    traceback_string += [utility.get_traceback(e, AssertionError)]
-                    error_string += ["%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
-                                                                   ":".join(xdict.missing))]
-
-            assert(len(error_string) == len(traceback_string))
-            try:
-                assert(len(error_string) == 0)
-            except AssertionError as e:
-                print("Missing %i datasets: %s" % (len(error_string), error_string))
-                raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, \
-                                                         traceback_string, error_string)
-            
 
     def check_images(self, fpdf, fhdf):
 

@@ -40,86 +40,19 @@ class NISARFile(h5py.File):
         
         for b in ("LSAR", "SSAR"):
             try:
-                self.start_time[b] = self["/science/%s/identification/zeroDopplerStartTime" % b][...]
+                xtime = self["/science/%s/identification/zeroDopplerStartTime" % b][...]
+                xtime = xtime.item()
+                print("xtime %s %s" % (type(xtime), xtime))
+                try:
+                    print("Converting to string")
+                    self.start_time[b] = xtime.decode("utf-8")
+                except AttributeError:
+                    self.start_time[b] = xtime
             except KeyError:
                 self.start_time[b] = "9999-99-99T99:99:99"
-            else:
-                break
-        
-    def junk_get_bands(self):
-        
-        for band in ("LSAR", "SSAR"):
-            try:
-                xband = self["/science/%s" % band]
-            except KeyError:
-                print("%s not present" % band)
-                pass
-            else:
-                print("Found band %s" % band)
-                self.bands.append(band)
-                traceback_string = []
-                error_string = []
 
-                # Determine if data is SLC or RSLC and create HdfGroups.
-
-                name_swath = None
-                name_metadata = None
-                for (gname, name_found, xdict, dict_name) in zip( (self.swath_path, self.metadata_path), \
-                                                                  (name_swath, name_metadata), \
-                                                                  (self.SWATHS, self.METADATA), \
-                                                                  ("%s Swath" % band, "%s Metadata" % band) ):
-                    for dtype in self.ftype_list:
-                        try:
-                            group = self[gname % (band, dtype)]
-                        except KeyError:
-                            continue
-                        else:
-                            if (dict_name.endswith("Swath")):
-                                name_swath = dtype
-                            elif (dict_name.endswith("Metadata")):
-                                name_metadata = dtype
-                            name_found = dtype
-                            xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype))
-                            break
-
-                        
-                    try:
-                        assert(name_found is not None)
-                    except AssertionError as e:
-                        gname2 = gname % (band, dtype)
-                        if (isinstance(self, SLCFile)):
-                            gname2 = gname2.replace("RSLC", "[SLC,RSLC]")
-                        elif (isinstance(self, GCOVFile)):
-                            gname2 = gname
-                        traceback_string = [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s does not exist" % gname2]
-
-                # Check for missing Swath and/or Metadata groups
-                        
-                assert(len(traceback_string) == len(error_string))
-                if (len(error_string) > 0):
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             error_string)
-                        
-                # Check that both Swath and Metadata groups are either SLC or RLSC
-                    
-                try:
-                    assert(name_swath == name_metadata)
-                    self.ftype = name_swath
-                except AssertionError as e:
-                    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["Metadata and swath have inconsistent naming"])
-
-                # Check that Identification group exists
-                
-                try:
-                    self.IDENTIFICATION[band] = HdfGroup(self, "%s Identification" % band, \
-                                                         self.identification_path % band)
-                except KeyError as e:
-                    traceback_string = [utility.get_traceback(e, KeyError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["File missing identification data for %s." % band])
+        for b in ("LSAR", "SSAR"):
+            print("%s Start time %s" % (b, self.start_time[b])) 
 
     def get_freq_pol(self):
 
@@ -321,6 +254,7 @@ class NISARFile(h5py.File):
                 try:
                     assert(len(xdict.missing) == 0)
                 except AssertionError as e:
+                    print("Dict %s is missing %i fields" % (xdict.name, len(xdict.missing)))
                     traceback_string += [utility.get_traceback(e, AssertionError)]
                     error_string += ["%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
                                                                    ":".join(xdict.missing))]
@@ -330,7 +264,7 @@ class NISARFile(h5py.File):
                 assert(len(error_string) == 0)
             except AssertionError as e:
                 #print("Missing %i datasets: %s" % (len(error_string), error_string))
-                raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, \
+                raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[b], \
                                                          traceback_string, error_string)
             
                 

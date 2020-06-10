@@ -18,6 +18,7 @@ class MissingDatasetFatal(errors_base.FatalError):
     def __init__(self, flname, start_time, traceback, description):
         MissingDatasetFatal.ninstance += 1
         MissingDatasetFatal.file_list.append(os.path.basename(flname))
+        print("Missing Dataset time %s" % start_time)
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
 class TimeSpacingWarning(errors_base.WarningError):
