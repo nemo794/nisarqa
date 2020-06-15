@@ -94,7 +94,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_one.h5"), xml_tree=self.xml_tree, mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "LSAR Identification missing 1 fields: .*absoluteOrbitNumber", \
+        self.assertRaisesRegex(errors_base.WarningError, "LSAR Identification missing 1 fields: .*absoluteOrbitNumber", \
                                self.slc_file.find_missing_datasets)
         
 

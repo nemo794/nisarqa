@@ -69,8 +69,7 @@ if __name__ == "__main__":
             fhdf.close()
             if (kwds["validate"]):
                 flog.print_file_logs(os.path.basename(slc_file))
-            sys.exit(1)
-             
+            continue
 
         fhdf.get_freq_pol()
             
@@ -81,12 +80,12 @@ if __name__ == "__main__":
             fhdf.close()
             if (kwds["validate"]):
                 flog.print_file_logs(os.path.basename(slc_file))
-            sys.exit(1)
+            continue
              
         if (kwds["validate"]):
             try:
                 fhdf.find_missing_datasets()
-            except errors_base.FatalError:
+            except errors_base.WarningError:
                 pass
 
         # Verify identification information
@@ -94,7 +93,7 @@ if __name__ == "__main__":
         if (kwds["validate"]):
             try:
                 fhdf.check_identification()
-            except errors_base.FatalError:
+            except errors_base.WarningError:
                 pass
 
         # Verify frequencies and polarizations
@@ -102,7 +101,7 @@ if __name__ == "__main__":
         if (kwds["validate"]):
             try:
                 fhdf.check_frequencies()
-            except errors_base.FatalError:
+            except errors_base.WarningError:
                 pass
 
             
@@ -127,7 +126,7 @@ if __name__ == "__main__":
         if (kwds["validate"]):
             try:
                 fhdf.check_subswaths_bounds()
-            except errors_base.FatalError:
+            except errors_base.WarningError:
                 pass
     
         # Check for NaN's and plot images

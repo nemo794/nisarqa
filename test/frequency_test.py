@@ -62,7 +62,10 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
-        self.slc_file.check_nans()
+        try:
+            self.slc_file.check_nans()
+        except errors_base.WarningError:
+            pass
         self.slc_file.check_images(fpdf, fhdf)
 
         self.slc_file.close()
@@ -120,7 +123,10 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
-        self.slc_file.check_nans()
+        try:
+            self.slc_file.check_nans()
+        except errors_base.WarningError:
+            pass
         self.slc_file.check_images(fpdf, fhdf)
 
         self.slc_file.close()

@@ -21,6 +21,8 @@ class GCOVImage(object):
         self.frequency = frequency
         self.polarization = polarization
 
+        self.empty = False
+
     def initialize(self, data_in, nan_mask):
 
         self.xdata = np.copy(data_in)
@@ -36,7 +38,7 @@ class GCOVImage(object):
         self.xdata = ximg[::time_step, ::range_step]
         self.shape = self.xdata.shape
 
-        print("Read %s %s %s image" % (self.band, self.frequency, self.polarization))
+        #print("Read %s %s %s image" % (self.band, self.frequency, self.polarization))
             
     def check_for_nan(self):
 
@@ -45,15 +47,15 @@ class GCOVImage(object):
         self.num_nan = self.nan_mask.sum()
         self.perc_nan = 100.0*self.num_nan/self.xdata.size
 
-        if (self.num_nan > 0):
-            self.nan_string = "%s_%s had %i NaN's=%f%%" % (self.frequency, self.polarization, \
-                                                           self.num_nan, 100.0*self.num_nan/self.xdata.size)
-
-        self.empty = (self.num_nan == self.xdata.size)
-        if (self.empty):
-            return
+        self.num_zero = 0
+        self.empty = False
         
-        (self.pcnt5, self.pcnt95) = np.percentile(self.xdata[~self.nan_mask], (5.0, 95.0)) 
+        if (self.num_nan == self.xdata.size):
+            self.empty_string = ["%s %s_%s is entirely NaN" % (self.band, self.frequency, self.polarization)]
+            self.empty = True
+        elif (self.num_nan > 0) and (self.num_nan < self.xdata.size):
+            self.nan_string = ["%s %s_%s has %i NaN's=%s%%" % (self.band, self.frequency, self.polarization, \
+                                                              self.num_nan, round(self.perc_nan, 1))]
 
     def calc(self):
 

@@ -23,7 +23,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, \
+        self.assertRaisesRegex(errors_base.WarningError, \
                                "Start Time b'2018-07-30T16:15:47' not less than End Time b'2018-07-30T16:14:39.382875'", \
                                self.slc_file.check_identification)
 
@@ -33,7 +33,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "Invalid Orbit Number: *", \
+        self.assertRaisesRegex(errors_base.WarningError, "Invalid Orbit Number: *", \
                                self.slc_file.check_identification)
         
     def test_track(self):
@@ -42,7 +42,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "Invalid Track Number: *", \
+        self.assertRaisesRegex(errors_base.WarningError, "Invalid Track Number: *", \
                                self.slc_file.check_identification)
         
     def test_frame(self):
@@ -51,7 +51,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "Invalid Frame Number: *", \
+        self.assertRaisesRegex(errors_base.WarningError, "Invalid Frame Number: *", \
                                self.slc_file.check_identification)
         
     def test_cycle(self):
@@ -60,7 +60,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "Invalid Cycle Number: *", \
+        self.assertRaisesRegex(errors_base.WarningError, "Invalid Cycle Number: *", \
                                self.slc_file.check_identification)
         
     def test_product_type(self):
@@ -69,7 +69,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "Invalid Product Type: *", \
+        self.assertRaisesRegex(errors_base.WarningError, "Invalid Product Type: *", \
                                self.slc_file.check_identification)
         
     def test_look_direction(self):
@@ -78,7 +78,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, "Invalid Look Direction: *", \
+        self.assertRaisesRegex(errors_base.WarningError, "Invalid Look Direction: *", \
                                self.slc_file.check_identification)
         
          
@@ -89,7 +89,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
         self.slc_file.check_identification()
-        self.assertRaisesRegex(errors_base.FatalError, \
+        self.assertRaisesRegex(errors_base.WarningError, \
                                "acquiredCenterFrequency A=1243000000.0* not less than B=1233000000.0*", \
                                self.slc_file.check_frequencies)
         
@@ -100,7 +100,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
         self.slc_file.check_identification()
-        self.assertRaisesRegex(errors_base.FatalError, \
+        self.assertRaisesRegex(errors_base.WarningError, \
                                "processedCenterFrequency A=1243000000.0* not less than B=1233000000.0*", \
                                self.slc_file.check_frequencies)
         
@@ -110,7 +110,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
-        self.assertRaisesRegex(errors_base.FatalError, \
+        self.assertRaisesRegex(errors_base.WarningError, \
                                "[Invalid Orbit*, Invalid Track*]", \
                                self.slc_file.check_identification)
         

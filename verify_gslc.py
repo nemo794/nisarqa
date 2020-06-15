@@ -1,8 +1,8 @@
 from quality import check_time
 from quality import errors_base
 from quality import errors_derived
-from quality.GCOVFile import GCOVFile
 from quality.LogError import LogError
+from quality.GSLCFile import GSLCFile
 from quality import utility
 
 import optparse
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_option("--validate", dest="validate", action="store_true", default=False)
     parser.add_option("--quality", dest="quality", action="store_true", default=False)
     parser.add_option("--xml_dir", dest="xml_dir", type="string", action="store", default="xml")
-    parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L2_GCOV.xml")
+    parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L2_GSLC.xml")
 
     (kwds, args) = utility.parse_args(parser)
 
@@ -55,22 +55,21 @@ if __name__ == "__main__":
         assert(os.path.exists(xml_path))
         xml_tree = ET.parse(xml_path)
         
-    for slc_file in args:
+    for gslc_file in args:
 
         #errors_base.WarningError.reset(errors_base.WarningError)
         #errors_base.FatalError.reset(errors_base.FatalError)
         
-        fhdf = GCOVFile(slc_file, xml_tree=xml_tree, mode="r")
+        fhdf = GSLCFile(gslc_file, xml_tree=xml_tree, mode="r")
         
         try:
             fhdf.get_bands()
-        #except errors_base.FatalError:
-        except IndentError:
-            print("File %s has a Fatal Error" % slc_file)
+        except errors_base.FatalError:
+            print("File %s has a Fatal Error" % gslc_file)
             fhdf.close()
             if (kwds["validate"]):
-                flog.print_file_logs(os.path.basename(slc_file))
-            continue
+                flog.print_file_logs(os.path.basename(gslc_file))
+            sys.exit(1)
              
 
         fhdf.get_freq_pol()
@@ -78,11 +77,11 @@ if __name__ == "__main__":
         try:
             fhdf.check_freq_pol()
         except errors_base.FatalError:
-            print("File %s has a Fatal Error" % slc_file)
+            print("File %s has a Fatal Error" % gslc_file)
             fhdf.close()
             if (kwds["validate"]):
-                flog.print_file_logs(os.path.basename(slc_file))
-            continue
+                flog.print_file_logs(os.path.basename(gslc_file))
+            sys.exit(1)
              
         if (kwds["validate"]):
             try:
@@ -125,11 +124,11 @@ if __name__ == "__main__":
 
         # Verify SubSwath boundaries
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_subswaths_bounds()
-            except errors_base.WarningError:
-                pass
+        #if (kwds["validate"]):
+        #    try:
+        #        fhdf.check_subswaths_bounds()
+        #    except errors_base.FatalError:
+        #        pass
     
         # Check for NaN's and plot images
 
@@ -154,7 +153,7 @@ if __name__ == "__main__":
 
         fhdf.close()
         if (kwds["validate"]):
-            flog.print_file_logs(os.path.basename(slc_file))
+            flog.print_file_logs(os.path.basename(gslc_file))
             #flog.print_error_matrix(os.path.basename(slc_file))
 
     # Close pdf file

@@ -79,7 +79,7 @@ class GCOVFile(NISARFile):
                 print("Found %s band" % band)
                 self.bands.append(band)
 
-                # Determine if data is SLC or RSLC and create HdfGroups.
+                # Create HdfGroups.
 
                 for (gname, xdict, dict_name) in zip( ("/science/%s/GCOV/grids", "/science/%s/GCOV/metadata", \
                                                        "/science/%s/identification"), \
@@ -99,7 +99,7 @@ class GCOVFile(NISARFile):
                         
         assert(len(traceback_string) == len(error_string))
         if (len(error_string) > 0):
-            raise errors_derived.IdentificationFatal(self.flname, self.start_time[self.bands[0]], \
+            raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[self.bands[0]], \
                                                      traceback_string, error_string)
                         
                              
@@ -194,7 +194,7 @@ class GCOVFile(NISARFile):
 
         for (i, key) in enumerate(sums_linear.keys()):
 
-            print("Looking at %i-th image: %s" % (i, key))
+            #print("Looking at %i-th image: %s" % (i, key))
             (counts, edges) = np.histogram(sums_power[key], bins=1000)
             if (i == 0):
                 counts_power = np.copy(counts)
@@ -294,9 +294,9 @@ class GCOVFile(NISARFile):
                     continue
                 except AssertionError as e:
                     traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[b], traceback_string, \
-                                                             ["%s %s has invalid numberofSubSwaths: %i", \
-                                                              (b, f, nsubswath)])
+                    raise errors_derived.NumSubswathWarning(self.flname, self.start_time[b], traceback_string, \
+                                                            ["%s %s has invalid numberofSubSwaths: %i", \
+                                                             (b, f, nsubswath)])
                 
                 
 

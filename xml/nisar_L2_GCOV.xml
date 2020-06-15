@@ -186,22 +186,6 @@
                           lang="en"
                           units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
-        <integer name="/science/LSAR/GCOV/grids/frequencyA/numberOfAzimuthLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in azimuth direction for covariance estimation</annotation>
-        </integer>
-        <integer name="/science/LSAR/GCOV/grids/frequencyA/numberOfRangeLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in slant range direction for covariance estimation</annotation>
-        </integer>
         <string length="0"
                 name="/science/LSAR/GCOV/grids/frequencyA/faradayRotationFlag"
                 shape="scalar">
@@ -248,6 +232,14 @@
 
         <!-- 2D CF compliant rasters -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
+        <real name="/science/LSAR/GCOV/grids/frequencyA/numberOfLooks"
+              shape="complexDataFrequencyAShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="Radar-grid looks">Number of averaged radar-grid pixels for covariance estimation</annotation>
+          <annotation app="io" />
+        </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/areaNormalizationFactor"
               shape="complexDataFrequencyAShape"
               width="32">
@@ -260,15 +252,15 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HH and HH</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between HH and HH</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/HHHV"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HH and HV</annotation>
+                      units="unitless">Covariance between HH and HV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/HHVH"
@@ -276,7 +268,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance betweeen HH and VH</annotation>
+                      units="unitless">Covariance betweeen HH and VH</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/HHVV"
@@ -284,7 +276,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HH and VV</annotation>
+                      units="unitless">Covariance between HH and VV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/HVHV"
@@ -292,15 +284,15 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HV and HV</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between HV and HV</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/HVVH"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HV and VH</annotation>
+                      units="unitless">Covariance between HV and VH</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/HVVV"
@@ -308,7 +300,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance betweeen HH and VV</annotation>
+                      units="unitless">Covariance betweeen HH and VV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/VHVH"
@@ -316,15 +308,15 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between VH and VH</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between VH and VH</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/VHVV"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance betweeen VH and VV</annotation>
+                      units="unitless">Covariance betweeen VH and VV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/VVVV"
@@ -332,23 +324,23 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between VV and VV</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between VV and VV</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/RHRH"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RH and RH</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between RH and RH</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/RHRV"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RH and RV</annotation>
+                      units="unitless">Covariance between RH and RV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/RVRH"
@@ -356,7 +348,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RV and RH</annotation>
+                      units="unitless">Covariance between RV and RH</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/RVRV"
@@ -364,8 +356,8 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RV and RV</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between RV and RV</annotation>
+          <annotation app="io" />
         </real>
         <!-- Valid data mask for frequencyA -->
         <!-- Ideally this is like pols, depending on number of subswaths - we would have as many valid sample entries -->
@@ -435,22 +427,6 @@
                           lang="en"
                           units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
-        <integer name="/science/LSAR/GCOV/grids/frequencyB/numberOfAzimuthLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in azimuth direction for covariance estimation</annotation>
-        </integer>
-        <integer name="/science/LSAR/GCOV/grids/frequencyB/numberOfRangeLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in slant range direction for covariance estimation</annotation>
-        </integer>
         <string length="0"
                 name="/science/LSAR/GCOV/grids/frequencyB/faradayRotationFlag"
                 shape="scalar">
@@ -497,20 +473,28 @@
 
         <!-- 2D CF compliant rasters -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
+        <real name="/science/LSAR/GCOV/grids/frequencyB/numberOfLooks"
+              shape="complexDataFrequencyAShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="Radar-grid looks">Number of averaged radar-grid pixels for covariance estimation</annotation>
+          <annotation app="io" />
+        </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HHHH"
               shape="complexDataFrequencyBShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HH and HH</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between HH and HH</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HHHV"
               shape="complexDataFrequencyBShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HH and HV</annotation>
+                      units="unitless">Covariance between HH and HV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HHVH"
@@ -518,7 +502,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance betweeen HH and VH</annotation>
+                      units="unitless">Covariance betweeen HH and VH</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HHVV"
@@ -526,7 +510,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HH and VV</annotation>
+                      units="unitless">Covariance between HH and VV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HVHV"
@@ -534,15 +518,15 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HV and HV</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between HV and HV</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HVVH"
               shape="complexDataFrequencyBShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between HV and VH</annotation>
+                      units="unitless">Covariance between HV and VH</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HVVV"
@@ -550,7 +534,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance betweeen HH and VV</annotation>
+                      units="unitless">Covariance betweeen HH and VV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/VHVH"
@@ -558,15 +542,15 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between VH and VH</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between VH and VH</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/VHVV"
               shape="complexDataFrequencyBShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance betweeen VH and VV</annotation>
+                      units="unitless">Covariance betweeen VH and VV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/VVVV"
@@ -574,23 +558,23 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between VV and VV</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between VV and VV</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/RHRH"
               shape="complexDataFrequencyBShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RH and RH</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between RH and RH</annotation>
+          <annotation app="io" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/RHRV"
               shape="complexDataFrequencyBShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RH and RV</annotation>
+                      units="unitless">Covariance between RH and RV</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/RVRH"
@@ -598,7 +582,7 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RV and RH</annotation>
+                      units="unitless">Covariance between RV and RH</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/RVRV"
@@ -606,8 +590,8 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Covariance between RV and RV</annotation>
-          <annotation app="io" kwd="complex" />
+                      units="unitless">Covariance between RV and RV</annotation>
+          <annotation app="io" />
         </real>
         <!-- Valid data mask for frequencyB -->
         <!-- Ideally this is like pols, depending on number of subswaths - we would have as many valid sample entries -->

@@ -2,6 +2,15 @@ from quality import errors_base
 
 import os
 
+class IdentificationWarning(errors_base.WarningError):
+    file_list = []
+    ninstance = 0
+    name = "WarningIdentificationError"
+    def __init__(self, flname, start_time, traceback, description):
+        IdentificationWarning.ninstance += 1
+        IdentificationWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
+
 class IdentificationFatal(errors_base.FatalError):
     file_list = []
     ninstance = 0
@@ -11,6 +20,15 @@ class IdentificationFatal(errors_base.FatalError):
         IdentificationFatal.file_list.append(os.path.basename(flname))
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
+class FrequencyPolarizationFatal(errors_base.FatalError):
+    file_list = []
+    ninstance = 0
+    name = "FatalFrequencyPolarizationError"
+    def __init__(self, flname, start_time, traceback, description):
+        FrequencyPolarizationFatal.ninstance += 1
+        FrequencyPolarizationFatal.file_list.append(os.path.basename(flname))
+        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+
 class MissingDatasetFatal(errors_base.FatalError):
     file_list = []
     ninstance = 0
@@ -18,8 +36,16 @@ class MissingDatasetFatal(errors_base.FatalError):
     def __init__(self, flname, start_time, traceback, description):
         MissingDatasetFatal.ninstance += 1
         MissingDatasetFatal.file_list.append(os.path.basename(flname))
-        print("Missing Dataset time %s" % start_time)
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+
+class MissingDatasetWarning(errors_base.WarningError):
+    file_list = []
+    ninstance = 0
+    name = "WarningMissingDatasetError"
+    def __init__(self, flname, start_time, traceback, description):
+        MissingDatasetWarning.ninstance += 1
+        MissingDatasetWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 
 class TimeSpacingWarning(errors_base.WarningError):
     file_list = []
@@ -57,32 +83,32 @@ class SlantSpacingFatal(errors_base.FatalError):
         SlantSpacingFatal.file_list.append(os.path.basename(flname))
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
-class MissingSubswathFatal(errors_base.FatalError):
+class MissingSubswathWarning(errors_base.FatalError):
     file_list = []
     ninstance = 0
-    name = "FatalMissingSubswath"
+    name = "WarningMissingSubswath"
     def __init__(self, flname, start_time, traceback, description):
-        MissingSubswathFatal.ninstance += 1
-        MissingSubswathFatal.file_list.append(os.path.basename(flname))
-        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+        MissingSubswathWarning.ninstance += 1
+        MissingSubswathWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 
-class NumSubswathFatal(errors_base.FatalError):
+class NumSubswathWarning(errors_base.WarningError):
     file_list = []
     ninstance = 0
-    name = "FatalNumSubswath"
+    name = "WarningNumSubswath"
     def __init__(self, flname, start_time, traceback, description):
-        NumSubswathFatal.ninstance += 1
-        NumSubswathFatal.file_list.append(os.path.basename(flname))
-        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+        NumSubswathWarning.ninstance += 1
+        NumSubswathWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 
-class BoundsSubswathFatal(errors_base.FatalError):
+class BoundsSubswathWarning(errors_base.WarningError):
     file_list = []
     ninstance = 0
-    name = "FatalBoundsSubswath"
+    name = "WarningBoundsSubswath"
     def __init__(self, flname, start_time, traceback, description):
-        BoundsSubswathFatal.ninstance += 1
-        BoundsSubswathFatal.file_list.append(os.path.basename(flname))
-        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+        BoundsSubswathWarning.ninstance += 1
+        BoundsSubswathWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 
 class FrequencyListFatal(errors_base.FatalError):
     file_list = []
@@ -93,14 +119,14 @@ class FrequencyListFatal(errors_base.FatalError):
         FrequencyListFatal.file_list.append(os.path.basename(flname))
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
-class FrequencyOrderFatal(errors_base.FatalError):
+class FrequencyOrderWarning(errors_base.WarningError):
     file_list = []
     ninstance = 0
-    name = "FatalFrequencyOrder"
+    name = "WarningFrequencyOrder"
     def __init__(self, flname, start_time, traceback, description):
-        FrequencyOrderFatal.ninstance += 1
-        FrequencyOrderFatal.file_list.append(os.path.basename(flname))
-        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+        FrequencyOrderWarning.ninstance += 1
+        FrequencyOrderWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 
 class PolarizationListFatal(errors_base.FatalError):
     file_list = []
@@ -146,6 +172,25 @@ class NaNWarning(errors_base.WarningError):
         print("Raising NaN Warning")
         NaNWarning.ninstance += 1
         NaNWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
+
+class ZeroFatal(errors_base.FatalError):
+    file_list = []
+    ninstance = 0
+    name = "FatalZero"
+    def __init__(self, flname, start_time, traceback, description):
+        ZeroFatal.ninstance += 1
+        ZeroFatal.file_list.append(os.path.basename(flname))
+        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+
+class ZeroWarning(errors_base.WarningError):
+    file_list = []
+    ninstance = 0
+    name = "WarningZero"
+    def __init__(self, flname, start_time, traceback, description):
+        print("Raising Zero Warning")
+        ZeroWarning.ninstance += 1
+        ZeroWarning.file_list.append(os.path.basename(flname))
         raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
 
 class NegativeBackscatterWarning(errors_base.WarningError):

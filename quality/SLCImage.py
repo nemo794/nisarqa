@@ -22,6 +22,7 @@ class SLCImage(object):
         self.hertz = hertz
         self.tspacing = (constants.c/2.0)/rspacing
         self.diffs = {}
+        self.empty = False
 
     def initialize(self, data_in, nan_mask):
 
@@ -66,7 +67,7 @@ class SLCImage(object):
 
         self.shape = self.xdata.shape
 
-        print("Read %s %s %s image" % (self.band, self.frequency, self.polarization))
+        #print("Read %s %s %s image" % (self.band, self.frequency, self.polarization))
             
     def check_for_nan(self):
 
@@ -74,16 +75,28 @@ class SLCImage(object):
         self.nan_mask = np.isnan(self.xdata.real) | np.isnan(self.xdata.imag) \
                       | np.isinf(self.xdata.real) | np.isinf(self.xdata.imag)
         self.num_nan = self.nan_mask.sum()
+        self.num_zero = self.zero_mask.sum()
         self.perc_nan = 100.0*self.num_nan/self.xdata.size
+        self.perc_zero = 100.0*self.num_zero/self.xdata.size
+        self.empty = (self.num_nan == self.xdata.size) or (self.num_zero == self.xdata.size) or \
+                     ((self.num_nan + self.num_zero) == self.xdata.size)
 
-        if (self.num_nan > 0):
-            self.nan_string = "%s_%s had %i NaN's=%f%%" % (self.frequency, self.polarization, \
-                                                           self.num_nan, 100.0*self.num_nan/self.xdata.size)
-
-        self.empty = (self.num_nan == self.xdata.size)
         if (self.empty):
+            if (self.num_nan == self.xdata.size):
+                self.empty_string = ["%s %s_%s is entirely NaN" % (self.band, self.frequency, self.polarization)]
+            elif (self.num_zero == self.xdata.size):
+                self.empty_string = ["%s %s_%s is entirely Zeros" % (self.band, self.frequency, self.polarization)]
+            else:
+                self.empty_string = ["%s %s_%s is entirely NaNs or Zeros" % (self.band, self.frequency, self.polarization)]
             return
         
+        if (self.num_nan > 0):
+            self.nan_string = ["%s %s_%s has %i NaN's=%s%%" % (self.band, self.frequency, self.polarization, \
+                                                               self.num_nan, round(self.perc_nan, 1))]
+        if (self.num_zero > 0):
+            self.zero_string = ["%s %s_%s has %i Zeros=%s%%" % (self.band, self.frequency, self.polarization, \
+                                                                self.num_zero, round(self.perc_zero, 1))]
+
         self.real = self.xdata.real[~self.nan_mask]
         self.imag = self.xdata.imag[~self.nan_mask]
 
@@ -162,7 +175,7 @@ class SLCImage(object):
 
     def plot4a1(self, axis):
 
-        (counts, edges) = np.histogram(self.power[~self.nan_mask], bins=100)
+        (counts, edges) = np.histogram(self.power[self.mask_ok], bins=100)
         axis.plot(edges[:-1], counts, label=self.polarization)
         
         axis.plot

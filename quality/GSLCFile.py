@@ -20,7 +20,7 @@ import sys
 import tempfile
 import traceback
 
-class SLCFile(NISARFile):
+class GSLCFile(NISARFile):
 
     def __init__(self, flname, xml_tree=None, mode="r"):
         self.flname = os.path.basename(flname)
@@ -40,12 +40,12 @@ class SLCFile(NISARFile):
 
         self.ftype_list = ("SLC", "RSLC")
         self.product_type = "SLC"
-        self.polarization_list = params.SLC_POLARIZATION_LIST
-        self.polarization_groups = params.SLC_POLARIZATION_GROUPS
+        self.polarization_list = params.GSLC_POLARIZATION_LIST
+        self.polarization_groups = params.GSLC_POLARIZATION_GROUPS
         self.identification_list = params.SLC_ID_PARAMS
-        self.frequency_checks = params.SLC_FREQUENCY_NAMES
-        self.swath_path = "/science/%s/%s/swaths"
-        self.metadata_path = "/science/%s/%s/metadata"
+        self.frequency_checks = params.GSLC_FREQUENCY_NAMES
+        self.swath_path = "/science/%s/GSLC/grids"
+        self.metadata_path = "/science/%s/GSLC/metadata"
         self.identification_path = "/science/%s/identification/"
 
         self.get_start_time()        
@@ -53,11 +53,14 @@ class SLCFile(NISARFile):
     def get_slant_range(self, band, frequency):
 
         slant_path = self.FREQUENCIES[band][frequency].get("slantRange")
-        spacing = self.FREQUENCIES[band][frequency].get("slantRangeSpacing")
+        spacing = self.METADATA[band].get("/radarGrid/slantRangeSpacing")
             
         return slant_path, spacing
             
     def get_bands(self):
+
+        traceback_string = []
+        error_string = []
         
         for band in ("LSAR", "SSAR"):
             try:
@@ -68,67 +71,30 @@ class SLCFile(NISARFile):
             else:
                 print("Found band %s" % band)
                 self.bands.append(band)
-                traceback_string = []
-                error_string = []
 
-                # Determine if data is SLC or RSLC and create HdfGroups.
-
-                name_swath = None
-                name_metadata = None
-                for (gname, name_found, xdict, dict_name) in zip( ("/science/%s/%s/swaths", "/science/%s/%s/metadata"), \
-                                                                  (name_swath, name_metadata), \
-                                                                  (self.SWATHS, self.METADATA), \
-                                                                  ("%s Swath" % band, "%s Metadata" % band) ):
-                    for dtype in ("SLC", "RSLC"):
-                        try:
-                            group = self[gname % (band, dtype)]
-                        except KeyError:
-                            continue
-                        else:
-                            if (dict_name.endswith("Swath")):
-                                name_swath = dtype
-                            elif (dict_name.endswith("Metadata")):
-                                name_metadata = dtype
-                            name_found = dtype
-                            xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype))
-                            break
-
-                        
-                    try:
-                        assert(name_found is not None)
-                    except AssertionError as e:
-                        gname2 = gname % (band, dtype)
-                        gname2 = gname2.replace("RSLC", "[SLC,RSLC]")
-                        traceback_string = [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s does not exist" % gname2]
-
-
-                # Check for missing Swath and/or Metadata groups
-                        
-                assert(len(traceback_string) == len(error_string))
-                if (len(error_string) > 0):
-                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, traceback_string, \
-                                                             error_string)
-                        
-                # Check that both Swath and Metadata groups are either SLC or RLSC
-                    
-                try:
-                    assert(name_swath == name_metadata)
-                    self.ftype = name_swath
-                except AssertionError as e:
-                    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["Metadata and swath have inconsistent naming"])
-
-                # Check that Identification group exists
+                # Create HdfGroups.
                 
-                try:
-                    self.IDENTIFICATION[band] = HdfGroup(self, "%s Identification" % band, \
-                                                         "/science/%s/identification/" % band)
-                except KeyError as e:
-                    traceback_string = [utility.get_traceback(e, KeyError)]
-                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["File missing identification data for %s." % band])
+                for (gname, xdict, dict_name) in zip( ("/science/%s/GSLC/grids", "/science/%s/GSLC/metadata", \
+                                                       "/science/%s/identification"), \
+                                                      (self.SWATHS, self.METADATA, self.IDENTIFICATION), \
+                                                      ("%s Grid" % band, "%s Metadata" % band, \
+                                                       "%s Identification" % band) ):
+                    try:
+                        gname2 = gname % band
+                        group = self[gname2]
+                    except KeyError as e:
+                        traceback_string += [utility.get_traceback(e, KeyError)]
+                        error_string += ["%s does not exist" % gname2]
+                    else:
+                        xdict[band] = HdfGroup(self, dict_name, gname2)
+
+        # Raise any errors
+                        
+        assert(len(traceback_string) == len(error_string))
+        if (len(error_string) > 0):
+            raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[self.bands[0]], \
+                                                     traceback_string, error_string)
+
 
     def create_images(self, time_step=1, range_step=1):
 
@@ -143,16 +109,16 @@ class SLCFile(NISARFile):
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
                 try:
-                    freq["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("processedCenterFrequency")
+                    freq["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("acquiredCenterFrequency")
                     srange["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("slantRangeSpacing")
                 except KeyError:
                     missing_params += ["%s %s" % (b, f)]
-                    error_string += ["%s %s cannot initialize SLCImage due to missing frequency or spacing" % (b, f)]
+                    error_string += ["%s %s cannot initialize GSLCImage due to missing frequency or spacing" % (b, f)]
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
                 if ("%s %s" % (b, f) in missing_params):
-                    break
+                    cycle
 
                 for p in self.polarizations[b][f]:
                     key = "%s %s %s" % (b, f, p)
@@ -200,9 +166,6 @@ class SLCFile(NISARFile):
         sums_power = {}
 
         print("Found %i images: %s" % (len(self.images.keys()), self.images.keys()))
-        if (len(self.images.keys()) == 0):
-            return
-            
         for key in self.images.keys():
 
             # Histogram with huge number of bins to find out where the bounds of the real
@@ -251,7 +214,7 @@ class SLCFile(NISARFile):
 
             (b, f, p) = key.split()
             ximg = self.images[key]
-            fig = ximg.plot4a("%s\n(%s Frequency%s %s SLC Histograms)" % (self.flname, b, f, p), \
+            fig = ximg.plot4a("%s\n(%s Frequency%s %s GSLC Histograms)" % (self.flname, b, f, p), \
                               (-1.0*bounds_linear, bounds_linear), (-100.0, 100.0))
             fpdf.savefig(fig)
 
@@ -262,7 +225,7 @@ class SLCFile(NISARFile):
                     key = "%s %s %s" % (b, f, p)
                     self.images[key].plot4a1(axis)
                 axis.legend(loc="upper right")
-                axis.set_xlabel("SLC Power (dB)")
+                axis.set_xlabel("GSLC Power (dB)")
                 axis.set_ylabel("Number of Counts")
                 fig.suptitle("%s\n(%s Frequency %s Power Histograms)" % (self.flname, b, f))
                 fpdf.savefig(fig)
@@ -294,13 +257,13 @@ class SLCFile(NISARFile):
 
                             key_new = "%s %s %s-%s" % (b, f, p1, p2)
                             self.images[key_new] = SLCImage(b, f, "%s-%s" % (p1, p2), \
-                                                            self.FREQUENCIES[b][f]["processedCenterFrequency"][...], \
+                                                            self.FREQUENCIES[b][f]["acquiredCenterFrequency"][...], \
                                                             self.FREQUENCIES[b][f]["slantRangeSpacing"][...])
                             self.images[key_new].initialize(xdata, ref_img.nan_mask | cmp_img.nan_mask)
                             self.images[key_new].calc()
                             self.images[key_new].plot4b(axes[ip1, ip2], title="%s - %s" % (p1, p2))
                         
-                axes[0, 0].set_xlabel("SLC Phase\n(degrees)")
+                axes[0, 0].set_xlabel("GSLC Phase\n(degrees)")
                 axes[0, 0].set_ylabel("Number\nof Counts")
                 fig.suptitle("%s\n%s Frequency %s Phase Histograms" % (self.flname, b, f))
                 fpdf.savefig(fig)
@@ -313,7 +276,7 @@ class SLCFile(NISARFile):
                     for k in keys:
                         self.images[k].plot4b(axis, label=k.replace(b, "").replace(f, ""))
                     axis.legend(loc="upper right")
-                    axis.set_xlabel("SLC Phase (degrees)")
+                    axis.set_xlabel("GSLC Phase (degrees)")
                     axis.set_ylabel("Number of Counts")
                     fig.suptitle("%s\n(%s Frequency %s Phase Histograms)" % (self.flname, b, f))
                     fpdf.savefig(fig)
@@ -383,16 +346,15 @@ class SLCFile(NISARFile):
             ximg = self.images[key]
 
             try:
-                (srange, spacing) = self.get_slant_range(b, f)
-                nslant = srange.shape[0]
-                ntime = self.SWATHS[b].get("zeroDopplerTime").shape[0]
-                assert(ximg.shape == (ntime, nslant))
+                xdim = self.FREQUENCIES[b][f].get("xCoordinates")[...]
+                ydim = self.FREQUENCIES[b][f].get("yCoordinates")[...]
+                assert(ximg.shape == (ydim.size, xdim.size))
             except KeyError:
                 continue
             except AssertionError as e:
                 size_traceback += [utility.get_traceback(e, AssertionError)]
                 size_error += ["Dataset %s has shape %s, expected (%i, %i)" \
-                               % (key, ximg.shape, ntime, nslant)]
+                               % (key, ximg.shape, ydim.size, xdim.size)]
 
         # Raise array-size errors if appropriate
                 
@@ -402,13 +364,15 @@ class SLCFile(NISARFile):
         except AssertionError as e:
             raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], size_traceback, \
                                                 size_error)
-            
-        # Check slant-path spacing
+
+        return
+        
+        # Check slant-path spacing (ask Heresh for details)
         
         for b in self.bands:
             for f in list(self.FREQUENCIES[b].keys()):
                 try:
-                    slant_path = self.FREQUENCIES[b][f].get("slantRange")
+                    slant_path = self.METADATA[b].get("radarGrid/slantRange")
                     spacing = self.FREQUENCIES[b][f].get("slantRangeSpacing")
                 except KeyError:
                     continue
@@ -417,7 +381,7 @@ class SLCFile(NISARFile):
                                       "%s %s SlantPath" % (b, f), errors_derived.SlantSpacingWarning, \
                                       errors_derived.SlantSpacingFatal)
 
-    def check_subswaths_bounds(self):
+    def junk_check_subswaths_bounds(self):
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():

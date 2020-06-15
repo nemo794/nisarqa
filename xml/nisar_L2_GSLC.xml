@@ -131,7 +131,14 @@
 
         <!-- Y coordinates is common to all rasters -->
         <!-- Ensure that this existing outside the groups works with CF conventions -->
-        <real name="/science/LSAR/GSLC/grids/yCoordinates"
+        <real name="/science/LSAR/GSLC/grids/frequencyA/yCoordinates"
+              shape="yCoordinateLength"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">CF compliant dimension associated with y coordinates</annotation>
+        </real>
+        <real name="/science/LSAR/GSLC/grids/frequencyB/yCoordinates"
               shape="yCoordinateLength"
               width="64">
               <annotation app="conformance"
@@ -146,61 +153,26 @@
           <annotation app="conformance"
                       lang="en">List of processed polarization layers with frequencyA</annotation>
         </string>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/sceneCenterAlongTrackSpacing"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the SLC image</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/sceneCenterGroundRangeSpacing"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the SLC image</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/processedRangeBandwidth"
+        <real name="/science/LSAR/GSLC/grids/frequencyA/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed range bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/acquiredRangeBandwidth"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz">Acquisition range bandwidth in Hz. In case of mode combination, this corresponds to mode with lowest bandwidth.</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/processedAzimuthBandwidth"
+        <real name="/science/LSAR/GSLC/grids/frequencyA/azimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed azimuth bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/nominalAcquisitionPRF"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz">Nominal PRF of acquisition. In case of mode combination, this corresponds to mode with least nominal PRF.</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/processedCenterFrequency"
+        <real name="/science/LSAR/GSLC/grids/frequencyA/centerFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Center frequency of the processed image in Hz</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyA/acquiredCenterFrequency"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz">Center frequency of the acquisition in Hz. In case of mode combination, this corresponds to the mode with lowest Center Frequency.</annotation>
         </real>
         <real name="/science/LSAR/GSLC/grids/frequencyA/slantRangeSpacing"
               shape="scalar"
@@ -289,61 +261,33 @@
               <annotation app="conformance"
                           lang="en">List of processed polarization layers with frequencyA</annotation>
         </string>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/sceneCenterAlongTrackSpacing"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the SLC image</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/sceneCenterGroundRangeSpacing"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the SLC image</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/processedRangeBandwidth"
+        <real name="/science/LSAR/GSLC/grids/frequencyB/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed range bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/acquiredRangeBandwidth"
+        <real name="/science/LSAR/GSLC/grids/frequencyB/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Acquisition range bandwidth in Hz. In case of mode combination, this corresponds to mode with lowest bandwidth.</annotation>
         </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/processedAzimuthBandwidth"
+        <real name="/science/LSAR/GSLC/grids/frequencyB/azimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed azimuth bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/nominalAcquisitionPRF"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz">Nominal PRF of acquisition. In case of mode combination, this corresponds to mode with least nominal PRF.</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/processedCenterFrequency"
+        <real name="/science/LSAR/GSLC/grids/frequencyB/centerFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Center frequency of the processed image in Hz</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/acquiredCenterFrequency"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz">Center frequency of the acquisition in Hz. In case of mode combination, this corresponds to the mode with lowest Center Frequency.</annotation>
         </real>
         <real name="/science/LSAR/GSLC/grids/frequencyB/slantRangeSpacing"
               shape="scalar"
@@ -446,27 +390,6 @@
           <annotation app="conformance"
                       lang="en"
                       units="meters">Slant Range in meters to target</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/metadata/radarGrid/slantRangeDifference"
-              shape="radarCubeShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Slant range difference in meters to target w.r.t reference Orbit</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/metadata/radarGrid/parallelBaseline"
-              shape="radarCubeShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Parallel baseline w.r.t reference Orbit</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/metadata/radarGrid/perpendicularBaseline"
-              shape="radarCubeShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Perpendicular baseline w.r.t reference Orbit</annotation>
         </real>
         <real name="/science/LSAR/GSLC/metadata/radarGrid/incidenceAngle"
               shape="radarCubeShape"
@@ -890,36 +813,7 @@
                 <annotation app="conformance"
                             lang="en">PrOE (or) NOE (or) MOE (or) POE (or) Custom</annotation>
         </string>
-
-        <real name="/science/LSAR/GSLC/metadata/referenceOrbit/time"
-              shape="orbitListLength"
-              width="64">
-              <annotation app="conformance"
-                          lang="en"
-                          units="seconds since YYYY-MM-DD HH:MM:SS">Time vector record. This record contains the time corresponding to position, velocity, acceleration records</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/metadata/referenceOrbit/position"
-              shape="orbitShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Position vector record. This record contains the platform position data with respect to WGS84 G1762 reference frame</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/metadata/referenceOrbit/velocity"
-              shape="orbitShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters per second">Velocity vector record. This record contains the platform velocity data with respect to WGS84 G1762 reference frame</annotation>
-        </real>
-        <real name="/science/LSAR/GSLC/metadata/referenceOrbit/acceleration"
-              shape="orbitShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters per second squared">Acceleration vector record. This record contains the platform acceleration data with respect to WGS84 G1762 reference frame</annotation>
-        </real>
-        
+                
         <!-- Attitude records -->
         <real name="/science/LSAR/GSLC/metadata/attitude/time"
               shape="orbitListLength"

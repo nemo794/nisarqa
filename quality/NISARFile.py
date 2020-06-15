@@ -46,7 +46,7 @@ class NISARFile(h5py.File):
                 try:
                     print("Converting to string")
                     self.start_time[b] = xtime.decode("utf-8")
-                except AttributeError:
+                except (AttributeError, UnicodeDecodeError):
                     self.start_time[b] = xtime
             except KeyError:
                 self.start_time[b] = "9999-99-99T99:99:99"
@@ -158,9 +158,7 @@ class NISARFile(h5py.File):
         try:
             assert(len(error_string) == 0)
         except AssertionError as e:
-            #print("error_string: %s" % error_string)
-            #print("traceback_string: %s" % traceback_string)
-            raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, error_string)
+            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[b], traceback_string, error_string)
 
     def create_images(self, time_step=1, range_step=1):
 
@@ -192,8 +190,7 @@ class NISARFile(h5py.File):
                 for p in self.polarizations[b][f]:
                     key = "%s %s %s" % (b, f, p)
                     try:
-                        if (isinstance(self, SLCFile)):
-                            
+                        if (isinstance(self, SLCFile)) or (isinstance(self, GSLCFile)):
                             self.images[key] = SLCImage(b, f, p, freq["%s %s" % (b, f)][...], \
                                                         srange["%s %s" % (b, f)][...])
                         elif (isinstance(self.GCOVFile)):
@@ -233,11 +230,15 @@ class NISARFile(h5py.File):
                     no_look.append("frequency%s" % f)
                     continue
 
+                print("Looking at %s %s" % (b, f))
+                print("keys: %s" % self.FREQUENCIES[b][f].keys())
                 try:
-                    nsubswaths = self.FREQUENCIES[b][f]["numberOfSubSwaths"][...]
+                    subswaths = self.FREQUENCIES[b][f].get("numberOfSubSwaths")
                 except KeyError:
+                    nsubswaths = 0
                     pass
                 else:
+                    nsubswaths = subswaths[...]
                     for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
                         no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
                 
@@ -264,8 +265,8 @@ class NISARFile(h5py.File):
                 assert(len(error_string) == 0)
             except AssertionError as e:
                 #print("Missing %i datasets: %s" % (len(error_string), error_string))
-                raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[b], \
-                                                         traceback_string, error_string)
+                raise errors_derived.MissingDatasetWarning(self.flname, self.start_time[b], \
+                                                           traceback_string, error_string)
             
                 
     def check_identification(self):
@@ -376,47 +377,54 @@ class NISARFile(h5py.File):
         try:
             assert(len(error_string) == 0)
         except AssertionError as e:
-            raise errors_derived.IdentificationFatal(self.flname, self.start_time[self.bands[0]], \
-                                                     traceback_string, error_string)
+            raise errors_derived.IdentificationWarning(self.flname, self.start_time[self.bands[0]], \
+                                                       traceback_string, error_string)
 
     def check_nans(self):
 
-        nan_warning = []
-        nan_fatal = []
+        error_string = []
+        traceback_string = []
+        num_empty = 0
+        num_nan = 0
+        num_zero = 0
         
         for key in self.images.keys():
             ximg = self.images[key]
             ximg.check_for_nan()
-            if (ximg.num_nan > 0):
-                if (not ximg.empty):
-                    nan_warning.append(key)
+            band = ximg.band
+
+            if (not(hasattr(ximg, "num_zero"))):
+                ximg.num_zero = 0
+            try:
+                assert(ximg.num_nan == 0)
+                assert(ximg.num_zero == 0)
+            except AssertionError as e:
+                traceback_string += [utility.get_traceback(e, AssertionError)]
+                if (ximg.empty):
+                    num_empty += 1
+                    error_string += ximg.empty_string
                 else:
-                    nan_fatal.append(key)
+                    if (ximg.num_nan > 0) and (ximg.num_zero == 0):
+                        num_nan += 1
+                        error_string += ximg.nan_string
+                    elif (ximg.num_zero > 0) and (ximg.num_nan == 0):
+                        num_zero += 1
+                        error_string += ximg.zero_string
+                    elif (ximg.num_zero > 0) and (ximg.num_nan > 0):
+                        num_zero += 1
+                        num_nan += 1
+                        error_string += ["%s %s" % (ximg.nan_string[0], ximg.zero_string[0])]
 
-        # Raise Warning if any NaNs are found and Fatal if an image is entirely NaN
-            
-        try:
-            assert(len(nan_warning) == 0)
-        except AssertionError as e:
-            traceback_string = [utility.get_traceback(e, AssertionError)]
-            error_string = ["%i images had NaN's:" % len(nan_warning)]
-            for key in nan_warning:
-                band = self.images[key].band
-                error_string[0] += " (%s, %i=%.0f%%)" % (key, self.images[key].num_nan, \
-                                                         self.images[key].perc_nan)
-            raise errors_derived.NaNWarning(self.flname, self.start_time[band], \
-                                            traceback_string, error_string)
-
-        try:
-            assert(len(nan_fatal) == 0)
-        except AssertionError as e:
-            traceback_string = [utility.get_traceback(e, AssertionError)]
-            error_string = ["%i images were empty:" % (len(nan_fatal))]
-            for key in nan_fatal:
-                band = self.images[key].band
-                error_string[0] += " (%s)" % key
+        if (num_empty > 0):
             raise errors_derived.NaNFatal(self.flname, self.start_time[band], \
-                                          traceback_string, error_string)          
+                                          traceback_string, error_string)
+        else:
+            if (num_nan > 0):
+                raise errors_derived.NaNWarning(self.flname, self.start_time[band], \
+                                                traceback_string, error_string)
+            elif (num_nan == 0) and (num_zero > 0):
+                raise errors_derived.ZeroWarning(self.flname, self.start_time[band], \
+                                                 traceback_string, error_string)
 
     def check_time(self):
 
@@ -458,16 +466,16 @@ class NISARFile(h5py.File):
                         pass
 
 
-        try:
-            time = self.METADATA[b].get("orbit/time")
-        except KeyError:
-            contine
-        else:
             try:
-                utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "%s orbitTime" % b, \
-                                      errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-            except (errors_base.WarningError, errors_base.FatalError):
-                pass
+                time = self.METADATA[b].get("orbit/time")
+            except KeyError:
+                contine
+            else:
+                try:
+                    utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "%s orbitTime" % b, \
+                                          errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
+                except (errors_base.WarningError, errors_base.FatalError):
+                    pass
         
     def check_frequencies(self):
 
@@ -483,7 +491,7 @@ class NISARFile(h5py.File):
                         assert(freq["A"] < freq["B"])
                     except AssertionError as e:
                         traceback_string = [utility.get_traceback(e, AssertionError)]
-                        raise errors_derived.FrequencyOrderFatal(self.flname, self.start_time[b], traceback_string, \
+                        raise errors_derived.FrequencyOrderWarning(self.flname, self.start_time[b], traceback_string, \
                                                                  ["%s A=%f not less than B=%f" \
                                                                   % (freq_name, freq["A"], freq["B"])])
 
