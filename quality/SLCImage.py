@@ -12,7 +12,7 @@ import traceback
 class SLCImage(object):
 
     BADVALUE = -9999
-    EPS = 1.0e-03
+    EPS = 1.0e-06
     
     def __init__(self, band, frequency, polarization, hertz, rspacing):
 
@@ -32,8 +32,8 @@ class SLCImage(object):
 
         #self.zero_real = np.where( (self.xdata.real == 0.0), True, False)
         #self.zero_imag = np.where( (self.xdata.imag == 0.0), True, False)
-        self.zero_real = np.where(np.abs(self.xdata.real < self.EPS), True, False)
-        self.zero_imag = np.where(np.abs(self.xdata.imag < self.EPS), True, False)
+        self.zero_real = np.where(np.abs(self.xdata.real) < self.EPS, True, False)
+        self.zero_imag = np.where(np.abs(self.xdata.imag) < self.EPS, True, False)
                                   
         self.zero_mask = np.where( self.zero_real & self.zero_imag, True, False)
         self.mask_ok = np.where(~self.nan_mask & ~self.zero_mask, True, False)
@@ -71,7 +71,11 @@ class SLCImage(object):
             
     def check_for_nan(self):
 
-        self.zero_mask = np.where( (self.xdata.real == 0.0) & (self.xdata.imag == 0.0), True, False)
+        #self.zero_mask = np.where( (self.xdata.real == 0.0) & (self.xdata.imag == 0.0), True, False)
+        self.zero_real = np.where( np.fabs(self.xdata.real) < self.EPS, True, False)
+        self.zero_imag = np.where( np.fabs(self.xdata.imag) < self.EPS, True, False)
+        self.zero_mask = np.where( self.zero_real & self.zero_imag, True, False)
+
         self.nan_mask = np.isnan(self.xdata.real) | np.isnan(self.xdata.imag) \
                       | np.isinf(self.xdata.real) | np.isinf(self.xdata.imag)
         self.num_nan = self.nan_mask.sum()
@@ -131,6 +135,12 @@ class SLCImage(object):
         idx = np.argsort(self.fft_space)
         self.fft_space = self.fft_space[idx]
         self.avg_power = self.avg_power[idx]
+
+        #self.phase.astype(np.float32).tofile("%s_%s_%s.phase.bin" % (self.band, self.frequency, self.polarization))
+        #print("%s %s %s: data[0, 2] %s, phase[0, 2] %s" % (self.band, self.frequency, self.polarization, \
+        #                                                   self.xdata[0, 2], self.phase[0, 2]))
+        #print("%s %s %s: phase %f to %f" % (self.band, self.frequency, self.polarization, \
+        #                                    self.phase[self.mask_ok].min(), self.phase[self.mask_ok].max()))
         
     def compare(self, image, frequency, polarization):
 
