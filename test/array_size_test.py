@@ -25,19 +25,19 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
 
-        self.assertRaisesRegex(errors_base.FatalError, "Dataset LSAR B HH has.*(2385, 2640).*(2385, 2600).*", \
+        self.assertRaisesRegex(errors_base.FatalError, "Dataset LSAR A HH has.*(129, 129).*(129, 119).*", \
                                self.slc_file.check_slant_range)
 
     def test_gslc_wrong_size(self):
 
         self.gslc_file = GSLCFile(os.path.join(self.TEST_DIR, "gslc_arraysize.h5"), mode="r")
-
+        
         self.gslc_file.get_bands()
         self.gslc_file.get_freq_pol()
         self.gslc_file.check_freq_pol()
         self.gslc_file.create_images()
 
-        self.assertRaisesRegex(errors_base.FatalError, "Dataset LSAR B VV has.*(8713, 711).*(8700, 711).*", \
+        self.assertRaisesRegex(errors_base.FatalError, "Dataset LSAR A HH has.*(500, 275).*(600, 275).*", \
                                self.gslc_file.check_slant_range)
 
         

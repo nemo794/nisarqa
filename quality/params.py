@@ -4,8 +4,8 @@ NTRACKS = 173
 ORBIT_OFFSET = 0
 NSUBSWATHS = 4
 FREQUENCIES = (["A"], ["B"], ["A", "B"])
-PRODUCT_TYPE = ("b'RRST'", "b'RRSD'", "b'RSLC'", "b'RMLC'", "b'RCOV'", "b'RIFG'", "b'RUNW'", "b'GUNW'", \
-                "b'CGOV'", "b'GSLC'")
+PRODUCT_TYPE = ("RRST", "RRSD", "RSLC", "RMLC", "RCOV", "RIFG", "RUNW", "GUNW", \
+                "CGOV", "GSLC", "RSLC")
 
 GCOV_POLARIZATION_LIST = ("HHHH", "HVHV", "VHVH", "VVVV")
 SLC_POLARIZATION_LIST = ("HH", "HV", "VH", "VV", "RH", "RV")
@@ -16,6 +16,10 @@ GCOV_POLARIZATION_LIST = []
 for p1 in ("HH", "HV", "VH", "VV"):
     for p2 in ("HH", "HV", "VH", "VV"):
         GCOV_POLARIZATION_LIST.append("%s%s" % (p1, p2))
+
+for p1 in ("RH", "RV"):
+    for p2 in ("RH", "RV"):
+        GCOV_POLARIZATION_LIST.append("%s%s" % (p1, p2))        
         
 GCOV_POLARIZATION_GROUPS = []
 for nelement in range(0, 4):
@@ -30,7 +34,7 @@ for nelement in range(0, 4):
 
 GCOV_FREQUENCY_NAMES = ["centerFrequency"]
 SLC_FREQUENCY_NAMES = ("acquiredCenterFrequency", "processedCenterFrequency")
-GSLC_FREQUENCY_NAMES = ["acquiredCenterFrequency"]
+GSLC_FREQUENCY_NAMES = ["centerFrequency"]
 
 GCOV_ID_PARAMS = ("absoluteOrbitNumber", "trackNumber", "frameNumber", "lookDirection", \
                   "orbitPassDirection", "productType", "zeroDopplerStartTime", "zeroDopplerEndTime")

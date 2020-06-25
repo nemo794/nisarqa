@@ -74,14 +74,6 @@ class GCOVImage(object):
         self.mean_power = self.power[~self.nan_mask].mean()
         self.sdev_power = self.power[~self.nan_mask].std()
 
-        #self.fft = np.fft.fft(self.xdata)
-        #self.fft_space = np.fft.fftfreq(self.shape[1], 1.0/self.tspacing)*1.0E-06
-        #self.avg_power = np.sum(np.abs(self.fft), axis=0)/(1.0*self.shape[0])
-
-        #idx = np.argsort(self.fft_space)
-        #self.fft_space = self.fft_space[idx]
-        #self.avg_power = self.avg_power[idx]
-
         try:
             self.nnegative = np.where( (self.mask_ok) & (self.xdata <= 0.0), True, False).sum()            
             assert(self.nnegative == 0)
@@ -92,12 +84,23 @@ class GCOVImage(object):
 
         # Compute histograms and plot them
 
+        #print("%s power %f to %f" % (self.polarization, self.power[self.mask_ok].min(), \
+        #                             self.power[self.mask_ok].max()))
+        
         (counts1pr, edges1pr) = np.histogram(self.power[self.mask_ok], bins=100)
         idx_mode = np.argmax(counts1pr)
         self.modal_power = edges1pr[idx_mode]
+
+        #print("%s edges %s, counts %s" % (self.polarization, edges1pr, counts1pr))
+        (l, r) = axis.set_xlim(left=-200, right=10)
+        #print("l %f, r %f" % (l, r))
         axis.plot(edges1pr[:-1], counts1pr, label="%s Mode %s" \
                   % (self.polarization, round(self.modal_power, 1)))
+        (l, r) = axis.set_xlim(left=-200, right=10)
+        #print("l %f, r %f" % (l, r))
 
+        
+        
     def plotfft(self, axis, title):
 
         axis.plot(self.frequency, 20.0*np.log10(self.avg_power), label="%s %s" \

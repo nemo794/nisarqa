@@ -39,7 +39,7 @@ class SLCFile(NISARFile):
         self.plotted_slant = False
 
         self.ftype_list = ("SLC", "RSLC")
-        self.product_type = "SLC"
+        self.product_type = "RSLC"
         self.polarization_list = params.SLC_POLARIZATION_LIST
         self.polarization_groups = params.SLC_POLARIZATION_GROUPS
         self.identification_list = params.SLC_ID_PARAMS
@@ -243,7 +243,7 @@ class SLCFile(NISARFile):
                 counts_power += counts
 
         bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        #print("bounds_linear %s" % bounds_linear)
+        print("bounds_linear %s" % bounds_linear)
                 
         # Generate figures
         
@@ -252,7 +252,7 @@ class SLCFile(NISARFile):
             (b, f, p) = key.split()
             ximg = self.images[key]
             fig = ximg.plot4a("%s\n(%s Frequency%s %s SLC Histograms)" % (self.flname, b, f, p), \
-                              (-1.0*bounds_linear, bounds_linear), (-100.0, 100.0))
+                              (bounds_linear, bounds_linear), (-100.0, 100.0))
             fpdf.savefig(fig)
 
         for b in self.bands:
@@ -432,10 +432,11 @@ class SLCFile(NISARFile):
                     try:
                         sub_bounds = self.FREQUENCIES[b][f]["validSamplesSubSwath%i" % (isub+1)][...]
                     except KeyError as e:
+                        print("Raised KeyError")
                         traceback_string = [utility.get_traceback(e, KeyError)]
                         raise errors_derived.MissingSubswathWarning(self.flname, self.start_time[b], traceback_string, \
                                                                     ["%s Frequency%s had missing SubSwath%i bounds" \
-                                                                     % (b, f, isub)])
+                                                                     % (b, f, isub+1)])
 
                     try:
                         nslantrange = self.FREQUENCIES[b][f]["slantRange"].size

@@ -109,16 +109,18 @@ class GSLCFile(NISARFile):
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
                 try:
-                    freq["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("acquiredCenterFrequency")
+                    assert("centerFrequency" in self.FREQUENCIES[b][f].keys())
+                    assert("slantRangeSpacing" in self.FREQUENCIES[b][f].keys())
+                    freq["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("centerFrequency")
                     srange["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("slantRangeSpacing")
-                except KeyError:
+                except AssertionError:
                     missing_params += ["%s %s" % (b, f)]
                     error_string += ["%s %s cannot initialize GSLCImage due to missing frequency or spacing" % (b, f)]
-
+ 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
                 if ("%s %s" % (b, f) in missing_params):
-                    cycle
+                    continue
 
                 for p in self.polarizations[b][f]:
                     key = "%s %s %s" % (b, f, p)
@@ -126,6 +128,8 @@ class GSLCFile(NISARFile):
                         self.images[key] = SLCImage(b, f, p, freq["%s %s" % (b, f)][...], \
                                                     srange["%s %s" % (b, f)][...])
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
+                        print("%s image %s %s %s has shape %s" % (os.path.abspath(self.filename), b, f, p, \
+                                                                  self.images[key].xdata.shape))
                     except KeyError:
                         missing_images.append(key)
                         
@@ -138,7 +142,7 @@ class GSLCFile(NISARFile):
             if (len(missing_images) > 0):
                 error_string += "Missing %i images: %s" % (len(missing_images), missing_images)
             if (len(missing_params) > 0):
-                error_string += "Could not initialize %i images" % (len(missing_params), missing_params)
+                error_string += "Could not initialize %i images: %s" % (len(missing_params), missing_params)
             raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
                                                    [error_string])
                 
@@ -257,7 +261,7 @@ class GSLCFile(NISARFile):
 
                             key_new = "%s %s %s-%s" % (b, f, p1, p2)
                             self.images[key_new] = SLCImage(b, f, "%s-%s" % (p1, p2), \
-                                                            self.FREQUENCIES[b][f]["acquiredCenterFrequency"][...], \
+                                                            self.FREQUENCIES[b][f]["centerFrequency"][...], \
                                                             self.FREQUENCIES[b][f]["slantRangeSpacing"][...])
                             self.images[key_new].initialize(xdata, ref_img.nan_mask | cmp_img.nan_mask)
                             self.images[key_new].calc()

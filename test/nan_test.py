@@ -25,7 +25,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
 
-        self.assertRaisesRegex(errors_base.WarningError, "LSAR A_HH has 3148200 NaN's=50.0%", \
+        self.assertRaisesRegex(errors_base.WarningError, "LSAR A_HH has 8256 NaN's=49.6%", \
                                self.slc_file.check_nans)
         
     def test_full_nan(self):
@@ -50,7 +50,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
 
-        self.assertRaisesRegex(errors_base.WarningError, "LSAR B_VV has 1150215 Zeros=25.0%", \
+        self.assertRaisesRegex(errors_base.WarningError, "LSAR A_HH has 4134 Zeros=24.8%", \
                                self.slc_file.check_nans)
 
     def test_full_zero(self):
@@ -62,7 +62,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
 
-        self.assertRaisesRegex(errors_base.FatalError, "LSAR B_VV is entirely Zeros", \
+        self.assertRaisesRegex(errors_base.FatalError, "LSAR A_HH is entirely Zeros", \
                                self.slc_file.check_nans)
 
     def test_full_nan_or_zero(self):
@@ -74,7 +74,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
 
-        self.assertRaisesRegex(errors_base.FatalError, "LSAR B_VV is entirely NaNs or Zeros", \
+        self.assertRaisesRegex(errors_base.FatalError, "LSAR A_HH is entirely NaNs or Zeros", \
                                self.slc_file.check_nans)
 
         
@@ -87,7 +87,7 @@ class SLCFile_test(unittest.TestCase):
         self.gcov_file.check_freq_pol()
         self.gcov_file.create_images()
 
-        self.assertRaisesRegex(errors_base.WarningError, "LSAR A_HHHH has 508113 NaN's=25.0%", \
+        self.assertRaisesRegex(errors_base.WarningError, "LSAR A_HHHH has 40734 NaN's=50.0%", \
                                self.gcov_file.check_nans)
         
     def test_nan_all_gcov(self):
@@ -99,10 +99,8 @@ class SLCFile_test(unittest.TestCase):
         self.gcov_file.check_freq_pol()
         self.gcov_file.create_images()
 
-        self.assertRaisesRegex(errors_base.FatalError, "LSAR B_VVVV is entirely NaN", \
+        self.assertRaisesRegex(errors_base.FatalError, "LSAR A_HHHH is entirely NaN", \
                                self.gcov_file.check_nans)
-        
-   
         
 if __name__ == "__main__":
     unittest.main()

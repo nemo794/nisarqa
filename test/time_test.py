@@ -24,8 +24,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
 
-        time = self.slc_file["/science/LSAR/SLC/swaths/zeroDopplerTime"][...]
-        spacing = self.slc_file["/science/LSAR/SLC/swaths/zeroDopplerTimeSpacing"][...]
+        time = self.slc_file["/science/LSAR/RSLC/swaths/zeroDopplerTime"][...]
+        spacing = self.slc_file["/science/LSAR/RSLC/swaths/zeroDopplerTimeSpacing"][...]
         start_time = self.slc_file["/science/LSAR/identification/zeroDopplerStartTime"][...]
         
         self.assertRaisesRegex(errors_base.FatalError, "LSAR zeroDopplerStartTime: Found 1 elements with negative spacing*", \
@@ -42,8 +42,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_freq_pol()
         self.slc_file.create_images()
 
-        time = self.slc_file["/science/LSAR/SLC/swaths/zeroDopplerTime"][...]
-        spacing = self.slc_file["/science/LSAR/SLC/swaths/zeroDopplerTimeSpacing"][...]
+        time = self.slc_file["/science/LSAR/RSLC/swaths/zeroDopplerTime"][...]
+        spacing = self.slc_file["/science/LSAR/RSLC/swaths/zeroDopplerTimeSpacing"][...]
         start_time = self.slc_file["/science/LSAR/identification/zeroDopplerStartTime"][...]
         
         self.assertRaisesRegex(errors_base.WarningError, "LSAR zeroDopplerStartTime: Found 2 elements with unexpected steps*", \

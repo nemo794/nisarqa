@@ -71,6 +71,8 @@ class SLCImage(object):
             
     def check_for_nan(self):
 
+        print("dtype all %s, real %s, imag %s" % (self.xdata.dtype, self.xdata.real.dtype, self.xdata.imag.dtype))
+        
         #self.zero_mask = np.where( (self.xdata.real == 0.0) & (self.xdata.imag == 0.0), True, False)
         self.zero_real = np.where( np.fabs(self.xdata.real) < self.EPS, True, False)
         self.zero_imag = np.where( np.fabs(self.xdata.imag) < self.EPS, True, False)
@@ -155,8 +157,8 @@ class SLCImage(object):
 
         # Compute histograms and plot them
 
-        (counts1r, edges1r) = np.histogram(self.real, range=bounds_linear, bins=100)
-        (counts1c, edges1c) = np.histogram(self.imag, range=bounds_linear, bins=100)
+        (counts1r, edges1r) = np.histogram(self.real, bins=100)
+        (counts1c, edges1c) = np.histogram(self.imag, bins=100)
         (counts1pr, edges1pr) = np.histogram(self.power[self.mask_ok], range=bounds_power, bins=100)
         (counts1ph, edges1ph) = np.histogram(self.phase[self.mask_ok], range=(-180.0, 180.0), bins=100)
 

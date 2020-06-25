@@ -1,3 +1,4 @@
+from quality.GSLCFile import GSLCFile
 from quality.SLCFile import SLCFile
 from quality import errors_base, errors_derived
 
@@ -22,7 +23,7 @@ class SLCFile_test(unittest.TestCase):
     
     def test_missing_band(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_band.h5"), mode="r")
+        self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "missing_band.h5"), mode="r")
         self.assertRaisesRegex(errors_base.FatalError, "/science/LSAR/.*metadata does not exist", \
                                self.slc_file.get_bands)
 
@@ -34,7 +35,7 @@ class SLCFile_test(unittest.TestCase):
                                 
     def test_incorrect_frequency(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies1.h5"), mode="r")
+        self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies1.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band has invalid frequency list", \
@@ -42,7 +43,7 @@ class SLCFile_test(unittest.TestCase):
 
     def test_missing_frequency(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies2.h5"), mode="r")
+        self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies2.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band missing Frequency[A,B]", \
@@ -50,7 +51,7 @@ class SLCFile_test(unittest.TestCase):
 
     def test_extra_frequency(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies3.h5"), mode="r")
+        self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies3.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band frequency list missing [A,B]", \
@@ -58,7 +59,7 @@ class SLCFile_test(unittest.TestCase):
 
     def test_incorrect_polarizations(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations1.h5"), mode="r")
+        self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations1.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has invalid polarization list", \
@@ -66,7 +67,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_missing_polarizations(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations2.h5"), mode="r")
+        self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations2.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] missing polarization [HH,VV,HV,VH]", \
@@ -74,7 +75,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_extra_polarizations(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations3.h5"), mode="r")
+        self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations3.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has extra polarization [HH,VV,HV,VH]", \

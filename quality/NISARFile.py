@@ -128,7 +128,7 @@ class NISARFile(h5py.File):
                         continue
 
                     for plist in self.polarization_groups:
-                        #print("Comparing %s against %s" % (polarizations_found, plist))
+                        print("Comparing %s against %s" % (polarizations_found, plist))
                         if (set(polarizations_found) == set(plist)):
                             polarization_ok = True
                             break
@@ -244,8 +244,11 @@ class NISARFile(h5py.File):
                 
                 for p in self.polarization_list:
                     if (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
+                        print("Skipping %s frequency %s %s" % (b, f, p))
                         no_look.append("frequency%s/%s" % (f, p))
 
+            print("%s: no_look=%s" % (b, no_look))
+                        
 
             self.SWATHS[b].verify_dataset_list(no_look=no_look)
             self.METADATA[b].verify_dataset_list(no_look=no_look)
@@ -284,7 +287,8 @@ class NISARFile(h5py.File):
                     continue
 
                 try:
-                    identifications[dname].append(self.IDENTIFICATION[b].get(dname)[...])
+                    xid = np.ndarray.item(self.IDENTIFICATION[b].get(dname)[...])
+                    identifications[dname].append(xid)
                 except KeyError as e:
                     if (dname != "cycleNumber"):
                         traceback_string.append(utility.get_traceback(e, KeyError))
@@ -353,7 +357,9 @@ class NISARFile(h5py.File):
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         try:
-            ptype = str(identifications["productType"][0]).lstrip("b").replace("'", "")
+            ptype = identifications["productType"][0]
+            if (isinstance(ptype, bytes)):
+                ptype = ptype.decode("utf-8")
             assert(ptype == self.product_type)
         except IndexError as e:
             pass
@@ -362,8 +368,10 @@ class NISARFile(h5py.File):
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         try:
-            lookdir = str(identifications["lookDirection"][0])
-            assert(str(lookdir).lower() in ("b'left'", "b'right'"))
+            lookdir = identifications["lookDirection"][0]
+            if (isinstance(lookdir, bytes)):
+                lookdir = lookdir.decode("utf-8")
+            assert(lookdir.lower() in ("left", "right"))
         except IndexError as e:
             pass
         except AssertionError as e:
@@ -451,7 +459,7 @@ class NISARFile(h5py.File):
                     try:
                         time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
                         time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-                        assert(time2 > time1)
+                        #assert(time2 > time1)
                         assert( (time1.year >= 2000) and (time1.year < 2100) )
                         assert( (time2.year >= 2000) and (time2.year < 2100) )
                     except (AssertionError, ValueError) as e:
@@ -484,9 +492,16 @@ class NISARFile(h5py.File):
             if (nfrequencies == 2):
                 for freq_name in self.frequency_checks:
                     freq = {}
-                    for f in list(self.FREQUENCIES[b].keys()):
-                        freq[f] = self.FREQUENCIES[b][f].get(freq_name)[...]
-
+                    try:
+                        for f in list(self.FREQUENCIES[b].keys()):
+                            xfreq = self.FREQUENCIES[b][f].get(freq_name, default=None)
+                            assert(xfreq is not None)
+                            freq[f] = xfreq[...]
+                    except AssertionError as e:
+                        traceback_string = [utility.get_traceback(e, KeyError)]
+                        raise errors_derived.MissingDatasetWarning(self.flname, self.start_time[b], traceback_string, \
+                                                                   ["%s Frequency%s missing dataset %s" % (b, f, freq_name)])
+                    
                     try:
                         assert(freq["A"] < freq["B"])
                     except AssertionError as e:

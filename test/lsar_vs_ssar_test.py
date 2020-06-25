@@ -23,8 +23,6 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
 
-        self.assertRaisesRegex(errors_base.WarningError, "LSAR Identification missing 1 fields: .*isGeocoded", \
-                               self.slc_file.find_missing_datasets)
         self.assertRaisesRegex(errors_base.WarningError, "Values of absoluteOrbitNumber differ between bands", \
                                self.slc_file.check_identification)
 

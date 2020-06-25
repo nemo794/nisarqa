@@ -24,7 +24,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol()
         self.assertRaisesRegex(errors_base.WarningError, \
-                               "Start Time b'2018-07-30T16:15:47' not less than End Time b'2018-07-30T16:14:39.382875'", \
+                               "Start Time b'2018-07-30T16:15:47.000000' not less than End Time b'2018-07-30T16:14:39.000000", \
                                self.slc_file.check_identification)
 
     def test_orbit(self):

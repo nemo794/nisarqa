@@ -29,24 +29,8 @@ class GCOVFile_test(unittest.TestCase):
         
         self.gcov_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_stats.h5"), mode="r+")
 
-        # Get rid of NaNs and negative values to avoid throwing an error later
-        
-        for f in ("A", "B"):
-            freq = self.gcov_file["/science/LSAR/GCOV/grids/frequency%s/" % f]
-            for p in ("HHHH", "HVHV", "VHVH", "VVVV"):
-                pol = freq[p][...]
-                pol = numpy.where(~numpy.isnan(pol) & (pol >= 0.0), pol, 0.0)
-                freq[p][...] = pol
-            
         dset = self.gcov_file["/science/LSAR/GCOV/grids/frequencyA/HHHH"]
-        xdata = dset[...]
-        shape = dset.shape
-        xline = numpy.arange(0, shape[1])
-        for i in range(0, shape[0]):
-            xdata[i, :] = xline[:]
-
-        dset[...] = xdata
-        self.gcov_file.close()
+        xline = numpy.arange(0, dset.shape[1])
 
         expect_bscatter = (xline.size-1)/2.0
         expect_pcnt5 = xline[int(xline.size*0.05)]

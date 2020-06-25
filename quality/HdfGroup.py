@@ -41,6 +41,8 @@ class HdfGroup(object):
             skip += [d for d in self.dset_list if (s in d)]
         data_check = [d for d in self.dset_list if (d not in skip)]
 
+        #print("%s: skip %s\ncheck %s" % (self.name, skip, data_check))
+        
         for dset in data_check:
             if (dset not in self.hdf_group.keys()):    
                 self.missing.append(dset)
