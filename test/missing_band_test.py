@@ -1,3 +1,4 @@
+from quality.GCOVFile import GCOVFile
 from quality.GSLCFile import GSLCFile
 from quality.SLCFile import SLCFile
 from quality import errors_base, errors_derived
@@ -27,13 +28,13 @@ class SLCFile_test(unittest.TestCase):
         self.assertRaisesRegex(errors_base.FatalError, "/science/LSAR/.*metadata does not exist", \
                                self.slc_file.get_bands)
 
-    def test_inconsistent_bands(self):
+    def test_slc_inconsistent_bands(self):
 
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "inconsistent_bands.h5"), mode="r")
         self.assertRaisesRegex(errors_base.FatalError, "Metadata and swath have inconsistent naming", \
                                self.slc_file.get_bands)
                                 
-    def test_incorrect_frequency(self):
+    def test_gslc_incorrect_frequency(self):
 
         self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies1.h5"), mode="r")
         self.slc_file.get_bands()
@@ -41,7 +42,7 @@ class SLCFile_test(unittest.TestCase):
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band has invalid frequency list", \
                                self.slc_file.check_freq_pol)
 
-    def test_missing_frequency(self):
+    def test_gslc_missing_frequency(self):
 
         self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies2.h5"), mode="r")
         self.slc_file.get_bands()
@@ -49,7 +50,7 @@ class SLCFile_test(unittest.TestCase):
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band missing Frequency[A,B]", \
                                self.slc_file.check_freq_pol)
 
-    def test_extra_frequency(self):
+    def test_gslc_extra_frequency(self):
 
         self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_frequencies3.h5"), mode="r")
         self.slc_file.get_bands()
@@ -57,7 +58,31 @@ class SLCFile_test(unittest.TestCase):
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band frequency list missing [A,B]", \
                                self.slc_file.check_freq_pol)
 
-    def test_incorrect_polarizations(self):
+    def test_gcov_incorrect_frequency(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_frequencies1.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band has invalid frequency list", \
+                               self.slc_file.check_freq_pol)
+
+    def test_gcov_missing_frequency(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_frequencies2.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band missing Frequency[A,B]", \
+                               self.slc_file.check_freq_pol)
+
+    def test_gcov_extra_frequency(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_frequencies3.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Band frequency list missing [A,B]", \
+                               self.slc_file.check_freq_pol)
+
+    def test_gslc_incorrect_polarizations(self):
 
         self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations1.h5"), mode="r")
         self.slc_file.get_bands()
@@ -65,7 +90,7 @@ class SLCFile_test(unittest.TestCase):
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has invalid polarization list", \
                                self.slc_file.check_freq_pol)
         
-    def test_missing_polarizations(self):
+    def test_gslc_missing_polarizations(self):
 
         self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations2.h5"), mode="r")
         self.slc_file.get_bands()
@@ -73,14 +98,58 @@ class SLCFile_test(unittest.TestCase):
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] missing polarization [HH,VV,HV,VH]", \
                                self.slc_file.check_freq_pol)
         
-    def test_extra_polarizations(self):
+    def test_gslc_extra_polarizations(self):
 
         self.slc_file = GSLCFile(os.path.join(self.TEST_DIR, "wrong_polarizations3.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has extra polarization [HH,VV,HV,VH]", \
                                self.slc_file.check_freq_pol)
+
+    def test_gcov_no_polarizations(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_polarizations1.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] is missing polarization list", \
+                               self.slc_file.check_freq_pol)
         
+    def test_gcov_missing_polarizations(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_polarizations2.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has extra polarization .*HV.*", \
+                               self.slc_file.check_freq_pol)
+        
+    def test_gcov_extra_polarizations(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_polarizations3.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.slc_file.get_freq_pol()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] is missing polarization .*VH.*", \
+                               self.slc_file.check_freq_pol)
+
+    def test_gcov_badname_polarizations1(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_polarizations4.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has invalid polarization: HHVVH", \
+                               self.slc_file.get_freq_pol)
+
+    def test_gcov_badname_polarizations2(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_polarizations5.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has invalid polarization: HHRV", \
+                               self.slc_file.get_freq_pol)
+
+    def test_gcov_badname_polarizations3(self):
+
+        self.slc_file = GCOVFile(os.path.join(self.TEST_DIR, "gcov_wrong_polarizations6.h5"), mode="r")
+        self.slc_file.get_bands()
+        self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has invalid polarization: RHRZ", \
+                               self.slc_file.get_freq_pol)
 
     def test_missing_none(self):
 

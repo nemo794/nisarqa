@@ -50,6 +50,134 @@ class GCOVFile(NISARFile):
 
         self.get_start_time()        
 
+    def get_freq_pol(self):
+
+        self.FREQUENCIES = {}
+        self.polarizations = {}
+
+        traceback_string = []
+        error_string = []
+        
+        for b in self.bands:
+
+            # Find list of frequencies by directly querying dataset
+
+            self.FREQUENCIES[b] = {}
+            self.polarizations[b] = {}
+            for f in ("A", "B"):
+                try:
+                    f2 = self.SWATHS[b].get("frequency%s" % (f))
+                except KeyError:
+                    pass
+                else:
+                    print("Found %s Frequency%s" % (b, f))
+                    self.FREQUENCIES[b][f] = f2
+                    self.polarizations[b][f] = []
+                    for data in self.FREQUENCIES[b][f].keys():
+                        if (data.upper() == data):
+                            num_h = [1 for c in data if (c == "H")]
+                            num_v = [1 for c in data if (c == "V")]
+                            num_r = [1 for c in data if (c == "R")]
+
+                            try:
+                                assert(len(data) == 4)
+                                assert(data[0] in ("H", "V", "R"))
+                                assert(data[0:2] in params.SLC_POLARIZATION_LIST)
+                                assert(data[2:4] in params.SLC_POLARIZATION_LIST)
+                                if (data[0] in ("H", "V")):
+                                    assert((sum(num_h) + sum(num_v)) == len(data))
+                                elif (data[0] == "R"):
+                                    assert((sum(num_r) + sum(num_h) + sum(num_v)) == len(data))
+                            except AssertionError as e:
+                                traceback_string += [utility.get_traceback(e, AssertionError)]
+                                error_string += ["%s Frequency%s has invalid polarization: %s" % (b, f, data)]
+                            else:
+                                self.polarizations[b][f].append(data)
+
+        assert(len(traceback_string) == len(error_string))
+        try:
+            assert(len(error_string) == 0)
+        except AssertionError as e:
+            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[b], \
+                                                            traceback_string, error_string)
+            
+                                
+    def check_freq_pol(self):
+
+        # Check for correct frequencies and polarizations
+
+        error_string = []
+        traceback_string = []
+        self.component_plist = {}
+         
+        for b in self.bands:
+            
+            try:
+                frequencies = [f.decode() for f in self.IDENTIFICATION[b].get("listOfFrequencies")[...]]
+                assert(frequencies in params.FREQUENCIES)
+            except KeyError as e:
+                traceback_string += [utility.get_traceback(e, KeyError)]
+                error_string += ["%s Band is missing frequency list" % b]
+                continue
+            except (AssertionError, TypeError, UnicodeDecodeError) as e:
+                traceback_string += [utility.get_traceback(e, AssertionError)]
+                error_string += ["%s Band has invalid frequency list" % b]
+                continue
+            else:
+                for f in frequencies:
+                    try:
+                        assert("frequency%s" % f in self.SWATHS[b].keys())
+                    except AssertionError as e:
+                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        error_string += ["%s Band missing Frequency%s" % (b, f)]
+
+                for f in self.FREQUENCIES[b].keys():
+                    try:
+                        assert(f in frequencies)
+                    except AssertionError as e:
+                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        error_string += ["%s Band frequency list missing %s" % (b, f)]
+
+
+            self.component_plist[b] = {}
+            for f in self.FREQUENCIES[b].keys():
+                try:
+                    assert("listOfPolarizations" in self.FREQUENCIES[b][f].keys())
+                except AssertionError as e:
+                    traceback_string += [utility.get_traceback(e, KeyError)]
+                    error_string += ["%s Frequency%s is missing polarization list" % (b, f)]
+                    continue
+                else:
+                    plist = self.FREQUENCIES[b][f]["listOfPolarizations"]
+                    polarizations_found = [p.decode() for p in plist[...]]
+
+                self.component_plist[b][f] = []
+                for p in self.polarizations[b][f]:
+                    self.component_plist[b][f] += [p[0:2], p[2:4]]
+
+                plist = self.component_plist[b][f]
+                if (set(plist) != set(self.polarizations[b][f])):
+                    print("Expect %s, Found %s" % (polarizations_found, self.component_plist[b][f]))
+                    missing1 = [p for p in set(plist) if p not in polarizations_found]
+                    missing2 = [p for p in polarizations_found if p not in set(plist)]
+                    try:
+                        assert(len(missing1) == 0) and (len(missing2) == 0)
+                    except AssertionError as e:
+                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        estring = ""
+                        if (len(missing1) > 0):
+                            estring += "%s Frequency%s has extra polarization %s" % (b, f, missing1)
+                        if (len(missing2) > 0):
+                            estring += "%s Frequency%s is missing polarization %s" % (b, f, missing2)
+                        error_string += [estring]
+
+        assert(len(traceback_string) == len(error_string))
+        try:
+            assert(len(error_string) == 0)
+        except AssertionError as e:
+            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[b], \
+                                                            traceback_string, error_string)
+        
     def get_slant_range(self, band, frequency):
 
         slant_path = self.FREQUENCIES[band][frequency].get("slantRange")

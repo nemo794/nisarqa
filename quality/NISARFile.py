@@ -128,7 +128,7 @@ class NISARFile(h5py.File):
                         continue
 
                     for plist in self.polarization_groups:
-                        print("Comparing %s against %s" % (polarizations_found, plist))
+                        print("NISAR: Comparing %s against %s" % (polarizations_found, plist))
                         if (set(polarizations_found) == set(plist)):
                             polarization_ok = True
                             break
@@ -241,10 +241,15 @@ class NISARFile(h5py.File):
                     nsubswaths = subswaths[...]
                     for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
                         no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
-                
-                for p in self.polarization_list:
-                    if (f in self.FREQUENCIES[b].keys()) and (p not in self.polarizations[b][f]):
-                        print("Skipping %s frequency %s %s" % (b, f, p))
+
+                try:
+                    found_polarizations = self.polarizations[b][f] + self.component_plist[b][f]
+                except AttributeError:
+                    found_polarizations = self.polarizations[b][f]
+
+                for p in list(params.GCOV_POLARIZATION_LIST) + list(params.SLC_POLARIZATION_LIST):
+                    if (f in self.FREQUENCIES[b].keys()) and (p not in found_polarizations):
+                        #print("Skipping %s frequency %s %s" % (b, f, p))
                         no_look.append("frequency%s/%s" % (f, p))
 
             print("%s: no_look=%s" % (b, no_look))

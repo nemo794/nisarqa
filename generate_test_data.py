@@ -6,7 +6,7 @@ import os, os.path
 import shutil
 import time
 
-TEST_DIR_IN = "test_data_coarse"
+TEST_DIR_IN = "test_data_inputs"
 TEST_DIR_OUT = "test_data"
 GSLC_FILE = "GSLC_lowRes.h5"
 RSLC_FILE = "rslc_ree1.h5"
@@ -200,6 +200,38 @@ def gslc_wrong_frequency3(file_in, file_out):
     hfile.create_dataset("/science/LSAR/identification/listOfFrequencies", data=freq)
     hfile.close()
     
+def gcov_wrong_frequency1(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    flist = hfile["/science/LSAR/identification/listOfFrequencies"][...]
+    flist[1] = "D"
+    hfile["/science/LSAR/identification/listOfFrequencies"][...] = flist
+
+    hfile.close()
+
+def gcov_wrong_frequency2(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    del hfile["/science/LSAR/GCOV/grids/frequencyA"]
+    hfile.close()
+
+def gcov_wrong_frequency3(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    del hfile["/science/LSAR/identification/listOfFrequencies"]
+    freq = numpy.array(["A"], dtype="S1")
+    hfile.create_dataset("/science/LSAR/identification/listOfFrequencies", data=freq)
+    hfile.close()
+        
 def gslc_wrong_polarizations1(file_in, file_out):
 
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
@@ -229,6 +261,63 @@ def gslc_wrong_polarizations3(file_in, file_out):
     pol = numpy.array(["VV"], dtype="S2")
     del hfile["/science/LSAR/GSLC/grids/frequencyB/listOfPolarizations"]
     hfile.create_dataset("/science/LSAR/GSLC/grids/frequencyB/listOfPolarizations", data=pol)
+    hfile.close()
+    
+def gcov_wrong_polarizations1(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    del hfile["/science/LSAR/GCOV/grids/frequencyA/listOfPolarizations"]
+    hfile.close()
+
+def gcov_wrong_polarizations2(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    del hfile["/science/LSAR/GCOV/grids/frequencyA/listOfPolarizations"]
+    pol = numpy.array(["HH"], dtype="S2")
+    hfile.create_dataset("/science/LSAR/GCOV/grids/frequencyA/listOfPolarizations", data=pol)
+    hfile.close()
+
+def gcov_wrong_polarizations3(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    del hfile["/science/LSAR/GCOV/grids/frequencyA/listOfPolarizations"]
+    pol = numpy.array(["HH", "HV", "VH"], dtype="S2")
+    hfile.create_dataset("/science/LSAR/GCOV/grids/frequencyA/listOfPolarizations", data=pol)
+    hfile.close()
+
+def gcov_wrong_polarizations4(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    hfile.move("/science/LSAR/GCOV/grids/frequencyA/HHHH", "/science/LSAR/GCOV/grids/frequencyA/HHVVH")
+    hfile.close()
+
+def gcov_wrong_polarizations5(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    hfile.move("/science/LSAR/GCOV/grids/frequencyA/HHHH", "/science/LSAR/GCOV/grids/frequencyA/HHRV")
+    hfile.close()
+
+def gcov_wrong_polarizations6(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+
+    hfile.move("/science/LSAR/GCOV/grids/frequencyA/HHHH", "/science/LSAR/GCOV/grids/frequencyA/RHRZ")
     hfile.close()
 
 def rslc_missing_none(file_in, file_out):
@@ -723,7 +812,7 @@ def gcov_nan1(file_in, file_out):
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
-    fix_gcov(hfile)
+    #fix_gcov(hfile)
     remove_nans_real(hfile)
 
     shape = hfile["/science/LSAR/GCOV/grids/frequencyA/HHHH"].shape
@@ -740,7 +829,7 @@ def gcov_nan2(file_in, file_out):
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
-    fix_gcov(hfile)
+    #fix_gcov(hfile)
     remove_nans_real(hfile)
 
     shape = hfile["/science/LSAR/GCOV/grids/frequencyA/HHHH"].shape
@@ -758,7 +847,7 @@ def gcov_percentile(file_in, file_out):
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
 
-    fix_gcov(hfile)
+    #fix_gcov(hfile)
     remove_nans_negatives_real(hfile)
 
     dset = hfile["/science/LSAR/GCOV/grids/frequencyA/HHHH"]
@@ -813,6 +902,16 @@ if __name__ == "__main__":
     rslc_zero2(RSLC_FILE, "zeros2.h5")
     rslc_nan_zero(RSLC_FILE, "nan_zeros.h5")
 
+    gcov_wrong_frequency1(GCOV_FILE, "gcov_wrong_frequencies1.h5")
+    gcov_wrong_frequency2(GCOV_FILE, "gcov_wrong_frequencies2.h5")
+    gcov_wrong_frequency3(GCOV_FILE, "gcov_wrong_frequencies3.h5")
+    gcov_wrong_polarizations1(GCOV_FILE, "gcov_wrong_polarizations1.h5")
+    gcov_wrong_polarizations2(GCOV_FILE, "gcov_wrong_polarizations2.h5")
+    gcov_wrong_polarizations3(GCOV_FILE, "gcov_wrong_polarizations3.h5")
+    gcov_wrong_polarizations4(GCOV_FILE, "gcov_wrong_polarizations4.h5")
+    gcov_wrong_polarizations5(GCOV_FILE, "gcov_wrong_polarizations5.h5")
+    gcov_wrong_polarizations6(GCOV_FILE, "gcov_wrong_polarizations6.h5")
+    
     gcov_nan1(GCOV_FILE, "gcov_nan1.h5")
     gcov_nan2(GCOV_FILE, "gcov_nan2.h5")
     

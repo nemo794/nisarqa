@@ -7,7 +7,7 @@ FREQUENCIES = (["A"], ["B"], ["A", "B"])
 PRODUCT_TYPE = ("RRST", "RRSD", "RSLC", "RMLC", "RCOV", "RIFG", "RUNW", "GUNW", \
                 "CGOV", "GSLC", "RSLC")
 
-GCOV_POLARIZATION_LIST = ("HHHH", "HVHV", "VHVH", "VVVV")
+GCOV_POLARIZATION_LIST = ("HHHH", "HVHV", "VHVH", "VVVV", "RHRH", "RHRV", "RVRH", "RVRV")
 SLC_POLARIZATION_LIST = ("HH", "HV", "VH", "VV", "RH", "RV")
 GCOV_POLARIZATION_GROUPS = (["VHVH", "VVVV"], ["HHHH", "HVHV", "VHVH", "VVVV"])
 SLC_POLARIZATION_GROUPS = (["HH"], ["HH", "HV"], ["VV"], ["VV", "VH"], ["HH", "HV", "VH", "VV"], ["RH", "RV"])
