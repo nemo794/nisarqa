@@ -2,7 +2,7 @@ from quality import check_time
 from quality import errors_base
 from quality import errors_derived
 from quality.LogError import LogError
-from quality.SLCFile import SLCFile
+from quality.GUNWFile import GUNWFile
 from quality import utility
 
 import optparse
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_option("--validate", dest="validate", action="store_true", default=False)
     parser.add_option("--quality", dest="quality", action="store_true", default=False)
     parser.add_option("--xml_dir", dest="xml_dir", type="string", action="store", default="xml")
-    parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L1_SLC.xml")
+    parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L2_GUNW.xml")
 
     (kwds, args) = utility.parse_args(parser)
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         #errors_base.WarningError.reset(errors_base.WarningError)
         #errors_base.FatalError.reset(errors_base.FatalError)
         
-        fhdf = SLCFile(slc_file, xml_tree=xml_tree, mode="r")
+        fhdf = GUNWFile(slc_file, xml_tree=xml_tree, mode="r")
         
         try:
             fhdf.get_bands()
@@ -72,16 +72,18 @@ if __name__ == "__main__":
             continue
 
         fhdf.get_freq_pol()
-            
+
         try:
-            fhdf.check_freq_pol()
+            fhdf.check_freq_pol(fgroups1=[fhdf.GRIDS, fhdf.SWATHS], \
+                                fgroups2=[fhdf.FREQUENCIES_GRID, fhdf.FREQUENCIES_SWATH], \
+                                fnames2=["Grids", "Swaths"])
         except errors_base.FatalError:
             print("File %s has a Fatal Error" % slc_file)
             fhdf.close()
             if (kwds["validate"]):
                 flog.print_file_logs(os.path.basename(slc_file))
             continue
-             
+
         if (kwds["validate"]):
             try:
                 fhdf.find_missing_datasets()
@@ -99,35 +101,36 @@ if __name__ == "__main__":
         # Verify frequencies and polarizations
 
         if (kwds["validate"]):
-            try:
-                fhdf.check_frequencies(fhdf.FREQUENCIES)
-            except errors_base.WarningError:
-                pass
+            for flist in (fhdf.FREQUENCIES_GRID, fhdf.FREQUENCIES_SWATH):
+                try:
+                    fhdf.check_frequencies(flist)
+                except errors_base.WarningError:
+                    pass
 
             
         # Verify time tags
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_time()
-            except (errors_base.WarningError, errors_base.FatalError):
-                pass
+        #if (kwds["validate"]):
+        #    try:
+        #        fhdf.check_time()
+        #    except (errors_base.WarningError, errors_base.FatalError):
+        #        pass
     
         # Verify slant path tags
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_slant_range()
-            except (errors_base.WarningError, errors_base.FatalError):
-                pass
+        #if (kwds["validate"]):
+        #    try:
+        #        fhdf.check_slant_range()
+        #    except (errors_base.WarningError, errors_base.FatalError):
+        #        pass
 
         # Verify SubSwath boundaries
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_subswaths_bounds()
-            except errors_base.WarningError:
-                pass
+        #if (kwds["validate"]):
+        #    try:
+        #        fhdf.check_subswaths_bounds()
+        #    except errors_base.WarningError:
+        #        pass
     
         # Check for NaN's and plot images
 

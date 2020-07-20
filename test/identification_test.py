@@ -91,7 +91,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_identification()
         self.assertRaisesRegex(errors_base.WarningError, \
                                "acquiredCenterFrequency A=1243000000.0* not less than B=1233000000.0*", \
-                               self.slc_file.check_frequencies)
+                               self.slc_file.check_frequencies, self.slc_file.FREQUENCIES)
         
     def test_processed_frequencies(self):
 
@@ -102,7 +102,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.check_identification()
         self.assertRaisesRegex(errors_base.WarningError, \
                                "processedCenterFrequency A=1243000000.0* not less than B=1233000000.0*", \
-                               self.slc_file.check_frequencies)
+                               self.slc_file.check_frequencies, self.slc_file.FREQUENCIES)
         
     def test_orbit_track(self):
 

@@ -11,6 +11,8 @@ GCOV_POLARIZATION_LIST = ("HHHH", "HVHV", "VHVH", "VVVV", "RHRH", "RHRV", "RVRH"
 SLC_POLARIZATION_LIST = ("HH", "HV", "VH", "VV", "RH", "RV")
 GCOV_POLARIZATION_GROUPS = (["VHVH", "VVVV"], ["HHHH", "HVHV", "VHVH", "VVVV"])
 SLC_POLARIZATION_GROUPS = (["HH"], ["HH", "HV"], ["VV"], ["VV", "VH"], ["HH", "HV", "VH", "VV"], ["RH", "RV"])
+GUNW_POLARIZATION_LIST = ("HH", "VV")
+GUNW_POLARIZATION_GROUPS = (["HH"], ["VV"], ["HH", "VV"])
 
 GCOV_POLARIZATION_LIST = []
 for p1 in ("HH", "HV", "VH", "VV"):
@@ -35,6 +37,7 @@ for nelement in range(0, 4):
 GCOV_FREQUENCY_NAMES = ["centerFrequency"]
 SLC_FREQUENCY_NAMES = ("acquiredCenterFrequency", "processedCenterFrequency")
 GSLC_FREQUENCY_NAMES = ["centerFrequency"]
+GUNW_FREQUENCY_NAMES = ["centerFrequency"]
 
 GCOV_ID_PARAMS = ("absoluteOrbitNumber", "trackNumber", "frameNumber", "lookDirection", \
                   "orbitPassDirection", "productType", "zeroDopplerStartTime", "zeroDopplerEndTime")
@@ -42,6 +45,9 @@ SLC_ID_PARAMS = ("absoluteOrbitNumber", "trackNumber", "frameNumber", "cycleNumb
                  "orbitPassDirection", "productType", "zeroDopplerStartTime", "zeroDopplerEndTime")
 GSLC_ID_PARAMS = ("absoluteOrbitNumber", "trackNumber", "frameNumber", "lookDirection", \
                  "orbitPassDirection", "productType", "zeroDopplerStartTime", "zeroDopplerEndTime")
+GUNW_ID_PARAMS = ("absoluteOrbitNumber", "trackNumber", "frameNumber", "lookDirection", \
+                 "orbitPassDirection", "productType", "zeroDopplerStartTime", "zeroDopplerEndTime")
+
 
 PRODUCT_TYPES = ("RRST", "RRSD", "RSLC", "RMLC", "RCOV", "RIFG", "RUNW", "GUNW", "CGOV", "GSLC", "SLC")
 

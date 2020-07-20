@@ -117,11 +117,11 @@ class GCOVFile(NISARFile):
                 assert(frequencies in params.FREQUENCIES)
             except KeyError as e:
                 traceback_string += [utility.get_traceback(e, KeyError)]
-                error_string += ["%s Band is missing frequency list" % b]
+                error_string += ["%s is missing frequency list" % b]
                 continue
             except (AssertionError, TypeError, UnicodeDecodeError) as e:
                 traceback_string += [utility.get_traceback(e, AssertionError)]
-                error_string += ["%s Band has invalid frequency list" % b]
+                error_string += ["%s has invalid frequency list" % b]
                 continue
             else:
                 for f in frequencies:
@@ -129,14 +129,14 @@ class GCOVFile(NISARFile):
                         assert("frequency%s" % f in self.SWATHS[b].keys())
                     except AssertionError as e:
                         traceback_string += [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s Band missing Frequency%s" % (b, f)]
+                        error_string += ["%s missing Frequency%s" % (b, f)]
 
                 for f in self.FREQUENCIES[b].keys():
                     try:
                         assert(f in frequencies)
                     except AssertionError as e:
                         traceback_string += [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s Band frequency list missing %s" % (b, f)]
+                        error_string += ["%s frequency list missing %s" % (b, f)]
 
 
             self.component_plist[b] = {}

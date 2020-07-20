@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
         if (kwds["validate"]):
             try:
-                fhdf.check_frequencies()
+                fhdf.check_frequencies(self.FREQUENCIES)
             except errors_base.FatalError:
                 pass
 
