@@ -251,7 +251,7 @@ class NISARFile(h5py.File):
                                                    [error_string])
                 
 
-    def find_missing_datasets(self):
+    def find_missing_datasets(self, swaths=None, frequencies=None):
 
         if (swaths is None):
             swaths = [self.SWATHS]

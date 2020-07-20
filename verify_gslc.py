@@ -36,6 +36,9 @@ if __name__ == "__main__":
     parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L2_GSLC.xml")
 
     (kwds, args) = utility.parse_args(parser)
+    if ("flog" not in kwds.keys()) and ("fpdf" not in kwds.keys()) and \
+       ("fhdf" not in kwds.keys()):
+        (kwds, args) = utility.parse_yaml(kwds, args)
 
     time1 = time.time()
     

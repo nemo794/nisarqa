@@ -36,6 +36,10 @@ if __name__ == "__main__":
     parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L2_GCOV.xml")
 
     (kwds, args) = utility.parse_args(parser)
+    if ("flog" not in kwds.keys()) and ("fpdf" not in kwds.keys()) and \
+       ("fhdf" not in kwds.keys()):
+        (kwds, args) = utility.parse_yaml(kwds, args)
+    
 
     time1 = time.time()
     
@@ -64,8 +68,7 @@ if __name__ == "__main__":
         
         try:
             fhdf.get_bands()
-        #except errors_base.FatalError:
-        except IndentError:
+        except errors_base.FatalError:
             print("File %s has a Fatal Error" % slc_file)
             fhdf.close()
             if (kwds["validate"]):
@@ -102,7 +105,7 @@ if __name__ == "__main__":
 
         if (kwds["validate"]):
             try:
-                fhdf.check_frequencies(self.FREQUENCIES)
+                fhdf.check_frequencies(fhdf.FREQUENCIES)
             except errors_base.FatalError:
                 pass
 

@@ -7,6 +7,7 @@ import math
 import tempfile
 import traceback
 import sys
+import yaml
 
 def parse_args(parser, required=[], keep_none=[]):
     
@@ -23,6 +24,21 @@ def parse_args(parser, required=[], keep_none=[]):
     for k in list(kwds.keys()):
         if (kwds[k] is None) and (k not in keep_none):
             del kwds[k]
+
+    return kwds, args
+
+def parse_yaml(kwds, args):
+
+    assert(len(args) == 1)
+    fid_yaml = open(args[0], "r")
+    config = yaml.safe_load(fid_yaml)
+    fid_yaml.close()
+
+    print("Read YAML configuration: %s" % config)
+    args = config["inputs"]["file_in"].split(",")
+    for group in ("inputs", "outputs", "operations", "reading"):
+        for key in config[group].keys():
+            kwds[key] = config[group][key]
 
     return kwds, args
 
