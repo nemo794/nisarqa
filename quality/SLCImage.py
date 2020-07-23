@@ -1,6 +1,6 @@
 from quality import utility
 
-from matplotlib import cm, pyplot, ticker
+from matplotlib import cm, colorbar, pyplot, ticker
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.font_manager import FontProperties
 import numpy as np
@@ -176,11 +176,11 @@ class SLCImage(object):
                 a.set_ylim(bottom=0)
             a.set_ylabel("Number of Counts")
             if (i <= 1):
-                a.set_xlabel("SLC (linear)")
+                a.set_xlabel("RSLC (linear)")
             elif (i == 2):
-                a.set_xlabel("SLC Power (dB)")
+                a.set_xlabel("RSLC Power (dB)")
             else:
-                a.set_xlabel("SLC Phase (degrees)")
+                a.set_xlabel("RSLC Phase (degrees)")
 
         fig.suptitle(title)
         return fig
@@ -207,7 +207,27 @@ class SLCImage(object):
         fig.suptitle(title)
 
         return fig
+
+    def plot_image(self, title):
+
+        figures = []
+        images = {(0, 0): (self.xdata.real, "RSLC Real"), (0, 1): (self.xdata.imag, "RSLC Imaginary"), \
+                  (1, 0): (self.power, "RSLC Power"), (1, 1): (self.phase, "RSLC Phase")}
+
+        (fig, axes) = pyplot.subplots(nrows=1, ncols=2, sharex=True, sharey=True, \
+                                      constrained_layout=True)
         
+        for irow in range(1, 2):  # don't plot real and imag images
+            for icol in range(0, 2):
+                (xdata, xname) = images[(irow, icol)]
+                img = axes[icol].imshow(xdata, origin="upper", cmap=cm.gray)
+                (caxis, kw) = colorbar.make_axes([axes[icol]], location="right")
+                fig.colorbar(img, cax=caxis, orientation="vertical")
+                axes[icol].set_title(xname)
+        fig.suptitle(title)
+        figures.append(fig)
+
+        return figures
         
 
         

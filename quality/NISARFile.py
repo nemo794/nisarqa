@@ -496,28 +496,44 @@ class NISARFile(h5py.File):
             else:
 
                 try:
-                    start_time = bytes(start_time).split(b".")[0].decode("utf-8")
-                    end_time = bytes(end_time).split(b".")[0].decode("utf-8")
+                    start_time = bytes(start_time).split(b".")[0].decode("utf-8").replace("\x00", "")
+                    end_time = bytes(end_time).split(b".")[0].decode("utf-8").replace("\x00", "")
                 except UnicodeDecodeError as e:
                     traceback_string = [utility.get_traceback(e, UnicodeDecodeError)]
                     raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
                                                          ["%s Start/End Times could not be read." % b])
                 else:
-                
+
+                    tformats = ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S:%f")
+                    for (i, tform) in enumerate(tformats):
+                        try:
+                            print("Start Time [%s], End Time [%s]" % (start_time, end_time))
+                            time1 = datetime.datetime.strptime(start_time, tform)
+                            time2 = datetime.datetime.strptime(end_time, tform)
+                        except ValueError as e:
+                            print("Time format conversion failed for iteration %i" % i)
+                            if ((i+1) == len(tformats)):
+                                traceback_string = [utility.get_traceback(e, ValueError)]
+                                raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], \
+                                                                         traceback_string, \
+                                                                         ["%s Invalid Start and End Times" % b])
+                        else:
+                            break
+                        
                     try:
-                        time1 = datetime.datetime.strptime(start_time, "%Y-%m-%dT%H:%M:%S")
-                        time2 = datetime.datetime.strptime(end_time, "%Y-%m-%dT%H:%M:%S")
-                        #assert(time2 > time1)
                         assert( (time1.year >= 2000) and (time1.year < 2100) )
                         assert( (time2.year >= 2000) and (time2.year < 2100) )
-                    except (AssertionError, ValueError) as e:
+                    except AssertionError as e:
                         traceback_string = [utility.get_traceback(e, AssertionError)]
-                        raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                                                                 ["%s Invalid Start and End Times" % b])
+                        print("Start time %s, End time %s" % (start_time, end_time))
+                        raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], \
+                                                                 traceback_string, ["%s End Time < Start Time" % b])
                     
                     try:
-                        utility.check_spacing(self.flname, self.start_time[b], time, spacing, "%s zeroDopplerTime" % b, \
-                                              errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
+                        utility.check_spacing(self.flname, self.start_time[b], time, spacing, \
+                                              "%s zeroDopplerTime" % b, \
+                                              errors_derived.TimeSpacingWarning, \
+                                              errors_derived.TimeSpacingFatal)
                     except (KeyError, errors_base.WarningError, errors_base.FatalError):
                         pass
 

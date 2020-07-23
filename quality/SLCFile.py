@@ -245,15 +245,18 @@ class SLCFile(NISARFile):
         bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
         print("bounds_linear %s" % bounds_linear)
                 
-        # Generate figures
-        
-        for key in self.images.keys():
+        # Generate 2-d images
 
+        for key in self.images.keys():
             (b, f, p) = key.split()
             ximg = self.images[key]
-            fig = ximg.plot4a("%s\n(%s Frequency%s %s SLC Histograms)" % (self.flname, b, f, p), \
-                              (bounds_linear, bounds_linear), (-100.0, 100.0))
-            fpdf.savefig(fig)
+            fig_images = ximg.plot_image("%s/\n %s Frequency%s %s Images" % (self.flname, b, f, p))
+            fig_histograms = ximg.plot4a("%s\n(%s Frequency%s %s RSLC Histograms)" % (self.flname, b, f, p), \
+                                         (bounds_linear, bounds_linear), (-100.0, 100.0))
+            for fig in fig_images+[fig_histograms]:
+                fpdf.savefig(fig)
+                pyplot.close(fig)
+                
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
@@ -262,7 +265,7 @@ class SLCFile(NISARFile):
                     key = "%s %s %s" % (b, f, p)
                     self.images[key].plot4a1(axis)
                 axis.legend(loc="upper right")
-                axis.set_xlabel("SLC Power (dB)")
+                axis.set_xlabel("RSLC Power (dB)")
                 axis.set_ylabel("Number of Counts")
                 fig.suptitle("%s\n(%s Frequency %s Power Histograms)" % (self.flname, b, f))
                 fpdf.savefig(fig)
