@@ -1,7 +1,6 @@
 from quality import errors_base
 from quality import errors_derived
-from quality.GUNWGridImage import GUNWGridImage
-from quality.GUNWSwathImage import GUNWSwathImage
+from quality.UNWSwathImage import UNWSwathImage
 from quality.GUNWOffsetImage import GUNWOffsetImage
 from quality.HdfGroup import HdfGroup
 from quality.NISARFile import NISARFile
@@ -23,7 +22,7 @@ import sys
 import tempfile
 import traceback
 
-class GUNWFile(NISARFile):
+class UNWFile(NISARFile):
 
     def __init__(self, flname, xml_tree=None, mode="r"):
         self.flname = os.path.basename(flname)
@@ -45,8 +44,8 @@ class GUNWFile(NISARFile):
         self.start_time = {}
         self.plotted_slant = False
 
-        self.ftype_list = ["GUNW"]
-        self.product_type = "GUNW"
+        self.ftype_list = ["UNW"]
+        self.product_type = "UNW"
         self.polarization_list = params.GUNW_POLARIZATION_LIST
         self.polarization_groups = params.GUNW_POLARIZATION_GROUPS
         self.identification_list = params.GUNW_ID_PARAMS
@@ -82,11 +81,11 @@ class GUNWFile(NISARFile):
 
                 # Create HdfGroups.
                 
-                for (gname, xdict, dict_name) in zip( ("/science/%s/GUNW/grids", "/science/%s/UNW/swaths", \
-                                                       "/science/%s/GUNW/metadata", "/science/%s/identification"), \
-                                                      (self.GRIDS, self.SWATHS, self.METADATA, self.IDENTIFICATION), \
-                                                      ("%s Grid" % band, "%s Swath" % band, \
-                                                       "%s Metadata" % band, "%s Identification" % band) ):
+                for (gname, xdict, dict_name) in zip( ("/science/%s/UNW/swaths", \
+                                                       "/science/%s/UNW/metadata", "/science/%s/identification"), \
+                                                      (self.SWATHS, self.METADATA, self.IDENTIFICATION), \
+                                                      ("%s Swath" % band, "%s Metadata" % band, \
+                                                       "%s Identification" % band) ):
                     try:
                         gname2 = gname % band
                         group = self[gname2]
@@ -105,6 +104,8 @@ class GUNWFile(NISARFile):
 
     def get_freq_pol(self):
 
+        print("in get_freq_pol")
+        
         self.FREQUENCIES_GRID = {}
         self.FREQUENCIES_SWATH = {}
         self.polarizations_grid = {}
@@ -114,33 +115,38 @@ class GUNWFile(NISARFile):
 
             # Find list of frequencies by directly querying dataset
 
-            for (freq, pol, group) in zip( (self.FREQUENCIES_GRID, self.FREQUENCIES_SWATH), \
-                                           (self.polarizations_grid, self.polarizations_swath), \
-                                           (self.GRIDS, self.SWATHS) ):
-            
-                freq[b] = {}
-                pol[b] = {}
-                for f in ("A", "B"):
-                    try:
-                        f2 = group[b].get("frequency%s" % (f))
-                    except KeyError:
-                        pass
-                    else:
-                        print("Found %s Frequency%s" % (b, f))
-                        freq[b][f] = f2
-                        pol[b][f] = []
-                        for p in self.polarization_list:
-                            try:
-                                p2 = freq[b][f][p]
-                            except KeyError:
-                                pass
-                            else:
-                                pol[b][f].append(p)        
+            #for (freq, pol, group) in zip( (self.FREQUENCIES_SWATH), (self.polarizations_swath), \
+            #                               (self.SWATHS) ):
+
+            freq = self.FREQUENCIES_SWATH
+            pol = self.polarizations_swath
+            group = self.SWATHS
+
+            print("Checking SWATH for frequencies")
+            freq[b] = {}
+            pol[b] = {}
+            for f in ("A", "B"):
+                print("Looking for frequency%s" % f)
+                try:
+                    f2 = group[b].get("frequency%s" % (f))
+                except KeyError:
+                    pass
+                else:
+                    print("Found %s Frequency%s" % (b, f))
+                    freq[b][f] = f2
+                    pol[b][f] = []
+                    for p in self.polarization_list:
+                        try:
+                            p2 = freq[b][f][p]
+                        except KeyError:
+                            pass
+                        else:
+                            pol[b][f].append(p)        
 
     def find_missing_datasets(self):
 
         for b in self.bands:
-            self.GRIDS[b].get_dataset_list(self.xml_tree, b)
+            #self.GRIDS[b].get_dataset_list(self.xml_tree, b)
             self.SWATHS[b].get_dataset_list(self.xml_tree, b)
             self.METADATA[b].get_dataset_list(self.xml_tree, b)
             self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
@@ -150,45 +156,48 @@ class GUNWFile(NISARFile):
         
         for b in self.bands:
             no_look = {}
-            for (freq, swath, pol, name) in zip( (self.FREQUENCIES_GRID, self.FREQUENCIES_SWATH), \
-                                                 (self.GRIDS, self.SWATHS), \
-                                                 (self.polarizations_grid, self.polarizations_swath), \
-                                                 ("Grid", "Swath") ):
+            #for (freq, swath, pol, name) in zip( (self.FREQUENCIES_SWATH), (self.SWATHS), \
+            #                                     (self.polarizations_swath), ["Swath"] ):
 
-                no_look[name] = []
-                for f in ("A", "B"):
-                    if (f not in freq[b].keys()):
-                        no_look[name].append("frequency%s" % f)
-                        continue
+            freq = self.FREQUENCIES_SWATH
+            swath = self.SWATHS
+            pol = self.polarizations_swath
+            name = "Swath"
+            
+            no_look[name] = []
+            for f in ("A", "B"):
+                if (f not in freq[b].keys()):
+                    no_look[name].append("frequency%s" % f)
+                    continue
 
-                    print("Looking at %s %s" % (b, f))
-                    print("keys: %s" % freq[b][f].keys())
-                    try:
-                        print("freq type %s" % type(freq[b][f]))
-                        subswaths = freq[b][f]["numberOfSubSwaths"]
-                    except KeyError:
-                        nsubswaths = 0
-                        pass
-                    else:
-                        nsubswaths = subswaths[...]
-                        for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
-                            no_look[name].append("frequency%s/validSamplesSubSwath%i" % (f, isub))
+                print("Looking at %s %s" % (b, f))
+                print("keys: %s" % freq[b][f].keys())
+                try:
+                    print("freq type %s" % type(freq[b][f]))
+                    subswaths = freq[b][f]["numberOfSubSwaths"]
+                except KeyError:
+                    nsubswaths = 0
+                    pass
+                else:
+                    nsubswaths = subswaths[...]
+                    for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
+                        no_look[name].append("frequency%s/validSamplesSubSwath%i" % (f, isub))
 
-                    found_polarizations = pol[b][f]
+                found_polarizations = pol[b][f]
 
-                    for p in list(params.SLC_POLARIZATION_LIST):
-                        if (f in freq[b].keys()) and (p not in found_polarizations):
-                            #print("Skipping %s frequency %s %s" % (b, f, p))
-                            no_look[name].append("frequency%s/%s" % (f, p))
+                for p in list(params.SLC_POLARIZATION_LIST):
+                    if (f in freq[b].keys()) and (p not in found_polarizations):
+                        #print("Skipping %s frequency %s %s" % (b, f, p))
+                        no_look[name].append("frequency%s/%s" % (f, p))
 
             print("%s: no_look=%s" % (b, no_look))
 
-            self.GRIDS[b].verify_dataset_list(no_look=no_look["Grid"])
+            #self.GRIDS[b].verify_dataset_list(no_look=no_look["Grid"])
             self.SWATHS[b].verify_dataset_list(no_look=no_look["Swath"])
-            self.METADATA[b].verify_dataset_list(no_look=no_look["Grid"])
-            self.IDENTIFICATION[b].verify_dataset_list(no_look=set(no_look["Swath"]+no_look["Grid"]))
+            self.METADATA[b].verify_dataset_list(no_look=no_look["Swath"])
+            self.IDENTIFICATION[b].verify_dataset_list(no_look=no_look["Swath"])
 
-            for xdict in (self.GRIDS[b], self.SWATHS[b], self.METADATA[b], self.IDENTIFICATION[b]):
+            for xdict in (self.SWATHS[b], self.METADATA[b], self.IDENTIFICATION[b]):
                 try:
                     assert(len(xdict.missing) == 0)
                 except AssertionError as e:
@@ -218,33 +227,9 @@ class GUNWFile(NISARFile):
         # Check for Missing Parameters needed in image creation
         
         for b in self.bands:
-            for f in self.FREQUENCIES_GRID[b].keys():
-                fgroup = "/science/%s/GUNW/grids/frequency%s" % (b, f)
-                ogroup = fgroup.replace("frequency%s" % f, "pixelOffsets")
-                try:
-                    assert("%s/centerFrequency" % fgroup in self.keys())
-                    assert("%s/slantRangeSpacing" % fgroup in self.keys())
-                except AssertionError:
-                    missing_params += ["Grid: %s %s" % (b, f)]
-
-                for p in self.polarizations_grid[b][f]:
-                    pgroup = "%s/%s" % (fgroup, p)
-                    try:
-                       assert("%s/phaseSigmaCoherence" % pgroup in self.keys())
-                       assert("%s/unwrappedPhase" % pgroup in self.keys())
-                    except AssertionError:
-                        missing_images += ["Grid: %s %s %s" % (b, f, p)]
-                        print("Looking for %s/phaseSignalCoherence and %s/unwrappedPhase in %s" \
-                              % (pgroup, pgroup, self[pgroup].keys()))
-
-                    try:
-                        assert("%s/%s" % (ogroup, p) in self.keys())
-                    except AssertionError:
-                        missing_images += ["Offset: %s %s" % (b, p)]
-                        
-
             for f in self.FREQUENCIES_SWATH[b].keys():
                 fgroup = "/science/%s/UNW/swaths/frequency%s" % (b, f)
+                ogroup = fgroup.replace("frequency%s" %f, "pixelOffsets")
                 for p in self.polarizations_swath[b][f]:
                     pgroup = "%s/%s" % (fgroup, p)
                     try:
@@ -254,31 +239,15 @@ class GUNWFile(NISARFile):
                     except AssertionError:
                         missing_images += ["Swath: %s %s %s" % (b, f, p)]
 
-        # Create both Grid and Swath Images
+                    try:
+                        assert("%s/%s" % (ogroup, p) in self.keys())
+                    except AssertionError:
+                        missing_images += ["Offset: %s %s" % (b, p)]
+    
+
+        # Create both Swath and Offset Images
                         
         for b in self.bands:
-            for f in self.FREQUENCIES_GRID[b].keys():
-                fgroup = "/science/%s/GUNW/grids/frequency%s" % (b, f)
-                ogroup = fgroup.replace("frequency%s" % f, "pixelOffsets")
-                if ("Grid: %s %s" % (b, f) in missing_params):
-                    continue
-
-                for p in self.polarizations_grid[b][f]:
-                    if ("Grid: %s %s %s" % (b, f, p) in missing_images):
-                        continue
-                    pgroup = "%s/%s" % (fgroup, p)
-                    key = "%s %s %s" % (b, f, p)
-                    self.grid_images[key] = GUNWGridImage(b, f, p, self["%s/centerFrequency" % fgroup][...], \
-                                                          self["%s/slantRangeSpacing" % fgroup][...])
-                    self.images["Grid: %s" % key] = self.grid_images[key]
-
-                for p in self.polarizations_grid[b][f]:
-                    if ("Offset: %s %s" % (b, p) in missing_images):
-                        continue
-                    key = "%s %s" % (b, p)
-                    self.offset_images[key] = GUNWOffsetImage(b, p)
-                    self.images["Offset: %s" % key] = self.offset_images[key]
-
             for f in self.FREQUENCIES_SWATH[b].keys():
                 fgroup = "/science/%s/UNW/swaths/frequency%s" % (b, f)
                 if ("Swath: %s %s" % (b, f) in missing_params):
@@ -290,8 +259,15 @@ class GUNWFile(NISARFile):
                         continue
                     pgroup = "%s/%s" % (fgroup, p)
                     key = "%s %s %s" % (b, f, p)
-                    self.swath_images[key] = GUNWSwathImage(b, f, p)
+                    self.swath_images[key] = UNWSwathImage(b, f, p)
                     self.images["Swath: %s" % key] = self.swath_images[key]
+
+            ogroup = fgroup.replace("frequency%s" % f, "pixelOffsets")
+            for p in self.polarizations_swath[b][f]:
+                if ("Offset: %s %s" % (b, p) not in missing_images):
+                    key = "%s %s" % (b, p)
+                    self.offset_images[key] = GUNWOffsetImage(b, p)
+                    self.images["Offset: %s" % key] = self.offset_images[key]
                     
 
         # Raise all detected errors (if any)
@@ -313,13 +289,6 @@ class GUNWFile(NISARFile):
 
         size_errors = []
         
-        for key in self.grid_images.keys():
-            (b, f, p) = key.split()
-            try:
-                self.grid_images[key].read(self["/science/%s/GUNW/grids/frequency%s/%s" % (b, f, p)])
-            except AssertionError as e:
-                size_errors += ["Grid: %s" % key]
-
         for key in self.swath_images.keys():
             (b, f, p) = key.split()
             try:
@@ -330,9 +299,10 @@ class GUNWFile(NISARFile):
         for key in self.offset_images.keys():
             (b, p) = key.split()
             try:
-                self.offset_images[key].read(self["/science/%s/GUNW/grids/pixelOffsets/%s" % (b, p)])
+                self.offset_images[key].read(self["/science/%s/UNW/swaths/pixelOffsets/%s" % (b, p)])
             except AssertionError as e:
                 size_errors += ["Offset: %s" % key]
+            
 
         try:
             assert(len(size_errors) == 0)
@@ -348,13 +318,6 @@ class GUNWFile(NISARFile):
 
         # Generate figures
         
-        for key in self.grid_images.keys():
-            (b, f, p) = key.split()
-            ximg = self.grid_images[key]
-            ximg.calc()
-            fig = ximg.plot("%s\n(%s Frequency%s %s GUNW Histograms)" % (self.flname, b, f, p))
-            fpdf.savefig(fig)
-
         for key in self.swath_images.keys():
             (b, f, p) = key.split()
             ximg = self.swath_images[key]
@@ -366,9 +329,8 @@ class GUNWFile(NISARFile):
             (b, p) = key.split()
             ximg = self.offset_images[key]
             ximg.calc()
-            fig = ximg.plot("%s\n(%s Offset %s GUNW Histograms)" % (self.flname, b, p))
+            fig = ximg.plot("%s\n(%s Offset %s UNW Histograms)" % (self.flname, b, p))
             fpdf.savefig(fig)
-            
 
         # Write histogram summaries to an hdf5 file
             
@@ -378,7 +340,7 @@ class GUNWFile(NISARFile):
         extension = fname_in.split(".")[-1]
         groups[b] = fhdf.create_group("%s/%s/ImageAttributes" % (fname_in.replace(".%s" % extension, ""), b))
 
-        for images in (self.grid_images, self.swath_images, self.offset_images):
+        for images in (self.swath_images, self.offset_images):
         
             for key in images.keys():
                 try:

@@ -109,6 +109,7 @@ class NISARFile(h5py.File):
             else:
                 for f in frequencies:
                     for (flist, fname) in zip(fgroups1, fnames2):
+                        print("Swaths", self.SWATHS)
                         try:
                             assert("frequency%s" % f in flist[b].keys())
                         except AssertionError as e:
@@ -119,6 +120,7 @@ class NISARFile(h5py.File):
                                 error_string += ["%s missing Frequency%s" % (b, f)]
 
                 for flist in fgroups2:
+                    print("FrequenciesSwath", self.FREQUENCIES_SWATH)
                     for f in flist[b].keys():
                         try:
                             assert(f in frequencies)
@@ -551,6 +553,8 @@ class NISARFile(h5py.File):
         
     def check_frequencies(self, flist):
 
+        print("Checking frequencies for flist", flist)
+        
         for b in self.bands:
             nfrequencies = len(flist[b])
             if (nfrequencies == 2):
