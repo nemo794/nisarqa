@@ -27,15 +27,25 @@ class GUNWGridImage(GUNWAbstractImage):
 
     def read(self, handle, xstep=1, ystep=1):
 
-        self.phase_coherence = handle["phaseSigmaCoherence"][::xstep, ::ystep]
-        self.unwrapped_phase = handle["unwrappedPhase"][::xstep, ::ystep]
         self.data_names = {"phaseSigmaCoherence": "phase_coherence", \
-                           "unwrappedPhase": "unwrapped_phase"}
+                           "unwrappedPhase": "unwrapped_phase", \
+                           "connectedComponents": "components", \
+                           "ionopherePhaseScreen": "phase_ioscreen", \
+                           "ionospherePhaseScreenUncertainty": "phase_uncertainty"}
 
-        assert(self.phase_coherence.shape == self.unwrapped_phase.shape)
+        print("Keys: %s" % handle.keys())
+        for long_name in self.data_names.keys():
+            short_name = self.data_names[long_name]
+            xdata = handle[long_name][::xstep, ::ystep]
+            setattr(self, short_name, xdata)
 
-        self.size = self.phase_coherence.size
-        self.shape = self.phase_coherence.shape
+        data1 = getattr(self, "phase_coherence")
+        for short_name in self.data_names.values():
+            data2 = getattr(self, short_name)
+            assert(data2.shape == data1.shape)
+
+        self.size = data1.size
+        self.shape = data1.shape
         
         print("Read %s %s %s Grid image" % (self.band, self.frequency, self.polarization))
 

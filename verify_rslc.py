@@ -78,7 +78,8 @@ if __name__ == "__main__":
         fhdf.get_freq_pol()
             
         try:
-            fhdf.check_freq_pol()
+            for band in fhdf.bands:
+                fhdf.check_freq_pol(band, [fhdf.SWATHS], [fhdf.FREQUENCIES], [""])
         except errors_base.FatalError:
             print("File %s has a Fatal Error" % slc_file)
             fhdf.close()
@@ -104,7 +105,8 @@ if __name__ == "__main__":
 
         if (kwds["validate"]):
             try:
-                fhdf.check_frequencies(fhdf.FREQUENCIES)
+                for band in fhdf.bands:
+                    fhdf.check_frequencies(band, fhdf.FREQUENCIES[band])
             except errors_base.WarningError:
                 pass
 

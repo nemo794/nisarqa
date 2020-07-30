@@ -56,7 +56,8 @@ class GUNWFile(NISARFile):
         self.metadata_path = "/science/%s/GUNW/metadata"
         self.identification_path = "/science/%s/identification/"
 
-        self.get_start_time()        
+        self.get_start_time()
+        self.has_swath = {}
 
     def get_slant_range(self, band, frequency):
 
@@ -91,10 +92,15 @@ class GUNWFile(NISARFile):
                         gname2 = gname % band
                         group = self[gname2]
                     except KeyError as e:
-                        traceback_string += [utility.get_traceback(e, KeyError)]
-                        error_string += ["%s does not exist" % gname2]
+                        if ("Swath" in dict_name):
+                            self.has_swath[band] = False
+                        else:
+                            traceback_string += [utility.get_traceback(e, KeyError)]
+                            error_string += ["%s does not exist" % gname2]
                     else:
                         xdict[band] = HdfGroup(self, dict_name, gname2)
+                        if ("Swath" in dict_name):
+                            self.has_swath[band] = True
 
         # Raise any errors
                         
@@ -117,7 +123,12 @@ class GUNWFile(NISARFile):
             for (freq, pol, group) in zip( (self.FREQUENCIES_GRID, self.FREQUENCIES_SWATH), \
                                            (self.polarizations_grid, self.polarizations_swath), \
                                            (self.GRIDS, self.SWATHS) ):
-            
+
+                print("has_swath", self.has_swath)
+                print("group", group)
+                if (not self.has_swath[b]) and (group is self.SWATHS):
+                    continue
+                
                 freq[b] = {}
                 pol[b] = {}
                 for f in ("A", "B"):
@@ -141,9 +152,10 @@ class GUNWFile(NISARFile):
 
         for b in self.bands:
             self.GRIDS[b].get_dataset_list(self.xml_tree, b)
-            self.SWATHS[b].get_dataset_list(self.xml_tree, b)
             self.METADATA[b].get_dataset_list(self.xml_tree, b)
             self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
+            if (self.has_swath[b]):
+                self.SWATHS[b].get_dataset_list(self.xml_tree, b)                
 
         error_string = []
         traceback_string = []
@@ -154,6 +166,10 @@ class GUNWFile(NISARFile):
                                                  (self.GRIDS, self.SWATHS), \
                                                  (self.polarizations_grid, self.polarizations_swath), \
                                                  ("Grid", "Swath") ):
+
+                if (not self.has_swath[b]) and ("Swath" in name):
+                    no_look["Swath"] = []
+                    continue
 
                 no_look[name] = []
                 for f in ("A", "B"):
@@ -184,11 +200,16 @@ class GUNWFile(NISARFile):
             print("%s: no_look=%s" % (b, no_look))
 
             self.GRIDS[b].verify_dataset_list(no_look=no_look["Grid"])
-            self.SWATHS[b].verify_dataset_list(no_look=no_look["Swath"])
             self.METADATA[b].verify_dataset_list(no_look=no_look["Grid"])
             self.IDENTIFICATION[b].verify_dataset_list(no_look=set(no_look["Swath"]+no_look["Grid"]))
+            if (self.has_swath[b]):
+                self.SWATHS[b].verify_dataset_list(no_look=no_look["Swath"])                
 
-            for xdict in (self.GRIDS[b], self.SWATHS[b], self.METADATA[b], self.IDENTIFICATION[b]):
+            hgroups = [self.GRIDS[b], self.METADATA[b], self.IDENTIFICATION[b]]
+            if (self.has_swath[b]):
+                hgroups.append(self.SWATHS[b])
+                
+            for xdict in (hgroups):
                 try:
                     assert(len(xdict.missing) == 0)
                 except AssertionError as e:
@@ -241,7 +262,9 @@ class GUNWFile(NISARFile):
                         assert("%s/%s" % (ogroup, p) in self.keys())
                     except AssertionError:
                         missing_images += ["Offset: %s %s" % (b, p)]
-                        
+
+            if (not self.has_swath[b]):
+                continue  #  No Swath Images in file
 
             for f in self.FREQUENCIES_SWATH[b].keys():
                 fgroup = "/science/%s/UNW/swaths/frequency%s" % (b, f)
@@ -279,6 +302,9 @@ class GUNWFile(NISARFile):
                     self.offset_images[key] = GUNWOffsetImage(b, p)
                     self.images["Offset: %s" % key] = self.offset_images[key]
 
+            if (not self.has_swath[b]):
+                continue  # No Swath Images in file
+                    
             for f in self.FREQUENCIES_SWATH[b].keys():
                 fgroup = "/science/%s/UNW/swaths/frequency%s" % (b, f)
                 if ("Swath: %s %s" % (b, f) in missing_params):
@@ -316,6 +342,7 @@ class GUNWFile(NISARFile):
         for key in self.grid_images.keys():
             (b, f, p) = key.split()
             try:
+                print("Looking at grid: %s" % "/science/%s/GUNW/grids/frequency%s/%s" % (b, f, p))
                 self.grid_images[key].read(self["/science/%s/GUNW/grids/frequency%s/%s" % (b, f, p)])
             except AssertionError as e:
                 size_errors += ["Grid: %s" % key]

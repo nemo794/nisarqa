@@ -83,7 +83,7 @@ class NISARFile(h5py.File):
                             self.polarizations[b][f].append(p)
                             
 
-    def check_freq_pol(self, fgroups1=None, fgroups2=None, fnames2=None):
+    def check_freq_pol(self, band, fgroups1, fgroups2, fnames2):
 
         # Check for correct frequencies and polarizations
 
@@ -95,102 +95,98 @@ class NISARFile(h5py.File):
             fgroups2 = [self.FREQUENCIES]
             fnames2 = [""]
          
-        for b in self.bands:
-
-            try:
-                frequencies = [f.decode() for f in self.IDENTIFICATION[b].get("listOfFrequencies")[...]]
-                assert(frequencies in params.FREQUENCIES)
-            except KeyError as e:
-                traceback_string += [utility.get_traceback(e, KeyError)]
-                error_string += ["%s is missing frequency list" % b]
-            except (AssertionError, TypeError, UnicodeDecodeError) as e:
-                traceback_string += [utility.get_traceback(e, AssertionError)]
-                error_string += ["%s has invalid frequency list" % b]
-            else:
-                for f in frequencies:
-                    for (flist, fname) in zip(fgroups1, fnames2):
-                        print("Swaths", self.SWATHS)
-                        try:
-                            assert("frequency%s" % f in flist[b].keys())
-                        except AssertionError as e:
-                            traceback_string += [utility.get_traceback(e, AssertionError)]
-                            if (len(fname) > 0):
-                                error_string += ["%s %s missing Frequency%s" % (b, fname, f)]
-                            else:
-                                error_string += ["%s missing Frequency%s" % (b, f)]
-
-                for flist in fgroups2:
-                    print("FrequenciesSwath", self.FREQUENCIES_SWATH)
-                    for f in flist[b].keys():
-                        try:
-                            assert(f in frequencies)
-                        except AssertionError as e:
-                            traceback_string += [utility.get_traceback(e, AssertionError)]
-                            if (len(fname) > 0):
-                                error_string += ["%s %s frequency list missing %s" % (b, fname, f)]
-                            else:
-                                error_string += ["%s frequency list missing %s" % (b, f)]
-
-
-            for (flist, fname) in zip(fgroups2, fnames2):
-                for f in flist[b].keys():
+        try:
+            frequencies = [f.decode() for f in self.IDENTIFICATION[band].get("listOfFrequencies")[...]]
+            assert(frequencies in params.FREQUENCIES)
+        except KeyError as e:
+            traceback_string += [utility.get_traceback(e, KeyError)]
+            error_string += ["%s is missing frequency list" % band]
+        except (AssertionError, TypeError, UnicodeDecodeError) as e:
+            traceback_string += [utility.get_traceback(e, AssertionError)]
+            error_string += ["%s has invalid frequency list" % band]
+        else:
+            for f in frequencies:
+                for (flist, fname) in zip(fgroups1, fnames2):
+                       
                     try:
-                        polarizations_found = [p.decode() for p in flist[b][f].get("listOfPolarizations")[...]]
-                    except KeyError as e:
-                        traceback_string += [utility.get_traceback(e, KeyError)]
-                        if (len(fname) > 0):
-                            error_string += ["%s %s %s is missing polarization list" % (b, fname, f)]
-                        else:
-                            error_string += ["%s %s is missing polarization list" % (b, f)]
-                            continue
-                    except UnicodeDecodeError as e:
-                        traceback_string += [utility.get_traceback(e, UnicodeDecodeError)]
-                        if (len(fname) > 0):
-                            error_string += ["%s %s Frequency%s has invalid polarization list: %s" \
-                                             % (b, fname, f, polarizations_found)]
-                        else:
-                            error_string += ["%s Frequency%s has invalid polarization list: %s" \
-                                             % (b, f, polarizations_found)]
-                        
-                    try:
-                        polarization_ok = False
-                        for plist in self.polarization_groups:
-                            #print("Comparing %s against %s" % (polarizations_found, plist))
-                            if (set(polarizations_found) == set(plist)):
-                                polarization_ok = True
-                                break
-                        assert(polarization_ok)
-                    except (AssertionError) as e:
+                        assert("frequency%s" % f in flist[band].keys())
+                    except AssertionError as e:
                         traceback_string += [utility.get_traceback(e, AssertionError)]
                         if (len(fname) > 0):
-                            error_string += ["%s %s Frequency%s has invalid polarization list: %s" \
-                                             % (b, fname, f, polarizations_found)]
+                            error_string += ["%s %s missing Frequency%s" % (band, fname, f)]
                         else:
-                            error_string += ["%s Frequency%s has invalid polarization list: %s" \
-                                             % (b, f, polarizations_found)]
+                            error_string += ["%s missing Frequency%s" % (band, f)]
+
+            for flist in fgroups2:
+                for f in flist[band].keys():
+                    try:
+                        assert(f in frequencies)
+                    except AssertionError as e:
+                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        if (len(fname) > 0):
+                            error_string += ["%s %s frequency list missing %s" % (band, fname, f)]
+                        else:
+                            error_string += ["%s frequency list missing %s" % (band, f)]
+
+        for (flist, fname) in zip(fgroups2, fnames2):
+            for f in flist[band].keys():
+                try:
+                    polarizations_found = [p.decode().upper() for p in flist[band][f].get("listOfPolarizations")[...]]
+                except KeyError as e:
+                    traceback_string += [utility.get_traceback(e, KeyError)]
+                    if (len(fname) > 0):
+                        error_string += ["%s %s %s is missing polarization list" % (band, fname, f)]
+                    else:
+                        error_string += ["%s %s is missing polarization list" % (band, f)]
+                        continue
+                except UnicodeDecodeError as e:
+                    traceback_string += [utility.get_traceback(e, UnicodeDecodeError)]
+                    if (len(fname) > 0):
+                        error_string += ["%s %s Frequency%s has invalid polarization list: %s" \
+                                         % (band, fname, f, polarizations_found)]
+                    else:
+                        error_string += ["%s Frequency%s has invalid polarization list: %s" \
+                                         % (band, f, polarizations_found)]
+                        
+                try:
+                    polarization_ok = False
+                    for plist in self.polarization_groups:
+                        print("Comparing %s against %s" % (polarizations_found, plist))
+                        if (set(polarizations_found) == set(plist)):
+                            polarization_ok = True
+                            break
+                    assert(polarization_ok)
+                except (AssertionError) as e:
+                    traceback_string += [utility.get_traceback(e, AssertionError)]
+                    if (len(fname) > 0):
+                        error_string += ["%s %s Frequency%s has invalid polarization list: %s" \
+                                         % (band, fname, f, polarizations_found)]
+                    else:
+                        error_string += ["%s Frequency%s has invalid polarization list: %s" \
+                                         % (band, f, polarizations_found)]
                              
 
-                    else:
-                        for p in polarizations_found:
+                else:
+                    for p in polarizations_found:
+                        try:
+                            assert(p in flist[band][f].keys())
+                        except AssertionError as e:
+                            traceback_string += [utility.get_traceback(e, AssertionError)]
+                            if (len(fname) > 0):
+                                error_string += ["%s %s Frequency%s missing polarization %s" % (band, fname, f, p)]
+                            else:
+                                error_string += ["%s Frequency%s missing polarization %s" % (band, f, p)]
+
+                        plist = [p for p in flist[band][f].keys() if p in ("HH", "HV", "VH", "VV")]
+                        for p in plist:
                             try:
-                                assert(p in flist[b][f].keys())
+                                assert(p in polarizations_found)
                             except AssertionError as e:
                                 traceback_string += [utility.get_traceback(e, AssertionError)]
                                 if (len(fname) > 0):
-                                    error_string += ["%s %s Frequency%s missing polarization %s" % (b, fname, f, p)]
+                                    error_string += ["%s %s Frequency%s has extra polarization %s" % (band, fname, f, p)]
                                 else:
-                                    error_string += ["%s Frequency%s missing polarization %s" % (b, f, p)]
-
-                            plist = [p for p in flist[b][f].keys() if p in ("HH", "HV", "VH", "VV")]
-                            for p in plist:
-                                try:
-                                    assert(p in polarizations_found)
-                                except AssertionError as e:
-                                    traceback_string += [utility.get_traceback(e, AssertionError)]
-                                    if (len(fname) > 0):
-                                        error_string += ["%s %s Frequency%s has extra polarization %s" % (b, fname, f, p)]
-                                    else:
-                                        error_string += ["%s Frequency%s has extra polarization %s" % (b, f, p)]
+                                    error_string += ["%s Frequency%s has extra polarization %s" % (band, f, p)]
                             
 
         assert(len(traceback_string) == len(error_string))
@@ -198,7 +194,7 @@ class NISARFile(h5py.File):
             assert(len(error_string) == 0)
         except AssertionError as e:
             print("Found %i errors: %s" % (len(error_string), error_string))
-            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[b], traceback_string, error_string)
+            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[band], traceback_string, error_string)
 
     def create_images(self, time_step=1, range_step=1):
 
@@ -551,32 +547,33 @@ class NISARFile(h5py.File):
                 except (errors_base.WarningError, errors_base.FatalError):
                     pass
         
-    def check_frequencies(self, flist):
+    def check_frequencies(self, band, flist):
 
         print("Checking frequencies for flist", flist)
         
-        for b in self.bands:
-            nfrequencies = len(flist[b])
-            if (nfrequencies == 2):
-                for freq_name in self.frequency_checks:
-                    freq = {}
-                    try:
-                        for f in list(flist[b].keys()):
-                            xfreq = flist[b][f].get(freq_name, default=None)
-                            assert(xfreq is not None)
-                            freq[f] = xfreq[...]
-                    except AssertionError as e:
-                        traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.MissingDatasetWarning(self.flname, self.start_time[b], traceback_string, \
-                                                                   ["%s Frequency%s missing dataset %s" % (b, f, freq_name)])
+        nfrequencies = len(flist)
+        if (nfrequencies == 1):
+            return
+        
+        for freq_name in self.frequency_checks:
+            freq = {}
+            try:
+                for f in list(flist.keys()):
+                    xfreq = flist[f].get(freq_name, default=None)
+                    assert(xfreq is not None)
+                    freq[f] = xfreq[...]
+            except AssertionError as e:
+                traceback_string = [utility.get_traceback(e, KeyError)]
+                raise errors_derived.MissingDatasetWarning(self.flname, self.start_time[band], traceback_string, \
+                                                           ["%s Frequency%s missing dataset %s" % (band, f, freq_name)])
                     
-                    try:
-                        assert(freq["A"] < freq["B"])
-                    except AssertionError as e:
-                        traceback_string = [utility.get_traceback(e, AssertionError)]
-                        raise errors_derived.FrequencyOrderWarning(self.flname, self.start_time[b], traceback_string, \
-                                                                 ["%s A=%f not less than B=%f" \
-                                                                  % (freq_name, freq["A"], freq["B"])])
+            try:
+                assert(freq["A"] < freq["B"])
+            except AssertionError as e:
+                traceback_string = [utility.get_traceback(e, AssertionError)]
+                raise errors_derived.FrequencyOrderWarning(self.flname, self.start_time[band], traceback_string, \
+                                                           ["%s A=%f not less than B=%f" \
+                                                            % (freq_name, freq["A"], freq["B"])])
 
     def check_num_subswaths(self, b, f):
 

@@ -76,17 +76,24 @@ if __name__ == "__main__":
             continue
 
         fhdf.get_freq_pol()
-
-        try:
-            fhdf.check_freq_pol(fgroups1=[fhdf.GRIDS, fhdf.SWATHS], \
-                                fgroups2=[fhdf.FREQUENCIES_GRID, fhdf.FREQUENCIES_SWATH], \
-                                fnames2=["Grids", "Swaths"])
-        except errors_base.FatalError:
-            print("File %s has a Fatal Error" % slc_file)
-            fhdf.close()
-            if (kwds["validate"]):
-                flog.print_file_logs(os.path.basename(slc_file))
-            continue
+        for b in fhdf.bands:
+            if (fhdf.has_swath[b]):
+                fgroups1 = [fhdf.GRIDS, fhdf.SWATHS]
+                fgroups2 = [fhdf.FREQUENCIES_GRID, fhdf.FREQUENCIES_SWATH]
+                fnames2 = ["Grids", "Swaths"]
+            else:
+                fgroups1 = [fhdf.GRIDS]
+                fgroups2 = [fhdf.FREQUENCIES_GRID]
+                fnames2 = ["Grids"]
+        
+            try:
+                fhdf.check_freq_pol(b, fgroups1, fgroups2, fnames2)
+            except errors_base.FatalError:
+                print("File %s has a Fatal Error" % slc_file)
+                fhdf.close()
+                if (kwds["validate"]):
+                    flog.print_file_logs(os.path.basename(slc_file))
+                    continue
 
         if (kwds["validate"]):
             try:
@@ -105,12 +112,17 @@ if __name__ == "__main__":
         # Verify frequencies and polarizations
 
         if (kwds["validate"]):
-            for flist in (fhdf.FREQUENCIES_GRID, fhdf.FREQUENCIES_SWATH):
+            for band in fhdf.bands:
                 try:
-                    fhdf.check_frequencies(flist)
+                    fhdf.check_frequencies(band, fhdf.FREQUENCIES_GRID[band])
                 except errors_base.WarningError:
                     pass
 
+                if (fhdf.has_swath[b]):
+                    try:
+                        fhdf.check_frequencies(band, fhdf.FREQUENCIES_SWATH[band])
+                    except errors_base.WarningError:
+                        pass
             
         # Verify time tags
 
