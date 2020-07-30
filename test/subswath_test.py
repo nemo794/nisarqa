@@ -25,7 +25,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_subswath.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.assertRaisesRegex(errors_base.WarningError, "LSAR FrequencyA had missing SubSwath1 bounds", \
                                self.slc_file.check_subswaths_bounds)
     
@@ -34,7 +34,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "subswath_bounds.h5"), mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.assertRaisesRegex(errors_base.WarningError, "LSAR FrequencyA with nSlantRange 129 had invalid SubSwath bounds", \
                                self.slc_file.check_subswaths_bounds)
 

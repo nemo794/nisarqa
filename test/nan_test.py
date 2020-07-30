@@ -22,7 +22,7 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
 
         self.assertRaisesRegex(errors_base.WarningError, "LSAR A_HH has 8256 NaN's=49.6%", \
@@ -34,7 +34,7 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
 
         self.assertRaisesRegex(errors_base.FatalError, "LSAR A_HH is entirely NaN", \
@@ -47,7 +47,7 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
 
         self.assertRaisesRegex(errors_base.WarningError, "LSAR A_HH has 4134 Zeros=24.8%", \
@@ -59,7 +59,7 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
 
         self.assertRaisesRegex(errors_base.FatalError, "LSAR A_HH is entirely Zeros", \
@@ -71,7 +71,7 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
 
         self.assertRaisesRegex(errors_base.FatalError, "LSAR A_HH is entirely NaNs or Zeros", \

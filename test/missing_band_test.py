@@ -40,7 +40,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR has invalid frequency list", \
-                               self.slc_file.check_freq_pol)
+                               self.slc_file.check_freq_pol, "LSAR", [self.slc_file.SWATHS], \
+                               [self.slc_file.FREQUENCIES], [""])
 
     def test_gslc_missing_frequency(self):
 
@@ -48,7 +49,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR missing Frequency[A,B]", \
-                               self.slc_file.check_freq_pol)
+                               self.slc_file.check_freq_pol, "LSAR", [self.slc_file.SWATHS], \
+                               [self.slc_file.FREQUENCIES], [""])
 
     def test_gslc_extra_frequency(self):
 
@@ -56,7 +58,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR frequency list missing [A,B]", \
-                               self.slc_file.check_freq_pol)
+                               self.slc_file.check_freq_pol, "LSAR", [self.slc_file.SWATHS], \
+                               [self.slc_file.FREQUENCIES], [""])
 
     def test_gcov_incorrect_frequency(self):
 
@@ -88,7 +91,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has invalid polarization list", \
-                               self.slc_file.check_freq_pol)
+                               self.slc_file.check_freq_pol, "LSAR", [self.slc_file.SWATHS], \
+                               [self.slc_file.FREQUENCIES], [""])
         
     def test_gslc_missing_polarizations(self):
 
@@ -96,7 +100,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] missing polarization [HH,VV,HV,VH]", \
-                               self.slc_file.check_freq_pol)
+                               self.slc_file.check_freq_pol, "LSAR", [self.slc_file.SWATHS], \
+                               [self.slc_file.FREQUENCIES], [""])
         
     def test_gslc_extra_polarizations(self):
 
@@ -104,7 +109,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.FatalError, "[L,S]SAR Frequency[A,B] has extra polarization [HH,VV,HV,VH]", \
-                               self.slc_file.check_freq_pol)
+                               self.slc_file.check_freq_pol, "LSAR", [self.slc_file.SWATHS], \
+                               [self.slc_file.FREQUENCIES], [""])
 
     def test_gcov_no_polarizations(self):
 

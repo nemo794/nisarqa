@@ -22,7 +22,7 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
 
         self.assertRaisesRegex(errors_base.FatalError, "Dataset LSAR A HH has.*(129, 129).*(129, 119).*", \
@@ -34,7 +34,7 @@ class SLCFile_test(unittest.TestCase):
         
         self.gslc_file.get_bands()
         self.gslc_file.get_freq_pol()
-        self.gslc_file.check_freq_pol()
+        self.gslc_file.check_freq_pol("LSAR", [self.gslc_file.SWATHS], [self.gslc_file.FREQUENCIES], [""])
         self.gslc_file.create_images()
 
         self.assertRaisesRegex(errors_base.FatalError, "Dataset LSAR A HH has.*(500, 275).*(600, 275).*", \

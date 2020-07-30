@@ -21,7 +21,8 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "lsar_vs_ssar.h5"), xml_tree=self.xml_tree, mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
-        self.slc_file.check_freq_pol()
+        self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
+        self.slc_file.check_freq_pol("SSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
 
         self.assertRaisesRegex(errors_base.WarningError, "Values of absoluteOrbitNumber differ between bands", \
                                self.slc_file.check_identification)
