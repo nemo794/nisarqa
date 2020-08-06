@@ -1,9 +1,11 @@
 from quality.GCOVFile import GCOVFile
 from quality.GSLCFile import GSLCFile
+from quality.GUNWFile import GUNWFile
 from quality.SLCFile import SLCFile
 from quality import errors_base, errors_derived
 
 import h5py
+from matplotlib.backends.backend_pdf import PdfPages
 import numpy
 
 import os, os.path
@@ -16,7 +18,8 @@ class SLCFile_test(unittest.TestCase):
     XML_DIR = "xml"
 
     def setUp(self):
-        self.xml_tree = ET.parse(os.path.join(self.XML_DIR, "nisar_L1_SLC.xml"))
+        self.rslc_xml_tree = ET.parse(os.path.join(self.XML_DIR, "nisar_L1_SLC.xml"))
+        self.gunw_xml_tree = ET.parse(os.path.join(self.XML_DIR, "nisar_L2_GUNW.xml"))
 
 
     #def tearDown(self):
@@ -159,7 +162,8 @@ class SLCFile_test(unittest.TestCase):
 
     def test_missing_none(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_none.h5"), xml_tree=self.xml_tree, mode="r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_none.h5"), \
+                                xml_tree=self.rslc_xml_tree, mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.slc_file.find_missing_datasets()
@@ -167,13 +171,65 @@ class SLCFile_test(unittest.TestCase):
 
     def test_missing_one(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_one.h5"), xml_tree=self.xml_tree, mode="r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "missing_one.h5"), \
+                                xml_tree=self.rslc_xml_tree, mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
         self.assertRaisesRegex(errors_base.WarningError, "LSAR Identification missing 1 fields: .*absoluteOrbitNumber", \
                                self.slc_file.find_missing_datasets)
+
+    def test_gunw_missing_swath(self):
+
+        self.gunw_file = GUNWFile(os.path.join(self.TEST_DIR, "gunw_noswath.h5"), mode="r")
+        self.gunw_file.get_bands()
+        self.assertFalse(self.gunw_file.has_swath["LSAR"])
+        
+    def test_gunw_missing_metadata(self):
+
+        self.gunw_file = GUNWFile(os.path.join(self.TEST_DIR, "gunw_nometa.h5"), mode="r")
+        self.assertRaisesRegex(errors_base.FatalError, "/science/LSAR/GUNW/metadata does not exist", \
+                               self.gunw_file.get_bands)
+
+    def test_gunw_missing_none(self):
+
+        fpdf = PdfPages("junk.pdf")
+        fhdf = h5py.File("junk.h5", "w")
+        
+        self.gunw_file = GUNWFile(os.path.join(self.TEST_DIR, "gunw_missing_none.h5"), \
+                                  xml_tree=self.gunw_xml_tree, mode="r")
+        self.gunw_file.get_bands()
+        self.gunw_file.get_freq_pol()
+        self.gunw_file.check_freq_pol("LSAR", [self.gunw_file.GRIDS], [self.gunw_file.FREQUENCIES_GRID], ["Grids"])
+        self.gunw_file.find_missing_datasets()
+        self.gunw_file.create_images()
+        self.gunw_file.check_images(fpdf, fhdf)
+        self.gunw_file.close()
+
+        fpdf.close()
+        fhdf.close()
+    
+    def test_gunw_missing_images(self):
+
+        self.gunw_file = GUNWFile(os.path.join(self.TEST_DIR, "gunw_nooffset.h5"), \
+                                  xml_tree=self.gunw_xml_tree, mode="r")
+        self.gunw_file.get_bands()
+        self.gunw_file.get_freq_pol()
+        self.gunw_file.check_freq_pol("LSAR", [self.gunw_file.GRIDS], [self.gunw_file.FREQUENCIES_GRID], ["Grids"])
+        self.assertRaisesRegex(errors_base.FatalError, "Missing 1 images: .*Offset: LSAR VV.*", \
+                               self.gunw_file.create_images)
+        
+    def test_gunw_missing_image_component(self):
+
+        self.gunw_file = GUNWFile(os.path.join(self.TEST_DIR, "gunw_nophase.h5"), \
+                                  xml_tree=self.gunw_xml_tree, mode="r")
+        self.gunw_file.get_bands()
+        self.gunw_file.get_freq_pol()
+        self.gunw_file.check_freq_pol("LSAR", [self.gunw_file.GRIDS], [self.gunw_file.FREQUENCIES_GRID], ["Grids"])
+        self.assertRaisesRegex(errors_base.FatalError, "Could not initialize 1 images: .*Grid: LSAR A HH is Missing .*unwrappedPhase.*", \
+                               self.gunw_file.create_images)
         
 
+        
         
         
 if __name__ == "__main__":

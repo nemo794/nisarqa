@@ -28,8 +28,8 @@ if __name__ == "__main__":
     parser.add_option("--log", "--flog", dest="flog", type="string", action="store")
     parser.add_option("--hdf", "--fhdf", dest="fhdf", type="string", action="store")
     parser.add_option("--pdf", "--fpdf", dest="fpdf", type="string", action="store")
-    parser.add_option("--time_step", dest="time_step", type="int", action="store", default=1)
-    parser.add_option("--range_step", dest="range_step", type="int", action="store", default=1)
+    parser.add_option("--xstep", dest="xstep", type="int", action="store", default=1)
+    parser.add_option("--ystep", dest="ystep", type="int", action="store", default=1)
     parser.add_option("--validate", dest="validate", action="store_true", default=False)
     parser.add_option("--quality", dest="quality", action="store_true", default=False)
     parser.add_option("--xml_dir", dest="xml_dir", type="string", action="store", default="xml")
@@ -93,7 +93,9 @@ if __name__ == "__main__":
                 fhdf.close()
                 if (kwds["validate"]):
                     flog.print_file_logs(os.path.basename(slc_file))
+                    sys.exit(1)
                     continue
+                
 
         if (kwds["validate"]):
             try:
@@ -153,7 +155,7 @@ if __name__ == "__main__":
         if (kwds["quality"]):
 
             try:
-                fhdf.create_images(time_step=kwds["time_step"], range_step=kwds["range_step"])
+                fhdf.create_images(xstep=kwds["xstep"], ystep=kwds["ystep"])
             except errors_base.FatalError:
                 pass
             else:

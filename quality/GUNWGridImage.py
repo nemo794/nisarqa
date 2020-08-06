@@ -16,22 +16,13 @@ class GUNWGridImage(GUNWAbstractImage):
     BADVALUE = -9999
     EPS = 1.0e-03
     
-    def __init__(self, band, frequency, polarization, acquired_frequency, spacing):
+    def __init__(self, band, frequency, polarization, data_names):
 
-        GUNWAbstractImage.__init__(self, band, frequency, polarization)
-        self.acquired_frequency = np.copy(acquired_frequency)
-        self.spacing = np.copy(spacing)
+        GUNWAbstractImage.__init__(self, band, frequency, polarization, data_names)
 
         self.type = "Grid"
-        self.empty = False
 
-    def read(self, handle, xstep=1, ystep=1):
-
-        self.data_names = {"phaseSigmaCoherence": "phase_coherence", \
-                           "unwrappedPhase": "unwrapped_phase", \
-                           "connectedComponents": "components", \
-                           "ionopherePhaseScreen": "phase_ioscreen", \
-                           "ionospherePhaseScreenUncertainty": "phase_uncertainty"}
+    def junk_read(self, handle, xstep=1, ystep=1):
 
         print("Keys: %s" % handle.keys())
         for long_name in self.data_names.keys():
@@ -39,11 +30,8 @@ class GUNWGridImage(GUNWAbstractImage):
             xdata = handle[long_name][::xstep, ::ystep]
             setattr(self, short_name, xdata)
 
-        data1 = getattr(self, "phase_coherence")
-        for short_name in self.data_names.values():
-            data2 = getattr(self, short_name)
-            assert(data2.shape == data1.shape)
-
+            
+            
         self.size = data1.size
         self.shape = data1.shape
         

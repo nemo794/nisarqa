@@ -83,6 +83,24 @@ class SlantSpacingFatal(errors_base.FatalError):
         SlantSpacingFatal.file_list.append(os.path.basename(flname))
         raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
 
+class CoordinateSpacingWarning(errors_base.WarningError):
+    file_list = []
+    ninstance = 0
+    name = "WarningCoordinateSpacing"
+    def __init__(self, flname, start_time, traceback, description):
+        CoordinateSpacingWarning.ninstance += 1
+        CoordinateSpacingWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
+
+class CoordinateSpacingFatal(errors_base.FatalError):
+    file_list = []
+    ninstance = 0
+    name = "FatalCoordinateSpacing"
+    def __init__(self, flname, start_time, traceback, description):
+        CoordinateSpacingFatal.ninstance += 1
+        CoordinateSpacingFatal.file_list.append(os.path.basename(flname))
+        raise errors_base.FatalError(flname, start_time, self.name, traceback, description)
+    
 class MissingSubswathWarning(errors_base.FatalError):
     file_list = []
     ninstance = 0
@@ -202,6 +220,17 @@ class NegativeBackscatterWarning(errors_base.WarningError):
         NegativeBackscatterWarning.ninstance += 1
         NegativeBackscatterWarning.file_list.append(os.path.basename(flname))
         raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
+
+class RegionGrowingWarning(errors_base.FatalError):
+    file_list = []
+    ninstance = 0
+    name = "WarningRegionGrowing"
+    def __init__(self, flname, start_time, traceback, description):
+        print("Raising RegionGrowing Warning")
+        RegionGrowingWarning.ninstance += 1
+        RegionGrowingWarning.file_list.append(os.path.basename(flname))
+        raise errors_base.WarningError(flname, start_time, self.name, traceback, description)
+    
     
 
  

@@ -16,14 +16,13 @@ class GUNWSwathImage(GUNWAbstractImage):
     BADVALUE = -9999
     EPS = 1.0e-03
     
-    def __init__(self, band, frequency, polarization):
+    def __init__(self, band, frequency, polarization, data_names):
 
-        GUNWAbstractImage.__init__(self, band, frequency, polarization)
+        GUNWAbstractImage.__init__(self, band, frequency, polarization, data_names)
 
         self.type = "Swath"
-        self.empty = False
 
-    def read(self, handle, xstep=1, ystep=1):
+    def junk_read(self, handle, xstep=1, ystep=1):
 
         self.components = handle["connectedComponents"][::xstep, ::ystep]
         self.phase_screen = handle["ionospherePhaseScreen"][::xstep, ::ystep]

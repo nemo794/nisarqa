@@ -43,6 +43,8 @@ class GUNWFile(NISARFile):
         self.swath_images = {}
         self.offset_images = {}
         self.start_time = {}
+        self.xcoordinates = {}
+        self.ycoordinates = {}
         self.plotted_slant = False
 
         self.ftype_list = ["GUNW"]
@@ -59,6 +61,41 @@ class GUNWFile(NISARFile):
         self.get_start_time()
         self.has_swath = {}
 
+        self.grid_params = {"phaseSigmaCoherence": "phase_coherence", \
+                           "unwrappedPhase": "unwrapped_phase", \
+                           "connectedComponents": "components", \
+                           "ionospherePhaseScreen": "phase_ioscreen", \
+                           "ionospherePhaseScreenUncertainty": "phase_uncertainty"}
+        self.swath_params = self.grid_params
+        self.offset_params = {"alongTrackOffset": "ltr_offset", \
+                              "correlation": "correlation", \
+                              "slantRangeOffset": "slr_offset"}
+        self.frequency_params = ["xCoordinates", "yCoordinates"]
+
+    def get_coordinates(self):
+
+        for key in self.images.keys():
+            ximg = self.images[key]
+            if (not ximg.has_coords):
+                continue
+
+            for c in ("x", "y"):
+                coordinates = getattr(ximg, "%scoord" % c)
+                try:
+                    spacing = ximg.handle_coords["%sCoordinateSpacing" % c][...]
+                except KeyError:
+                    print("handle %s doesn't have dataset %sCoordinateSpacing" \
+                          % (ximg.handle_coords.name, c))
+                    continue
+
+                print("%s %s coord: %s" % (key, c, coordinates))
+                print("%s %s spacing: %s" % (key, c, spacing))
+                
+                utility.check_spacing(self.flname, self.start_time[ximg.band], coordinates,\
+                                      spacing, "%s %sCoordinates" % (key, c), \
+                                      errors_derived.CoordinateSpacingWarning, \
+                                      errors_derived.CoordinateSpacingFatal)
+        
     def get_slant_range(self, band, frequency):
 
         slant_path = self.FREQUENCIES[band][frequency].get("slantRange")
@@ -178,7 +215,7 @@ class GUNWFile(NISARFile):
                         continue
 
                     print("Looking at %s %s" % (b, f))
-                    print("keys: %s" % freq[b][f].keys())
+                    print("keys: %s" % freq[b][f])
                     try:
                         print("freq type %s" % type(freq[b][f]))
                         subswaths = freq[b][f]["numberOfSubSwaths"]
@@ -228,7 +265,7 @@ class GUNWFile(NISARFile):
             
             
                                 
-    def create_images(self, time_step=1, range_step=1):
+    def create_images(self, xstep=1, ystep=1):
 
         missing_images = []
         missing_params = []
@@ -242,27 +279,40 @@ class GUNWFile(NISARFile):
             for f in self.FREQUENCIES_GRID[b].keys():
                 fgroup = "/science/%s/GUNW/grids/frequency%s" % (b, f)
                 ogroup = fgroup.replace("frequency%s" % f, "pixelOffsets")
+                missing_dnames = []
                 try:
-                    assert("%s/centerFrequency" % fgroup in self.keys())
-                    assert("%s/slantRangeSpacing" % fgroup in self.keys())
+                    for dname in self.frequency_params:
+                        if ("%s/%s" % (fgroup, dname) not in self.keys()):
+                            missing_dnames.append(dname)
+                    assert(len(missing_dnames) == 0)
                 except AssertionError:
-                    missing_params += ["Grid: %s %s" % (b, f)]
+                    missing_params += ["Grid: %s %s is Missing %s" % (b, f, missing_dnames)]
 
                 for p in self.polarizations_grid[b][f]:
                     pgroup = "%s/%s" % (fgroup, p)
+                    missing_dnames = []
                     try:
-                       assert("%s/phaseSigmaCoherence" % pgroup in self.keys())
-                       assert("%s/unwrappedPhase" % pgroup in self.keys())
+                        for dname in self.grid_params.keys():
+                            if ("%s/%s" % (pgroup, dname) not in self.keys()):
+                                missing_dnames.append(dname)
+                        assert(len(missing_dnames) == 0)
                     except AssertionError:
-                        missing_images += ["Grid: %s %s %s" % (b, f, p)]
-                        print("Looking for %s/phaseSignalCoherence and %s/unwrappedPhase in %s" \
-                              % (pgroup, pgroup, self[pgroup].keys()))
+                        missing_params += ["Grid: %s %s %s is Missing %s" % (b, f, p, missing_dnames)]
 
                     try:
                         assert("%s/%s" % (ogroup, p) in self.keys())
                     except AssertionError:
                         missing_images += ["Offset: %s %s" % (b, p)]
-
+                    else:
+                        missing_dnames = []
+                        try:
+                            for dname in self.offset_params.keys():
+                                if ("%s/%s/%s" % (ogroup, p, dname) not in self.keys()):
+                                    missing_dnames.append(dname)
+                            assert(len(missing_dnames) == 0)
+                        except AssertionError:
+                            missing_params = ["Offset: %s %s is Missing %s" % (b, f, missing_dnames)]
+                        
             if (not self.has_swath[b]):
                 continue  #  No Swath Images in file
 
@@ -270,12 +320,14 @@ class GUNWFile(NISARFile):
                 fgroup = "/science/%s/UNW/swaths/frequency%s" % (b, f)
                 for p in self.polarizations_swath[b][f]:
                     pgroup = "%s/%s" % (fgroup, p)
+                    missing_dnames = []
                     try:
-                       assert("%s/connectedComponents" % pgroup in self.keys())
-                       assert("%s/ionospherePhaseScreen" % pgroup in self.keys())
-                       assert("%s/ionospherePhaseScreenUncertainty" % pgroup in self.keys())
+                        for dname in self.swath_params.keys():
+                            if ("%s/%s" % (pgroup, dname) not in self.keys()):
+                                missing_dnames.append(dname)
+                        assert(len(missing_dnames) == 0)
                     except AssertionError:
-                        missing_images += ["Swath: %s %s %s" % (b, f, p)]
+                        missing_images += ["Swath: %s %s %s is Missing %s" % (b, f, p, missing_dnames)]
 
         # Create both Grid and Swath Images
                         
@@ -291,15 +343,14 @@ class GUNWFile(NISARFile):
                         continue
                     pgroup = "%s/%s" % (fgroup, p)
                     key = "%s %s %s" % (b, f, p)
-                    self.grid_images[key] = GUNWGridImage(b, f, p, self["%s/centerFrequency" % fgroup][...], \
-                                                          self["%s/slantRangeSpacing" % fgroup][...])
+                    self.grid_images[key] = GUNWGridImage(b, f, p, self.grid_params)
                     self.images["Grid: %s" % key] = self.grid_images[key]
 
                 for p in self.polarizations_grid[b][f]:
                     if ("Offset: %s %s" % (b, p) in missing_images):
                         continue
                     key = "%s %s" % (b, p)
-                    self.offset_images[key] = GUNWOffsetImage(b, p)
+                    self.offset_images[key] = GUNWOffsetImage(b, p, self.offset_params)
                     self.images["Offset: %s" % key] = self.offset_images[key]
 
             if (not self.has_swath[b]):
@@ -316,13 +367,15 @@ class GUNWFile(NISARFile):
                         continue
                     pgroup = "%s/%s" % (fgroup, p)
                     key = "%s %s %s" % (b, f, p)
-                    self.swath_images[key] = GUNWSwathImage(b, f, p)
+                    self.swath_images[key] = GUNWSwathImage(b, f, p, self.swath_params)
                     self.images["Swath: %s" % key] = self.swath_images[key]
                     
 
         # Raise all detected errors (if any)
             
         try:
+            print("missing_images: %s" % missing_images)
+            print("missing_params: %s" % missing_params)
             assert(len(missing_images) == 0)
             assert(len(missing_params) == 0)
         except AssertionError as e:
@@ -343,24 +396,64 @@ class GUNWFile(NISARFile):
             (b, f, p) = key.split()
             try:
                 print("Looking at grid: %s" % "/science/%s/GUNW/grids/frequency%s/%s" % (b, f, p))
-                self.grid_images[key].read(self["/science/%s/GUNW/grids/frequency%s/%s" % (b, f, p)])
+                self.grid_images[key].read(self["/science/%s/GUNW/grids/frequency%s/%s" % (b, f, p)], \
+                                           self["/science/%s/GUNW/grids/frequency%s" % (b, f)], \
+                                           xstep=xstep, ystep=ystep)
+                #assert(self.grid_images[key].correct_size)
             except AssertionError as e:
-                size_errors += ["Grid: %s" % key]
+                if (len(self.grid_images[key].wrong_shape_inconsistent) > 0):
+                    size_errors += ["Grid: %s inconsistent size in params %s" \
+                                    % (key, self.grid_images[key].wrong_shape_inconsistent)]
+                if (len(self.grid_images[key].wrong_shape_coords) > 0):
+                    size_errors += ["Grid: %s size doesn't match coordinates in params %s" \
+                                    % (key, self.grid_images[key].wrong_shape_coords)]
 
         for key in self.swath_images.keys():
             (b, f, p) = key.split()
             try:
-                self.swath_images[key].read(self["/science/%s/UNW/swaths/frequency%s/%s" % (b, f, p)])
+                self.swath_images[key].read(self["/science/%s/UNW/swaths/frequency%s/%s" % (b, f, p)], \
+                                            self["/science/%s/UNW/swaths/frequency%s" % (b, f)], \
+                                            xstep=xstep, ystep=ystep)
+                #assert(self.swath_images[key].correct_size)
             except AssertionError as e:
-                size_errors += ["Swath: %s" % key]
+                if (len(self.swath_images[key].wrong_shape_inconsistent) > 0):
+                    size_errors += ["Swath: %s inconsistent size in params %s" \
+                                    % (key, self.swath_images[key].wrong_shape_inconsistent)]
+                if (len(self.swath_images[key].wrong_shape_coords) > 0):
+                    size_errors += ["Swath: %s size doesn't match coordinates in params %s" \
+                                    % (key, self.swath_images[key].wrong_shape_coords)]
+                
+                size_errors += ["Swath: %s in params %s" % (key, self.swath_images[key].wrong_shape)]
 
         for key in self.offset_images.keys():
             (b, p) = key.split()
             try:
-                self.offset_images[key].read(self["/science/%s/GUNW/grids/pixelOffsets/%s" % (b, p)])
+                self.offset_images[key].read(self["/science/%s/GUNW/grids/pixelOffsets/%s" % (b, p)], \
+                                             self["/science/%s/GUNW/grids/pixelOffsets" % (b)], \
+                                             xstep=xstep, ystep=ystep)
+                #assert(self.offset_images[key].correct_size)
             except AssertionError as e:
-                size_errors += ["Offset: %s" % key]
+                if (len(self.offset_images[key].wrong_shape_inconsistent) > 0):
+                    size_errors += ["Offset: %s inconsistent size in params %s" \
+                                    % (key, self.offset_images[key].wrong_shape_inconsistent)]
+                if (len(self.offset_images[key].wrong_shape_coords) > 0):
+                    size_errors += ["Offset: %s size doesn't match coordinates in params %s" \
+                                    % (key, self.offset_images[key].wrong_shape_coords)]
 
+        for key in self.images:
+            ximg = self.images[key]
+            try:
+                assert(ximg.correct_size)
+            except AssertionError as e:
+                if (len(ximg.wrong_shape_inconsistent) > 0):
+                    size_errors += ["%s inconsistent size in params %s" \
+                                    % (key, ximg.wrong_shape_inconsistent)]
+                if (len(ximg.wrong_shape_coords) > 0):
+                    size_errors += ["%s size doesn't match coordinates in params %s" \
+                                    % (key, ximg.wrong_shape_coords)]
+                if (not ximg.has_coords):
+                    size_errors += ["%s doesn't have x/y coordinates" % key]
+                
         try:
             assert(len(size_errors) == 0)
         except AssertionError as e:
@@ -374,28 +467,46 @@ class GUNWFile(NISARFile):
     def check_images(self, fpdf, fhdf):
 
         # Generate figures
+
+        figures = []
+
         
         for key in self.grid_images.keys():
             (b, f, p) = key.split()
             ximg = self.grid_images[key]
             ximg.calc()
-            fig = ximg.plot("%s\n(%s Frequency%s %s GUNW Histograms)" % (self.flname, b, f, p))
-            fpdf.savefig(fig)
+            try:
+                ximg.find_regions("connectedComponents")
+                ximg.calc_connect()
+            except AssertionError as e:
+                traceback_string = [utility.get_traceback(e, AssertionError)]
+                if (len(ximg.empty_error_list) > 0):
+                    error_list = ["RegionGrowing images are empty: %s" % ximg.empty_error_list]
+                    raise errors_derived.ZeroFatal(self.flname, self.start_time[b], \
+                                                   traceback_string, error_list)
+                elif (len(ximg.region_error_list) > 0):
+                    error_list = ["RegionGrowing Failed for %s" % ximg.region_error_list]
+                    raise errors_derived.RegionGrowingWarning(self.flname, self.start_time[b], \
+                                                              traceback_string, error_list)
+
+            figures += ximg.plot("%s\n(%s Frequency%s %s GUNW Histograms)" % (self.flname, b, f, p))
+            figures += ximg.plot_region_map("%s\n(%s Frequency%s %s RegionMaps" % (self.flname, b, f, p))
+            figures += ximg.plot_region_hists("%s\n(%s Frequency%s %s RegionSummaries" % (self.flname, b, f, p))
 
         for key in self.swath_images.keys():
             (b, f, p) = key.split()
             ximg = self.swath_images[key]
             ximg.calc()
-            fig = ximg.plot("%s\n(%s Frequency%s %s UNW Histograms)" % (self.flname, b, f, p))
-            fpdf.savefig(fig)
+            figures += ximg.plot("%s\n(%s Frequency%s %s UNW Histograms)" % (self.flname, b, f, p))
 
         for key in self.offset_images.keys():
             (b, p) = key.split()
             ximg = self.offset_images[key]
             ximg.calc()
-            fig = ximg.plot("%s\n(%s Offset %s GUNW Histograms)" % (self.flname, b, p))
-            fpdf.savefig(fig)
+            figures += ximg.plot("%s\n(%s Offset %s GUNW Histograms)" % (self.flname, b, p))
             
+        for fig in figures:
+            fpdf.savefig(fig)
 
         # Write histogram summaries to an hdf5 file
             
@@ -421,6 +532,16 @@ class GUNWFile(NISARFile):
                     dset = group2.create_dataset("sdev_%s" % dname, data=ximg.sdev[dname])
                     dset = group2.create_dataset("histedges_%s" % dname, data=ximg.hist_edges[dname])
                     dset = group2.create_dataset("histcounts_%s" % dname, data=ximg.hist_counts[dname])
+
+                if (not hasattr(ximg, "region_size")):
+                    continue
+                    
+                dname = "connectedComponents"
+                dset = group2.create_dataset("pcnt_nonzero_connected (%s)" % dname, data=ximg.connect_nonzero)
+                dset = group2.create_dataset("region_value (%s)" % dname, data=ximg.region_size[0])
+                dset = group2.create_dataset("region_size (%s)" % dname, data=ximg.region_size[1])
+                dset = group2.create_dataset("region_size_xaxis (%s)" % dname, data=ximg.region_hist[0])
+                dset = group2.create_dataset("region_size_yaxis (%s)" % dname, data=ximg.region_hist[1])
 
     def check_slant_range(self):
 

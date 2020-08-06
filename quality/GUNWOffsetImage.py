@@ -16,27 +16,34 @@ class GUNWOffsetImage(GUNWAbstractImage):
     BADVALUE = -9999
     EPS = 1.0e-03
     
-    def __init__(self, band, polarization):
+    def __init__(self, band, polarization, data_names):
 
-        GUNWAbstractImage.__init__(self, band, "None", polarization)
+        GUNWAbstractImage.__init__(self, band, "None", polarization, data_names)
 
         self.type = "Offset"
-        self.empty = False
 
-    def read(self, handle, xstep=1, ystep=1):
+    def junk_read(self, handle, xstep=1, ystep=1):
 
-        self.ltr_offset = handle["alongTrackOffset"][::xstep, ::ystep]
-        self.correlation = handle["correlation"][::xstep, ::ystep]
-        self.slr_offset = handle["slantRangeOffset"][::xstep, ::ystep]
-        self.data_names = {"alongTrackOffset": "ltr_offset", \
-                           "correlation": "correlation", \
-                           "slantRangeOffset": "slr_offset"}
+        for dname in self.data_names.keys():
+            xdata = handle[dname][::xstep, ::ystep]
+            setattr(self, self.data_names[dname], xdata)
 
-        assert(self.correlation.shape == self.ltr_offset.shape)
-        assert(self.slr_offset.shape == self.slr_offset.shape)
+        xdata0 = getattr(self, list(self.data_names.values())[0])
+        wrong_shape = []
+        for dname in self.data_names.keys():
+            xdata = getattr(self, self.data_names[dname])
+            if (xdata.shape != xdata0.shape):
+                wrong_shape.append(dname)
 
-        self.size = self.ltr_offset.size
-        self.shape = self.ltr_offset.shape
+        try:
+            assert(len(wrong_shape) == 0)
+        except AssertionError as e:
+            traceback_string = [utility.get_traceback(e, AssertionError)]
+            error_string = ["% Offset Image has size mismatches in %s" \
+                            % (self.key, wrong_shape)]
+
+        self.size = xdata0.size
+        self.shape = xdata0.shape
         
         print("Read %s %s %s Offset image" % (self.band, self.frequency, self.polarization))
 

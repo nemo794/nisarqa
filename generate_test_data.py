@@ -12,6 +12,7 @@ GSLC_FILE = "GSLC_lowRes.h5"
 RSLC_FILE = "rslc_ree1.h5"
 RSLC_FILE2 = "SanAnd_05024_18038_006_180730_L090_CX_129_03_CFloat16.h5"
 GCOV_FILE = "SanAnd_05024_18038_006_180730_L090_CX_129_05_L2GCOV.h5"
+GUNW_FILE = "GUNW_SanAndreas_utm_reduced.h5"
 
 complex32 = numpy.dtype([("real", numpy.float16), ("imag", numpy.float16)])
 
@@ -868,7 +869,94 @@ def gcov_missing_metadata(file_in, file_out):
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
     del hfile["/science/LSAR/GCOV/metadata"]
     hfile.close()
+
+def gunw_nometadata(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    del hfile["/science/LSAR/GUNW/metadata"]
+    hfile.close()
+
+def gunw_nooffsets(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    del hfile["/science/LSAR/GUNW/grids/pixelOffsets/VV"]
+    hfile.close()
+
+def gunw_nophase(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase"]
+    hfile.close()
+
+def gunw_spacing_uneven(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    coordinates = hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinates"]
+    spacing = hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinateSpacing"]
+
+    coordinates[-1] += spacing[...]
     
+    hfile.close()
+
+def gunw_spacing_negative(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    coordinates = hfile["/science/LSAR/GUNW/grids/frequencyA/yCoordinates"]
+    spacing = hfile["/science/LSAR/GUNW/grids/frequencyA/yCoordinateSpacing"]
+
+    coordinates[1] -= 2*spacing[...]
+    
+    hfile.close()
+
+def gunw_inconsistent_size(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    data = hfile["/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase"][0:10, 0:10]
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase"]
+    hfile.create_dataset("/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase", data=data)
+    hfile.close()
+
+
+def gunw_coord_size(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    xcoord = hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinates"][0:10]
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinates"]
+    hfile.create_dataset("/science/LSAR/GUNW/grids/frequencyA/xCoordinates", data=xcoord)
+    hfile.close()
+
+def gunw_coord_missing(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    del hfile["/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates"]
+    hfile.close()
+
+def gunw_coord_shape(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    xcoord = numpy.arange(0, 16).reshape(4, 4)
+    del hfile["/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates"]
+    hfile.create_dataset("/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates", data=xcoord)
+    hfile.close()
+   
 if __name__ == "__main__":
 
     gslc_wrong_size(GSLC_FILE, "gslc_arraysize.h5")
@@ -929,3 +1017,13 @@ if __name__ == "__main__":
     rslc_wrong_size(RSLC_FILE, "slc_arraysize.h5")
     rslc_subswath1(RSLC_FILE, "missing_subswath.h5")
     rslc_subswath2(RSLC_FILE, "subswath_bounds.h5")
+
+    gunw_nometadata(GUNW_FILE, "gunw_nometa.h5")
+    gunw_nooffsets(GUNW_FILE, "gunw_nooffset.h5")
+    gunw_nophase(GUNW_FILE, "gunw_nophase.h5")
+    gunw_spacing_uneven(GUNW_FILE, "gunw_spacing_uneven.h5")
+    gunw_spacing_negative(GUNW_FILE, "gunw_spacing_negative.h5")
+    gunw_inconsistent_size(GUNW_FILE, "gunw_arraysize1.h5")
+    gunw_coord_size(GUNW_FILE, "gunw_arraysize2.h5")
+    gunw_coord_missing(GUNW_FILE, "gunw_nocoords1.h5")
+    gunw_coord_shape(GUNW_FILE, "gunw_nocoords2.h5")
