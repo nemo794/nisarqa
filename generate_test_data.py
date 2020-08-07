@@ -956,7 +956,38 @@ def gunw_coord_shape(file_in, file_out):
     del hfile["/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates"]
     hfile.create_dataset("/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates", data=xcoord)
     hfile.close()
-   
+
+def gunw_connected(file_in, file_out):
+
+    nline = 512
+    nsmp = 512
+    ngroup = nline*nsmp//(8*8)
+
+    tile1 = numpy.arange(1, 5).reshape(2,2).astype(numpy.float32)
+    tile2 = numpy.arange(5, 9).reshape(2,2).astype(numpy.float32)
+    tile3 = 10*tile2
+
+    tile1b = tile1.repeat(nline//8, axis=0).repeat(nsmp//4, axis=1)
+    tile2b = tile2.repeat(nline//8, axis=0).repeat(nsmp//4, axis=1)
+    tile1c = tile1.repeat(nline//8, axis=0).repeat(nsmp//2, axis=1)
+    tile3b = tile3.repeat(nline//8, axis=0).repeat(nsmp//2, axis=1)
+
+    connect1 = numpy.zeros((nline, nsmp), dtype=numpy.float32)
+    connect1[0:nline//4, 0:nsmp//2] = tile1b[...]
+    connect1[nline//4:nline//2, 0:nsmp//2] = tile2b[...]
+    connect1[nline//2:3*nline//4, 0:nsmp] = tile1c[...]
+    connect1[3*nline//4:nline, 0:nsmp] = tile3b[...]
+
+    connect2 = numpy.zeros((nline, nsmp), dtype=numpy.float32)
+    connect2[0:nline, 0:nsmp//2] = 1.0
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))  
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    hfile["/science/LSAR/GUNW/grids/frequencyA/HH/connectedComponents"][...] = connect1[...]
+    hfile["/science/LSAR/GUNW/grids/frequencyA/VV/connectedComponents"][...] = connect2[...]
+    
+    hfile.close()
+
 if __name__ == "__main__":
 
     gslc_wrong_size(GSLC_FILE, "gslc_arraysize.h5")
@@ -1027,3 +1058,4 @@ if __name__ == "__main__":
     gunw_coord_size(GUNW_FILE, "gunw_arraysize2.h5")
     gunw_coord_missing(GUNW_FILE, "gunw_nocoords1.h5")
     gunw_coord_shape(GUNW_FILE, "gunw_nocoords2.h5")
+    gunw_connected(GUNW_FILE, "gunw_connected.h5")
