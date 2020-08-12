@@ -470,14 +470,14 @@ class GUNWFile(NISARFile):
 
         figures = []
 
-        
         for key in self.grid_images.keys():
             (b, f, p) = key.split()
             ximg = self.grid_images[key]
             ximg.calc()
             try:
                 ximg.find_regions("connectedComponents")
-                ximg.calc_connect()
+                ximg.calc_connect(ximg.region_map, ximg.components, contiguous=True)
+                ximg.calc_connect(ximg.components, ximg.components, contiguous=False)
             except AssertionError as e:
                 traceback_string = [utility.get_traceback(e, AssertionError)]
                 if (len(ximg.empty_error_list) > 0):
@@ -533,15 +533,18 @@ class GUNWFile(NISARFile):
                     dset = group2.create_dataset("histedges_%s" % dname, data=ximg.hist_edges[dname])
                     dset = group2.create_dataset("histcounts_%s" % dname, data=ximg.hist_counts[dname])
 
-                if (not hasattr(ximg, "region_size")):
+                if (len(ximg.region_size.keys()) == 0):
                     continue
-                    
-                dname = "connectedComponents"
-                dset = group2.create_dataset("pcnt_nonzero_connected (%s)" % dname, data=ximg.connect_nonzero)
-                dset = group2.create_dataset("region_value (%s)" % dname, data=ximg.region_size[0])
-                dset = group2.create_dataset("region_size (%s)" % dname, data=ximg.region_size[1])
-                dset = group2.create_dataset("region_size_xaxis (%s)" % dname, data=ximg.region_hist[0])
-                dset = group2.create_dataset("region_size_yaxis (%s)" % dname, data=ximg.region_hist[1])
+
+                dset = group2.create_dataset("pcnt_nonzero_connected (%s)" % ximg.region_dname, \
+                                             data=ximg.connect_nonzero)
+
+                for rkey in ximg.region_size.keys():
+                    dname = "connectedComponents_%s" % rkey
+                    dset = group2.create_dataset("region_value (%s)" % dname, data=ximg.region_size[rkey][0])
+                    dset = group2.create_dataset("region_size (%s)" % dname, data=ximg.region_size[rkey][1])
+                    dset = group2.create_dataset("region_size_xaxis (%s)" % dname, data=ximg.region_hist[rkey][0])
+                    dset = group2.create_dataset("region_size_yaxis (%s)" % dname, data=ximg.region_hist[rkey][1])
 
     def check_slant_range(self):
 

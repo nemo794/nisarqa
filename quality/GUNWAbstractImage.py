@@ -25,6 +25,10 @@ class GUNWAbstractImage(object):
         self.empty = False
         self.data_names = data_names
         self.regions = {}
+        self.region_size = {}
+        self.region_hist = {}
+        self.idx_sorted_region_size = {}
+        self.idx_sorted_region_id = {}
 
     def read(self, handle_img, handle_coords, xstep=1, ystep=1):
 
@@ -156,26 +160,28 @@ class GUNWAbstractImage(object):
 
     def plot_region_hists(self, title):
 
-        if (not hasattr(self, "region_map")):
+        if (len(self.region_size.keys()) == 0):
             return []
         
         # Plot region histograms
 
         (fig, axes) = pyplot.subplots(nrows=2, ncols=1, sharex=False, sharey=False, \
                                       constrained_layout=True)          
-        
-        idx_id = self.idx_sorted_region_id
-        (data_id, rsize) = self.region_size
-        axes[0].plot(data_id[idx_id], rsize[idx_id], label=self.region_dname)
 
-        (counts, edges) = np.histogram(rsize)
-        axes[1].plot(edges[:-1], counts, label=self.region_dname)
+        for rkey in ("contiguous", "non_contiguous"):
 
-        idx_size = self.idx_sorted_region_size
-        self.region_size = (data_id[idx_size], rsize[idx_size])
-        self.region_hist = (edges[:-1], counts)
+            (data_id, rsize) = self.region_size[rkey]
+            idx_sorted = np.argsort(data_id)  # Sort by data-id
+            rsize2 = 100.0*rsize[idx_sorted]/self.size
+            axes[0].plot(data_id[idx_sorted], rsize2, label="%s\n%s" % (self.region_dname, rkey))
 
-        print("Regions (sorted)", self.region_size)
+            (counts, edges) = np.histogram(rsize2)
+            axes[1].plot(edges[:-1], counts, label="%s\n%s" % (self.region_dname, rkey))
+
+            idx_sorted = np.argsort(~rsize)  # Sort by region size
+            rsize2 = 100*rsize[idx_sorted]/self.size
+            self.region_size[rkey] = (data_id[idx_sorted], rsize2)
+            self.region_hist[rkey] = (edges[:-1], counts)
 
         axes[0].set_xlabel("Data Value")
         axes[0].set_ylabel("Region size (percent of total)")
@@ -191,23 +197,24 @@ class GUNWAbstractImage(object):
 
         return [fig]
         
-    def calc_connect(self):
+    def calc_connect(self, region_in, data_in, contiguous=True):
 
-        xdata = getattr(self, self.data_names[self.region_dname])
-
-        self.nregions = np.unique(self.region_map).size
-        self.connect_nonzero = 100.0*np.where(xdata > 0.0, True, False).sum()/xdata.size
+        self.nregions = np.unique(region_in).size
+        self.connect_nonzero = 100.0*np.where(data_in > 0.0, True, False).sum()/data_in.size
+        if (contiguous):
+            region_key = "contiguous"
+        else:
+            region_key = "non_contiguous"
 
         region_id = []
         data_id = []
         num = []
         self.region_error_list = []
 
-        print("%s array has %s unique values" % (self.region_dname, np.unique(xdata)))
-        for r in np.unique(self.region_map):
-            mask = np.where(self.region_map == r, True, False)
-            data_id = np.unique(xdata[mask])
-            if (data_id.size > 1):
+        for r in np.unique(region_in):
+            mask = np.where(region_in == r, True, False)
+            data_id = np.unique(data_in[mask])
+            if (contiguous) and (data_id.size > 1):
                 self.region_error_list += ["%s %s %s (%s)" % (self.band, self.frequency, \
                                                               self.polarization, self.region_dname)]
                 break
@@ -217,17 +224,14 @@ class GUNWAbstractImage(object):
             num_id = mask.sum()
             num.append(num_id)
             region_id.append(data_id[0])
-            print("Region id %i has %i population and %s unique values" \
-                  % (r, num_id, np.unique(xdata[mask])))
+            print("Region id %i has %i population and unique values of %s" \
+                  % (r, num_id, data_id))
 
         assert(len(self.region_error_list) == 0)
             
         num_array = np.array(num)
         id_array = np.array(region_id).astype(np.int32)
-        self.idx_sorted_region_size = np.argsort(-num_array)
-        self.idx_sorted_region_id = np.argsort(id_array)
-        self.region_size = (id_array, 100.0*num_array/xdata.size)
-        print("%s Regions: %s" % (self.region_dname, self.region_size))
+        self.region_size[region_key] = (id_array, num_array)
 
     def find_regions(self, dname, fill=0.0):
 

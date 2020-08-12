@@ -55,29 +55,44 @@ class NISARFile_test(unittest.TestCase):
         expect_nonzero_hh = 75.0
         expect_nonzero_vv = 50.0
 
-        id_expect = []
-        size_expect = []
+        id_expect_contig = []
+        size_expect_contig = []
+        id_expect_noncontig = []
+        size_expect_noncontig = []
+        
         for v in values:
+            
             if (v in range(1, 5)):
-                if (v not in id_expect):
-                    size_expect.append(ngroup)
+                if (v not in id_expect_contig):
+                    size_expect_contig.append(ngroup)
+                    id_expect_noncontig.append(v)
+                    size_expect_noncontig.append(3*ngroup)
                 else:
-                    size_expect.append(2*ngroup)
-                id_expect.append(v)
+                    size_expect_contig.append(2*ngroup)
+                id_expect_contig.append(v)
             elif (v in range(5, 9)):
-                size_expect.append(ngroup)
-                id_expect.append(v)
+                size_expect_contig.append(ngroup)
+                id_expect_contig.append(v)
+                size_expect_noncontig.append(ngroup)
+                id_expect_noncontig.append(v)
             elif (v in range(50, 90, 10)):
-                size_expect.append(2*ngroup)
-                id_expect.append(v)
+                size_expect_contig.append(2*ngroup)
+                id_expect_contig.append(v)
+                size_expect_noncontig.append(2*ngroup)
+                id_expect_noncontig.append(v)
 
-        id_expect = numpy.array(id_expect)
-        size_expect = numpy.array(size_expect).astype(numpy.uint32)
+        id_expect_contig = numpy.array(id_expect_contig)
+        size_expect_contig = numpy.array(size_expect_contig).astype(numpy.uint32)
+        id_expect_noncontig = numpy.array(id_expect_noncontig)
+        size_expect_noncontig = numpy.array(size_expect_noncontig).astype(numpy.uint32)
 
-        print('type %s' % type(size_expect))
-        idx_sort = numpy.argsort(~size_expect)
-        id_expect = id_expect[idx_sort]
-        size_expect = 100.0*size_expect[idx_sort]/(nline*nsmp)
+        idx_sort = numpy.argsort(~size_expect_contig)
+        id_expect_contig = id_expect_contig[idx_sort]
+        size_expect_contig = 100.0*size_expect_contig[idx_sort]/(nline*nsmp)
+
+        idx_sort = numpy.argsort(~size_expect_noncontig)
+        id_expect_noncontig = id_expect_noncontig[idx_sort]
+        size_expect_noncontig = 100.0*size_expect_noncontig[idx_sort]/(nline*nsmp)
                 
         # Open hdf summary file and verify connectness results
 
@@ -89,21 +104,37 @@ class NISARFile_test(unittest.TestCase):
 
         # Verify HH numbers
         
-        id_found = handle_hh["region_value (connectedComponents)"]
-        size_found = handle_hh["region_size (connectedComponents)"]
+        id_found = handle_hh["region_value (connectedComponents_contiguous)"][...]
+        size_found = handle_hh["region_size (connectedComponents_contiguous)"][...]
 
         self.assertTrue(nonzero_hh[...] == expect_nonzero_hh)
         self.assertTrue(nonzero_vv[...] == expect_nonzero_vv)
 
-        self.assertTrue(len(id_expect) == len(id_found))
-        self.assertTrue(len(size_expect) == len(size_found))
-        self.assertTrue(numpy.all(id_expect == id_found))
-        self.assertTrue(numpy.all(size_expect == size_found))
+        self.assertTrue(len(id_expect_contig) == len(id_found))
+        self.assertTrue(len(size_expect_contig) == len(size_found))
+        self.assertTrue(numpy.all(id_expect_contig == id_found))
+        self.assertTrue(numpy.all(size_expect_contig == size_found))
 
+        id_found = handle_hh["region_value (connectedComponents_non_contiguous)"][...]
+        size_found = handle_hh["region_size (connectedComponents_non_contiguous)"][...]
+
+        print("Noncontig: id_expect %s, id_found %s" % (id_expect_noncontig, id_found))
+        
+        self.assertTrue(len(id_expect_noncontig) == len(id_found))
+        self.assertTrue(len(size_expect_noncontig) == len(size_found))
+        self.assertTrue(numpy.all(id_expect_noncontig == id_found))
+        self.assertTrue(numpy.all(size_expect_noncontig == size_found))
+        
         # Verify VV numbers
 
-        id_found = handle_vv["region_value (connectedComponents)"]
-        size_found = handle_vv["region_size (connectedComponents)"]
+        id_found = handle_vv["region_value (connectedComponents_contiguous)"]
+        size_found = handle_vv["region_size (connectedComponents_contiguous)"]
+
+        self.assertTrue(id_found[...] == 1)
+        self.assertTrue(size_found[...] == 50.0)
+
+        id_found = handle_vv["region_value (connectedComponents_non_contiguous)"]
+        size_found = handle_vv["region_size (connectedComponents_non_contiguous)"]
 
         self.assertTrue(id_found[...] == 1)
         self.assertTrue(size_found[...] == 50.0)
