@@ -259,10 +259,17 @@ class NISARFile(h5py.File):
         if (frequencies is None):
             frequencies = [self.FREQUENCIES]
 
+        missing_groups = []
         for b in self.bands:
-            self.SWATHS[b].get_dataset_list(self.xml_tree, b)
-            self.METADATA[b].get_dataset_list(self.xml_tree, b)
-            self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
+            for gname in ("SWATHS", "METADATA", "IDENTIFICATION"):
+                try:
+                    group = getattr(self, gname)
+                    group[b].get_dataset_list(self.xml_tree, b)
+                except KeyError:
+                    missing_groups.append(gname)
+            #self.SWATHS[b].get_dataset_list(self.xml_tree, b)
+            #self.METADATA[b].get_dataset_list(self.xml_tree, b)
+            #self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
 
         error_string = []
         traceback_string = []
@@ -296,16 +303,21 @@ class NISARFile(h5py.File):
 
             self.logger.log_message(logging_base.LogFilterInfo, "%s: no_look=%s" % (b, no_look))
 
-            self.SWATHS[b].verify_dataset_list(no_look=no_look)
-            self.METADATA[b].verify_dataset_list(no_look=no_look)
-            self.IDENTIFICATION[b].verify_dataset_list(no_look=no_look)
+            for gname in ("SWATHS", "METADATA", "IDENTIFICATION"):
+                if (gname in missing_groups):
+                    continue
+                group = getattr(self, gname)
+                group = group[b]
+                group.verify_dataset_list(no_look=no_look)
+            #self.SWATHS[b].verify_dataset_list(no_look=no_look)
+            #self.METADATA[b].verify_dataset_list(no_look=no_look)
+            #self.IDENTIFICATION[b].verify_dataset_list(no_look=no_look)
 
-            for xdict in (self.SWATHS[b], self.METADATA[b], self.IDENTIFICATION[b]):
                 try:
-                    assert(len(xdict.missing) == 0)
+                    assert(len(group.missing) == 0)
                 except AssertionError as e:
                     self.logger.log_message(logging_base.LogFilterWarning, "%s missing %i fields: %s" \
-                                            % (xdict.name, len(xdict.missing), ":".join(xdict.missing)))
+                                            % (group.name, len(group.missing), ":".join(group.missing)))
 
     def check_identification(self):
 
@@ -416,6 +428,8 @@ class NISARFile(h5py.File):
 
     def check_nans(self):
 
+        self.empty_images = []
+        
         for key in self.images.keys():
             ximg = self.images[key]
             ximg.check_for_nan()
@@ -429,6 +443,7 @@ class NISARFile(h5py.File):
                 assert(ximg.num_zero == 0)
             except AssertionError as e:
                 if (ximg.empty):
+                    self.empty_images.append(key)
                     self.logger.log_message(logging_base.LogFilterError, ximg.empty_string)                                
                 else:
                     if (ximg.empty):
@@ -440,6 +455,9 @@ class NISARFile(h5py.File):
                     elif (ximg.num_zero > 0) and (ximg.num_nan > 0):
                         self.logger.log_message(logging_base.LogFilterWarning, \
                                                 "%s:%s" % (ximg.nan_string, ximg.zero_string))
+
+        for key in self.empty_images:
+            del self.images[key]
 
     def check_time(self):
 
@@ -503,7 +521,7 @@ class NISARFile(h5py.File):
             try:
                 time = self.METADATA[b].get("orbit/time")
             except KeyError:
-                contine
+                continue
             else:
                 error_string = utility.check_spacing(self.flname, time[0], time, time[1] - time[0], \
                                                      "%s orbitTime" % b)

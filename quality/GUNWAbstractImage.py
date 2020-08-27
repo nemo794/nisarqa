@@ -88,6 +88,9 @@ class GUNWAbstractImage(object):
         
     def check_for_nan(self):
 
+        if (self.is_empty):
+            return
+        
         self.num_nan = 0
         self.num_zero = 0
 

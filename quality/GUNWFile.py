@@ -186,10 +186,23 @@ class GUNWFile(NISARFile):
 
     def find_missing_datasets(self):
 
+        hgroups = []
+        missing_groups = []
+        
         for b in self.bands:
-            self.GRIDS[b].get_dataset_list(self.xml_tree, b)
-            self.METADATA[b].get_dataset_list(self.xml_tree, b)
-            self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
+            for gname in ("GRIDS", "METADATA", "IDENTIFICATION"):
+                try:
+                    group = getattr(self, gname)
+                    group = group[b]
+                except KeyError:
+                    missing_groups.append(gname)
+                else:
+                    group.get_dataset_list(self.xml_tree, b)
+                    hgroups.append(group)
+                    
+            #self.GRIDS[b].get_dataset_list(self.xml_tree, b)
+            #self.METADATA[b].get_dataset_list(self.xml_tree, b)
+            #self.IDENTIFICATION[b].get_dataset_list(self.xml_tree, b)
             if (self.has_swath[b]):
                 self.SWATHS[b].get_dataset_list(self.xml_tree, b)                
 
@@ -231,32 +244,27 @@ class GUNWFile(NISARFile):
                             #print("Skipping %s frequency %s %s" % (b, f, p))
                             no_look[name].append("frequency%s/%s" % (f, p))
 
-            self.GRIDS[b].verify_dataset_list(no_look=no_look["Grid"])
-            self.METADATA[b].verify_dataset_list(no_look=no_look["Grid"])
-            self.IDENTIFICATION[b].verify_dataset_list(no_look=set(no_look["Swath"]+no_look["Grid"]))
+            if ("GRIDS" not in missing_groups):
+                self.GRIDS[b].verify_dataset_list(no_look=no_look["Grid"])
+            if ("METADATA" not in missing_groups):
+                self.METADATA[b].verify_dataset_list(no_look=no_look["Grid"])
+            if ("IDENTIFICATION" not in missing_groups):
+                self.IDENTIFICATION[b].verify_dataset_list(no_look=set(no_look["Swath"]+no_look["Grid"]))
             if (self.has_swath[b]):
                 self.SWATHS[b].verify_dataset_list(no_look=no_look["Swath"])                
 
-            hgroups = [self.GRIDS[b], self.METADATA[b], self.IDENTIFICATION[b]]
+            #hgroups = [self.GRIDS[b], self.METADATA[b], self.IDENTIFICATION[b]]
             if (self.has_swath[b]):
                 hgroups.append(self.SWATHS[b])
                 
-            for xdict in (hgroups):
-                try:
-                    assert(len(xdict.missing) == 0)
-                except AssertionError as e:
-                    self.logger.log_message(logging_base.LogFilterError, \
-                                            "%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
-                                                                          ":".join(xdict.missing)))
+        for xdict in hgroups:
+            try:
+                assert(len(xdict.missing) == 0)
+            except AssertionError as e:
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
+                                                                      ":".join(xdict.missing)))
 
-            #assert(len(error_string) == len(traceback_string))
-            #try:
-            #    assert(len(error_string) == 0)
-            #except AssertionError as e:
-            #    #print("Missing %i datasets: %s" % (len(error_string), error_string))
-            #    raise errors_derived.MissingDatasetWarning(self.flname, self.start_time[b], \
-            #                                               traceback_string, error_string)
-                                
     def create_images(self, xstep=1, ystep=1):
 
         missing_images = []
@@ -362,10 +370,12 @@ class GUNWFile(NISARFile):
                                          self["/science/%s/GUNW/grids/frequency%s" % (b, f)], \
                                          xstep=xstep, ystep=ystep)
         # Log all errors
-            
+
+        self.missing_images = []
         for key in self.images:
             ximg = self.images[key]
             if (ximg.is_empty):
+                self.missing_images.append(key)
                 self.logger.log_message(logging_base.LogFilterError, \
                                         "%s is missing all datasets" % (key))
                 continue

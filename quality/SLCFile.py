@@ -233,12 +233,17 @@ class SLCFile(NISARFile):
             else:
                 counts_power += counts
 
-        bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        self.logger.log_message(logging_base.LogFilterDebug, "bounds_linear %s" % bounds_linear)
+        try:
+            bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
+        except UnboundLocalError:
+            pass
+        else:
+            self.logger.log_message(logging_base.LogFilterDebug, "bounds_linear %s" % bounds_linear)
                 
         # Generate 2-d images
 
         for key in self.images.keys():
+
             (b, f, p) = key.split()
             ximg = self.images[key]
             fig_images = ximg.plot_image("%s/\n %s Frequency%s %s Images" % (self.flname, b, f, p))
@@ -349,6 +354,7 @@ class SLCFile(NISARFile):
             groups[b] = fhdf.create_group("%s/%s/ImageAttributes" % (fname_in.replace(".%s" % extension, ""), b))
 
         for key in self.images.keys():
+
             (b, f, p) = key.split()
             ximg = self.images[key]
             group2 = groups[b].create_group(key)
