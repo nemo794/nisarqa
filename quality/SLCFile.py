@@ -1,6 +1,7 @@
 from quality import errors_base
 from quality import errors_derived
 from quality.HdfGroup import HdfGroup
+from quality import logging_base
 from quality.NISARFile import NISARFile
 from quality import params
 from quality.SLCImage import SLCImage
@@ -22,17 +23,8 @@ import traceback
 
 class SLCFile(NISARFile):
 
-    def __init__(self, flname, xml_tree=None, mode="r"):
-        self.flname = os.path.basename(flname)
-        h5py.File.__init__(self, flname, mode)
-        print("Opening file %s" % flname)
-
-        self.xml_tree = xml_tree
-        
-        self.bands = []
-        self.SWATHS = {}
-        self.METADATA = {}
-        self.IDENTIFICATION = {}
+    def __init__(self, flname, logger, xml_tree=None, mode="r"):
+        NISARFile.__init__(self, flname, logger, xml_tree=xml_tree, mode=mode)
 
         self.images = {}
         self.start_time = {}
@@ -40,6 +32,7 @@ class SLCFile(NISARFile):
 
         self.ftype_list = ("SLC", "RSLC")
         self.product_type = "RSLC"
+        self.polarizations_possible = ("HH", "HV", "VH", "VV", "RH", "RV")
         self.polarization_list = params.SLC_POLARIZATION_LIST
         self.polarization_groups = params.SLC_POLARIZATION_GROUPS
         self.identification_list = params.SLC_ID_PARAMS
@@ -48,7 +41,7 @@ class SLCFile(NISARFile):
         self.metadata_path = "/science/%s/%s/metadata"
         self.identification_path = "/science/%s/identification/"
 
-        self.get_start_time()        
+        #self.get_start_time()        
 
     def get_slant_range(self, band, frequency):
 
@@ -58,18 +51,18 @@ class SLCFile(NISARFile):
         return slant_path, spacing
             
     def get_bands(self):
+
+        found_errors = False
         
         for band in ("LSAR", "SSAR"):
             try:
                 xband = self["/science/%s" % band]
             except KeyError:
-                print("%s not present" % band)
+                self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
                 pass
             else:
-                print("Found band %s" % band)
+                self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
                 self.bands.append(band)
-                traceback_string = []
-                error_string = []
 
                 # Determine if data is SLC or RSLC and create HdfGroups.
 
@@ -90,52 +83,43 @@ class SLCFile(NISARFile):
                             elif (dict_name.endswith("Metadata")):
                                 name_metadata = dtype
                             name_found = dtype
-                            xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype))
+                            xdict[band] = HdfGroup(self, dict_name, gname % (band, dtype), self.logger)
                             break
 
                         
                     try:
                         assert(name_found is not None)
                     except AssertionError as e:
+                        found_errors = True
                         gname2 = gname % (band, dtype)
                         gname2 = gname2.replace("RSLC", "[SLC,RSLC]")
-                        traceback_string = [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s does not exist" % gname2]
+                        self.logger.log_message(logging_base.LogFilterError, "%s does not exist" % gname2)
 
-
-                # Check for missing Swath and/or Metadata groups
-                        
-                assert(len(traceback_string) == len(error_string))
-                if (len(error_string) > 0):
-                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, traceback_string, \
-                                                             error_string)
-                        
                 # Check that both Swath and Metadata groups are either SLC or RLSC
                     
                 try:
                     assert(name_swath == name_metadata)
                     self.ftype = name_swath
                 except AssertionError as e:
-                    traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["Metadata and swath have inconsistent naming"])
+                    found_errors = True
+                    self.logger.log_message(logging_base.LogFilterError, \
+                                            "Metadata and swath have inconsistent naming")
 
                 # Check that Identification group exists
                 
                 try:
                     self.IDENTIFICATION[band] = HdfGroup(self, "%s Identification" % band, \
-                                                         "/science/%s/identification/" % band)
+                                                         "/science/%s/identification/" % band, self.logger)
                 except KeyError as e:
-                    traceback_string = [utility.get_traceback(e, KeyError)]
-                    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time, traceback_string, \
-                                                             ["File missing identification data for %s." % band])
+                    found_errors = True
+                    self.logger.log_message(logging_base.LogFilterError, \
+                                            "File missing identification data for %s." % band)
+
 
     def create_images(self, time_step=1, range_step=1):
 
         missing_images = []
         missing_params = []
-        traceback_string = []
-        error_string = []
 
         freq = {}
         srange = {}
@@ -147,7 +131,9 @@ class SLCFile(NISARFile):
                     srange["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("slantRangeSpacing")
                 except KeyError:
                     missing_params += ["%s %s" % (b, f)]
-                    error_string += ["%s %s cannot initialize SLCImage due to missing frequency or spacing" % (b, f)]
+                    self.logger.log_message(logging_base.LogFilterError, \
+                                            "%s %s cannot initialize SLCImage due to missing " % (b, f) \
+                                            + "frequency or spacing")
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
@@ -162,23 +148,24 @@ class SLCFile(NISARFile):
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
                     except KeyError:
                         missing_images.append(key)
-                        
+
         try:
             assert(len(missing_images) == 0)
             assert(len(missing_params) == 0)
         except AssertionError as e:
-            traceback_string = [utility.get_traceback(e, AssertionError)]
-            error_string = ""
             if (len(missing_images) > 0):
-                error_string += "Missing %i images: %s" % (len(missing_images), missing_images)
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Missing %i images: %s" % (len(missing_images), missing_images))
             if (len(missing_params) > 0):
-                error_string += "Could not initialize %i images" % (len(missing_params), missing_params)
-            raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
-                                                   [error_string])
-                
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Could not initialize %i images" % (len(missing_params), missing_params))
+
 
     def check_images(self, fpdf, fhdf):
 
+        errors_fatal = []
+        errors_warning = []
+        
         min_value = np.array([np.finfo(np.float64).max, np.finfo(np.float64).max])
         max_value = np.array([np.finfo(np.float64).min, np.finfo(np.float64).min])
         nan_warning = []
@@ -199,9 +186,13 @@ class SLCFile(NISARFile):
         sums_linear = {}
         sums_power = {}
 
-        print("Found %i images: %s" % (len(self.images.keys()), self.images.keys()))
+        self.logger.log_message(logging_base.LogFilterInfo, "Found %i images: %s" \
+                                % (len(self.images.keys()), self.images.keys()))
+        
         if (len(self.images.keys()) == 0):
-            return
+            self.logger.log_message(logging_base.LogFilterError, \
+                                    "%s doesn't have any valid images" % self.flname)
+            return 
             
         for key in self.images.keys():
 
@@ -227,7 +218,7 @@ class SLCFile(NISARFile):
 
         for (i, key) in enumerate(sums_linear.keys()):
 
-            #print("Looking at %i-th image: %s" % (i, key))
+            self.logger.log_message(logging_base.LogFilterInfo, "Looking at %i-th image: %s" % (i, key))
             (counts, edges) = np.histogram(sums_linear[key], bins=1000)
             if (i == 0):
                 counts_linear = np.copy(counts)
@@ -243,7 +234,7 @@ class SLCFile(NISARFile):
                 counts_power += counts
 
         bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        print("bounds_linear %s" % bounds_linear)
+        self.logger.log_message(logging_base.LogFilterDebug, "bounds_linear %s" % bounds_linear)
                 
         # Generate 2-d images
 
@@ -351,7 +342,8 @@ class SLCFile(NISARFile):
                 
             # Write histogram summaries to an hdf5 file
             
-            print("File %s mode %s" % (fhdf.filename, fhdf.mode))
+            self.logger.log_message(logging_base.LogFilterInfo, \
+                                    "File %s mode %s" % (fhdf.filename, fhdf.mode))
             fname_in = os.path.basename(self.filename)
             extension = fname_in.split(".")[-1]
             groups[b] = fhdf.create_group("%s/%s/ImageAttributes" % (fname_in.replace(".%s" % extension, ""), b))
@@ -375,8 +367,7 @@ class SLCFile(NISARFile):
     def check_slant_range(self):
 
         self.figures_slant = {}
-        size_error = []
-        size_traceback = []
+        errors = []
 
         # Check sizes for all images
         
@@ -393,19 +384,10 @@ class SLCFile(NISARFile):
             except KeyError:
                 continue
             except AssertionError as e:
-                size_traceback += [utility.get_traceback(e, AssertionError)]
-                size_error += ["Dataset %s has shape %s, expected (%i, %i)" \
-                               % (key, ximg.shape, ntime, nslant)]
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Dataset %s has shape %s, expected (%i, %i)" \
+                                        % (key, ximg.shape, ntime, nslant))
 
-        # Raise array-size errors if appropriate
-                
-        assert(len(size_error) == len(size_traceback))
-        try:
-            assert(len(size_error) == 0)
-        except AssertionError as e:
-            raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], size_traceback, \
-                                                size_error)
-            
         # Check slant-path spacing
         
         for b in self.bands:
@@ -416,9 +398,11 @@ class SLCFile(NISARFile):
                 except KeyError:
                     continue
 
-                utility.check_spacing(self.flname, self.start_time[b], slant_path[...], spacing[...], \
-                                      "%s %s SlantPath" % (b, f), errors_derived.SlantSpacingWarning, \
-                                      errors_derived.SlantSpacingFatal)
+                errors += utility.check_spacing(self.flname, self.start_time[b], slant_path[...], \
+                                                spacing[...], "%s %s SlantPath" % (b, f))
+                if (len(errors) > 0):
+                    for e in errors:
+                        self.logger.log_message(logging_base.LogFilterWarning, e)
 
     def check_subswaths_bounds(self):
 
@@ -435,11 +419,9 @@ class SLCFile(NISARFile):
                     try:
                         sub_bounds = self.FREQUENCIES[b][f]["validSamplesSubSwath%i" % (isub+1)][...]
                     except KeyError as e:
-                        print("Raised KeyError")
-                        traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.MissingSubswathWarning(self.flname, self.start_time[b], traceback_string, \
-                                                                    ["%s Frequency%s had missing SubSwath%i bounds" \
-                                                                     % (b, f, isub+1)])
+                        self.logger.log_message(logging_base.LogFilterWarning, \
+                                                "%s Frequency%s had missing SubSwath%i bounds" % (b, f, isub+1))
+                        continue
 
                     try:
                         nslantrange = self.FREQUENCIES[b][f]["slantRange"].size
@@ -449,11 +431,7 @@ class SLCFile(NISARFile):
                     except KeyError:
                         continue
                     except AssertionError as e:
-                        traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.BoundsSubswathWarning(self.flname, self.start_time[b], traceback_string, \
-                                                                   ["%s Frequency%s with nSlantRange %i had invalid SubSwath bounds" \
-                                                                    % (b, f, nslantrange)])
-               
-
-               
+                        message = "%s Frequency%s with nSlantRange %i had invalid SubSwath bounds" \
+                                % (b, f, nslantrange)
+                        self.logger.log_message(logging_base.LogFilterWarning, message)
 

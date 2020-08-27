@@ -12,7 +12,7 @@ GSLC_FILE = "GSLC_lowRes.h5"
 RSLC_FILE = "rslc_ree1.h5"
 RSLC_FILE2 = "SanAnd_05024_18038_006_180730_L090_CX_129_03_CFloat16.h5"
 GCOV_FILE = "SanAnd_05024_18038_006_180730_L090_CX_129_05_L2GCOV.h5"
-GUNW_FILE = "GUNW_SanAndreas_utm_reduced.h5"
+GUNW_FILE = "GUNW_SanJoaquin_180720-180814_512x512.h5"
 
 complex32 = numpy.dtype([("real", numpy.float16), ("imag", numpy.float16)])
 
@@ -98,8 +98,8 @@ def resize_rslc(hfile, frequency, polarization, dname, nlines, nsmp):
                     
 def fix_gcov(hfile):
 
-    polA = numpy.array(["HHHH", "HVHV"], dtype="S4")
-    polB = numpy.array(["HHHH", "HVHV"], dtype="S4")
+    polA = numpy.array(["HH", "HV"], dtype="S4")
+    polB = numpy.array(["HH", "HV"], dtype="S4")
 
     del hfile["/science/LSAR/GCOV/grids/frequencyA/listOfPolarizations"]
     del hfile["/science/LSAR/GCOV/grids/frequencyB/listOfPolarizations"]
@@ -130,8 +130,6 @@ def remove_nans_negatives_real(hfile):
             data = hfile["/science/LSAR/GCOV/grids/frequency%s/%s" % (f, p)][...]
             mask = numpy.isnan(data) | numpy.where(data < 0.0, True, False)
             hfile["/science/LSAR/GCOV/grids/frequency%s/%s" % (f, p)][mask] = 0.0
-
-            
 
 def write_field(hfile, dname, data_in, dtype=complex32):
 
@@ -878,12 +876,12 @@ def gunw_nometadata(file_in, file_out):
     del hfile["/science/LSAR/GUNW/metadata"]
     hfile.close()
 
-def gunw_nooffsets(file_in, file_out):
+def gunw_missing_image(file_in, file_out):
 
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
-    del hfile["/science/LSAR/GUNW/grids/pixelOffsets/VV"]
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/VV"]
     hfile.close()
 
 def gunw_nophase(file_in, file_out):
@@ -891,7 +889,17 @@ def gunw_nophase(file_in, file_out):
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
-    del hfile["/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase"]
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"]
+    hfile.close()
+
+def gunw_missing_all(file_in, file_out):
+
+    shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
+
+    hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
+    for dname in ("unwrappedPhase", "coherenceMask", "connectedComponents", \
+                  "phaseSigmaCoherence"):
+        del hfile["/science/LSAR/GUNW/grids/frequencyA/interferogram/VV/%s" % dname]
     hfile.close()
 
 def gunw_spacing_uneven(file_in, file_out):
@@ -900,7 +908,7 @@ def gunw_spacing_uneven(file_in, file_out):
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
     coordinates = hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinates"]
-    spacing = hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinateSpacing"]
+    spacing = hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinatesSpacing"]
 
     coordinates[-1] += spacing[...]
     
@@ -912,7 +920,7 @@ def gunw_spacing_negative(file_in, file_out):
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
     coordinates = hfile["/science/LSAR/GUNW/grids/frequencyA/yCoordinates"]
-    spacing = hfile["/science/LSAR/GUNW/grids/frequencyA/yCoordinateSpacing"]
+    spacing = hfile["/science/LSAR/GUNW/grids/frequencyA/yCoordinatesSpacing"]
 
     coordinates[1] -= 2*spacing[...]
     
@@ -923,11 +931,10 @@ def gunw_inconsistent_size(file_in, file_out):
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
-    data = hfile["/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase"][0:10, 0:10]
-    del hfile["/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase"]
-    hfile.create_dataset("/science/LSAR/GUNW/grids/frequencyA/HH/unwrappedPhase", data=data)
+    data = hfile["/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/coherenceMask"][0:10, 0:10]
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/coherenceMask"]
+    hfile.create_dataset("/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/coherenceMask", data=data)
     hfile.close()
-
 
 def gunw_coord_size(file_in, file_out):
 
@@ -944,7 +951,7 @@ def gunw_coord_missing(file_in, file_out):
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
-    del hfile["/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates"]
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinates"]
     hfile.close()
 
 def gunw_coord_shape(file_in, file_out):
@@ -953,8 +960,8 @@ def gunw_coord_shape(file_in, file_out):
 
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
     xcoord = numpy.arange(0, 16).reshape(4, 4)
-    del hfile["/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates"]
-    hfile.create_dataset("/science/LSAR/GUNW/grids/pixelOffsets/xCoordinates", data=xcoord)
+    del hfile["/science/LSAR/GUNW/grids/frequencyA/xCoordinates"]
+    hfile.create_dataset("/science/LSAR/GUNW/grids/frequencyA/xCoordinates", data=xcoord)
     hfile.close()
 
 def gunw_connected(file_in, file_out):
@@ -983,43 +990,43 @@ def gunw_connected(file_in, file_out):
 
     shutil.copyfile(os.path.join(TEST_DIR_IN, file_in), os.path.join(TEST_DIR_OUT, file_out))  
     hfile = h5py.File(os.path.join(TEST_DIR_OUT, file_out), "r+")
-    hfile["/science/LSAR/GUNW/grids/frequencyA/HH/connectedComponents"][...] = connect1[...]
-    hfile["/science/LSAR/GUNW/grids/frequencyA/VV/connectedComponents"][...] = connect2[...]
+    hfile["/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/connectedComponents"][...] = connect1[...]
+    hfile["/science/LSAR/GUNW/grids/frequencyA/interferogram/VV/connectedComponents"][...] = connect2[...]
     
     hfile.close()
 
 if __name__ == "__main__":
 
     gslc_wrong_size(GSLC_FILE, "gslc_arraysize.h5")
-    gslc_missing_band(GSLC_FILE, "missing_band.h5")
-    gslc_wrong_frequency1(GSLC_FILE, "wrong_frequencies1.h5")
-    gslc_wrong_frequency2(GSLC_FILE, "wrong_frequencies2.h5")
-    gslc_wrong_frequency3(GSLC_FILE, "wrong_frequencies3.h5")    
-    gslc_wrong_polarizations1(GSLC_FILE, "wrong_polarizations1.h5")
-    gslc_wrong_polarizations2(GSLC_FILE, "wrong_polarizations2.h5")
-    gslc_wrong_polarizations3(GSLC_FILE, "wrong_polarizations3.h5")
+    gslc_missing_band(GSLC_FILE, "gslc_missing_band.h5")
+    gslc_wrong_frequency1(GSLC_FILE, "gslc_wrong_frequencies1.h5")
+    gslc_wrong_frequency2(GSLC_FILE, "gslc_wrong_frequencies2.h5")
+    gslc_wrong_frequency3(GSLC_FILE, "gslc_wrong_frequencies3.h5")    
+    gslc_wrong_polarizations1(GSLC_FILE, "gslc_wrong_polarizations1.h5")
+    gslc_wrong_polarizations2(GSLC_FILE, "gslc_wrong_polarizations2.h5")
+    gslc_wrong_polarizations3(GSLC_FILE, "gslc_wrong_polarizations3.h5")
 
-    rslc_inconsistent_bands(RSLC_FILE, "inconsistent_bands.h5")
-    rslc_missing_none(RSLC_FILE, "missing_none.h5")
-    rslc_missing_one(RSLC_FILE, "missing_one.h5")
-    rslc_lsar_vs_ssar(RSLC_FILE, "lsar_vs_ssar.h5")
+    rslc_inconsistent_bands(RSLC_FILE, "rslc_inconsistent_bands.h5")
+    rslc_missing_none(RSLC_FILE, "rslc_missing_none.h5")
+    rslc_missing_one(RSLC_FILE, "rslc_missing_one.h5")
+    rslc_lsar_vs_ssar(RSLC_FILE, "rslc_lsar_vs_ssar.h5")
 
-    rslc_identification1(RSLC_FILE, "identification1.h5")
-    rslc_identification2(RSLC_FILE, "identification2.h5")
-    rslc_identification2b(RSLC_FILE, "identification2b.h5")
-    rslc_identification3(RSLC_FILE, "identification3.h5")
-    rslc_identification4(RSLC_FILE, "identification4.h5")
-    rslc_identification5(RSLC_FILE, "identification5.h5")
-    rslc_identification6(RSLC_FILE, "identification6.h5")
-    rslc_identification7(RSLC_FILE, "identification7.h5")
-    rslc_identification8(RSLC_FILE, "identification8.h5")
-    rslc_identification9(RSLC_FILE, "identification9.h5")
+    rslc_identification1(RSLC_FILE, "rslc_identification1.h5")
+    rslc_identification2(RSLC_FILE, "rslc_identification2.h5")
+    rslc_identification2b(RSLC_FILE, "rslc_identification2b.h5")
+    rslc_identification3(RSLC_FILE, "rslc_identification3.h5")
+    rslc_identification4(RSLC_FILE, "rslc_identification4.h5")
+    rslc_identification5(RSLC_FILE, "rslc_identification5.h5")
+    rslc_identification6(RSLC_FILE, "rslc_identification6.h5")
+    rslc_identification7(RSLC_FILE, "rslc_identification7.h5")
+    rslc_identification8(RSLC_FILE, "rslc_identification8.h5")
+    rslc_identification9(RSLC_FILE, "rslc_identification9.h5")
 
-    rslc_nan1(RSLC_FILE, "nan1.h5")
-    rslc_nan2(RSLC_FILE, "nan2.h5")
-    rslc_zero1(RSLC_FILE, "zeros1.h5")
-    rslc_zero2(RSLC_FILE, "zeros2.h5")
-    rslc_nan_zero(RSLC_FILE, "nan_zeros.h5")
+    rslc_nan1(RSLC_FILE, "rslc_nan1.h5")
+    rslc_nan2(RSLC_FILE, "rslc_nan2.h5")
+    rslc_zero1(RSLC_FILE, "rslc_zeros1.h5")
+    rslc_zero2(RSLC_FILE, "rslc_zeros2.h5")
+    rslc_nan_zero(RSLC_FILE, "rslc_nan_zeros.h5")
 
     gcov_wrong_frequency1(GCOV_FILE, "gcov_wrong_frequencies1.h5")
     gcov_wrong_frequency2(GCOV_FILE, "gcov_wrong_frequencies2.h5")
@@ -1034,23 +1041,23 @@ if __name__ == "__main__":
     gcov_nan1(GCOV_FILE, "gcov_nan1.h5")
     gcov_nan2(GCOV_FILE, "gcov_nan2.h5")
     
-    rslc_spacing1(RSLC_FILE, "time_spacing1.h5")
-    rslc_spacing2(RSLC_FILE, "time_spacing2.h5")
+    rslc_spacing1(RSLC_FILE, "rslc_time_spacing1.h5")
+    rslc_spacing2(RSLC_FILE, "rslc_time_spacing2.h5")
 
-    rslc_frequency1(RSLC_FILE2, "frequency1.h5", dname="SLC")
-    rslc_power_phase1(RSLC_FILE, "power_phase1.h5")
-    rslc_power_phase2(RSLC_FILE, "power_phase2.h5")
-    rslc_power_phase3(RSLC_FILE, "power_phase3.h5")
+    rslc_frequency1(RSLC_FILE2, "rslc_frequency1.h5", dname="SLC")
+    rslc_power_phase1(RSLC_FILE, "rslc_power_phase1.h5")
+    rslc_power_phase2(RSLC_FILE, "rslc_power_phase2.h5")
+    rslc_power_phase3(RSLC_FILE, "rslc_power_phase3.h5")
 
     gcov_percentile(GCOV_FILE, "gcov_stats.h5")
     gcov_missing_metadata(GCOV_FILE, "gcov_missing_metadata.h5")
 
-    rslc_wrong_size(RSLC_FILE, "slc_arraysize.h5")
-    rslc_subswath1(RSLC_FILE, "missing_subswath.h5")
-    rslc_subswath2(RSLC_FILE, "subswath_bounds.h5")
+    rslc_wrong_size(RSLC_FILE, "rslc_arraysize.h5")
+    rslc_subswath1(RSLC_FILE, "rslc_missing_subswath.h5")
+    rslc_subswath2(RSLC_FILE, "rslc_subswath_bounds.h5")
 
     gunw_nometadata(GUNW_FILE, "gunw_nometa.h5")
-    gunw_nooffsets(GUNW_FILE, "gunw_nooffset.h5")
+    gunw_missing_image(GUNW_FILE, "gunw_nooffset.h5")
     gunw_nophase(GUNW_FILE, "gunw_nophase.h5")
     gunw_spacing_uneven(GUNW_FILE, "gunw_spacing_uneven.h5")
     gunw_spacing_negative(GUNW_FILE, "gunw_spacing_negative.h5")
@@ -1059,3 +1066,4 @@ if __name__ == "__main__":
     gunw_coord_missing(GUNW_FILE, "gunw_nocoords1.h5")
     gunw_coord_shape(GUNW_FILE, "gunw_nocoords2.h5")
     gunw_connected(GUNW_FILE, "gunw_connected.h5")
+    gunw_missing_all(GUNW_FILE, "gunw_missing_all.h5")

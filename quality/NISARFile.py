@@ -1,6 +1,7 @@
 from quality import errors_base
 from quality import errors_derived
 from quality.HdfGroup import HdfGroup
+from quality import logging_base
 from quality import params
 from quality.SLCImage import SLCImage
 from quality import utility
@@ -21,12 +22,21 @@ import traceback
 
 class NISARFile(h5py.File):
 
-    def __init__(self, flname, xml_tree=None, mode="r"):
+    def __init__(self, flname, logger, xml_tree=None, mode="r"):
         self.flname = os.path.basename(flname)
-        h5py.File.__init__(self, flname, mode)
-        print("Opening file %s" % flname)
+        self.logger = logger
+        self.is_open = False
+        try:
+            h5py.File.__init__(self, flname, mode)
+        except:
+            self.logger.log_message(logging_base.LogFilterError, "Could not open file %s" % flname)
+            return
+        else:
+            self.logger.log_message(logging_base.LogFilterInfo, "Opening file %s" % flname)
+            self.is_open = True
 
         self.xml_tree = xml_tree
+        print("xml_tree: %s" % self.xml_tree)
         
         self.bands = []
         self.SWATHS = {}
@@ -41,10 +51,8 @@ class NISARFile(h5py.File):
         for b in ("LSAR", "SSAR"):
             try:
                 xtime = self["/science/%s/identification/zeroDopplerStartTime" % b][...]
-                xtime = xtime.item()
-                print("xtime %s %s" % (type(xtime), xtime))
+                xtime = xtime.item().replace(b"\x00", b"")
                 try:
-                    print("Converting to string")
                     self.start_time[b] = xtime.decode("utf-8")
                 except (AttributeError, UnicodeDecodeError):
                     self.start_time[b] = xtime
@@ -52,7 +60,8 @@ class NISARFile(h5py.File):
                 self.start_time[b] = "9999-99-99T99:99:99"
 
         for b in ("LSAR", "SSAR"):
-            print("%s Start time %s" % (b, self.start_time[b])) 
+            self.logger.log_message(logging_base.LogFilterInfo, \
+                               "%s Start time %s" % (b, self.start_time[b])) 
 
     def get_freq_pol(self):
 
@@ -71,7 +80,7 @@ class NISARFile(h5py.File):
                 except KeyError:
                     pass
                 else:
-                    print("Found %s Frequency%s" % (b, f))
+                    self.logger.log_message(logging_base.LogFilterInfo, "Found %s Frequency%s" % (b, f))
                     self.FREQUENCIES[b][f] = f2
                     self.polarizations[b][f] = []
                     for p in self.polarization_list:
@@ -100,101 +109,97 @@ class NISARFile(h5py.File):
             assert(frequencies in params.FREQUENCIES)
         except KeyError as e:
             traceback_string += [utility.get_traceback(e, KeyError)]
-            error_string += ["%s is missing frequency list" % band]
+            self.logger.log_message(logging_base.LogFilterError, "%s is missing frequency list" % band)
         except (AssertionError, TypeError, UnicodeDecodeError) as e:
             traceback_string += [utility.get_traceback(e, AssertionError)]
-            error_string += ["%s has invalid frequency list" % band]
+            self.logger.log_message(logging_base.LogFilterError, "%s has invalid frequency list" % band)
         else:
             for f in frequencies:
                 for (flist, fname) in zip(fgroups1, fnames2):
-                       
                     try:
                         assert("frequency%s" % f in flist[band].keys())
                     except AssertionError as e:
-                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        error_string = "%s missing Frequency%s" % (band, f)
                         if (len(fname) > 0):
-                            error_string += ["%s %s missing Frequency%s" % (band, fname, f)]
-                        else:
-                            error_string += ["%s missing Frequency%s" % (band, f)]
+                            error_string = error_string.replace("Frequency", "%s Frequency" % fname)
+                        self.logger.log_message(logging_base.LogFilterError, error_string)
 
             for flist in fgroups2:
                 for f in flist[band].keys():
                     try:
                         assert(f in frequencies)
                     except AssertionError as e:
-                        traceback_string += [utility.get_traceback(e, AssertionError)]
+                        error_string = "%s frequency list missing %s" % (band, f)
                         if (len(fname) > 0):
-                            error_string += ["%s %s frequency list missing %s" % (band, fname, f)]
-                        else:
-                            error_string += ["%s frequency list missing %s" % (band, f)]
+                            error_string = error_string.replace("Frequency", "%s Frequency" % fname)
+                        self.logger.log_message(logging_base.LogFilterError, error_string)
 
         for (flist, fname) in zip(fgroups2, fnames2):
             for f in flist[band].keys():
                 try:
                     polarizations_found = [p.decode().upper() for p in flist[band][f].get("listOfPolarizations")[...]]
                 except KeyError as e:
-                    traceback_string += [utility.get_traceback(e, KeyError)]
+                    error_string = "%s %s is missing polarization list" % (band, f)
                     if (len(fname) > 0):
-                        error_string += ["%s %s %s is missing polarization list" % (band, fname, f)]
-                    else:
-                        error_string += ["%s %s is missing polarization list" % (band, f)]
-                        continue
+                        error_string = error_string.replace("Frequency", "%s Frequency" % fname)
+                    self.logger.log_message(logging_base.LogFilterError, error_string)
+                    continue
                 except UnicodeDecodeError as e:
-                    traceback_string += [utility.get_traceback(e, UnicodeDecodeError)]
+                    error_string = "%s Frequency%s has invalid polarization list: %s"
                     if (len(fname) > 0):
-                        error_string += ["%s %s Frequency%s has invalid polarization list: %s" \
-                                         % (band, fname, f, polarizations_found)]
-                    else:
-                        error_string += ["%s Frequency%s has invalid polarization list: %s" \
-                                         % (band, f, polarizations_found)]
+                        error_string = error_string.replace("Frequency", "%s Frequency" % fname)
+                    self.logger.log_message(logging_base.LogFilterError, error_string)
                         
                 try:
                     polarization_ok = False
                     for plist in self.polarization_groups:
-                        print("Comparing %s against %s" % (polarizations_found, plist))
                         if (set(polarizations_found) == set(plist)):
                             polarization_ok = True
                             break
                     assert(polarization_ok)
                 except (AssertionError) as e:
-                    traceback_string += [utility.get_traceback(e, AssertionError)]
+                    error_string = "%s Frequency%s has invalid polarization list: %s" \
+                                   % (band, f, polarizations_found)
                     if (len(fname) > 0):
-                        error_string += ["%s %s Frequency%s has invalid polarization list: %s" \
-                                         % (band, fname, f, polarizations_found)]
-                    else:
-                        error_string += ["%s Frequency%s has invalid polarization list: %s" \
-                                         % (band, f, polarizations_found)]
-                             
+                        error_string = error_string.replace("Frequency", "%s Frequency" % fname)
+                    self.logger.log_message(logging_base.LogFilterError, error_string)
 
                 else:
-                    for p in polarizations_found:
-                        try:
-                            assert(p in flist[band][f].keys())
-                        except AssertionError as e:
-                            traceback_string += [utility.get_traceback(e, AssertionError)]
-                            if (len(fname) > 0):
-                                error_string += ["%s %s Frequency%s missing polarization %s" % (band, fname, f, p)]
-                            else:
-                                error_string += ["%s Frequency%s missing polarization %s" % (band, f, p)]
+                    if ("interferogram" in flist[band][f].keys()):
+                        polarization_groups = ["interferogram", "pixelOffsets"]
+                        polarization_keys = [flist[band][f]["interferogram"], flist[band][f]["pixelOffsets"]]
+                    else:
+                        polarization_groups = [""]
+                        polarization_keys = [flist[band][f]]
 
-                        plist = [p for p in flist[band][f].keys() if p in ("HH", "HV", "VH", "VV")]
+                    for (pgroup, pkey) in zip(polarization_groups, polarization_keys):
+                        self.logger.log_message(logging_base.LogFilterInfo, \
+                                                "Checking polarization %s in %s" % (pgroup, type(pkey)))
+                        for p in polarizations_found:
+                            try:
+                                assert(p in pkey.keys())
+                            except AssertionError as e:
+                                error_string = "%s Frequency%s missing polarization %s" % (band, f, p)
+                                if (len(fname) > 0):
+                                    error_string = error_string.replace("Frequency", "%s Frequency" % fname)
+                                if (len(pgroup) > 0):
+                                    error_string = error_string.replace("missing", "%s missing" % pgroup)
+                                self.logger.log_message(logging_base.LogFilterError, error_string)
+
+                    for (pgroup, pkey) in zip(polarization_groups, polarization_keys):
+                        plist = [p for p in pkey.keys() if p in self.polarizations_possible] # ("HH", "HV", "VH", "VV")]
                         for p in plist:
                             try:
                                 assert(p in polarizations_found)
                             except AssertionError as e:
-                                traceback_string += [utility.get_traceback(e, AssertionError)]
+                                error_string = "%s Frequency%s has extra polarization %s" % (band, f, p)
                                 if (len(fname) > 0):
-                                    error_string += ["%s %s Frequency%s has extra polarization %s" % (band, fname, f, p)]
-                                else:
-                                    error_string += ["%s Frequency%s has extra polarization %s" % (band, f, p)]
-                            
+                                   error_string = error_string.replace("Frequency", "%s Frequency" % fname)
+                                if (len(pgroup) > 0):
+                                   error_string = error_string.replace("missing", "%s missing" % pgroup) 
+                                self.logger.log_message(logging_base.LogFilterError, error_string) 
 
-        assert(len(traceback_string) == len(error_string))
-        try:
-            assert(len(error_string) == 0)
-        except AssertionError as e:
-            print("Found %i errors: %s" % (len(error_string), error_string))
-            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[band], traceback_string, error_string)
+        return error_string
 
     def create_images(self, time_step=1, range_step=1):
 
@@ -216,7 +221,9 @@ class NISARFile(h5py.File):
                     srange["%s %s" % (b, f)] = self.FREQUENCIES[b][f].get("slantRangeSpacing")
                 except KeyError:
                     missing_params += ["%s %s" % (b, f)]
-                    error_string += ["%s %s cannot initialize SLCImage due to missing frequency or spacing" % (b, f)]
+                    self.logger.log_message(logging_base.LogError, \
+                                            "%s %s cannot initialize SLCImage due to missing " % (b, f) \
+                                            + "frequency or spacing")
 
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
@@ -237,25 +244,22 @@ class NISARFile(h5py.File):
                         
         try:
             assert(len(missing_images) == 0)
-            assert(len(missing_params) == 0)
         except AssertionError as e:
-            traceback_string = [utility.get_traceback(e, AssertionError)]
-            error_string = ""
-            if (len(missing_images) > 0):
-                error_string += "Missing %i images: %s" % (len(missing_images), missing_images)
-            if (len(missing_params) > 0):
-                error_string += "Could not initialize %i images" % (len(missing_params), missing_params)
-            raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
-                                                   [error_string])
+            self.logger.log_message(logging_base.LogFilterError, \
+                                    "Missing %i images: %s" % (len(missing_images), missing_images))
+
+        return error_string
+            #raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
+            #                                       [error_string])
                 
 
-    def find_missing_datasets(self, swaths=None, frequencies=None):
+    def find_missing_datasets(self, swaths, frequencies):
 
         if (swaths is None):
             swaths = [self.SWATHS]
         if (frequencies is None):
             frequencies = [self.FREQUENCIES]
-        
+
         for b in self.bands:
             self.SWATHS[b].get_dataset_list(self.xml_tree, b)
             self.METADATA[b].get_dataset_list(self.xml_tree, b)
@@ -271,15 +275,14 @@ class NISARFile(h5py.File):
                     no_look.append("frequency%s" % f)
                     continue
 
-                print("Looking at %s %s" % (b, f))
-                print("keys: %s" % self.FREQUENCIES[b][f].keys())
                 try:
-                    subswaths = self.FREQUENCIES[b][f].get("numberOfSubSwaths")
-                except KeyError:
+                    nsubswaths = self.FREQUENCIES[b][f].get("numberOfSubSwaths")[...]
+                except (KeyError, ValueError):
                     nsubswaths = 0
                     pass
                 else:
-                    nsubswaths = subswaths[...]
+                    self.logger.log_message(logging_base.LogFilterDebug, \
+                                            "nsubswaths %s = %s" % (type(nsubswaths), nsubswaths))
                     for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
                         no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
 
@@ -290,11 +293,9 @@ class NISARFile(h5py.File):
 
                 for p in list(params.GCOV_POLARIZATION_LIST) + list(params.SLC_POLARIZATION_LIST):
                     if (f in self.FREQUENCIES[b].keys()) and (p not in found_polarizations):
-                        #print("Skipping %s frequency %s %s" % (b, f, p))
                         no_look.append("frequency%s/%s" % (f, p))
 
-            print("%s: no_look=%s" % (b, no_look))
-                        
+            self.logger.log_message(logging_base.LogFilterInfo, "%s: no_look=%s" % (b, no_look))
 
             self.SWATHS[b].verify_dataset_list(no_look=no_look)
             self.METADATA[b].verify_dataset_list(no_look=no_look)
@@ -304,20 +305,9 @@ class NISARFile(h5py.File):
                 try:
                     assert(len(xdict.missing) == 0)
                 except AssertionError as e:
-                    print("Dict %s is missing %i fields" % (xdict.name, len(xdict.missing)))
-                    traceback_string += [utility.get_traceback(e, AssertionError)]
-                    error_string += ["%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
-                                                                   ":".join(xdict.missing))]
+                    self.logger.log_message(logging_base.LogFilterWarning, "%s missing %i fields: %s" \
+                                            % (xdict.name, len(xdict.missing), ":".join(xdict.missing)))
 
-            assert(len(error_string) == len(traceback_string))
-            try:
-                assert(len(error_string) == 0)
-            except AssertionError as e:
-                #print("Missing %i datasets: %s" % (len(error_string), error_string))
-                raise errors_derived.MissingDatasetWarning(self.flname, self.start_time[b], \
-                                                           traceback_string, error_string)
-            
-                
     def check_identification(self):
 
         error_string = []
@@ -337,8 +327,8 @@ class NISARFile(h5py.File):
                     identifications[dname].append(xid)
                 except KeyError as e:
                     if (dname != "cycleNumber"):
-                        traceback_string.append(utility.get_traceback(e, KeyError))
-                        error_string += ["%s missing dataset %s" % (b, dname)]
+                        self.logger.log_message(logging_base.LogFilterWarning, \
+                                                "%s missing dataset %s" % (b, dname))
                 except TypeError as e:
                     if (dname == "cycleNumber"):
                         identifications[dname].append(-9999)
@@ -351,8 +341,8 @@ class NISARFile(h5py.File):
             except IndexError:
                 continue
             except AssertionError as e:
-                traceback_string.append(utility.get_traceback(e, AssertionError))
-                error_string += ["Values of %s differ between bands" % dname]
+                self.logger.log_message(logging_base.LogFilterWarning, \
+                                        "Values of %s differ between bands" % dname)
                 
         # Verify that all identification parameters are correct
             
@@ -363,7 +353,8 @@ class NISARFile(h5py.File):
         except IndexError as e:
             pass
         except AssertionError as e:
-            error_string += ["Start Time %s not less than End Time %s" % (start_time, end_time)]
+            self.logger.log_message(logging_base.LogFilterWarning, \
+                                    "Start Time %s not less than End Time %s" % (start_time, end_time))
             traceback_string.append(utility.get_traceback(e, AssertionError))
             
         try:
@@ -372,7 +363,7 @@ class NISARFile(h5py.File):
         except IndexError as e:
             pass
         except (AssertionError, ValueError) as e:
-            error_string += ["Invalid Orbit Number: %i" % orbit]
+            self.logger.log_message(logging_base.LogFilterWarning, "Invalid Orbit Number: %i" % orbit)
             traceback_string.append(utility.get_traceback(e, AssertionError))
             
         try:
@@ -381,7 +372,7 @@ class NISARFile(h5py.File):
         except (IndexError, TypeError, ValueError) as e:
             pass
         except AssertionError as e:
-            error_string += ["Invalid Track Number: %i" % track]
+            self.logger.log_message(logging_base.LogFilterWarning, "Invalid Track Number: %i" % track)
             traceback_string.append(utility.get_traceback(e, AssertionError))
             
         try:
@@ -390,7 +381,7 @@ class NISARFile(h5py.File):
         except (IndexError, TypeError, ValueError) as e:
             pass
         except AssertionError as e:
-            error_string += ["Invalid Frame Number: %i" % frame]
+            self.logger.log_message(logging_base.LogFilterWarning, "Invalid Frame Number: %i" % frame)
             traceback_string.append(utility.get_traceback(e, AssertionError))
             
         try:
@@ -399,53 +390,38 @@ class NISARFile(h5py.File):
         except (IndexError, TypeError, ValueError, KeyError) as e:
             pass
         except AssertionError as e:
-            error_string += ["Invalid Cycle Number: %i" % cycle]
+            self.logger.log_message(logging_base.LogFilterWarning, "Invalid Cycle Number: %i" % cycle)
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         try:
             ptype = identifications["productType"][0]
             if (isinstance(ptype, bytes)):
-                ptype = ptype.decode("utf-8")
+                ptype = ptype.decode("utf-8").replace("\x00", "")
             assert(ptype == self.product_type)
         except IndexError as e:
             pass
-        except AssertionError as e:
-            error_string += ["Invalid Product Type: %s" % ptype]
+        except (UnicodeDecodeError, AssertionError) as e:
+            self.logger.log_message(logging_base.LogFilterWarning, "Invalid Product Type: %s" % ptype)
             traceback_string.append(utility.get_traceback(e, AssertionError))
 
         try:
             lookdir = identifications["lookDirection"][0]
             if (isinstance(lookdir, bytes)):
-                lookdir = lookdir.decode("utf-8")
+                lookdir = lookdir.decode("utf-8").replace("\x00", "")
             assert(lookdir.lower() in ("left", "right"))
         except IndexError as e:
             pass
-        except AssertionError as e:
-            error_string += ["Invalid Look Direction: %s" % lookdir]
+        except (UnicodeDecodeError, AssertionError) as e:
+            self.logger.log_message(logging_base.LogFilterWarning, "Invalid Look Direction: %s" % lookdir)
             traceback_string.append(utility.get_traceback(e, AssertionError))
-
-        # raise errors if needed
-
-        assert(len(error_string) == len(traceback_string))
-            
-        try:
-            assert(len(error_string) == 0)
-        except AssertionError as e:
-            raise errors_derived.IdentificationWarning(self.flname, self.start_time[self.bands[0]], \
-                                                       traceback_string, error_string)
 
     def check_nans(self):
 
-        error_string = []
-        traceback_string = []
-        num_empty = 0
-        num_nan = 0
-        num_zero = 0
-        
         for key in self.images.keys():
             ximg = self.images[key]
             ximg.check_for_nan()
             band = ximg.band
+            self.logger.log_message(logging_base.LogFilterInfo, "Checking image %s for zeros and NaNs" % key)
 
             if (not(hasattr(ximg, "num_zero"))):
                 ximg.num_zero = 0
@@ -453,35 +429,23 @@ class NISARFile(h5py.File):
                 assert(ximg.num_nan == 0)
                 assert(ximg.num_zero == 0)
             except AssertionError as e:
-                traceback_string += [utility.get_traceback(e, AssertionError)]
                 if (ximg.empty):
-                    num_empty += 1
-                    error_string += ximg.empty_string
+                    self.logger.log_message(logging_base.LogFilterError, ximg.empty_string)                                
                 else:
-                    if (ximg.num_nan > 0) and (ximg.num_zero == 0):
-                        num_nan += 1
-                        error_string += ximg.nan_string
+                    if (ximg.empty):
+                        self.logger.log_message(logging_base.LogFilterError, ximg.empty_string)
+                    elif (ximg.num_nan > 0) and (ximg.num_zero == 0):
+                        self.logger.log_message(logging_base.LogFilterWarning, ximg.nan_string)
                     elif (ximg.num_zero > 0) and (ximg.num_nan == 0):
-                        num_zero += 1
-                        error_string += ximg.zero_string
+                        self.logger.log_message(logging_base.LogFilterWarning, ximg.zero_string)
                     elif (ximg.num_zero > 0) and (ximg.num_nan > 0):
-                        num_zero += 1
-                        num_nan += 1
-                        error_string += ["%s %s" % (ximg.nan_string[0], ximg.zero_string[0])]
-
-        if (num_empty > 0):
-            raise errors_derived.NaNFatal(self.flname, self.start_time[band], \
-                                          traceback_string, error_string)
-        else:
-            if (num_nan > 0):
-                raise errors_derived.NaNWarning(self.flname, self.start_time[band], \
-                                                traceback_string, error_string)
-            elif (num_nan == 0) and (num_zero > 0):
-                raise errors_derived.ZeroWarning(self.flname, self.start_time[band], \
-                                                 traceback_string, error_string)
+                        self.logger.log_message(logging_base.LogFilterWarning, \
+                                                "%s:%s" % (ximg.nan_string, ximg.zero_string))
 
     def check_time(self):
 
+        error_string = []
+        
         for b in self.bands:
 
             try:
@@ -492,29 +456,30 @@ class NISARFile(h5py.File):
             except KeyError:
                 pass
             else:
+                self.logger.log_message(logging_base.LogFilterInfo, \
+                                   "Start time %s, End time %s" % (start_time, end_time))
 
                 try:
                     start_time = bytes(start_time).split(b".")[0].decode("utf-8").replace("\x00", "")
                     end_time = bytes(end_time).split(b".")[0].decode("utf-8").replace("\x00", "")
                 except UnicodeDecodeError as e:
                     traceback_string = [utility.get_traceback(e, UnicodeDecodeError)]
-                    raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], traceback_string, \
-                                                         ["%s Start/End Times could not be read." % b])
+                    self.logger.log_message(logging_base.LogFilterError, \
+                                            "%s Start/End Times could not be read." % b)
                 else:
 
                     tformats = ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S:%f")
                     for (i, tform) in enumerate(tformats):
                         try:
-                            print("Start Time [%s], End Time [%s]" % (start_time, end_time))
                             time1 = datetime.datetime.strptime(start_time, tform)
                             time2 = datetime.datetime.strptime(end_time, tform)
                         except ValueError as e:
-                            print("Time format conversion failed for iteration %i" % i)
+                            self.logger.log_message(logging_base.LogFilterDebug, \
+                                               "Time format conversion failed for iteration %i" % i)
                             if ((i+1) == len(tformats)):
                                 traceback_string = [utility.get_traceback(e, ValueError)]
-                                raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], \
-                                                                         traceback_string, \
-                                                                         ["%s Invalid Start and End Times" % b])
+                                self.logger.log_message(logging_base.LogFilterError, \
+                                                        "%s Invalid Start and End Times" % b)
                         else:
                             break
                         
@@ -523,58 +488,59 @@ class NISARFile(h5py.File):
                         assert( (time2.year >= 2000) and (time2.year < 2100) )
                     except AssertionError as e:
                         traceback_string = [utility.get_traceback(e, AssertionError)]
-                        print("Start time %s, End time %s" % (start_time, end_time))
-                        raise errors_derived.IdentificationFatal(self.flname, self.start_time[b], \
-                                                                 traceback_string, ["%s End Time < Start Time" % b])
+                        self.logger.log_message(logging_base.LogFilterError, \
+                                                "%s End Time < Start Time" % b)
                     
-                    try:
-                        utility.check_spacing(self.flname, self.start_time[b], time, spacing, \
-                                              "%s zeroDopplerTime" % b, \
-                                              errors_derived.TimeSpacingWarning, \
-                                              errors_derived.TimeSpacingFatal)
-                    except (KeyError, errors_base.WarningError, errors_base.FatalError):
-                        pass
-
+                    error_string = utility.check_spacing(self.flname, self.start_time[b], time, spacing, \
+                                                         "%s zeroDopplerTime" % b)
+                    if (len(error_string) > 0):
+                        for e in error_string:
+                            self.logger.log_message(logging_base.LogFilterWarning, e)
+                    #try:
+                    #    assert(len(error_string) == 0)
+                    #except AssertionError:
+                    #    logging.log_message(logging_base.LogFilterWarning, "%s" % error_string)
 
             try:
                 time = self.METADATA[b].get("orbit/time")
             except KeyError:
                 contine
             else:
-                try:
-                    utility.check_spacing(self.flname, time[0], time, time[1] - time[0], "%s orbitTime" % b, \
-                                          errors_derived.TimeSpacingWarning, errors_derived.TimeSpacingFatal)
-                except (errors_base.WarningError, errors_base.FatalError):
-                    pass
+                error_string = utility.check_spacing(self.flname, time[0], time, time[1] - time[0], \
+                                                     "%s orbitTime" % b)
+                if (len(error_string) > 0):
+                    for e in error_string:
+                        self.logger.log_message(logging_base.LogFilterWarning, e)
+                
         
     def check_frequencies(self, band, flist):
 
-        print("Checking frequencies for flist", flist)
-        
+        self.logger.log_message(logging_base.LogFilterInfo, \
+                                "Checking frequencies for flist: %s" % flist)
+
         nfrequencies = len(flist)
         if (nfrequencies == 1):
             return
-        
+
         for freq_name in self.frequency_checks:
             freq = {}
             try:
                 for f in list(flist.keys()):
+                    print("flist type: %s %s" % (type(flist[f]), flist[f].name))
+                    print("flist keys2: %s" % flist[f].keys())
                     xfreq = flist[f].get(freq_name, default=None)
                     assert(xfreq is not None)
                     freq[f] = xfreq[...]
             except AssertionError as e:
-                traceback_string = [utility.get_traceback(e, KeyError)]
-                raise errors_derived.MissingDatasetWarning(self.flname, self.start_time[band], traceback_string, \
-                                                           ["%s Frequency%s missing dataset %s" % (band, f, freq_name)])
+                self.logger.log_message(logging_base.LogFilterWarning, \
+                                        "%s Frequency%s missing dataset %s" % (band, f, freq_name))
                     
             try:
                 assert(freq["A"] < freq["B"])
             except AssertionError as e:
-                traceback_string = [utility.get_traceback(e, AssertionError)]
-                raise errors_derived.FrequencyOrderWarning(self.flname, self.start_time[band], traceback_string, \
-                                                           ["%s A=%f not less than B=%f" \
-                                                            % (freq_name, freq["A"], freq["B"])])
-
+                self.logger.log_message(logging_base.LogFilterWarning, \
+                                        "%s A=%f not less than B=%f" % (freq_name, freq["A"], freq["B"]))
+                
     def check_num_subswaths(self, b, f):
 
         try:
@@ -582,9 +548,9 @@ class NISARFile(h5py.File):
             assert( (nsubswath >= 0) and (nsubswath <= params.NSUBSWATHS) )
         except AssertionError as e:
             traceback_string = [utility.get_traceback(e, AssertionError)]
-            raise errors_derived.NumSubswathFatal(self.flname, self.start_time[b], traceback_string, \
-                                                  ["%s Frequency%s had invalid number of subswaths: %i" \
-                                                   % (b, f, nsubswath)])
+            self.logger.log_message(logging_base.LogFilterError, 
+                                    "%s Frequency%s had invalid number of subswaths: %i" \
+                                    % (b, f, nsubswath))
 
         return nsubswath
         

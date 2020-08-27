@@ -71,9 +71,6 @@ class SLCImage(object):
             
     def check_for_nan(self):
 
-        print("dtype all %s, real %s, imag %s" % (self.xdata.dtype, self.xdata.real.dtype, self.xdata.imag.dtype))
-        
-        #self.zero_mask = np.where( (self.xdata.real == 0.0) & (self.xdata.imag == 0.0), True, False)
         self.zero_real = np.where( np.fabs(self.xdata.real) < self.EPS, True, False)
         self.zero_imag = np.where( np.fabs(self.xdata.imag) < self.EPS, True, False)
         self.zero_mask = np.where( self.zero_real & self.zero_imag, True, False)
@@ -89,19 +86,19 @@ class SLCImage(object):
 
         if (self.empty):
             if (self.num_nan == self.xdata.size):
-                self.empty_string = ["%s %s_%s is entirely NaN" % (self.band, self.frequency, self.polarization)]
+                self.empty_string = "%s %s_%s is entirely NaN" % (self.band, self.frequency, self.polarization)
             elif (self.num_zero == self.xdata.size):
-                self.empty_string = ["%s %s_%s is entirely Zeros" % (self.band, self.frequency, self.polarization)]
+                self.empty_string = "%s %s_%s is entirely Zeros" % (self.band, self.frequency, self.polarization)
             else:
-                self.empty_string = ["%s %s_%s is entirely NaNs or Zeros" % (self.band, self.frequency, self.polarization)]
+                self.empty_string = "%s %s_%s is entirely NaNs or Zeros" % (self.band, self.frequency, self.polarization)
             return
         
         if (self.num_nan > 0):
-            self.nan_string = ["%s %s_%s has %i NaN's=%s%%" % (self.band, self.frequency, self.polarization, \
-                                                               self.num_nan, round(self.perc_nan, 1))]
+            self.nan_string = "%s %s_%s has %i NaN's=%s%%" % (self.band, self.frequency, self.polarization, \
+                                                               self.num_nan, round(self.perc_nan, 1))
         if (self.num_zero > 0):
-            self.zero_string = ["%s %s_%s has %i Zeros=%s%%" % (self.band, self.frequency, self.polarization, \
-                                                                self.num_zero, round(self.perc_zero, 1))]
+            self.zero_string = "%s %s_%s has %i Zeros=%s%%" % (self.band, self.frequency, self.polarization, \
+                                                                self.num_zero, round(self.perc_zero, 1))
 
         self.real = self.xdata.real[~self.nan_mask]
         self.imag = self.xdata.imag[~self.nan_mask]

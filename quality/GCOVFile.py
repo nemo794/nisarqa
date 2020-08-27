@@ -3,6 +3,7 @@ from quality import errors_derived
 from quality.GCOVImage import GCOVImage
 from quality.HdfGroup import HdfGroup
 from quality.NISARFile import NISARFile
+from quality import logging_base
 from quality import params
 from quality import utility
 
@@ -22,13 +23,10 @@ import traceback
 
 class GCOVFile(NISARFile):
 
-    def __init__(self, flname, xml_tree=None, mode="r"):
-        self.flname = os.path.basename(flname)
-        h5py.File.__init__(self, flname, mode)
-        print("Opening file %s" % flname)
-
-        self.xml_tree = xml_tree
+    def __init__(self, flname, logger, xml_tree=None, mode="r"):
         
+        NISARFile.__init__(self, flname, logger, xml_tree, mode)
+
         self.bands = []
         self.SWATHS = {}
         self.METADATA = {}
@@ -39,7 +37,8 @@ class GCOVFile(NISARFile):
         self.plotted_slant = False
 
         self.ftype_list = ["GCOV"]
-        self.product_type = "SLC"
+        self.product_type = "GCOV"
+        self.polarizations_possible = ("HH", "HV", "VH", "VV")
         self.polarization_list = params.GCOV_POLARIZATION_LIST
         self.polarization_groups = params.GCOV_POLARIZATION_GROUPS
         self.identification_list = params.GCOV_ID_PARAMS
@@ -70,7 +69,8 @@ class GCOVFile(NISARFile):
                 except KeyError:
                     pass
                 else:
-                    print("Found %s Frequency%s" % (b, f))
+                    self.logger.log_message(logging_base.LogFilterInfo, \
+                                            "Found %s Frequency%s" % (b, f))
                     self.FREQUENCIES[b][f] = f2
                     self.polarizations[b][f] = []
                     for data in self.FREQUENCIES[b][f].keys():
@@ -91,16 +91,12 @@ class GCOVFile(NISARFile):
                             except AssertionError as e:
                                 traceback_string += [utility.get_traceback(e, AssertionError)]
                                 error_string += ["%s Frequency%s has invalid polarization: %s" % (b, f, data)]
+                                self.logger.log_message(logging_base.LogFilterError, \
+                                                        "%s Frequency%s has invalid polarization: %s" % (b, f, data))
                             else:
                                 self.polarizations[b][f].append(data)
 
-        assert(len(traceback_string) == len(error_string))
-        try:
-            assert(len(error_string) == 0)
-        except AssertionError as e:
-            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[b], \
-                                                            traceback_string, error_string)
-            
+        return error_string
                                 
     def check_freq_pol(self):
 
@@ -108,6 +104,7 @@ class GCOVFile(NISARFile):
 
         error_string = []
         traceback_string = []
+        errors_found = False
         self.component_plist = {}
          
         for b in self.bands:
@@ -116,27 +113,29 @@ class GCOVFile(NISARFile):
                 frequencies = [f.decode() for f in self.IDENTIFICATION[b].get("listOfFrequencies")[...]]
                 assert(frequencies in params.FREQUENCIES)
             except KeyError as e:
-                traceback_string += [utility.get_traceback(e, KeyError)]
-                error_string += ["%s is missing frequency list" % b]
+                errors_found = True
+                self.logger.log_message(logging_base.LogFilterError, "%s is missing frequency list" % b)
                 continue
             except (AssertionError, TypeError, UnicodeDecodeError) as e:
-                traceback_string += [utility.get_traceback(e, AssertionError)]
-                error_string += ["%s has invalid frequency list" % b]
+                errors_found = True
+                self.logger.log_message(logging_base.LogFilterError, "%s has invalid frequency list" % b)
                 continue
             else:
                 for f in frequencies:
                     try:
                         assert("frequency%s" % f in self.SWATHS[b].keys())
                     except AssertionError as e:
-                        traceback_string += [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s missing Frequency%s" % (b, f)]
+                        errors_found = True
+                        self.logger.log_message(logging_base.LogFilterError, \
+                                                "%s missing Frequency%s" % (b, f))
 
                 for f in self.FREQUENCIES[b].keys():
                     try:
                         assert(f in frequencies)
                     except AssertionError as e:
-                        traceback_string += [utility.get_traceback(e, AssertionError)]
-                        error_string += ["%s frequency list missing %s" % (b, f)]
+                        errors_found = True
+                        self.logger.log_message(logging_base.LogFilterError, \
+                                                "%s frequency list missing %s" % (b, f))
 
 
             self.component_plist[b] = {}
@@ -144,8 +143,9 @@ class GCOVFile(NISARFile):
                 try:
                     assert("listOfPolarizations" in self.FREQUENCIES[b][f].keys())
                 except AssertionError as e:
-                    traceback_string += [utility.get_traceback(e, KeyError)]
-                    error_string += ["%s Frequency%s is missing polarization list" % (b, f)]
+                    errors_found = True
+                    self.logger.log_message(logging_base.LogFilterError, \
+                                            "%s Frequency%s is missing polarization list" % (b, f))
                     continue
                 else:
                     plist = self.FREQUENCIES[b][f]["listOfPolarizations"]
@@ -157,27 +157,25 @@ class GCOVFile(NISARFile):
 
                 plist = self.component_plist[b][f]
                 if (set(plist) != set(self.polarizations[b][f])):
-                    print("Expect %s, Found %s" % (polarizations_found, self.component_plist[b][f]))
+                    self.logger.log_message(logging_base.LogFilterDebug, "Polarizations: Expect %s, Found %s" \
+                                            % (polarizations_found, self.component_plist[b][f]))
                     missing1 = [p for p in set(plist) if p not in polarizations_found]
                     missing2 = [p for p in polarizations_found if p not in set(plist)]
                     try:
                         assert(len(missing1) == 0) and (len(missing2) == 0)
                     except AssertionError as e:
-                        traceback_string += [utility.get_traceback(e, AssertionError)]
-                        estring = ""
+                        errors_found = True
                         if (len(missing1) > 0):
-                            estring += "%s Frequency%s has extra polarization %s" % (b, f, missing1)
+                            self.logger.log_message(logging_base.LogFilterError, \
+                                                    "%s Frequency%s has extra polarization %s" \
+                                                    % (b, f, missing1))
                         if (len(missing2) > 0):
-                            estring += "%s Frequency%s is missing polarization %s" % (b, f, missing2)
-                        error_string += [estring]
+                            self.logger.log_message(logging_base.LogFilterError, \
+                                                    "%s Frequency%s is missing polarization %s" \
+                                                    % (b, f, missing2))
 
-        assert(len(traceback_string) == len(error_string))
-        try:
-            assert(len(error_string) == 0)
-        except AssertionError as e:
-            raise errors_derived.FrequencyPolarizationFatal(self.flname, self.start_time[b], \
-                                                            traceback_string, error_string)
-        
+        return errors_found
+
     def get_slant_range(self, band, frequency):
 
         slant_path = self.FREQUENCIES[band][frequency].get("slantRange")
@@ -201,10 +199,10 @@ class GCOVFile(NISARFile):
             try:
                 xband = self["/science/%s" % band]
             except KeyError:
-                print("%s not present" % band)
+                self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
                 pass
             else:
-                print("Found %s band" % band)
+                self.logger.log_message(logging_base.LogFilterInfo, "Found %s band" % band)
                 self.bands.append(band)
 
                 # Create HdfGroups.
@@ -220,15 +218,17 @@ class GCOVFile(NISARFile):
                     except KeyError as e:
                         traceback_string += [utility.get_traceback(e, KeyError)]
                         error_string += ["%s does not exist" % gname2]
+                        self.logger.log_message(logging_base.LogFilterError, \
+                                                "%s does not exist" % gname2)
                     else:
-                        xdict[band] = HdfGroup(self, dict_name, gname2)
+                        xdict[band] = HdfGroup(self, dict_name, gname2, self.logger)
 
         # Raise any errors
                         
-        assert(len(traceback_string) == len(error_string))
-        if (len(error_string) > 0):
-            raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[self.bands[0]], \
-                                                     traceback_string, error_string)
+        #assert(len(traceback_string) == len(error_string))
+        #if (len(error_string) > 0):
+        #    raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[self.bands[0]], \
+        #                                             traceback_string, error_string)
                         
                              
     def create_images(self, time_step=1, range_step=1):
@@ -241,38 +241,37 @@ class GCOVFile(NISARFile):
         srange = {}
 
         for b in self.bands:
-            print("%s band has frequencies %s" % (b, self.FREQUENCIES[b].keys()))
+            self.logger.log_message(logging_base.LogFilterInfo, \
+                                    "%s band has frequencies %s" % (b, self.FREQUENCIES[b].keys()))
             for f in self.FREQUENCIES[b].keys():
-                print("%s band frequency%s has polarizations %s" \
-                      % (b, f, self.polarizations[b][f]))
+                self.logger.log_message(logging_base.LogFilterInfo, \
+                                        "%s band frequency%s has polarizations %s" \
+                                        % (b, f, self.polarizations[b][f]))
                 for p in self.polarizations[b][f]:
                     key = "%s %s %s" % (b, f, p)
                     try:
-                        print("Creating %s image" % key)
+                        self.logger.log_message(logging_base.LogFilterInfo, "Creating %s image" % key)
                         self.images[key] = GCOVImage(b, f, p)
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
                     except KeyError:
-                        print("Missing %s image" % key)
                         missing_images.append(key)
                         
         try:
             assert(len(missing_images) == 0)
         except AssertionError as e:
             traceback_string = [utility.get_traceback(e, AssertionError)]
-            error_string = ""
-            if (len(missing_images) > 0):
-                error_string += "Missing %i images: %s" % (len(missing_images), missing_images)
-            raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
-                                                   [error_string])
+            self.logger.log_message(logging_base.LogFilterError, \
+                                    "Missing %i images: %s" % (len(missing_images), missing_images))
                 
-
+            #raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
+            #                                       [error_string])
 
     def check_images(self, fpdf, fhdf):
 
         min_value = np.array([np.finfo(np.float64).max, np.finfo(np.float64).max])
         max_value = np.array([np.finfo(np.float64).min, np.finfo(np.float64).min])
-        nan_warning = []
-        nan_fatal = []
+        #nan_warning = []
+        #nan_fatal = []
 
         # Generate histograms (real and imaginary components separately) and plot them
 
@@ -289,7 +288,8 @@ class GCOVFile(NISARFile):
         sums_linear = {}
         sums_power = {}
 
-        print("Found %i images: %s" % (len(self.images.keys()), self.images.keys()))
+        self.logger.log_message(logging_base.LogFilterInfo, \
+                                "Found %i images: %s" % (len(self.images.keys()), self.images.keys()))
 
         traceback_string = []
         error_string = []
@@ -305,8 +305,9 @@ class GCOVFile(NISARFile):
                 ximg.calc()
             except AssertionError as e:
                 traceback_string += [utility.get_traceback(e, AssertionError)]
-                error_string += ["%s %s %s image has %i negative backscatter pixels" \
-                                % (b, f, p, ximg.nnegative)]
+                self.logger.log_message(logging_base.LogFilterWarning, \
+                                        "%s %s %s image has %i negative backscatter pixels" \
+                                        % (b, f, p, ximg.nnegative))
                 #raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time[b], \
                 #                                                traceback_string, error_string)
                  
@@ -322,7 +323,8 @@ class GCOVFile(NISARFile):
 
         for (i, key) in enumerate(sums_linear.keys()):
 
-            #print("Looking at %i-th image: %s" % (i, key))
+            self.logger.log_message(logging_base.LogFilterInfo, \
+                                    "Looking at %i-th image: %s" % (i, key))
             (counts, edges) = np.histogram(sums_power[key], bins=1000)
             if (i == 0):
                 counts_power = np.copy(counts)
@@ -337,7 +339,8 @@ class GCOVFile(NISARFile):
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
                 keys = [k for k in self.images.keys() if k.startswith("%s %s" % (b, f))]
-                print("Plotting %i images: %s" % (len(keys), keys))
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Plotting %i images: %s" % (len(keys), keys))
                 (fig, axis) = pyplot.subplots(nrows=1, ncols=1, constrained_layout=True)
                 for k in keys:
                     self.images[k].plot4a(axis)
@@ -351,7 +354,8 @@ class GCOVFile(NISARFile):
 
             # Write histogram summaries to an hdf5 file
             
-            print("File %s mode %s" % (fhdf.filename, fhdf.mode))
+            self.logger.log_message(logging_base.LogFilterInfo, \
+                                    "Opening File %s with mode %s" % (fhdf.filename, fhdf.mode))
             fname_in = os.path.basename(self.flname)
             extension = fname_in.split(".")[-1]
             groups[b] = fhdf.create_group("%s/%s/ImageAttributes" % (fname_in.replace(".%s" % extension, ""), b))
@@ -371,12 +375,12 @@ class GCOVFile(NISARFile):
 
         # Raise errors about negative backscatter if applicable
 
-        assert(len(error_string) == len(traceback_string))
-        try:
-            assert(len(error_string) == 0)
-        except AssertionError as e:
-            raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time[self.bands[0]], \
-                                                            traceback_string, error_string)
+        #assert(len(error_string) == len(traceback_string))
+        #try:
+        #    assert(len(error_string) == 0)
+        #except AssertionError as e:
+        #    raise errors_derived.NegativeBackscatterWarning(self.flname, self.start_time[self.bands[0]], \
+        #                                                    traceback_string, error_string)
              
                 
 
@@ -400,15 +404,10 @@ class GCOVFile(NISARFile):
                 continue
             except AssertionError as e:
                 traceback_string += [utility.get_traceback(e, AssertionError)]
-                error_string += ["Dataset %s has shape %s, expected (%i, %i)" \
-                                 % (key, ximg.shape, ntime, nslant)]
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Dataset %s has shape %s, expected (%i, %i)" \
+                                        % (key, ximg.shape, ntime, nslant))
 
-
-        assert(len(error_string) == len(traceback_string))
-        try:
-            assert(len(error_string) == 0)
-        except AssertionError:
-            raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], traceback_string, error_string)
 
     def check_subswaths_bounds(self):
 
@@ -422,9 +421,9 @@ class GCOVFile(NISARFile):
                     continue
                 except AssertionError as e:
                     traceback_string = [utility.get_traceback(e, AssertionError)]
-                    raise errors_derived.NumSubswathWarning(self.flname, self.start_time[b], traceback_string, \
-                                                            ["%s %s has invalid numberofSubSwaths: %i", \
-                                                             (b, f, nsubswath)])
+                    self.logger.log_message(logging_base.LogFilterWarning, 
+                                            "%s %s has invalid numberofSubSwaths: %i" \
+                                            % (b, f, nsubswath))
                 
                 
 

@@ -51,11 +51,11 @@ class GCOVImage(object):
         self.empty = False
         
         if (self.num_nan == self.xdata.size):
-            self.empty_string = ["%s %s_%s is entirely NaN" % (self.band, self.frequency, self.polarization)]
+            self.empty_string = "%s %s_%s is entirely NaN" % (self.band, self.frequency, self.polarization)
             self.empty = True
         elif (self.num_nan > 0) and (self.num_nan < self.xdata.size):
-            self.nan_string = ["%s %s_%s has %i NaN's=%s%%" % (self.band, self.frequency, self.polarization, \
-                                                              self.num_nan, round(self.perc_nan, 1))]
+            self.nan_string = "%s %s_%s has %i NaN's=%s%%" % (self.band, self.frequency, self.polarization, \
+                                                              self.num_nan, round(self.perc_nan, 1))
 
     def calc(self):
 

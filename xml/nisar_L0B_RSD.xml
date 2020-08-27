@@ -116,46 +116,38 @@
                       lang="en">NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED</annotation>
         </string>
         <!-- End of product identification -->
-
-        <!-- Identify data acquisition mode -->
-        <string length="0"
-                name="/science/LSAR/RSD/instrumentConfigID"
-                shape="scalar">
-          <annotation app="conformance"
-                      lang="en">Instrument configuration ID</annotation>
-        </string>
-
+          
         <!-- Main layers for frequencyA -->
         <string length="2"
-              name="/science/LSAR/RSD/swaths/frequencyA/listOfTxPolarizations"
+              name="/science/LSAR/RRSD/swaths/frequencyA/listOfTxPolarizations"
               shape="numberOfFrequencyAPolarizations">
           <annotation app="conformance"
                       lang="en">List of processed polarization layers with frequencyA</annotation>
         </string>
         <!-- H polarization transmit -->
         <!-- Scalars -->
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/sceneCenterAlongTrackSpacing"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/sceneCenterAlongTrackSpacing"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the SLC image</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/sceneCenterGroundRangeSpacing"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/sceneCenterGroundRangeSpacing"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the SLC image</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rangeBandwidth"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Acquisition range bandwidth in Hz.</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/chirpSlope"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/chirpSlope"
               shape="scalar"
               width="64">
           <annotation app="conformance"
@@ -163,7 +155,7 @@
                       width="64"
                       units="Hz per second">Nominal chirp slope in Hz/s</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/chirpDuration"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/chirpDuration"
               shape="scalar"
               width="64">
           <annotation app="conformance"
@@ -171,21 +163,21 @@
                       width="64"
                       units="seconds">Chirp duration in seconds</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/nominalAcquisitionPRF"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/nominalAcquisitionPRF"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Nominal PRF of acquisition.</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/centerFrequency"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/centerFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Center frequency of the acquisition in Hz. In case of mode combination, this corresponds to the mode with lowest Center Frequency.</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/slantRangeSpacing"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/slantRangeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
@@ -194,28 +186,28 @@
         </real>
         
         <!-- 1D arrays / dimensions -->
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/slantRange"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/slantRange"
               shape="frequencyASlantRangeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">CF compliant dimension associated with slant range</annotation>
         </real>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/listOfTxTRMs"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/listOfTxTRMs"
                  shape="TRMLength"
                  signed="true"
                  width="8">
               <annotation app="conformance"
                           lang="en">TR modules used for transmit</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/listOfRxTRMs"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxH/listOfRxTRMs"
                  shape="TRMLength"
                  signed="true"
                  width="8">
               <annotation app="conformance"
                           lang="en">TR modules used for receive</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/listOfRxTRMs"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxV/listOfRxTRMs"
                  shape="TRMLength"
                  signed="true"
                  width="8">
@@ -223,7 +215,7 @@
                           lang="en">TR modules used for receive</annotation>
         </integer>
 
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/HH"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxH/HH"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
@@ -231,7 +223,7 @@
                       units="DN">HH raw data</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/HV"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxV/HV"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
@@ -239,28 +231,28 @@
                       units="DN">HV raw data</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/radarTime"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/radarTime"
                  shape="alongTrackTimeLength"
                  signed="false"
                  width="64">
           <annotation app="conformance"
                       lang="en">64-bit L-SAR radar clock time tag</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rangeLineIndex"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/rangeLineIndex"
                  shape="alongTrackTimeLength"
                  signed="false"
                  width="32">
           <annotation app="conformance"
                       lang="en">32-bit L-SAR range line index</annotation>
         </integer>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/UTCTime"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/UTCTime"
                  shape="alongTrackTimeLength"
                  width="64">
           <annotation app="conformance"
                       lang="en"
                       units="seconds since yyyy-mm-dd">UTC transmit time tag</annotation>
         </real>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/numberOfSubSwaths"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/numberOfSubSwaths"
                  shape="scalar"
                  signed="false"
                  width="8">
@@ -268,7 +260,7 @@
                       lang="en"
                       units="unitless">Number of swaths of continuous imagery, due to transmit gaps</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath1"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/validSamplesSubSwath1"
                  shape="validSamplesShape"
                  signed="false"
                  width="32">
@@ -276,7 +268,7 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 1st subswath</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath2"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/validSamplesSubSwath2"
                  shape="validSamplesShape"
                  signed="false"
                  width="32">
@@ -284,7 +276,7 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 2nd subswath</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath3"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/validSamplesSubSwath3"
                  shape="validSamplesShape"
                  signed="false"
                  width="32">
@@ -292,7 +284,7 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/validSamplesSubSwath4"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/validSamplesSubSwath4"
                  shape="validSamplesShape"
                  signed="false"
                  width="32">
@@ -300,77 +292,689 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
         </integer>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/txPhase"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/txPhase"
               shape="TRMPulseShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="degrees">Pulse-by-pulse phase shifter value</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/txCal"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/txCal"
               shape="TRM3TapPulseShape"
               width="32">
           <annotation app="conformance"
                       lang="en">Pulse-by-pulse phase estimated from TxCal</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/attenuation"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxH/attenuation"
               shape="TRMPulseShape"
               width="32">
           <annotation app="conformance"
                       lang="en">Pulse-by-pulse receiver attenuation on H-polarization</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/attenuation"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxV/attenuation"
               shape="TRMPulseShape"
               width="32">
           <annotation app="conformance"
                       lang="en">Pulse-by-pulse receiver attenuation on H-polarization</annotation>
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/caltone"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxH/caltone"
               shape="TRM3TapPulseShape"
               width="32">
           <annotation app="conformance"
                       lang="en">Pulse-by-pulse phase estimated from Caltone on H-polarization</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/caltone"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxV/caltone"
               shape="TRM3TapPulseShape"
               width="32">
           <annotation app="conformance"
                       lang="en">Pulse-by-pulse phase estimated from Caltone on V-polarization</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxH/TRMDataWindow"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxH/TRMDataWindow"
                  shape="TRMPulseShape"
                  width="8"
                  signed="false">
           <annotation app="conformance"
                       lang="en">Pulse-by-pulse list of active receivers on H-polarization</annotation>
         </integer>
-        <integer name="/science/LSAR/RSD/swaths/frequencyA/txH/rxV/TRMDataWindow"
+        <integer name="/science/LSAR/RRSD/swaths/frequencyA/txH/rxV/TRMDataWindow"
                  shape="TRMPulseShape"
                  width="8"
                  signed="false">
           <annotation app="conformance"
                       lang="en">Pulse-by-pulse list of active receivers on V-polarization</annotation>
         </integer>
-
-        <!-- GPS DRT -->
-        <real name="/science/LSAR/RSD/telemetry/orbit/time"
+        <!-- telemetry SIFHeader under frequencyA -->
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SIFHeader/RADAR-TIME"
+              shape="scalar"
+              width="64"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">RADAR_TIME under SIF Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SIFHeader/DATA_POLARITY"
+              shape="scalar"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">DATA_POLARITY under SIF Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SIFHeader/MGT_Q_STATUS"
+              shape="scalar"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">MGT_Q_STATUS under SIF Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SIFHeader/MGT_I_STATUS"
+              shape="scalar"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">MGT_I_STATUS under SIF Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SIFHeader/SIF_FIRMWARE"
+              shape="scalar"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">SIF_FIRMWARE under SIF Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SIFHeader/OBS_ID"
+              shape="scalar"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">OBS_ID under SIF Header</annotation>
+          </integer>
+          <!-- End of telemetry SIFHeader under frequencyA  -->
+          <!-- telemtery QFSPHeader under frequency A -->
+          <!-- The three sets of qFSP headers have identical structure: same size and telemetry components. 
+              The names of most telemetries end with L, L01, L02, L03, or L04, which are placeholders 
+              for actual names that also indicate the source of the telemetries.   
+              Following is the mapping of L, L01, L02, L03, and L04 to names for qFSP headers.   -->
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/HWID"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">HWID under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_RD_L"
+              shape="alongTrackTimeLength"
+              width="64"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_RD_L under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/PRF_TIME"
+              shape="alongTrackTimeLength"
+              width="64"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">PRF_TIME under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/DLEN"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">DLEN under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/Status"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">Status under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/PRF_COUNT"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">PRF_COUNT under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_TX-PHASE_L01"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_TX-PHASE_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_RX-ATTENUATOR_L01"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_RX-ATTENUATOR_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WL_L01"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_RX-ATTENUATOR_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WD_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_WD_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I1_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q1_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I2_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q2_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I3_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q3_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_I_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_I_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_Q_L01"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_Q_L01 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_TX-PHASE_L02"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_TX-PHASE_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_RX-ATTENUATOR_L02"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_RX-ATTENUATOR_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WL_L02"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_WL_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WD_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_WD_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I1_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q1_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I2_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q2_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I3_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q3_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_I_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_I_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_Q_L02"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_Q_L02 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_TX-PHASE_L03"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_TX-PHASE_L3 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_RX-ATTENUATOR_L03"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_RX-ATTENUATOR_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WL_L03"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_WL_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WD_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_WD_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I1_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q1_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I2_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q2_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I3_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q3_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_I_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_I_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_Q_L03"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_Q_L03 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_TX-PHASE_L04"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_TX-PHASE_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_RX-ATTENUATOR_L04"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_RX-ATTENUATOR_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WL_L04"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_WL_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CP_WD_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="false">
+              <annotation app="conformance"
+                  lang="en">CP_WD_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I1_L4"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q1_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I2_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q2_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_I3_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_I1_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CHIRP_CORRELATOR_Q3_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CHIRP_CORRELATOR_Q1_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_I_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_I_L04 under QFSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/QFSPHeader/L/CALTONE_Q_L04"
+              shape="alongTrackTimeLength"
+              width="16"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CALTONE_Q_L04 under QFSP Header</annotation>
+          </integer>
+          <!-- End of telemetry QFSPHeader under frequencyA -->
+          <!-- telemetry SSPHeader under frequencyA -->
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_QFSP-ENABLED_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_QFSP-ENABLED_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_FILTER-BYPASS_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_FILTER-BYPASS_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_GAP-MITIGATION_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_GAP-MITIGATION_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_BANDWIDTH_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_BANDWIDTH_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/TIMETAG_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">TIMETAG_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_HEADER-ONLY_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_HEADER-ONLY_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_DATA-ONLY_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_DATA-ONLY_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/PACKET_ERROR_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">PACKET_ERROR_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/UPDATE_TIMETAG_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">UPDATE_TIMETAG_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_F1-LEN_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_F1-LEN_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_F2-LEN_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_F2-LEN_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_F3-LEN_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_F3-LEN_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_FILTER-IN-BAND_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_FILTER-IN-BAND_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/GAP_START_1_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">GAP_START_1_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/GAP_STOP_1_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">GAP_STOP_1_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/GAP_START_2_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">GAP_START_1_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/GAP_STOP_2_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">GAP_STOP_1_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/GAP_START_3_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">GAP_START_1_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/GAP_STOP_3_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">GAP_STOP_1_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/RL_LEN_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">RL_LEN_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CRL_LEN_L"
+              shape="alongTrackTimeLength"
+              width="32"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CRL_LEN_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/ERR_CHECKSUM_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">ERR_CHECKSUM_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_BFPQ-BYPASS_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_BFPQ-BYPASS_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/CP_IPOL_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">CP_IPOL_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/BFPQ_CHECKSUM_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">BFPQ_CHECKSUM_L under SSP Header</annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/swaths/telemetry/SSPHeader/L/SSP_HDR_CHECKSUM_L"
+              shape="alongTrackTimeLength"
+              width="8"
+              signed="true">
+              <annotation app="conformance"
+                  lang="en">SSP_HDR_CHECKSUM_L under SSP Header</annotation>
+          </integer>
+          <!-- End of telemetry SSPHeader under frequencyA --> 
+          
+        <!-- Sub-commutated_telemetry, HST + DRT-->
+        <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/orbit/time"
               shape="orbitListLength"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="seconds since yyyy-mm-dd">Downlinked state vector time</annotation>
         </real>
-        <real name="/science/LSAR/RSD/telemetry/orbit/position"
+        <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/orbit/position"
               shape="orbitShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="seconds since yyyy-mm-dd">GPS state vector position</annotation>
         </real>
-        <real name="/science/LSAR/RSD/telemetry/orbit/velocity"
+        <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/orbit/velocity"
               shape="orbitShape"
               width="64">
           <annotation app="conformance"
@@ -378,442 +982,2915 @@
                       units="seconds since yyyy-mm-dd">GPS state vector velocity</annotation>
         </real>
         <string length="0"
-                name="/science/LSAR/RSD/telemetry/orbit/orbitType"
+            name="/science/LSAR/RRSD/Sub-commutated_telemetry/orbit/orbitType"
                 shape="scalar">
                 <annotation app="conformance"
                             lang="en">DOE (or) PeOE (or) NOE (or) MOE (or) POE (or) Custom</annotation>
         </string>
-        <!-- End of GPS DRT -->
-
-        <!-- PDS DRT -->
-        <real name="/science/LSAR/RSD/telemetry/attitude/time"
+       
+        <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/attitude/time"
               shape="attitudeListLength"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="seconds since YYYY-MM-DD HH:MM:SS">Time vector record. This record contains the time corresponding to attitude and quaternion records</annotation>
         </real>
-        <real name="/science/LSAR/RSD/telemetry/attitude/quaternions"
+        <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/attitude/quaternions"
               shape="attitudeQuaternionShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="unitless">Attitude quaternions (q0, q1, q2, q3)</annotation>
         </real>
-        <real name="/science/LSAR/RSD/telemetry/attitude/angularVelocity"
-              shape="attitudeShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="radians per second">Attitude angular velocity vectors (wx, wy, wz)</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/attitude/eulerAngles"
-              shape="attitudeShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Attitude Euler angles (roll, pitch, yaw)</annotation>
-        </real>
         <string length="0"
-                name="/science/LSAR/RSD/telemetry/attitude/attitudeType"
+            name="/science/LSAR/RRSD/Sub-commutated_telemetry/attitude/attitudeType"
                 shape="scalar">
                 <annotation app="conformance"
                             lang="en">PrOE (or) NOE (or) MOE (or) POE (or) Custom</annotation>
         </string>
-        <!-- End of PDS DRT -->
+          
+          <!-- Sub-commutated_telemetry HST  -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/DT-LRCLK_CTB-PPS"
+              shape="scalar"
+              signed="false"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-LRCLK_CTB-PPS from HST Frame </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/DT-LRCLK_GPS-PPS"
+              shape="scalar"
+              signed="false"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">/DT-LRCLK_GPS-PPS from HST Frame </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/DT-GPS_GPS-PPS"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-GPS_GPS-PPS from HST Frame </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/ST_DATATAKE-ACTIVE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_DATATAKE-ACTIVE from HST Frame </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/ST_LSAR-POWER-STATE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_LSAR-POWER-STATE from HST Frame </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/ST_HIGH-PRIORITY-EVR"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_HIGH-PRIORITY-EVR from HST Frame </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/ST_IFSW-MESSAGE"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-MESSAGE from HST Frame </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/HST/ST_EES"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_EES from HST Frame </annotation>
+          </integer>         
+          <!-- End of Sub-commutated_telemetry HST  --> 
+          
+          <!-- Sub-commutated_telemetry qFSP-H0 -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_RD_H0"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_RD_H0 from qFSP-H0 DRT header </annotation>
+          </integer> 
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_BCAL-DELAY_H01"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_BCAL-DELAY_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_BCAL-DELAY_H02"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_BCAL-DELAY_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_BCAL-DELAY_H03"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_BCAL-DELAY_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_BCAL-DELAY_H04"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_BCAL-DELAY_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/VER_QFSP-V5_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VER_QFSP-V5_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WD_H01"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WD_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WD_H02"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WD_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WD_H03"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WD_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WD_H04"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WD_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WL_H01"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WL_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WL_H02"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WL_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WL_H03"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WL_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_WL_H04"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WL_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_AOFS_H01"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_AOFS_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_AOFS_H02"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_AOFS_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_AOFS_H03"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_AOFS_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_AOFS_H04"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_AOFS_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_TXPHASE_H01"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_TXPHASE_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_TXPHASE_H02"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_TXPHASE_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_TXPHASE_H03"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_TXPHASE_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_TXPHASE_H04"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_TXPHASE_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_RX-ATTENUATOR_H01"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_RX-ATTENUATOR_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_RX-ATTENUATOR_H02"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_RX-ATTENUATOR_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_RX-ATTENUATOR_H03"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_RX-ATTENUATOR_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/CP_RX-ATTENUATOR_H04"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_RX-ATTENUATOR_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/P_QFSP-ADC_H01"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">P_QFSP-ADC_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/P_QFSP-ADC_H02"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">P_QFSP-ADC_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/P_QFSP-ADC_H03"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">P_QFSP-ADC_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/P_QFSP-ADC_H04"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">P_QFSP-ADC_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/VER_QFSP-PA_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VER_QFSP-PA_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/ST_QFSP-TX-INHIBIT_H0"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_QFSP-TX-INHIBIT_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/ST_QFSP-FDONE_H0"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_QFSP-FDONE_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-RFF_H01"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-RFF_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-RFF_H02"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-RFF_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-RFF_H03"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-RFF_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-RFF_H04"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-RFF_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-AAF_H01"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-AAF_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-AAF_H02"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-AAF_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-AAF_H03"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-AAF_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-AAF_H04"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-AAF_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-FRAP3"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-FRAP3 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-FRAP4"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-FRAP4 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_QFSP-V5_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP-V5_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_QFSP-CR1_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP-CR1_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_QFSP-CR2_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP-CR2_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-CRC_H01"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-CRC_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-CRC_H02"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-CRC_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-CRC_H03"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-CRC_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-CRC_H04"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-CRC_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-HPA_H01"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-HPA_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-HPA_H02"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-HPA_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-HPA_H03"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-HPA_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_TRM-HPA_H04"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_TRM-HPA_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-PG_TRM_H01"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_TRM_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-PG_TRM_H02"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_TRM_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-PG_TRM_H03"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_TRM_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-PG_TRM_H04"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_TRM_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-50V-PG_TRM_H01"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-50V-PG_TRM_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-50V-PG_TRM_H02"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-50V-PG_TRM_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-50V-PG_TRM_H03"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-50V-PG_TRM_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-50V-PG_TRM_H04"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-50V-PG_TRM_H04 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-3P3_QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_QFSP_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-2P5_QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-2P5_QFSP_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-1P0_QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P0_QFSP_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-1P2_QFSP-MGT_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P2_QFSP-MGT_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-1P0_QFSP-MGT_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P0_QFSP-MGT_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-1P5_QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P5_QFSP_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-3P3_QFSP-CD1_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_QFSP-CD1_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/V-GND_QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-GND_QFSP_H0 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_QFSP-ADC_H01"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP-ADC_H01 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_QFSP-ADC_H02"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP-ADC_H02 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_QFSP-ADC_H03"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP-ADC_H03 from qFSP-H0 DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H0/T_QFSP-ADC_H04"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP-ADC_H04 from qFSP-H0 DRT header </annotation>
+          </integer>      
+          <!-- End of Sub-commutated_telemetry qFSP-H0 -->
+          <!-- Need to add /science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-V0 -->
+          <!-- Need to add /science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H1 -->
+          <!-- Need to add /science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-V1 -->
+          <!-- Need to add /science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-H2 -->
+          <!-- Need to add /science/LSAR/RRSD/Sub-commutated_telemetry/DRT/qFSP-V2 -->
+          <!-- Sub-commutated_telemetry SSP-H -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/DT-YEAR_SSP-DBF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-YEAR_SSP-DBF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/DT-MONTH_SSP-DBF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-MONTH_SSP-DBF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/DT-DAY_SSP-DBF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-DAY_SSP-DBF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/VER_SSP-DBF_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VER_SSP-DBF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_GAP-MITIGATION_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_GAP-MITIGATION_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_QFSP-ENABLED_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_QFSP-ENABLED_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_BFPQ-BYPASS_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_BFPQ-BYPASS_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_FILTER-BYPASS_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_FILTER-BYPASS_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_ADC1-ENABLE _H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_ADC1-ENABLE _H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_ADC0-ENABLE_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_ADC0-ENABLE_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_SRST-SSP-BFPQ_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_SRST-SSP-BFPQ_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_MRST-SSP-BFPQ_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_MRST-SSP-BFPQ_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_SRST-SSP-DBF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_SRST-SSP-DBF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_MRST-SSP-DBF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_MRST-SSP-DBF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_DT-ENABLED_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DT-ENABLED_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_BANDWIDTH_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_BANDWIDTH_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_F2-START_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_F2-START_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_FILTER-IN-BAND_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_FILTER-IN-BAND_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_DATA-ONLY_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DATA-ONLY_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_HEADER-ONLY_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_HEADER-ONLY_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_IPOL_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_IPOL_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_MANT-MODE_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_MANT-MODE_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_F1-LEN_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_F1-LEN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_F2-LEN_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_F2-LEN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_F3-LEN_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_F3-LEN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_F3-START_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_F3-START_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_FILTER-PHASE-STEP-A_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_FILTER-PHASE-STEP-A_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_FILTER-PHASE-STEP-B_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_FILTER-PHASE-STEP-B_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/CP_UPDATE-PRF_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_UPDATE-PRF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STFILTER-B-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STFILTER-B-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STFILTER-A-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STFILTER-A-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3B-DBF-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3B-DBF-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2B-DBF-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2B-DBF-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1B-DBF-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1B-DBF-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3A-DBF-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3A-DBF-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2A-DBF-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2A-DBF-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1A-DBF-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1A-DBF-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHD-TX-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHD-TX-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHC-TX-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHC-TX-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHB-TX-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHB-TX-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHA-TX-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHA-TX-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/T_SSP-FPGA2_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP-FPGA2_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STBFPQ-D-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STBFPQ-D-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STBFPQ-C-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STBFPQ-C-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STBFPQ-B-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STBFPQ-B-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STBFPQ-A-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STBFPQ-A-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/T_SSP-FANOUT_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP-FANOUT_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3A-HDR-CHKSUM-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3A-HDR-CHKSUM-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2A-HDR-CHKSUM-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2A-HDR-CHKSUM-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1A-HDR-CHKSUM-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1A-HDR-CHKSUM-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/T_SSP-LVDS_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP-LVDS_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3B-HDR-CHKSUM-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3B-HDR-CHKSUM-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2B-HDR-CHKSUM-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2B-HDR-CHKSUM-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1B-HDR-CHKSUM-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1B-HDR-CHKSUM-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-2P5_SSP-REF_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-2P5_SSP-REF_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/T_SSP-MGT_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP-MGT_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/T_SSP-FPGA1_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP-FPGA1_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/T_SSP-U1_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP-U1_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/T_SSP-U2_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP-U2_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-1P8_SSP_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P8_SSP_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-5P0_SSP_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_SSP_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-2P5_SSP_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-2P5_SSP_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-1P0_SSP-A_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P0_SSP-A_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-1P0_SSP-B_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P0_SSP-B_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-3P3_SSP_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_SSP_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-3P3_SSP-LVDS_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_SSP-LVDS_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/V-3P3_SSP-FANOUT_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_SSP-FANOUT_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHD-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHD-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHC-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHC-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHB-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHB-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHA-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHA-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3B-PKT-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3B-PKT-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2B-PKT-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2B-PKT-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1B-PKT-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1B-PKT-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3A-PKT-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3A-PKT-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2A-PKT-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2A-PKT-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1A-PKT-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1A-PKT-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3B-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3B-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2B-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2B-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1B-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1B-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF3A-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF3A-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF2A-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF2A-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STF1A-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STF1A-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/DT-YEAR_SSP-BFPQ_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-YEAR_SSP-BFPQ_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/DT-MONTH_SSP-BFPQ_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-MONTH_SSP-BFPQ_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/DT-DAY_SSP-BFPQ_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-DAY_SSP-BFPQ_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STTLM-MANT-CFG-EN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STTLM-MANT-CFG-EN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STMANT-CHKSUM-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STMANT-CHKSUM-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STMANT-CFG-DONE_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STMANT-CFG-DONE_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/VER_SSP-BFPQ_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VER_SSP-BFPQ_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STFILTER-D-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STFILTER-D-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STFILTER-C-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STFILTER-C-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STSIF-TX1-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STSIF-TX1-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STSIF-TX0-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STSIF-TX0-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHD-DATA-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHD-DATA-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHC-DATA-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHC-DATA-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHB-DATA-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHB-DATA-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHA-DATA-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHA-DATA-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHD-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHD-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHC-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHC-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHB-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHB-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHA-HDR-FIFO-ERR_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHA-HDR-FIFO-ERR_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHD-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHD-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHC-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHC-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHB-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHB-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-H/STCHA-MGT-DOWN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">STCHA-MGT-DOWN_H from SSP-H DRT header </annotation>
+          </integer>
+          <!-- End of  Sub-commutated_telemetry SSP-H -->
+          <!-- Need to add /science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SSP-V -->
+          <!-- Sub-commutated_telemetry SIF-H -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/DT-YEAR_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-YEAR_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/DT-DAY_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-DAY_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-1P0_SIF-MGT_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P0_SIF-MGT_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-1P2_SIF-MGT_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P2_SIF-MGT_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/DT-MONTH_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-MONTH_SIF_H  from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-2P5_SIF-TLK_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-2P5_SIF-TLK_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-VREF-2P5_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-VREF-2P5_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-1P0_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P0_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-2P5_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-2P5_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-3P3_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/V-5P0_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/ST_SIF_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_SIF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/T_SIF-1_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SIF-1_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/T_SIF-2_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SIF-2_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/ST_PRF_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_PRF_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/CP_PLAYBACK-URGENCY_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_PLAYBACK-URGENCY_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/ST_OBS-ID_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_OBS-ID_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/CP_CLOSE-FILE_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_CLOSE-FILE_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/CP_HDR-ONLY_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_HDR-ONLY_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/T_SIF-V5_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SIF-V5_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/CP_FIRST-RANGELINE-NUMBER_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_FIRST-RANGELINE-NUMBER_H from SIF-H DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-H/CP_DOWNLINK-STATION_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DOWNLINK-STATION_H from SIF-H DRT header </annotation>
+          </integer>   
+          <!-- End of  Sub-commutated_telemetry SIF-H -->
+          <!-- Need to add /science/LSAR/RRSD/Sub-commutated_telemetry/DRT/SIF-V -->
+          <!-- Sub-commutated_telemetry CTB -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/T_CTB-PCI-RTAX"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_CTB-PCI-RTAX from CTB DRT header </annotation>
+          </integer> 
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/T_CTB-BACKEND-RTAX"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_CTB-BACKEND-RTAX from CTB DRT header </annotation>
+          </integer> 
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/V-2P5_CTB-REF"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-2P5_CTB-REF from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/V-1P5_CTB"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-1P5_CTB from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_CTB-DMA1"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_CTB-DMA1 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_CTB-DMA2"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_CTB-DMA2 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_CTB-DMA3"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_CTB-DMA3 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_CTB-DMA4"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_CTB-DMA4 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_CTB-DMA5"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_CTB-DMA5 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_WAVEGEN-CTRL_H"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WAVEGEN-CTRL_H from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_WAVEGEN-CTRL_V"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WAVEGEN-CTRL_V from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/DT-LRCLK_LAST-CMD"
+              shape="scalar"
+              signed="false"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-LRCLK_LAST-CMD from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/DT-LRCLK_GPS-PPS"
+              shape="scalar"
+              signed="false"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-LRCLK_GPS-PPS from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_BASE-PRI"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_BASE-PRI from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DITHER-SEQ-LEN"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DITHER-SEQ-LEN from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_NEXT-COMMAND-PRF"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_NEXT-COMMAND-PRF from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/DT-LRCLK_DATATAKE"
+              shape="scalar"
+              signed="false"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-LRCLK_DATATAKE from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-SSP-V"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-SSP-V from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-QFSP_V1"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-QFSP_V1 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-QFSP_V2"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-QFSP_V2 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-QFSP_H2"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-QFSP_H2 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-QFSP_H1"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-QFSP_H1 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-SSP-H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-SSP-H from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_WG-V-ENABLE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WG-V-ENABLE from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-QFSP_V0"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-QFSP_V0 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_FS-R-ENABLE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_FS-R-ENABLE from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_WG-H-ENABLE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_WG-H-ENABLE from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_DSPPCU-EN-QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_DSPPCU-EN-QFSP_H0 from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_FS-P-ENABLE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_FS-P-ENABLE from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_GBP-WIDTH"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_GBP-WIDTH from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_LSAR-MODE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_LSAR-MODE from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_LSAR-POWER-STATE"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_LSAR-POWER-STATE from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_CTB-TLM-ADC-EN"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_CTB-TLM-ADC-EN from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_CTB-LRCLK-HOLD"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_CTB-LRCLK-HOLD from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_CTB-DITHER-EN"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_CTB-DITHER-EN from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_CTB-TIMING-EN"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_CTB-TIMING-EN from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_CTB-PPS-EN"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_CTB-PPS-EN from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_SIF-CFG-DONE_V"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_SIF-CFG-DONE_V from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_SSP-CFG-DONE_V"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_SSP-CFG-DONE_V from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_SIF-CFG-DONE_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_SIF-CFG-DONE_H from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/ST_SSP-CFG-DONE_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_SSP-CFG-DONE_H from CTB DRT header </annotation>
+          </integer>\
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_SIF-EN_V"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_SIF-EN_V from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_SSP-EN_V"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_SSP-EN_V from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_SIF-EN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_SIF-EN_V from CTB DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/CTB/CP_SSP-EN_H"
+              shape="scalar"
+              signed="false"
+              width="8">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_SSP-EN_V from CTB DRT header </annotation>
+          </integer>
+          <!-- End of Sub-commutated_telemetry CTB -->
+          <!--Sub-commutated_telemetry GPS  -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/DT-GPS_GPS-SOL"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-GPS_GPS-SOL from GPS DRT header </annotation>
+          </integer>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-SOL-CONFIDENCE"
+              shape="scalar"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-SOL-CONFIDENCE from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-SOL-PRECISION"
+              shape="scalar"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-SOL-PRECISION from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-POS-X"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-POS-X from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-POS-y"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-POS-y from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-POS-Z"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-POS-Z from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-TIME-OFFSET"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-TIME-OFFSET from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-VEL-X"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-VEL-X from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-VEL-y"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-VEL-y from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/ST_GPS-VEL-Z"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_GPS-VEL-Z from GPS DRT header</annotation>
+          </real>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/GPS/DT-GPS_GPS-PPS"
+              shape="scalar"
+              signed="false"
+              width="32">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-GPS_GPS-PPS from GPS DRT header </annotation>
+          </integer>
+          <!-- End of Sub-commutated_telemetry GPS  -->
+          <!-- Sub-commutated_telemetry IFSW -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/DT-PDS_LAST-CMD"
+              shape="scalar"
+              signed="false"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-PDS_LAST-CMD from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/ST_IFSW-LAST-PDS-CMD"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-LAST-PDS-CMD from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/ST_IFSW-PDS-CMD-COUNT"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-PDS-CMD-COUNT from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/ST_IFSW-READBACK-ERRORS"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-READBACK-ERRORS from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/ST_IFSW-CUR-ROST-RECORD-COUNT"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-CUR-ROST-RECORD-COUNT from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/ST_IFSW-CUR-ROST-RECORD-INDEX"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-CUR-ROST-RECORD-INDEX from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/ST_IFSW-STATUS"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-STATUS from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/ST_IFSW-ERROR-CODE"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_IFSW-ERROR-CODE from IFSW DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/IFSW/VER_IFSW"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VER_IFSW from IFSW DRT header </annotation>
+          </integer>
+          <!-- End of Sub-commutated_telemetry IFSW -->
+          <!-- Sub-commutated_telemetry PDS -->
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/VX"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VX from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/VY"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VY from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/VZ"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">VZ from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/S"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">S from GPS DRT header</annotation>
+          </real>
+          <real name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/DT-PDS_SC-ATTITUDE"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">DT-PDS_SC-ATTITUDE from GPS DRT header</annotation>
+          </real>
+          <!-- End of Sub-commutated_telemetry PDS -->
+          <!-- Sub-commutated_telemetry HKT -->
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/ST_HKT-STATUS"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">ST_HKT-STATUS from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/CP_INTEGRATION-NUMBER"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_INTEGRATION-NUMBER from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/CP_SETTLING-TIME"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">CP_SETTLING-TIME from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_HKT-CR1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_HKT-CR1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP_H0 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_QFSP_H1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP_H1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_QFSP_H2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP_H2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_SSP_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-HINGE-DAMPER-1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-HINGE-DAMPER-1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-HINGE-DAMPER-2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-HINGE-DAMPER-2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RBEPCU_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RBEPCU_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_FS_P"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_FS_P from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_UCD_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_UCD_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_DSPPCU-1_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_DSPPCU-1_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_SPARE-1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SPARE-1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-HINGE-DAMPER-3"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-HINGE-DAMPER-3 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAD750-PWB"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAD750-PWB from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAD750-CPU"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAD750-CPU from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_NVM"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_NVM from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_HKT-CR2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_HKT-CR2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_QFSP_V0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP_V0 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_QFSP_V1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP_V1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_QFSP_V2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_QFSP_V2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_SSP_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SSP_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_DSPPCU-2_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_DSPPCU-2_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_WG_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_WG_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RBEPCU_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RBEPCU_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_FS_R"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_FS_R from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_UCD_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_UCD_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_DSPPCU-1_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_DSPPCU-1_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_SPARE-2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SPARE-2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_SPARE-3"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SPARE-3 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-GND_HKT"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-GND_HKT from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_DSPPCU-2_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_DSPPCU-2_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_WG_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_WG_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_SPARE-4"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_SPARE-4 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-HINGE-DAMPER-4"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-HINGE-DAMPER-4 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-LR5M"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-LR5M from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-LR2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-LR2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-LR2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-LR2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RAB-RAR-IF"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RAB-RAR-IF from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RICPCU-1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RICPCU-1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/T_RICPCU-2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">T_RICPCU-2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-15P0_RBEPCU-FS_P"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-15P0_RBEPCU-FS_P from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-12P0_RBEPCU-FS_P"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-12P0_RBEPCU-FS_P from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_ RBEPCU-FS_P"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_ RBEPCU-FS_P from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_WG-UCD_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_WG-UCD_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-PG_RBEPCU_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_RBEPCU_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/P_FS-10_P"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">P_FS-10_P from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-SSP_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-SSP_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-QFSP_H0 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_DSPPCU-QFSP_H0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_DSPPCU-QFSP_H0 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-QFSP_H1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-QFSP_H1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_DSPPCU-QFSP_H1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_DSPPCU-QFSP_H1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-PG_DSPPCU_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_DSPPCU_H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-PG_DSPPCU_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_DSPPCU_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-SPARE-1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-SPARE-1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-QFSP_H2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-QFSP_H2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-15P0_RBEPCU-FS_R"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-15P0_RBEPCU-FS_R from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-12P0_RBEPCU-FS_R"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-12P0_RBEPCU-FS_R from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_RBEPCU-FS_R"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_RBEPCU-FS_R from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_WG-UCD_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_WG-UCD_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-PG_RBEPCU_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-PG_RBEPCU_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/P_FS-10_R"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">P_FS-10_R from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-SSP_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-SSP_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-QFSP_V0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-QFSP_V0 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_DSPPCU-QFSP_V0"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_DSPPCU-QFSP_V0 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-QFSP_V1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-QFSP_V1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_DSPPCU-QFSP_V1"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_DSPPCU-QFSP_V1 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_DSPPCU-QFSP_V2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_DSPPCU-QFSP_V2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_DSPPCU-QFSP_V2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_DSPPCU-QFSP_V2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-7P0_DSPPCU-QFSP_H2"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-7P0_DSPPCU-QFSP_H2 from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-3P3_WG_H"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_WG _H from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-3P3_WG_V"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_WG_V from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-3P3_RICPCU"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-3P3_RICPCU from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-5P0_RICPCU"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-5P0_RICPCU from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-12P0_RICPCU"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-12P0_RICPCU from HKT DRT header </annotation>
+          </integer>
+          <integer name="/science/LSAR/RRSD/Sub-commutated_telemetry/DRT/HKT/V-M12P0_RICPCU"
+              shape="scalar"
+              signed="false"
+              width="16">
+              <annotation app="conformance"
+                  lang="en"
+                  units="unitless">V-M12P0_RICPCU from HKT DRT header </annotation>
+          </integer>
+          <!-- End of Sub-commutated_telemetry HKT --> 
+         
+          <!-- End of Sub-commutated_telemetry, HST + DRT-->
  
-        <!-- QFSP DRT -->
-        <!-- H-receive-->
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Time"
-              shape="QFSPLength"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/ADCDelay"
-              shape="QFSPShape"
-              width="64">
-            <annotation app="conformance"
-                        lang="en"
-                        units="seconds">ADC channel delays from Bypass Cal</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/DBFAngleOffset"
-              shape="QFSPShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">DBF Angle Offsets</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/ADCPower"
-              shape="QFSPShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="watts">Power at ADC</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/RFFilterTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">TRM RF Filter Temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/AAFilterTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">TRM Anti-Aliasing Filter Temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/FrapTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">FRAP temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/CRTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Calibration resistor temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/HPATemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">HPA temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/CirculatorTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">TRM Circulator Temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/PowerGoodVoltages"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Power Good Voltages for TRMs</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage3P3"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 3.3V Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage3P3CD1"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 3.3V CD1 Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage2P5"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 2.5V Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage1P2MGT"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 1.2V MGT Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/Voltage1P0"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 1.0V Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/GroundVoltage"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Ground Voltage</annotation>
-        </real>
-        <integer name="/science/LSAR/RSD/telemetry/txH/rxH/QFSP/StatusFlags"
-                 shape="QFSPStatusShape"
-                 signed="false"
-                 width="8">
-          <annotation app="conformance"
-                      lang="en">QFSP Status Flags</annotation>
-        </integer>
-
-        <!-- V-Receive -->
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Time"
-              shape="QFSPLength"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/ADCDelay"
-              shape="QFSPShape"
-              width="64">
-            <annotation app="conformance"
-                        lang="en"
-                        units="seconds">ADC channel delays from Bypass Cal</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/DBFAngleOffset"
-              shape="QFSPShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">DBF Angle Offsets</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/ADCPower"
-              shape="QFSPShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="watts">Power at ADC</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/RFFilterTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">TRM RF Filter Temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/AAFilterTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">TRM Anti-Aliasing Filter Temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/FrapTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">FRAP temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/CRTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Calibration resistor temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/HPATemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">HPA temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/CirculatorTemperatures"
-              shape="QFSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">TRM Circulator Temperatures</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/PowerGoodVoltages"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Power Good Voltages for TRMs</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage3P3"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 3.3V Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage3P3CD1"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 3.3V CD1 Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage2P5"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 2.5V Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage1P2MGT"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 1.2V MGT Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/Voltage1P0"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Voltage of 1.0V Power Rail</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/GroundVoltage"
-              shape="QFSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Ground Voltage</annotation>
-        </real>
-        <integer name="/science/LSAR/RSD/telemetry/txH/rxV/QFSP/StatusFlags"
-                 shape="QFSPStatusShape"
-                 signed="false"
-                 width="8">
-          <annotation app="conformance"
-                      lang="en">QFSP Status Flags</annotation>
-        </integer>
-        <!-- End of QFSP -->
-
-        <!-- SSP DRT -->
-        <!-- H-Receive -->
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/Time"
-              shape="SSPLength"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/Temperatures"
-              shape="SSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">SSP Temperature Readings</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/Voltages"
-              shape="SSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">SSP Voltage Readings</annotation>
-        </real>
-        <integer name="/science/LSAR/RSD/telemetry/txH/rxH/SSP/StatusFlags"
-                 shape="SSPStatusShape"
-                 signed="false"
-                 width="8">
-          <annotation app="conformance"
-                      lang="en">SSP Status Flags</annotation>
-        </integer>
-        <!-- V-Receive -->
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/Time"
-              shape="SSPLength"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="seconds since yyyy-mm-dd">Time tags for QFSP telemetry entries</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/Temperatures"
-              shape="SSPTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">SSP Temperature Readings</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/Voltages"
-              shape="SSPVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="volts">SSP Voltage Readings</annotation>
-        </real>
-        <integer name="/science/LSAR/RSD/telemetry/txH/rxV/SSP/StatusFlags"
-                 shape="SSPStatusShape"
-                 signed="false"
-                 width="8">
-          <annotation app="conformance"
-                      lang="en">SSP Status Flags</annotation>
-        </integer>
-        <!-- End of SSP DRT -->
-
-        <!-- SIF DRT -->
-        <!-- H-Receive -->
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/Time"
-              shape="SIFLength"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="seconds since yyyy-mm-dd">Time tags for SIF telemetry entries</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/Voltages"
-              shape="SIFVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="volts">Different voltage measurements</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/Temperatures"
-              shape="SIFTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="degrees">Different temperature measurments</annotation>
-        </real>
-        <integer name="/science/LSAR/RSD/telemetry/txH/rxH/SIF/StatusFlags"
-                 shape="SIFStatusShape"
-                 signed="false"
-                 width="8">
-          <annotation app="conformance"
-                      lang="en">SIF Status Flags</annotation>
-        </integer>
-
-        <!-- V-Receive -->
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/Time"
-              shape="SIFLength"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="seconds since yyyy-mm-dd">Time tags for SIF telemetry entries</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/Voltages"
-              shape="SIFVoltageShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="volts">Different voltage measurements</annotation>
-        </real>
-        <real name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/Temperatures"
-              shape="SIFTemperatureShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="volts">Different temperature measurments</annotation>
-        </real>
-        <integer name="/science/LSAR/RSD/telemetry/txH/rxV/SIF/StatusFlags"
-                 shape="SSPStatusShape"
-                 signed="false"
-                 width="8">
-          <annotation app="conformance"
-                      lang="en">SIF Status Flags</annotation>
-        </integer>
-        <!-- End of SIF DRT-->
-
-
-        <!-- V polarization transmit -->
-        <!-- End of V polarization transmit-->
-
-        <!-- R polarization transmit -->
-        <!-- End of R polariaztion transmit-->
-
-
         <!-- Versions of various algorithm modules used -->
         <string length="27"
-                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/internalCalibration"
+                name="/science/LSAR/RRSD/metadata/processingInformation/algorithms/internalCalibration"
                 shape="scalar">
           <annotation algorithm_type="pre-processing"
                       app="conformance"
@@ -823,7 +3900,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/rangeReferenceFunctionGenerator"
+                name="/science/LSAR/RRSD/metadata/processingInformation/algorithms/rangeReferenceFunctionGenerator"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -833,41 +3910,31 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/driftCompensator"
+            name="/science/LSAR/RRSD/metadata/processingInformation/algorithms/appliedAlgorithm"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
                       lang="en"
-                      name="drift compensation generator"
-                      software_ID="x"
-                      version="x"></annotation>
-        </string>
-        <string length="27"
-                name="/science/LSAR/RSD/metadata/processingInformation/algorithms/rangeCompression"
-                shape="scalar">
-          <annotation algorithm_type="range processing"
-                      app="conformance"
-                      lang="en"
-                      name="range compression"
+                      name="applied Algorithm"
                       software_ID="x"
                       version="x"></annotation>
         </string>
 
         <!-- List of inputs -->
         <string length="0"
-                name="/science/LSAR/RSD/metadata/processingInformation/inputs/l0aGranules"
+                name="/science/LSAR/RRSD/metadata/processingInformation/inputs/l0aGranules"
                 shape="numberOfInputL0AFiles">
           <annotation app="conformance"
                       lang="en">List of input L0A products used</annotation>
         </string>
         <string length="0"
-                name="/science/LSAR/RSD/metadata/processingInformation/inputs/auxcalFiles"
+                name="/science/LSAR/RRSD/metadata/processingInformation/inputs/auxcalFiles"
                 shape="numberOfInputAuxcalFiles">
           <annotation app="conformance"
                       lang="en">List of input calibration files used</annotation>
         </string>
         <string length="0"
-                name="/science/LSAR/RSD/metadata/processingInformation/inputs/configFiles"
+                name="/science/LSAR/RRSD/metadata/processingInformation/inputs/configFiles"
                 shape="numberOfInputConfigFiles">
           <annotation app="conformance"
                       lang="en">List of input config files used</annotation>
@@ -917,6 +3984,13 @@
                        lang="en">Number of range lines in datasets</annotation>
            <dimension extent="0"
                       name="alongTrackTimeLength"/>
+    </shape>
+        <shape name="HSTDRTLength"
+            order="slowest...fastest">
+            <annotation app="conformance"
+                lang="en">Number of the HST/DRT frames under sub-commuted telemetry inside SIF Header for each rangeline</annotation>
+            <dimension extent="0"
+                name="HSTDRTLength"/>
     </shape>
 
     <!-- Frequency A related shapes -->

@@ -1,3 +1,5 @@
+from quality import logging_base
+
 import h5py
 
 import os
@@ -5,18 +7,20 @@ import sys
 
 class HdfGroup(object):
 
-    def __init__(self, hfile, name, group_name):
+    def __init__(self, hfile, name, group_name, logger):
 
         self.name = name
         self.group_name = group_name
         self.hfile = hfile
         self.hdf_group = hfile[group_name]
+        self.logger = logger
 
         self.file_list = []
         self.missing = []
 
         self.default_band = "LSAR"
-        print("Initializing HDF Group %s with %s" % (name, group_name))
+        self.logger.log_message(logging_base.LogFilterInfo, \
+                                "Initializing HDF Group %s with %s" % (name, group_name))
 
     def get(self, name):
 
@@ -29,7 +33,8 @@ class HdfGroup(object):
     def get_dataset_list(self, xml_tree, band):
 
         self.dset_list = [d.get("name") for d in xml_tree.iter() if ("name" in d.keys())]
-        self.dset_list = [d.replace("%s/" % self.group_name, "") for d in self.dset_list if (d.startswith(self.group_name))]
+        self.dset_list = [d.replace("%s/" % self.group_name, "") for d in self.dset_list \
+                          if (d.startswith(self.group_name))]
 
         if (band != self.default_band):
             self.dset_list = [d.replace(self.default_band, band) for d in self.dset_list]

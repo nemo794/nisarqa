@@ -1,4 +1,4 @@
-from quality import errors_derived
+from quality import errors_derived, logging_base
 from quality import utility
 
 from matplotlib import cm, colorbar, pyplot, ticker
@@ -9,6 +9,7 @@ from scipy import constants, fftpack
 from skimage import measure
 
 import copy
+import logging
 import traceback
 
 class GUNWAbstractImage(object):
@@ -30,28 +31,48 @@ class GUNWAbstractImage(object):
         self.idx_sorted_region_size = {}
         self.idx_sorted_region_id = {}
 
+        self.region_debug = []
+        self.region_error_list = []
+
     def read(self, handle_img, handle_coords, xstep=1, ystep=1):
 
         self.handle_img = handle_img
         self.handle_coords = handle_coords
         self.has_coords = True
+        self.is_empty = False
+        self.missing_datasets = []
+        
         try:
             self.xcoord = handle_coords["xCoordinates"][...]
             self.ycoord = handle_coords["yCoordinates"][...]
             assert(self.xcoord.ndim == 1)
-            assert(self.ycoord.ndim == 1)
-        except (KeyError, AssertionError):
+            assert(self.ycoord.ndim == 1)            
+        except KeyError:
             self.has_coords = False
-        
+        except AssertionError:
+            self.wrong_shape_coords = False
+
+        dname_tmp = None
         for dname in self.data_names.keys():
-            xdata = handle_img[dname][::xstep, ::ystep]
-            setattr(self, self.data_names[dname], xdata)
-            
-        xdata0 = getattr(self, list(self.data_names.values())[0])
+            try:
+                xdata = handle_img[dname][::xstep, ::ystep]
+            except KeyError:
+                self.missing_datasets.append(dname)
+            else:
+                dname_tmp = self.data_names[dname]
+                setattr(self, self.data_names[dname], xdata)
+
+        if (dname_tmp is None):
+            self.is_empty = True
+            return
+                
+        xdata0 = getattr(self, dname_tmp)
         self.wrong_shape_inconsistent = []
         self.wrong_shape_coords = []
 
         for dname in self.data_names.keys():
+            if (dname in self.missing_datasets):
+                continue
             xdata = getattr(self, self.data_names[dname])
             if (xdata.shape != xdata0.shape):
                 self.wrong_shape_inconsistent.append(dname)
@@ -209,7 +230,6 @@ class GUNWAbstractImage(object):
         region_id = []
         data_id = []
         num = []
-        self.region_error_list = []
 
         for r in np.unique(region_in):
             mask = np.where(region_in == r, True, False)
@@ -224,11 +244,9 @@ class GUNWAbstractImage(object):
             num_id = mask.sum()
             num.append(num_id)
             region_id.append(data_id[0])
-            print("Region id %i has %i population and unique values of %s" \
-                  % (r, num_id, data_id))
+            self.region_debug += ["Region id %i has %i population and unique values of %s" \
+                                  % (r, num_id, data_id)]
 
-        assert(len(self.region_error_list) == 0)
-            
         num_array = np.array(num)
         id_array = np.array(region_id).astype(np.int32)
         self.region_size[region_key] = (id_array, num_array)
@@ -250,8 +268,8 @@ class GUNWAbstractImage(object):
         regions = measure.label(data, connectivity=2)
         self.region_map = np.copy(regions)
 
-        print("Unique data values %s, Unique regions %s" \
-              % (np.unique(data), np.unique(regions)))
+        self.region_debug += ["Unique data values %s, Unique regions %s" \
+                              % (np.unique(data), np.unique(regions))]
     
     def find_regions_broken(self, dname):
 

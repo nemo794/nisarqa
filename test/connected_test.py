@@ -1,6 +1,6 @@
 from quality.GUNWFile import GUNWFile
 from quality.GUNWGridImage import GUNWGridImage
-from quality import errors_base, errors_derived, utility
+from quality import errors_base, errors_derived, logging_base, utility
 
 import h5py
 import numpy
@@ -9,6 +9,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as pyplot
 from matplotlib.backends.backend_pdf import PdfPages
+from testfixtures import LogCapture
 
 import os, os.path
 import sys
@@ -22,13 +23,19 @@ class NISARFile_test(unittest.TestCase):
 
     def setUp(self):
         self.gunw_xml_tree = ET.parse(os.path.join(self.XML_DIR, "nisar_L2_GUNW.xml"))
+        self.lcapture = LogCapture()
+        self.logger = logging_base.NISARLogger("junk.log")
+
+    def tearDown(self):
+        self.logger.close()
+        self.lcapture.uninstall()
         
     def test_frequency(self):
 
         # Re-open file and calculate power vs. frequency
 
         self.gunw_file = GUNWFile(os.path.join(self.TEST_DIR, "gunw_connected.h5"), \
-                                  xml_tree=self.gunw_xml_tree, mode="r")
+                                  self.logger, xml_tree=self.gunw_xml_tree, mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "connected_out.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "connected_out.pdf"))
         
@@ -97,8 +104,8 @@ class NISARFile_test(unittest.TestCase):
         # Open hdf summary file and verify connectness results
 
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "connected_out.h5"), "r")
-        handle_hh = fhdf["gunw_connected/LSAR/ImageAttributes/Grid: LSAR A HH"]
-        handle_vv = fhdf["gunw_connected/LSAR/ImageAttributes/Grid: LSAR A VV"]
+        handle_hh = fhdf["gunw_connected/LSAR/ImageAttributes/Grid: (LSAR A HH)"]
+        handle_vv = fhdf["gunw_connected/LSAR/ImageAttributes/Grid: (LSAR A VV)"]
         nonzero_hh = handle_hh["pcnt_nonzero_connected (connectedComponents)"]
         nonzero_vv = handle_vv["pcnt_nonzero_connected (connectedComponents)"]
 
@@ -118,8 +125,6 @@ class NISARFile_test(unittest.TestCase):
         id_found = handle_hh["region_value (connectedComponents_non_contiguous)"][...]
         size_found = handle_hh["region_size (connectedComponents_non_contiguous)"][...]
 
-        print("Noncontig: id_expect %s, id_found %s" % (id_expect_noncontig, id_found))
-        
         self.assertTrue(len(id_expect_noncontig) == len(id_found))
         self.assertTrue(len(size_expect_noncontig) == len(size_found))
         self.assertTrue(numpy.all(id_expect_noncontig == id_found))

@@ -1,10 +1,7 @@
-from quality import errors_base
-from quality import errors_derived
 from quality.HdfGroup import HdfGroup
 from quality.NISARFile import NISARFile
-from quality import params
 from quality.SLCImage import SLCImage
-from quality import utility
+from quality import errors_base, errors_derived, logging_base, params, utility
 
 import h5py
 from matplotlib import cm, pyplot, ticker
@@ -22,13 +19,9 @@ import traceback
 
 class GSLCFile(NISARFile):
 
-    def __init__(self, flname, xml_tree=None, mode="r"):
-        self.flname = os.path.basename(flname)
-        h5py.File.__init__(self, flname, mode)
-        print("Opening file %s" % flname)
+    def __init__(self, flname, logger, xml_tree=None, mode="r"):
+        NISARFile.__init__(self, flname, logger, xml_tree=xml_tree, mode=mode)
 
-        self.xml_tree = xml_tree
-        
         self.bands = []
         self.SWATHS = {}
         self.METADATA = {}
@@ -40,6 +33,7 @@ class GSLCFile(NISARFile):
 
         self.ftype_list = ("SLC", "RSLC")
         self.product_type = "SLC"
+        self.polarizations_possible = ("HH", "HV", "VH", "VV", "RH", "RV")
         self.polarization_list = params.GSLC_POLARIZATION_LIST
         self.polarization_groups = params.GSLC_POLARIZATION_GROUPS
         self.identification_list = params.SLC_ID_PARAMS
@@ -48,7 +42,9 @@ class GSLCFile(NISARFile):
         self.metadata_path = "/science/%s/GSLC/metadata"
         self.identification_path = "/science/%s/identification/"
 
-        self.get_start_time()        
+        self.get_start_time()
+
+        self.logger.log_message(logging_base.LogFilterInfo, "Created file %s" % flname)
 
     def get_slant_range(self, band, frequency):
 
@@ -59,17 +55,16 @@ class GSLCFile(NISARFile):
             
     def get_bands(self):
 
-        traceback_string = []
-        error_string = []
+        errors_found = False
         
         for band in ("LSAR", "SSAR"):
             try:
                 xband = self["/science/%s" % band]
             except KeyError:
-                print("%s not present" % band)
+                self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
                 pass
             else:
-                print("Found band %s" % band)
+                self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
                 self.bands.append(band)
 
                 # Create HdfGroups.
@@ -83,18 +78,13 @@ class GSLCFile(NISARFile):
                         gname2 = gname % band
                         group = self[gname2]
                     except KeyError as e:
-                        traceback_string += [utility.get_traceback(e, KeyError)]
-                        error_string += ["%s does not exist" % gname2]
+                        errors_found = True
+                        self.logger.log_message(logging_base.LogFilterError, \
+                                                "%s does not exist" % gname2)
                     else:
-                        xdict[band] = HdfGroup(self, dict_name, gname2)
+                        xdict[band] = HdfGroup(self, dict_name, gname2, self.logger)
 
-        # Raise any errors
-                        
-        assert(len(traceback_string) == len(error_string))
-        if (len(error_string) > 0):
-            raise errors_derived.MissingDatasetFatal(self.flname, self.start_time[self.bands[0]], \
-                                                     traceback_string, error_string)
-
+        return errors_found
 
     def create_images(self, time_step=1, range_step=1):
 
@@ -128,8 +118,10 @@ class GSLCFile(NISARFile):
                         self.images[key] = SLCImage(b, f, p, freq["%s %s" % (b, f)][...], \
                                                     srange["%s %s" % (b, f)][...])
                         self.images[key].read(self.FREQUENCIES[b], time_step=time_step, range_step=range_step)
-                        print("%s image %s %s %s has shape %s" % (os.path.abspath(self.filename), b, f, p, \
-                                                                  self.images[key].xdata.shape))
+                        self.logger.log_message(logging_base.LogFilterDebug, \
+                                                "%s image %s %s %s has shape %s" \
+                                                % (os.path.abspath(self.filename), b, f, p, \
+                                                   self.images[key].xdata.shape))
                     except KeyError:
                         missing_images.append(key)
                         
@@ -140,11 +132,14 @@ class GSLCFile(NISARFile):
             traceback_string = [utility.get_traceback(e, AssertionError)]
             error_string = ""
             if (len(missing_images) > 0):
-                error_string += "Missing %i images: %s" % (len(missing_images), missing_images)
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Missing %i images: %s" % (len(missing_images), missing_images))
             if (len(missing_params) > 0):
-                error_string += "Could not initialize %i images: %s" % (len(missing_params), missing_params)
-            raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
-                                                   [error_string])
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Could not initialize %i images: %s" \
+                                        % (len(missing_params), missing_params))
+            #raise errors_derived.ArrayMissingFatal(self.flname, self.start_time[b], traceback_string, \
+            #                                       [error_string])
                 
 
     def check_images(self, fpdf, fhdf):
@@ -169,7 +164,8 @@ class GSLCFile(NISARFile):
         sums_linear = {}
         sums_power = {}
 
-        print("Found %i images: %s" % (len(self.images.keys()), self.images.keys()))
+        self.logger.log_message(logging_base.LogFilterInfo, \
+                                "Found %i images: %s" % (len(self.images.keys()), self.images.keys()))
         for key in self.images.keys():
 
             # Histogram with huge number of bins to find out where the bounds of the real
@@ -194,7 +190,7 @@ class GSLCFile(NISARFile):
 
         for (i, key) in enumerate(sums_linear.keys()):
 
-            #print("Looking at %i-th image: %s" % (i, key))
+            self.logger.log_message(logging_base.LogFilterInfo, "Looking at %i-th image: %s" % (i, key))
             (counts, edges) = np.histogram(sums_linear[key], bins=1000)
             if (i == 0):
                 counts_linear = np.copy(counts)
@@ -210,7 +206,7 @@ class GSLCFile(NISARFile):
                 counts_power += counts
 
         bounds_linear = utility.hist_bounds(counts_linear, edges_linear)
-        #print("bounds_linear %s" % bounds_linear)
+        self.logger.log_message(logging_base.LogFilterDebug, "bounds_linear %s" % bounds_linear)
                 
         # Generate figures
         
@@ -315,7 +311,8 @@ class GSLCFile(NISARFile):
                 
             # Write histogram summaries to an hdf5 file
             
-            print("File %s mode %s" % (fhdf.filename, fhdf.mode))
+            self.logger.log_message(logging_base.LogFilterInfo, \
+                                    "Opening File %s in mode %s" % (fhdf.filename, fhdf.mode))
             fname_in = os.path.basename(self.filename)
             extension = fname_in.split(".")[-1]
             groups[b] = fhdf.create_group("%s/%s/ImageAttributes" % (fname_in.replace(".%s" % extension, ""), b))
@@ -355,19 +352,20 @@ class GSLCFile(NISARFile):
                 assert(ximg.shape == (ydim.size, xdim.size))
             except KeyError:
                 continue
-            except AssertionError as e:
-                size_traceback += [utility.get_traceback(e, AssertionError)]
-                size_error += ["Dataset %s has shape %s, expected (%i, %i)" \
-                               % (key, ximg.shape, ydim.size, xdim.size)]
+            except AssertionError as e:                
+                #size_traceback += [utility.get_traceback(e, AssertionError)]
+                self.logger.log_message(logging_base.LogFilterError, \
+                                        "Dataset %s has shape %s, expected (%i, %i)" \
+                                        % (key, ximg.shape, ydim.size, xdim.size))
 
         # Raise array-size errors if appropriate
                 
-        assert(len(size_error) == len(size_traceback))
-        try:
-            assert(len(size_error) == 0)
-        except AssertionError as e:
-            raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], size_traceback, \
-                                                size_error)
+        #assert(len(size_error) == len(size_traceback))
+        #try:
+        #    assert(len(size_error) == 0)
+        #except AssertionError as e:
+        #    raise errors_derived.ArraySizeFatal(self.flname, self.start_time[b], size_traceback, \
+        #                                        size_error)
 
         return
         
@@ -382,8 +380,7 @@ class GSLCFile(NISARFile):
                     continue
 
                 utility.check_spacing(self.flname, self.start_time[b], slant_path[...], spacing[...], \
-                                      "%s %s SlantPath" % (b, f), errors_derived.SlantSpacingWarning, \
-                                      errors_derived.SlantSpacingFatal)
+                                      "%s %s SlantPath" % (b, f), self.logger)
 
     def junk_check_subswaths_bounds(self):
 
@@ -400,10 +397,10 @@ class GSLCFile(NISARFile):
                     try:
                         sub_bounds = self.FREQUENCIES[b][f]["validSamplesSubSwath%i" % (isub+1)][...]
                     except KeyError as e:
-                        traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.MissingSubswathWarning(self.flname, self.start_time[b], traceback_string, \
-                                                                    ["%s Frequency%s had missing SubSwath%i bounds" \
-                                                                     % (b, f, isub)])
+                        #traceback_string = [utility.get_traceback(e, KeyError)]
+                        self.logger.log_message(logging_base.LogFilterWarning, 
+                                                "%s Frequency%s had missing SubSwath%i bounds" \
+                                                % (b, f, isub))
 
                     try:
                         nslantrange = self.FREQUENCIES[b][f]["slantRange"].size
@@ -413,10 +410,10 @@ class GSLCFile(NISARFile):
                     except KeyError:
                         continue
                     except AssertionError as e:
-                        traceback_string = [utility.get_traceback(e, KeyError)]
-                        raise errors_derived.BoundsSubswathWarning(self.flname, self.start_time[b], traceback_string, \
-                                                                   ["%s Frequency%s with nSlantRange %i had invalid SubSwath bounds" \
-                                                                    % (b, f, nslantrange)])
+                        #traceback_string = [utility.get_traceback(e, KeyError)]
+                        self.logger.log_message(logging_base.LogFilterWarning, 
+                                                "%s Frequency%s with nSlantRange %i had invalid SubSwath bounds" \
+                                                % (b, f, nslantrange))
                
 
                

@@ -1,3 +1,4 @@
+from quality import logging_base
 from quality import params
 
 import numpy as np
@@ -57,32 +58,30 @@ def get_traceback(error, error_type):
     
     return traceback_string
 
-def check_spacing(flname, start_time, data, spacing, dname, warning, fatal):
+def check_spacing(flname, start_time, data, spacing, dname):
     
     data_shift = np.roll(data, 1)
     delta = data[1:] - data_shift[1:]
     diff = np.abs(delta-spacing)
-    log_string = ""
+    error_string = []
     
     try:
         assert(np.all(delta > 0.0))
     except AssertionError as e:
         idx = np.where(delta <= 0.0)
         traceback_string = [get_traceback(e, AssertionError)]
-        log_string = ["%s: Found %i elements with negative spacing: %s at locations %s" \
-                     % (dname, len(idx[0]), data[idx], idx)]
-        raise fatal(flname, start_time, traceback_string, log_string)
+        error_string += ["%s: Found %i elements with negative spacing: %s at locations %s" \
+                         % (dname, len(idx[0]), data[idx], idx)]
         
     try:
         assert(np.all(diff <= params.EPS))
     except AssertionError as e:
         idx = np.where(diff > params.EPS)
         traceback_string = [get_traceback(e, AssertionError)]
-        log_string = ["%s: Found %i elements with unexpected steps: %s at locations %s" \
-                       % (dname, len(idx[0]), diff[idx], idx)]
-        raise warning(flname, start_time, traceback_string, log_string)
+        error_string += ["%s: Found %i elements with unexpected steps: %s at locations %s" \
+                         % (dname, len(idx[0]), diff[idx], idx)]
 
-    return log_string
+    return error_string
 
 def round(num):
 

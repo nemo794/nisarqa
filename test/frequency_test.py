@@ -1,6 +1,6 @@
 from quality.SLCFile import SLCFile
 from quality.SLCImage import SLCImage
-from quality import errors_base, errors_derived, utility
+from quality import errors_base, errors_derived, logging_base, utility
 
 import h5py
 import numpy
@@ -9,23 +9,33 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as pyplot
 from matplotlib.backends.backend_pdf import PdfPages
+from testfixtures import LogCapture
 
 import os, os.path
 import sys
 import unittest
+import xml.etree.ElementTree as ET
 
 class SLCFile_test(unittest.TestCase):
 
     TEST_DIR = "test_data"
+    XML_DIR = "xml"
 
     def setUp(self):
-        pass
+        self.rslc_xml_tree = ET.parse(os.path.join(self.XML_DIR, "nisar_L1_SLC.xml"))
+        self.lcapture = LogCapture()
+        self.logger = logging_base.NISARLogger("junk.log")
+
+    def tearDown(self):
+        self.logger.close()
+        self.lcapture.uninstall()
         
     def test_frequency(self):
 
         # Re-open file and calculate power vs. frequency
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "frequency1.h5"), mode="r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_frequency1.h5"), \
+                                self.logger, xml_tree=self.rslc_xml_tree, mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "frequency1_out.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "frequency1_out.pdf"))
         
@@ -33,10 +43,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
-        try:
-            self.slc_file.check_nans()
-        except errors_base.WarningError:
-            pass
+        self.slc_file.check_nans()
         self.slc_file.check_images(fpdf, fhdf)
 
         self.slc_file.close()
@@ -63,7 +70,8 @@ class SLCFile_test(unittest.TestCase):
 
         # Re-open file and calculate power and phase
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase1.h5"), mode="r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_power_phase1.h5"), \
+                                self.logger, xml_tree=self.rslc_xml_tree, mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out1.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out1.pdf"))
         
@@ -71,10 +79,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
-        try:
-            self.slc_file.check_nans()
-        except errors_base.WarningError:
-            pass
+        self.slc_file.check_nans()
         self.slc_file.check_images(fpdf, fhdf)
 
         self.slc_file.close()
@@ -101,7 +106,8 @@ class SLCFile_test(unittest.TestCase):
 
         # Re-open file and calculate power and phase
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase2.h5"), mode="r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_power_phase2.h5"), \
+                                self.logger, xml_tree=self.rslc_xml_tree, mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out2.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out2.pdf"))
         
@@ -109,10 +115,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
-        try:
-            self.slc_file.check_nans()
-        except errors_base.WarningError:
-            pass
+        self.slc_file.check_nans()
         self.slc_file.check_images(fpdf, fhdf)
 
         self.slc_file.close()
@@ -138,7 +141,8 @@ class SLCFile_test(unittest.TestCase):
 
         # Re-open file and calculate power and phase
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "power_phase3.h5"), mode="r")
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_power_phase3.h5"), \
+                                self.logger, xml_tree=self.rslc_xml_tree, mode="r")
         fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out3.h5"), "w")
         fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out3.pdf"))
         
@@ -146,10 +150,7 @@ class SLCFile_test(unittest.TestCase):
         self.slc_file.get_freq_pol()
         self.slc_file.check_freq_pol("LSAR", [self.slc_file.SWATHS], [self.slc_file.FREQUENCIES], [""])
         self.slc_file.create_images()
-        try:
-            self.slc_file.check_nans()
-        except errors_base.WarningError:
-            pass
+        self.slc_file.check_nans()
         self.slc_file.check_images(fpdf, fhdf)
 
         self.slc_file.close()

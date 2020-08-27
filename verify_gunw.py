@@ -1,10 +1,12 @@
 from quality import check_time
 from quality import errors_base
 from quality import errors_derived
+from quality import logging_base
 from quality.LogError import LogError
 from quality.GUNWFile import GUNWFile
 from quality import utility
 
+import logging
 import optparse
 import os, os.path
 import pathlib
@@ -40,7 +42,7 @@ if __name__ == "__main__":
        ("fhdf" not in kwds.keys()):
         (kwds, args) = utility.parse_yaml(kwds, args)
     
-
+    logger = logging_base.NISARLogger(kwds["flog"])
     time1 = time.time()
     
     if (kwds["quality"]):
@@ -49,32 +51,34 @@ if __name__ == "__main__":
         fpdf_out = PdfPages(kwds["fpdf"])
 
     xml_tree = None
-    if (kwds["validate"]):
-        flog = LogError(kwds["flog"])
-        flog.make_header(args)
+    xml_path = os.path.realpath(pathlib.Path(__file__))
+    xml_path = os.path.join(pathlib.Path(xml_path).parent, kwds["xml_dir"], kwds["xml_file"])
 
-        xml_path = os.path.realpath(pathlib.Path(__file__))
-        xml_path = os.path.join(pathlib.Path(xml_path).parent, kwds["xml_dir"], kwds["xml_file"])
-        print("Looking for xml file %s" % xml_path)
+    try:
         assert(os.path.exists(xml_path))
-        xml_tree = ET.parse(xml_path)
-        
-    for slc_file in args:
-
-        #errors_base.WarningError.reset(errors_base.WarningError)
-        #errors_base.FatalError.reset(errors_base.FatalError)
-        
-        fhdf = GUNWFile(slc_file, xml_tree=xml_tree, mode="r")
-        
+    except AssertionError:
+        logger.log_message(logging_base.LogFilterError, "XML file %s does not exist" % xml_path)
+        logger.close()
+        sys.exit(1)
+    else:
         try:
-            fhdf.get_bands()
-        except errors_base.FatalError:
-            print("File %s has a Fatal Error" % slc_file)
-            fhdf.close()
-            if (kwds["validate"]):
-                flog.print_file_logs(os.path.basename(slc_file))
+            xml_tree = ET.parse(xml_path)
+        except:
+            logger.log_message(logging_base.LogFilterError, \
+                               "Could not parse XML file %s" % xml_path)
+            sys.exit(1)
+        else:
+            logger.log_message(logging_base.LogFilterInfo, \
+                               "Successfully parsed XML file %s" % xml_path)
+        
+    for gunw_file in args:
+        
+        fhdf = GUNWFile(gunw_file, logger, xml_tree=xml_tree, mode="r")
+        if (not fhdf.is_open):
             continue
 
+        file_bad = False
+        fhdf.get_bands()
         fhdf.get_freq_pol()
         for b in fhdf.bands:
             if (fhdf.has_swath[b]):
@@ -86,95 +90,40 @@ if __name__ == "__main__":
                 fgroups2 = [fhdf.FREQUENCIES_GRID]
                 fnames2 = ["Grids"]
         
-            try:
-                fhdf.check_freq_pol(b, fgroups1, fgroups2, fnames2)
-            except errors_base.FatalError:
-                print("File %s has a Fatal Error" % slc_file)
+            errors = fhdf.check_freq_pol(b, fgroups1, fgroups2, fnames2)
+            if (len(errors) > 0):
+                file_bad = True
                 fhdf.close()
-                if (kwds["validate"]):
-                    flog.print_file_logs(os.path.basename(slc_file))
-                    sys.exit(1)
-                    continue
+                logger.log_message(logging_base.LogFilterError, "File %s has a Fatal Error" % gunw_file)
+                fhdf.close()
+                break
+
+        if (file_bad):
+            continue
                 
-
         if (kwds["validate"]):
-            try:
-                fhdf.find_missing_datasets()
-            except errors_base.WarningError:
-                pass
-
-        # Verify identification information
-
-        if (kwds["validate"]):
-            try:
-                fhdf.check_identification()
-            except errors_base.WarningError:
-                pass
-
-        # Verify frequencies and polarizations
-
-        if (kwds["validate"]):
+            fhdf.find_missing_datasets()
+            fhdf.check_identification()
             for band in fhdf.bands:
-                try:
-                    fhdf.check_frequencies(band, fhdf.FREQUENCIES_GRID[band])
-                except errors_base.WarningError:
-                    pass
-
+                fhdf.check_frequencies(band, fhdf.FREQUENCIES_GRID[band])
                 if (fhdf.has_swath[b]):
-                    try:
-                        fhdf.check_frequencies(band, fhdf.FREQUENCIES_SWATH[band])
-                    except errors_base.WarningError:
-                        pass
-            
-        # Verify time tags
+                    fhdf.check_frequencies(band, fhdf.FREQUENCIES_SWATH[band])
 
-        #if (kwds["validate"]):
-        #    try:
-        #        fhdf.check_time()
-        #    except (errors_base.WarningError, errors_base.FatalError):
-        #        pass
-    
-        # Verify slant path tags
+            # Not sure if these are needed for GUNW files
+            #fhdf.check_time()
+            #fhdf.check_slant_range()
+            #fhdf.check_subswaths_bounds()
 
-        #if (kwds["validate"]):
-        #    try:
-        #        fhdf.check_slant_range()
-        #    except (errors_base.WarningError, errors_base.FatalError):
-        #        pass
-
-        # Verify SubSwath boundaries
-
-        #if (kwds["validate"]):
-        #    try:
-        #        fhdf.check_subswaths_bounds()
-        #    except errors_base.WarningError:
-        #        pass
-    
         # Check for NaN's and plot images
 
         if (kwds["quality"]):
-
-            try:
-                fhdf.create_images(xstep=kwds["xstep"], ystep=kwds["ystep"])
-            except errors_base.FatalError:
-                pass
-            else:
-                try:
-                    fhdf.check_nans()
-                except (errors_base.WarningError, errors_base.FatalError):
-                    pass
-                
-                try:
-                    fhdf.check_images(fpdf_out, fhdf_out)
-                except (errors_base.WarningError, errors_base.FatalError):
-                    pass
+            fhdf.create_images(xstep=kwds["xstep"], ystep=kwds["ystep"])
+            fhdf.check_nans()
+            fhdf.check_images(fpdf_out, fhdf_out)
     
         # Close files
 
         fhdf.close()
-        if (kwds["validate"]):
-            flog.print_file_logs(os.path.basename(slc_file))
-            #flog.print_error_matrix(os.path.basename(slc_file))
 
     # Close pdf file
 
@@ -185,8 +134,8 @@ if __name__ == "__main__":
                                        
     
     time2 = time.time()
-    print("Runtime = %i seconds" % (time2-time1))
-        
+    logger.log_message(logging_base.LogFilterInfo, "Runtime = %i seconds" % (time2-time1))
+    logger.close()
 
         
         

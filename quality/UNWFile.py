@@ -24,10 +24,8 @@ import traceback
 
 class UNWFile(NISARFile):
 
-    def __init__(self, flname, xml_tree=None, mode="r"):
-        self.flname = os.path.basename(flname)
-        h5py.File.__init__(self, flname, mode)
-        print("Opening file %s" % flname)
+    def __init__(self, flname, logger, xml_tree=None, mode="r"):
+        NISARFile.__init__(self, flname, logger, xml_tree=xml_tree, mode=mode)
 
         self.xml_tree = xml_tree
         

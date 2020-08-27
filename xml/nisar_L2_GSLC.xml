@@ -268,13 +268,6 @@
                       lang="en"
                       units="Hz">Processed range bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/GSLC/grids/frequencyB/rangeBandwidth"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz">Acquisition range bandwidth in Hz. In case of mode combination, this corresponds to mode with lowest bandwidth.</annotation>
-        </real>
         <real name="/science/LSAR/GSLC/grids/frequencyB/azimuthBandwidth"
               shape="scalar"
               width="64">

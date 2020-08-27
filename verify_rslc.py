@@ -1,6 +1,7 @@
 from quality import check_time
 from quality import errors_base
 from quality import errors_derived
+from quality import logging_base
 from quality.LogError import LogError
 from quality.SLCFile import SLCFile
 from quality import utility
@@ -40,6 +41,7 @@ if __name__ == "__main__":
        ("fhdf" not in kwds.keys()):
         (kwds, args) = utility.parse_yaml(kwds, args)
 
+    logger = logging_base.NISARLogger(kwds["flog"])
     time1 = time.time()
     
     if (kwds["quality"]):
@@ -48,117 +50,129 @@ if __name__ == "__main__":
         fpdf_out = PdfPages(kwds["fpdf"])
 
     xml_tree = None
-    if (kwds["validate"]):
-        flog = LogError(kwds["flog"])
-        flog.make_header(args)
-
     xml_path = os.path.realpath(pathlib.Path(__file__))
     xml_path = os.path.join(pathlib.Path(xml_path).parent, kwds["xml_dir"], kwds["xml_file"])
-    print("Looking for xml file %s" % xml_path)
-    assert(os.path.exists(xml_path))
-    xml_tree = ET.parse(xml_path)
+
+    try:
+        assert(os.path.exists(xml_path))
+    except AssertionError:
+        logger.log_message(logging_base.LogFilterError, "XML file %s does not exist" % xml_path)
+        logger.close()
+        sys.exit(1)
+    else:
+        try:
+            xml_tree = ET.parse(xml_path)
+        except:
+            logger.log_message(logging_base.LogFilterError, \
+                               "Could not parse XML file %s" % xml_path)
+            sys.exit(1)
+        else:
+            logger.log_message(logging_base.LogFilterInfo, \
+                               "Successfully parsed XML file %s" % xml_path)
         
     for slc_file in args:
 
-        #errors_base.WarningError.reset(errors_base.WarningError)
-        #errors_base.FatalError.reset(errors_base.FatalError)
-
-        print("Opening file %s with xml spec %s" % (slc_file, xml_path))
-        fhdf = SLCFile(slc_file, xml_tree=xml_tree, mode="r")
+        logger.log_message(logging_base.LogFilterInfo, \
+                           "Opening file %s with xml spec %s" % (slc_file, xml_path))
+        fhdf = SLCFile(slc_file, logger, xml_tree=xml_tree, mode="r")
+        if (not fhdf.is_open):
+            continue
         
+        fhdf.get_start_time()
+        
+        errors_found = fhdf.get_bands()
         try:
-            fhdf.get_bands()
-        except errors_base.FatalError:
-            print("File %s has a Fatal Error" % slc_file)
+            assert(not errors_found)
+        except AssertionError:
+            logger.log_message(logging_base.LogFilterError, \
+                               "File %s has a Fatal Error(s): %s" % (slc_file, errors))
             fhdf.close()
-            if (kwds["validate"]):
-                flog.print_file_logs(os.path.basename(slc_file))
             continue
 
         fhdf.get_freq_pol()
-            
-        try:
-            for band in fhdf.bands:
-                fhdf.check_freq_pol(band, [fhdf.SWATHS], [fhdf.FREQUENCIES], [""])
-        except errors_base.FatalError:
-            print("File %s has a Fatal Error" % slc_file)
-            fhdf.close()
-            if (kwds["validate"]):
-                flog.print_file_logs(os.path.basename(slc_file))
-            continue
+        for band in fhdf.bands:
+            errors = fhdf.check_freq_pol(band, [fhdf.SWATHS], [fhdf.FREQUENCIES], [""])            
+            if (len(errors) > 0):
+                logger.log_message(logging_base.LogFilterError, \
+                                   "File %s has a Fatal Error(s): %s" % (slc_file, errors))
+                fhdf.close()
+                continue
              
         if (kwds["validate"]):
-            try:
-                fhdf.find_missing_datasets()
-            except errors_base.WarningError:
-                pass
+            fhdf.find_missing_datasets([fhdf.SWATHS], [fhdf.FREQUENCIES])
+            fhdf.check_identification()
+            for band in fhdf.bands:
+                fhdf.check_frequencies(band, fhdf.FREQUENCIES[band])
+            fhdf.check_time()
+            fhdf.check_slant_range()
+            fhdf.check_subswaths_bounds()
 
         # Verify identification information
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_identification()
-            except errors_base.WarningError:
-                pass
+        #if (kwds["validate"]):
+            #fhdf.check_identification()
+            #for band in fhdf.bands:
+                
+            #try:
+            #    assert(len(errors) == 0)
+            #except AssertionError:
+            #    logger.log_message(logging_base.LogFilterWarning, "%s" % errors)
 
         # Verify frequencies and polarizations
 
-        if (kwds["validate"]):
-            try:
-                for band in fhdf.bands:
-                    fhdf.check_frequencies(band, fhdf.FREQUENCIES[band])
-            except errors_base.WarningError:
-                pass
+        #if (kwds["validate"]):
+            #errors = []
+            #for band in fhdf.bands:
+            #    xerrors = fhdf.check_frequencies(band, fhdf.FREQUENCIES[band])
+            #try:
+            #    assert(len(errors) == 0)
+            #except AssertionError:
+            #    logger.log_message(logging_base.LogFilterWarning, "%s" % errors)
 
             
         # Verify time tags
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_time()
-            except (errors_base.WarningError, errors_base.FatalError):
-                pass
+        #if (kwds["validate"]):
+            #try:
+            #fhdf.check_time()
+            #except (errors_base.WarningError, errors_base.FatalError):
+            #    pass
     
         # Verify slant path tags
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_slant_range()
-            except (errors_base.WarningError, errors_base.FatalError):
-                pass
+        #if (kwds["validate"]):
+            #(errors_fatal, errors_warning) = fhdf.check_slant_range()
+            #try:
+            #    assert(len(errors_fatal) == 0)               
+            #except AssertionError:
+            #    logger.log_message(logging_base.LogFilterError, "%s" % errors_fatal)
+            #else:
+            #    try:
+            #        assert(len(errors_warning) == 0)
+            #    except AssertionError:
+            #        logger.log_message(logging_base.LogFilterWarning, "%s" % errors_warning)
 
         # Verify SubSwath boundaries
 
-        if (kwds["validate"]):
-            try:
-                fhdf.check_subswaths_bounds()
-            except errors_base.WarningError:
-                pass
+        #if (kwds["validate"]):
+            #errors = fhdf.check_subswaths_bounds()
+            #try:
+            #    assert(len(errors) == 0)
+            #except AssertionError:
+            #    logger.log_message(logging_base.LogFilterWarning, "%s" % errors)
     
         # Check for NaN's and plot images
 
         if (kwds["quality"]):
+            fhdf.create_images(time_step=kwds["time_step"], range_step=kwds["range_step"])
+            fhdf.check_nans()
+            fhdf.check_images(fpdf_out, fhdf_out)
 
-            try:
-                fhdf.create_images(time_step=kwds["time_step"], range_step=kwds["range_step"])
-            except errors_base.FatalError:
-                pass
-            else:
-                try:
-                    fhdf.check_nans()
-                except (errors_base.WarningError, errors_base.FatalError):
-                    pass
-                
-                try:
-                    fhdf.check_images(fpdf_out, fhdf_out)
-                except (errors_base.WarningError, errors_base.FatalError):
-                    pass
-    
         # Close files
 
         fhdf.close()
-        if (kwds["validate"]):
-            flog.print_file_logs(os.path.basename(slc_file))
+        #if (kwds["validate"]):
+            #flog.print_file_logs(os.path.basename(slc_file))
             #flog.print_error_matrix(os.path.basename(slc_file))
 
     # Close pdf file
@@ -170,7 +184,8 @@ if __name__ == "__main__":
                                        
     
     time2 = time.time()
-    print("Runtime = %i seconds" % (time2-time1))
+    logger.log_message(logging_base.LogFilterInfo, "Runtime = %i seconds" % (time2-time1))
+    logger.close()
         
 
         
