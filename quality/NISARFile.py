@@ -36,7 +36,6 @@ class NISARFile(h5py.File):
             self.is_open = True
 
         self.xml_tree = xml_tree
-        print("xml_tree: %s" % self.xml_tree)
         
         self.bands = []
         self.SWATHS = {}
@@ -526,8 +525,6 @@ class NISARFile(h5py.File):
             freq = {}
             try:
                 for f in list(flist.keys()):
-                    print("flist type: %s %s" % (type(flist[f]), flist[f].name))
-                    print("flist keys2: %s" % flist[f].keys())
                     xfreq = flist[f].get(freq_name, default=None)
                     assert(xfreq is not None)
                     freq[f] = xfreq[...]

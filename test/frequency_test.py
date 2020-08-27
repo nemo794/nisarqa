@@ -36,8 +36,8 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_frequency1.h5"), \
                                 self.logger, xml_tree=self.rslc_xml_tree, mode="r")
-        fhdf = h5py.File(os.path.join(self.TEST_DIR, "frequency1_out.h5"), "w")
-        fpdf = PdfPages(os.path.join(self.TEST_DIR, "frequency1_out.pdf"))
+        fhdf = h5py.File(os.path.join(self.TEST_DIR, "rslc_frequency1_out.h5"), "w")
+        fpdf = PdfPages(os.path.join(self.TEST_DIR, "rslc_frequency1_out.pdf"))
         
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
@@ -53,8 +53,8 @@ class SLCFile_test(unittest.TestCase):
         # Open hdf summary file and verify frequencies
 
         summary_file = h5py.File(os.path.join(self.TEST_DIR, "frequency1_out.h5"), "r")
-        power = summary_file["/frequency1/LSAR/ImageAttributes/LSAR A HH/Average Power"][...]
-        frequency = summary_file["/frequency1/LSAR/ImageAttributes/LSAR A HH/FFT Spacing"][...] 
+        power = summary_file["/rslc_frequency1/LSAR/ImageAttributes/LSAR A HH/Average Power"][...]
+        frequency = summary_file["/rslc_frequency1/LSAR/ImageAttributes/LSAR A HH/FFT Spacing"][...] 
         summary_file.close()
         
         max_power = power.max()
@@ -72,8 +72,8 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_power_phase1.h5"), \
                                 self.logger, xml_tree=self.rslc_xml_tree, mode="r")
-        fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out1.h5"), "w")
-        fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out1.pdf"))
+        fhdf = h5py.File(os.path.join(self.TEST_DIR, "rslc_power_phase_out1.h5"), "w")
+        fpdf = PdfPages(os.path.join(self.TEST_DIR, "rslc_power_phase_out1.pdf"))
         
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
@@ -86,11 +86,11 @@ class SLCFile_test(unittest.TestCase):
         fhdf.close()
         fpdf.close()
         
-        summary_file = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out1.h5"), "r")
-        mean_power = summary_file["/power_phase1/LSAR/ImageAttributes/LSAR A HH/MeanPower"][...]
-        sdev_power = summary_file["/power_phase1/LSAR/ImageAttributes/LSAR A HH/SDevPower"][...] 
-        mean_phase = summary_file["/power_phase1/LSAR/ImageAttributes/LSAR A HH/MeanPhase"][...]
-        sdev_phase = summary_file["/power_phase1/LSAR/ImageAttributes/LSAR A HH/SDevPhase"][...] 
+        summary_file = h5py.File(os.path.join(self.TEST_DIR, "rslc_power_phase_out1.h5"), "r")
+        mean_power = summary_file["/rslc_power_phase1/LSAR/ImageAttributes/LSAR A HH/MeanPower"][...]
+        sdev_power = summary_file["/rslc_power_phase1/LSAR/ImageAttributes/LSAR A HH/SDevPower"][...] 
+        mean_phase = summary_file["/rslc_power_phase1/LSAR/ImageAttributes/LSAR A HH/MeanPhase"][...]
+        sdev_phase = summary_file["/rslc_power_phase1/LSAR/ImageAttributes/LSAR A HH/SDevPhase"][...] 
         summary_file.close()
         
         array_power = numpy.array((5.0, 20.0, 11.25, 20.0))
@@ -108,8 +108,8 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_power_phase2.h5"), \
                                 self.logger, xml_tree=self.rslc_xml_tree, mode="r")
-        fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out2.h5"), "w")
-        fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out2.pdf"))
+        fhdf = h5py.File(os.path.join(self.TEST_DIR, "rslc_power_phase_out2.h5"), "w")
+        fpdf = PdfPages(os.path.join(self.TEST_DIR, "rslc_power_phase_out2.pdf"))
         
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
@@ -122,11 +122,11 @@ class SLCFile_test(unittest.TestCase):
         fhdf.close()
         fpdf.close()
         
-        summary_file = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out2.h5"), "r")
-        mean_power = summary_file["/power_phase2/LSAR/ImageAttributes/LSAR A HH/MeanPower"][...]
-        sdev_power = summary_file["/power_phase2/LSAR/ImageAttributes/LSAR A HH/SDevPower"][...] 
-        mean_phase = summary_file["/power_phase2/LSAR/ImageAttributes/LSAR A HH/MeanPhase"][...]
-        sdev_phase = summary_file["/power_phase2/LSAR/ImageAttributes/LSAR A HH/SDevPhase"][...] 
+        summary_file = h5py.File(os.path.join(self.TEST_DIR, "rslc_power_phase_out2.h5"), "r")
+        mean_power = summary_file["/rslc_power_phase2/LSAR/ImageAttributes/LSAR A HH/MeanPower"][...]
+        sdev_power = summary_file["/rslc_power_phase2/LSAR/ImageAttributes/LSAR A HH/SDevPower"][...] 
+        mean_phase = summary_file["/rslc_power_phase2/LSAR/ImageAttributes/LSAR A HH/MeanPhase"][...]
+        sdev_phase = summary_file["/rslc_power_phase2/LSAR/ImageAttributes/LSAR A HH/SDevPhase"][...] 
         summary_file.close()
         
         array_power = 10.0*numpy.log10((11.25, 5.0))
@@ -143,8 +143,8 @@ class SLCFile_test(unittest.TestCase):
 
         self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_power_phase3.h5"), \
                                 self.logger, xml_tree=self.rslc_xml_tree, mode="r")
-        fhdf = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out3.h5"), "w")
-        fpdf = PdfPages(os.path.join(self.TEST_DIR, "power_phase_out3.pdf"))
+        fhdf = h5py.File(os.path.join(self.TEST_DIR, "rslc_power_phase_out3.h5"), "w")
+        fpdf = PdfPages(os.path.join(self.TEST_DIR, "rslc_power_phase_out3.pdf"))
         
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
@@ -157,11 +157,11 @@ class SLCFile_test(unittest.TestCase):
         fhdf.close()
         fpdf.close()
         
-        summary_file = h5py.File(os.path.join(self.TEST_DIR, "power_phase_out3.h5"), "r")
-        mean_power = summary_file["/power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/MeanPower"][...]
-        sdev_power = summary_file["/power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/SDevPower"][...] 
-        mean_phase = summary_file["/power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/MeanPhase"][...]
-        sdev_phase = summary_file["/power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/SDevPhase"][...] 
+        summary_file = h5py.File(os.path.join(self.TEST_DIR, "rslc_power_phase_out3.h5"), "r")
+        mean_power = summary_file["/rslc_power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/MeanPower"][...]
+        sdev_power = summary_file["/rslc_power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/SDevPower"][...] 
+        mean_phase = summary_file["/rslc_power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/MeanPhase"][...]
+        sdev_phase = summary_file["/rslc_power_phase3/LSAR/ImageAttributes/LSAR A HH-HV/SDevPhase"][...] 
         summary_file.close()
 
         cnumber = (1.0+2.0j)*(10.0-20.0j)

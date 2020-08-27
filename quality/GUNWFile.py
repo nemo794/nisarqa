@@ -161,7 +161,6 @@ class GUNWFile(NISARFile):
                                            (self.polarizations_grid, self.polarizations_swath), \
                                            (self.GRIDS, self.SWATHS) ):
 
-                print("%s has_swath: %s" % (b, self.has_swath))
                 if (not self.has_swath[b]) and (group is self.SWATHS):
                     continue
                 
@@ -179,12 +178,9 @@ class GUNWFile(NISARFile):
                         for p in self.polarization_list:
                             try:
                                 p2 = freq[b][f]["interferogram/%s" % p]
-                                print("%s %s looking for polarization %s" % (b, f, p))
                             except KeyError:
-                                print("%s %s No polarization %s found" % (b, f, p))
                                 pass
                             else:
-                                print("%s %s Found polarization %s" % (b, f, p))
                                 pol[b][f].append(p)
 
 
@@ -219,7 +215,6 @@ class GUNWFile(NISARFile):
 
                     self.logger.log_message(logging_base.LogFilterInfo, "Looking at %s %s" % (b, f))
                     try:
-                        print("freq type %s" % type(freq[b][f]))
                         subswaths = freq[b][f]["numberOfSubSwaths"]
                     except KeyError:
                         nsubswaths = 0
@@ -235,8 +230,6 @@ class GUNWFile(NISARFile):
                         if (f in freq[b].keys()) and (p not in found_polarizations):
                             #print("Skipping %s frequency %s %s" % (b, f, p))
                             no_look[name].append("frequency%s/%s" % (f, p))
-
-            print("%s: no_look=%s" % (b, no_look))
 
             self.GRIDS[b].verify_dataset_list(no_look=no_look["Grid"])
             self.METADATA[b].verify_dataset_list(no_look=no_look["Grid"])
@@ -305,7 +298,7 @@ class GUNWFile(NISARFile):
                         
         for b in self.bands:
             for f in self.FREQUENCIES_GRID[b].keys():
-                print("%s Frequency%s has polarizations %s" % (b, f, self.polarizations_grid[b][f]))
+                #print("%s Frequency%s has polarizations %s" % (b, f, self.polarizations_grid[b][f]))
                 fgroup = "/science/%s/GUNW/grids/frequency%s/interferogram" % (b, f)
                 ogroup = fgroup.replace("interferogram", "pixelOffsets")
 
@@ -349,7 +342,6 @@ class GUNWFile(NISARFile):
         
         for key in self.grid_images.keys():
             (b, f, p) = key.replace("(", "").replace(")", "").split()
-            print("Reading image: %s" % key)
             name1 = "/science/%s/GUNW/grids/frequency%s/interferogram/%s" % (b, f, p)
             name2 = "/science/%s/GUNW/grids/frequency%s" % (b, f)
             self.logger.log_message(logging_base.LogFilterInfo, "Reading grid: %s" \
@@ -435,7 +427,6 @@ class GUNWFile(NISARFile):
 
         # Write histogram summaries to an hdf5 file
             
-        print("File %s mode %s" % (fhdf.filename, fhdf.mode))
         groups = {}
         fname_in = os.path.basename(self.filename)
         extension = fname_in.split(".")[-1]

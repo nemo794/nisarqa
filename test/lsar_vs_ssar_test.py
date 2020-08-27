@@ -25,7 +25,7 @@ class SLCFile_test(unittest.TestCase):
         
     def test_different_orbit(self):
 
-        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "lsar_vs_ssar.h5"), \
+        self.slc_file = SLCFile(os.path.join(self.TEST_DIR, "rslc_lsar_vs_ssar.h5"), \
                                 self.logger, xml_tree=self.rslc_xml_tree, mode="r")
         self.slc_file.get_bands()
         self.slc_file.get_freq_pol()
