@@ -1,4 +1,4 @@
-from quality.SLCFile import SLCFile
+texfrom quality.SLCFile import SLCFile
 from quality import errors_base, errors_derived, logging_base
 
 import h5py

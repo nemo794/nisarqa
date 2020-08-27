@@ -5,7 +5,9 @@ Quality Assurance software for NISAR
 Python 3.7
 numpy 1.17.2
 matplotlib 3.1.1
-h5py 2.9.0
+h5py 2.10.0
+testfixures
+scikit-image 0.17.2
 
 # Operating Instructions:
 
@@ -25,12 +27,16 @@ python verify_gslc.py –flog <textual log file of all errors encountered>
                        --fpdf <PDF file containing graphical summary> --validate --quality
                        <path to all GSLC files you want to validate, wildcards accepted>
 
+python verify_gunw.py –flog <textual log file of all errors encountered>
+                       --fhdf <HDF5 file containing a statistical summary>
+                       --fpdf <PDF file containing graphical summary> --validate --quality
+                       <path to all GUNW files you want to validate, wildcards accepted>
 
 Specifying the "--validate" flag instructs the code to check for all errors and output the <flog> file.
 Specifying the "--quality" flag instructs the code to produce the graphical <fpdf> and statistical <fhdf> files.
 One or both flags may be specified.
 
-The code only works on NISAR sample RSLC, GSLC and GCOV files.  Other file formats are not supported at this time.
+The code only works on NISAR sample RSLC, GSLC, GCOV and GUNW files.  Other file formats are not supported at this time.
 
 # Sample Files
 
