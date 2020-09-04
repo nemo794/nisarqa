@@ -261,7 +261,7 @@ class GUNWFile(NISARFile):
             try:
                 assert(len(xdict.missing) == 0)
             except AssertionError as e:
-                self.logger.log_message(logging_base.LogFilterError, \
+                self.logger.log_message(logging_base.LogFilterWarning, \
                                         "%s missing %i fields: %s" % (xdict.name, len(xdict.missing), \
                                                                       ":".join(xdict.missing)))
 
@@ -431,7 +431,7 @@ class GUNWFile(NISARFile):
             ximg = self.offset_images[key]
             ximg.calc()
             figures += ximg.plot("%s\n(%s Frequency%s Offset %s GUNW Histograms)" % (self.flname, b, f, p))
-            
+
         for fig in figures:
             fpdf.savefig(fig)
 

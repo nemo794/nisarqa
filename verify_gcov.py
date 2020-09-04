@@ -112,6 +112,7 @@ if __name__ == "__main__":
 
         if (kwds["quality"]):
             fhdf.create_images(time_step=kwds["time_step"], range_step=kwds["range_step"])
+            fhdf.check_images(fpdf_out, fhdf_out)
             fhdf.check_nans()
     
         # Close files

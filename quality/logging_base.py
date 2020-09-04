@@ -103,7 +103,7 @@ class LogFilterWarning(LogFilterAbstract):
         LogFilterAbstract.__init__(self)
         self.level = "warning"
         self.extra["error_code"] = 102000
-        self.extra["error_name"] = "Information"
+        self.extra["error_name"] = "Warning"
 
 class LogFilterError(LogFilterAbstract):
 

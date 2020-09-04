@@ -4,6 +4,7 @@ Quality Assurance software for NISAR
 
 Python 3.7
 numpy 1.17.2
+scipy 1.5.0
 matplotlib 3.1.1
 h5py 2.10.0
 testfixures

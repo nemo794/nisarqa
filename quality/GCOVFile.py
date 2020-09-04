@@ -302,6 +302,7 @@ class GCOVFile(NISARFile):
             (b, f, p) = key.split()
             ximg = self.images[key]
             try:
+                ximg.check_for_nan()
                 ximg.calc()
             except AssertionError as e:
                 traceback_string += [utility.get_traceback(e, AssertionError)]
