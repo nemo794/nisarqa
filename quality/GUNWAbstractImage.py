@@ -207,9 +207,6 @@ class GUNWAbstractImage(object):
             self.region_size[rkey] = (data_id[idx_sorted], rsize2)
             self.region_hist[rkey] = (edges[:-1], counts)
 
-            print("%s_%s_%s %s rsize %s, rsize2 %s" \
-                  % (self.band, self.frequency, self.polarization, rkey, rsize, rsize2))
-
         axes[0].set_xlabel("Data Value")
         axes[0].set_ylabel("Region size (percent of total)")
         axes[1].set_xlabel("Region size (percent of total)")

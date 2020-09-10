@@ -35,9 +35,9 @@ def parse_yaml(kwds, args):
     config = yaml.safe_load(fid_yaml)
     fid_yaml.close()
 
-    print("Read YAML configuration: %s" % config)
+    #print("Read YAML configuration: %s" % config)
     args = config["inputs"]["file_in"].split(",")
-    for group in ("inputs", "outputs", "operations", "reading"):
+    for group in ("inputs", "outputs", "operations"):
         for key in config[group].keys():
             kwds[key] = config[group][key]
 

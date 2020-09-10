@@ -1,6 +1,6 @@
 # Input RLSC file and XML information
 inputs:
-    file_in:  /Users/cmoroney/Desktop/working/NISAR/samples/heresh/gunw/L2_GeocodedUnwrapped.h5
+    file_in:  /Users/cmoroney/Desktop/working/NISAR/samples/brancato/GUNW_SanJoaquin_180720-180814.h5
     xml_file:  nisar_L2_GUNW.xml
     xml_dir:   xml
 
