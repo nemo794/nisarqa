@@ -217,7 +217,12 @@ class SLCImage(object):
         for irow in range(1, 2):  # don't plot real and imag images
             for icol in range(0, 2):
                 (xdata, xname) = images[(irow, icol)]
-                img = axes[icol].imshow(xdata, origin="upper", cmap=cm.gray)
+                if ("Power" in images[(irow, icol)][1]):
+                    xdata2 = self.scale_image(xdata)
+                    #print("Data %f to %f, Data2 %f to %f" % (xdata.min(), xdata.max(), xdata2.min(), xdata2.max()))
+                else:
+                    xdata2 = xdata
+                img = axes[icol].imshow(xdata2, origin="upper", cmap=cm.gray)
                 (caxis, kw) = colorbar.make_axes([axes[icol]], location="right")
                 fig.colorbar(img, cax=caxis, orientation="vertical")
                 axes[icol].set_title(xname)
@@ -225,6 +230,40 @@ class SLCImage(object):
         figures.append(fig)
 
         return figures
-        
 
+    def scale_image(self, data_in, percent=90.0, exp=0.5):
+
+        size = data_in.size
+        fraction = 0.5*(1.0 - percent/100.0)
+        imin = int (round (fraction * (size - 1)))
+        imax = int (round ((1.0 - fraction) * (size - 1)))
+
+        
+        #print("percent %f, fraction %f, imin %i, imax %i" \
+        #      % (percent, fraction, imin, imax))
+        
+        vmin = self.get_percent(data_in.flatten(), imin)
+        vmax = self.get_percent(data_in.flatten(), imax)
+
+        data_in2 = np.copy(data_in)
+        data_in2 = np.where(data_in2 < vmin, vmin, data_in2)
+        data_in2 = np.where(data_in2 > vmax, vmax, data_in2)
+
+        data_in2 = data_in2 - vmin
+        data_in2 = data_in2/(vmax-vmin)
+        data_in2 = data_in2**exp
+
+        mask_zero = np.where(data_in2 == 0.0, True, False)
+        data_in2 = data_in2 * 254
+        data_in2 = data_in2 + 1
+        data_in2 = np.where(mask_zero, 0, data_in2)
+
+        return data_in2
+
+    def get_percent(self, data_in, idx):
+
+        data = np.partition(data_in, idx)
+        return data[idx]
+
+    
         
