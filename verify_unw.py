@@ -165,7 +165,6 @@ if __name__ == "__main__":
     # Close pdf file
 
     if (kwds["quality"]):
-        print("Closing output files")
         fpdf_out.close()
         fhdf_out.close()
                                        

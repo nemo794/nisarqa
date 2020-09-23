@@ -72,6 +72,7 @@ if __name__ == "__main__":
                 logger.log_message(logging_base.LogFilterInfo, \
                                    "Successfully parsed XML file %s" % xml_path)
 
+    bad_files = []
     for gslc_file in args:
 
         logger.log_message(logging_base.LogFilterInfo, \
@@ -79,18 +80,18 @@ if __name__ == "__main__":
         fhdf = GSLCFile(gslc_file, logger, xml_tree=xml_tree, mode="r")
         if (not fhdf.is_open):
             continue
-        
+
+        file_bad = False
         fhdf.get_start_time()
         errors = fhdf.get_bands()
         try:
             assert(not errors)
         except AssertionError:
+            file_bad = True
+            bad_files.append(gslc_file)
             logger.log_message(logging_base.LogFilterError, \
                                "File %s has a Fatal Error" % gslc_file)
             fhdf.close()
-            logger.close()
-            sys.exit(1)
-             
 
         fhdf.get_freq_pol()
         for band in fhdf.bands:
@@ -98,11 +99,14 @@ if __name__ == "__main__":
             try:
                 assert(len(errors) == 0)
             except AssertionError:
+                file_bad = True
+                bad_files.append(gslc_file)
                 logger.log_message(logging_base.LogFilterError, \
                                    "File %s has a Fatal Error" % gslc_file)
                 fhdf.close()
-                logger.close()
-                sys.exit(1)
+
+        if (file_bad):
+            continue
              
         if (kwds["validate"]):
             fhdf.find_missing_datasets([fhdf.SWATHS], [fhdf.FREQUENCIES])
@@ -134,15 +138,18 @@ if __name__ == "__main__":
     # Close pdf file
 
     if (kwds["quality"]):
-        print("Closing output files")
         fpdf_out.close()
         fhdf_out.close()
     
     time2 = time.time()
     logger.log_message(logging_base.LogFilterInfo, "Runtime = %i seconds" % (time2-time1))
     logger.close()
-    
-        
+
+    if (len(bad_files) == 0):
+        print("Successful completion.")
+    else:
+        print("Fatal Error encountered in %i files: %s." \
+              % (len(bad_files), bad_files))
 
         
         

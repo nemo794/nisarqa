@@ -53,12 +53,14 @@ class SLCFile(NISARFile):
     def get_bands(self):
 
         found_errors = False
+        error_string = ""
         
         for band in ("LSAR", "SSAR"):
             try:
                 xband = self["/science/%s" % band]
             except KeyError:
-                self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
+                error_string = "%s not present" % band
+                self.logger.log_message(logging_base.LogFilterInfo, error_string)
                 pass
             else:
                 self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
@@ -93,7 +95,8 @@ class SLCFile(NISARFile):
                         found_errors = True
                         gname2 = gname % (band, dtype)
                         gname2 = gname2.replace("RSLC", "[SLC,RSLC]")
-                        self.logger.log_message(logging_base.LogFilterError, "%s does not exist" % gname2)
+                        error_string = "%s does not exist" % gname2
+                        self.logger.log_message(logging_base.LogFilterError, error_string)
 
                 # Check that both Swath and Metadata groups are either SLC or RLSC
                     
@@ -102,8 +105,8 @@ class SLCFile(NISARFile):
                     self.ftype = name_swath
                 except AssertionError as e:
                     found_errors = True
-                    self.logger.log_message(logging_base.LogFilterError, \
-                                            "Metadata and swath have inconsistent naming")
+                    error_string = "Metadata and swath have inconsistent naming"
+                    self.logger.log_message(logging_base.LogFilterError, error_string)
 
                 # Check that Identification group exists
                 
@@ -112,9 +115,10 @@ class SLCFile(NISARFile):
                                                          "/science/%s/identification/" % band, self.logger)
                 except KeyError as e:
                     found_errors = True
-                    self.logger.log_message(logging_base.LogFilterError, \
-                                            "File missing identification data for %s." % band)
+                    error_string = "File missing identification data for %s." % band
+                    self.logger.log_message(logging_base.LogFilterError, error_string)
 
+        return error_string
 
     def create_images(self, time_step=1, range_step=1):
 

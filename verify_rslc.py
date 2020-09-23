@@ -69,7 +69,8 @@ if __name__ == "__main__":
         else:
             logger.log_message(logging_base.LogFilterInfo, \
                                "Successfully parsed XML file %s" % xml_path)
-        
+
+    bad_files = []
     for slc_file in args:
 
         logger.log_message(logging_base.LogFilterInfo, \
@@ -79,11 +80,14 @@ if __name__ == "__main__":
             continue
         
         fhdf.get_start_time()
-        
-        errors_found = fhdf.get_bands()
+
+        file_bad = False
+        errors = fhdf.get_bands()
         try:
-            assert(not errors_found)
+            assert(len(errors) == 0)
         except AssertionError:
+            file_bad = True
+            bad_files.append(slc_file)
             logger.log_message(logging_base.LogFilterError, \
                                "File %s has a Fatal Error(s): %s" % (slc_file, errors))
             fhdf.close()
@@ -93,10 +97,15 @@ if __name__ == "__main__":
         for band in fhdf.bands:
             errors = fhdf.check_freq_pol(band, [fhdf.SWATHS], [fhdf.FREQUENCIES], [""])            
             if (len(errors) > 0):
+                file_bad = True
+                bad_files.append(slc_file)
                 logger.log_message(logging_base.LogFilterError, \
                                    "File %s has a Fatal Error(s): %s" % (slc_file, errors))
                 fhdf.close()
-                continue
+                break
+
+        if (file_bad):
+            continue
              
         if (kwds["validate"]):
             fhdf.find_missing_datasets([fhdf.SWATHS], [fhdf.FREQUENCIES])
@@ -107,60 +116,6 @@ if __name__ == "__main__":
             fhdf.check_slant_range()
             fhdf.check_subswaths_bounds()
 
-        # Verify identification information
-
-        #if (kwds["validate"]):
-            #fhdf.check_identification()
-            #for band in fhdf.bands:
-                
-            #try:
-            #    assert(len(errors) == 0)
-            #except AssertionError:
-            #    logger.log_message(logging_base.LogFilterWarning, "%s" % errors)
-
-        # Verify frequencies and polarizations
-
-        #if (kwds["validate"]):
-            #errors = []
-            #for band in fhdf.bands:
-            #    xerrors = fhdf.check_frequencies(band, fhdf.FREQUENCIES[band])
-            #try:
-            #    assert(len(errors) == 0)
-            #except AssertionError:
-            #    logger.log_message(logging_base.LogFilterWarning, "%s" % errors)
-
-            
-        # Verify time tags
-
-        #if (kwds["validate"]):
-            #try:
-            #fhdf.check_time()
-            #except (errors_base.WarningError, errors_base.FatalError):
-            #    pass
-    
-        # Verify slant path tags
-
-        #if (kwds["validate"]):
-            #(errors_fatal, errors_warning) = fhdf.check_slant_range()
-            #try:
-            #    assert(len(errors_fatal) == 0)               
-            #except AssertionError:
-            #    logger.log_message(logging_base.LogFilterError, "%s" % errors_fatal)
-            #else:
-            #    try:
-            #        assert(len(errors_warning) == 0)
-            #    except AssertionError:
-            #        logger.log_message(logging_base.LogFilterWarning, "%s" % errors_warning)
-
-        # Verify SubSwath boundaries
-
-        #if (kwds["validate"]):
-            #errors = fhdf.check_subswaths_bounds()
-            #try:
-            #    assert(len(errors) == 0)
-            #except AssertionError:
-            #    logger.log_message(logging_base.LogFilterWarning, "%s" % errors)
-    
         # Check for NaN's and plot images
 
         if (kwds["quality"]):
@@ -178,7 +133,6 @@ if __name__ == "__main__":
     # Close pdf file
 
     if (kwds["quality"]):
-        print("Closing output files")
         fpdf_out.close()
         fhdf_out.close()
                                        
@@ -186,7 +140,12 @@ if __name__ == "__main__":
     time2 = time.time()
     logger.log_message(logging_base.LogFilterInfo, "Runtime = %i seconds" % (time2-time1))
     logger.close()
-        
+
+    if (len(bad_files) == 0):
+        print("Successful completion.")
+    else:
+        print("Fatal Errors encountered in %i files: %s." \
+              % (len(bad_files), bad_files))
 
         
         

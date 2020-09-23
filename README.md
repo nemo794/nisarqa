@@ -12,23 +12,23 @@ scikit-image 0.17.2
 
 # Operating Instructions:
 
-python verify_rslc.py –flog <textual log file of all errors encountered>
+python verify_rslc.py –-flog <textual log file of all errors encountered>
                        --fhdf <HDF5 file containing a statistical summary>
                        --fpdf <PDF file containing graphical summary> --validate --quality
                        <path to all RSLC files you want to validate, wildcards accepted>
 
-python verify_gcov.py –flog <textual log file of all errors encountered>
+python verify_gcov.py –-flog <textual log file of all errors encountered>
                        --fhdf <HDF5 file containing a statistical summary>
                        --fpdf <PDF file containing graphical summary> --validate --quality
                        <path to all GCOV files you want to validate, wildcards accepted>
 
 
-python verify_gslc.py –flog <textual log file of all errors encountered>
+python verify_gslc.py –-flog <textual log file of all errors encountered>
                        --fhdf <HDF5 file containing a statistical summary>
                        --fpdf <PDF file containing graphical summary> --validate --quality
                        <path to all GSLC files you want to validate, wildcards accepted>
 
-python verify_gunw.py –flog <textual log file of all errors encountered>
+python verify_gunw.py –-flog <textual log file of all errors encountered>
                        --fhdf <HDF5 file containing a statistical summary>
                        --fpdf <PDF file containing graphical summary> --validate --quality
                        <path to all GUNW files you want to validate, wildcards accepted>

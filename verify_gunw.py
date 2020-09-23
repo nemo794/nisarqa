@@ -70,7 +70,8 @@ if __name__ == "__main__":
         else:
             logger.log_message(logging_base.LogFilterInfo, \
                                "Successfully parsed XML file %s" % xml_path)
-        
+
+    bad_files = []
     for gunw_file in args:
         
         fhdf = GUNWFile(gunw_file, logger, xml_tree=xml_tree, mode="r")
@@ -95,7 +96,7 @@ if __name__ == "__main__":
                 file_bad = True
                 fhdf.close()
                 logger.log_message(logging_base.LogFilterError, "File %s has a Fatal Error" % gunw_file)
-                fhdf.close()
+                bad_files.append(gunw_file)
                 break
 
         if (file_bad):
@@ -128,7 +129,6 @@ if __name__ == "__main__":
     # Close pdf file
 
     if (kwds["quality"]):
-        print("Closing output files")
         fpdf_out.close()
         fhdf_out.close()
                                        
@@ -137,6 +137,10 @@ if __name__ == "__main__":
     logger.log_message(logging_base.LogFilterInfo, "Runtime = %i seconds" % (time2-time1))
     logger.close()
 
-        
+    if (len(bad_files) == 0):
+        print("Successful completion.")
+    else:
+        print("Fatal Errors encountered in %i files: %s." \
+              % (len(bad_files), bad_files))
         
     

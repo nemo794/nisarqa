@@ -69,12 +69,13 @@ if __name__ == "__main__":
         else:
             logger.log_message(logging_base.LogFilterInfo, \
                                "Successfully parsed XML file %s" % xml_path)
-        
+
+    bad_files = []
     for gcov_file in args:
 
         fhdf = GCOVFile(gcov_file, logger, xml_tree=xml_tree, mode="r")
         fhdf.get_start_time()
-        
+
         errors_found = fhdf.get_bands()
         try:
             assert(not errors_found)
@@ -82,6 +83,7 @@ if __name__ == "__main__":
             logger.log_message(logging_base.FatalError, \
                                "File %s has a Fatal Error" % gcov_file)
             fhdf.close()
+            bad_files.append(gcov_file)
             continue
 
         errors = fhdf.get_freq_pol()
@@ -93,6 +95,7 @@ if __name__ == "__main__":
                 logger.log_message(logging_base.LogFilterError, \
                                    "File %s has a Fatal Error(s)" % (gcov_file))
 
+                bad_files.append(gcov_file)
                 fhdf.close()
                 break
 
@@ -122,14 +125,17 @@ if __name__ == "__main__":
     # Close pdf file
 
     if (kwds["quality"]):
-        print("Closing output files")
         fpdf_out.close()
         fhdf_out.close()
     
     time2 = time.time()
     logger.log_message(logging_base.LogFilterInfo, "Runtime = %i seconds" % (time2-time1))
-    
-        
+
+    if (len(bad_files) == 0):
+        print("Successful completion.")
+    else:
+        print("Fatal Errors encountered in %i files: %s." \
+              % (len(bad_files), bad_files))
 
         
         
