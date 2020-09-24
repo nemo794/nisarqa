@@ -283,14 +283,19 @@ class NISARFile(h5py.File):
 
                 try:
                     nsubswaths = self.FREQUENCIES[b][f].get("numberOfSubSwaths")[...]
+                    assert(nsubswaths.size == 1)
+                    nsubswaths = nsubswaths.item()
                 except (KeyError, ValueError):
                     nsubswaths = 0
-                    pass
-                else:
-                    self.logger.log_message(logging_base.LogFilterDebug, \
-                                            "nsubswaths %s = %s" % (type(nsubswaths), nsubswaths))
-                    for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
-                        no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
+                except AssertionError:
+                    nsubswaths = 0
+                    self.logger.log_message(logging_base.LogFilterError, \
+                                            "NSubswaths must be single element array")
+
+                self.logger.log_message(logging_base.LogFilterDebug, \
+                                        "nsubswaths %s = %s" % (type(nsubswaths), nsubswaths))
+                for isub in range(nsubswaths+1, params.NSUBSWATHS+1):
+                    no_look.append("frequency%s/validSamplesSubSwath%i" % (f, isub))
 
                 try:
                     found_polarizations = self.polarizations[b][f] + self.component_plist[b][f]

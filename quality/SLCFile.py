@@ -59,8 +59,7 @@ class SLCFile(NISARFile):
             try:
                 xband = self["/science/%s" % band]
             except KeyError:
-                error_string = "%s not present" % band
-                self.logger.log_message(logging_base.LogFilterInfo, error_string)
+                self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
                 pass
             else:
                 self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
