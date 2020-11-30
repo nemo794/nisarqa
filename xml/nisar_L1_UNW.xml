@@ -53,6 +53,12 @@
                       lang="en">Product type</annotation>
         </string>
         <string length="0"
+                name="/science/LSAR/identification/productVersion"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Product version</annotation>
+        </string>
+        <string length="0"
                 name="/science/LSAR/identification/lookDirection"
                 shape="scalar">
           <annotation app="conformance"
@@ -151,14 +157,14 @@
                       lang="en"
                       units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the IFG image</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/rangeBandwidth"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed range bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/azimuthBandwidth"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/azimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
@@ -172,21 +178,21 @@
                       lang="en"
                       units="Hz">Center frequency of the processed image in Hz</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/slantRangeSpacing"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/slantRangeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">Slant range spacing of grid. Same as difference between consecutive samples in slantRange array</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/zeroDopplerTimeSpacing"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/zeroDopplerTimeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/numberOfAzimuthLooks"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/numberOfAzimuthLooks"
                  shape="scalar"
                  signed="false"
                  width="8">
@@ -194,7 +200,7 @@
                              lang="en"
                              units="seconds">Averaging window size in pixels in azimuth direction for covariance estimation</annotation>
         </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/numberOfRangeLooks"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/numberOfRangeLooks"
                  shape="scalar"
                  signed="false"
                  width="8">
@@ -220,21 +226,21 @@
 
         <!-- 2D CF compliant rasters -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
-        <real name="/science/LSAR/UNW/swaths/frequencyA/HH/unwrappedPhase"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/unwrappedPhase"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Unwrapped Interferogram between HH layers</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/HH/phaseSigmaCoherence"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/phaseSigmaCoherence"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="unitless">Phase Sigma coherence</annotation>
         </real>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/HH/connectedComponents"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/connectedComponents"
                  shape="complexDataFrequencyAShape"
                  width="16"
                  signed="true">
@@ -242,35 +248,35 @@
                       lang="en"
                       units="DN">Connected components layer</annotation>
         </integer>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/HH/ionospherePhaseScreen"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/ionospherePhaseScreen"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Split spectrum ionosphere phase screen</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/HH/ionospherePhaseScreenUncertainty"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/ionospherePhaseScreenUncertainty"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Uncertainty of split spectrum ionosphere phase screen</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/VV/unwrappedPhase"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/unwrappedPhase"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Unwrapped Interferogram between VV layers</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/VV/phaseSigmaCoherence"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/phaseSigmaCoherence"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Unwrapped Interferogram between VV layers</annotation>
+                      units="unitless">Phase sigma coherence</annotation>
         </real>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/VV/connectedComponents"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/connectedComponents"
                  shape="complexDataFrequencyAShape"
                  width="16"
                  signed="true">
@@ -278,20 +284,21 @@
                       lang="en"
                       units="DN">Connected components layer</annotation>
         </integer>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/VV/ionospherePhaseScreen"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/ionospherePhaseScreen"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Split spectrum ionosphere phase screen</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/VV/ionospherePhaseScreenUncertainty"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/ionospherePhaseScreenUncertainty"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Uncertainty of split spectrum ionosphere phase screen</annotation>
         </real>
+
         <!-- Valid data mask for frequencyA -->
         <!-- Ideally this is like pols, depending on number of subswaths - we would have as many valid sample entries -->
         <integer name="/science/LSAR/UNW/swaths/frequencyA/numberOfSubSwaths"
@@ -339,7 +346,7 @@
 
         <!-- 2D CF compliant rasters for pixel offsets -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
-        <integer name="/science/LSAR/UNW/swaths/pixelOffsets/alongTrackWindowSize"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/alongTrackWindowSize"
                  shape="scalar"
                  width="32"
                  signed="false">
@@ -347,56 +354,96 @@
                       lang="en"
                       units="unitless">Along track cross-correlation window size</annotation>
         </integer>
-        <integer name="/science/LSAR/UNW/swaths/pixelOffsets/slantRangeWindowSize"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRangeWindowSize"
                  shape="scalar"
                  width="32"
                  signed="false">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Slant range cross-correlation window size</annotation>
+                      units="pixels">Slant range cross-correlation window size</annotation>
         </integer>
-        <string name="/science/LSAR/UNW/swaths/pixelOffsets/crossCorrelationMethod"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/alongTrackSearchWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRangeSearchWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/alongTrackSkipWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track skip window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRangeSkipWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range skip window size for cross-correlation</annotation>
+        </integer>
+        <string name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/crossCorrelationMethod"
                 length="0"
                 shape="scalar">
           <annotation app="conformance"
                       lang="en">Method used for generating pixel offsets</annotation>
         </string>
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/HH/slantRangeOffset"
+        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/correlationSurfaceOversampling"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Oversampling factor of the cross-correlation surface</annotation>
+        </integer>
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/HH/slantRangeOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Slant range offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/HH/alongTrackOffset"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/HH/alongTrackOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Along track offset</annotation>
+                      units="meters">Along track offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/HH/correlation"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/HH/correlation"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="unitless">Correlation metric</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/VV/slantRangeOffset"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/VV/slantRangeOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Slant range offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/VV/alongTrackOffset"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/VV/alongTrackOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Along track offset</annotation>
+                      units="meters">Along track offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/VV/correlation"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/VV/correlation"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
@@ -405,14 +452,14 @@
         </real>
 
         <!-- 1D arrays / dimensions -->
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/slantRange"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRange"
               shape="offsetSlantRangeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">CF compliant dimension associated with slant range</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/pixelOffsets/zeroDopplerTime"
+        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/zeroDopplerTime"
               shape="offsetZeroDopplerTimeLength"
               width="64">
               <annotation app="conformance"
