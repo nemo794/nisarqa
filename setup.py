@@ -30,6 +30,16 @@ setup(name = "quality",
     version = "V1.0",
     packages = ["quality"],
     test_suite = "test",
+    scripts=['verify_rslc.py', 'verify_gslc.py', 'verify_gcov.py', 'verify_gunw.py', 'verify_unw.py'],
+    data_files=[('EGG-INFO/scripts/xml', ['xml/nisar_L0B_RSD.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L1_COV.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L1_IFG.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L1_MLD.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L1_SLC.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L1_UNW.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L2_GCOV.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L2_GSLC.xml']),
+                ('EGG-INFO/scripts/xml', ['xml/nisar_L2_GUNW.xml'])],
     configuration=configuration
 )
     
