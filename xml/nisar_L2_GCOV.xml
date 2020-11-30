@@ -220,14 +220,14 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters">CF compliant dimension associated with X Coordinates</annotation>
+                          units="meters">CF compliant dimension associated with the X coordinate</annotation>
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyA/yCoordinates"
               shape="frequencyALength"
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-MM-DD HH:MM:SS">CF compliant dimension associated with Y Coordinates</annotation>
+                          units="meters">CF compliant dimension associated with the Y coordinate</annotation>
         </real>
 
         <!-- 2D CF compliant rasters -->
@@ -378,20 +378,6 @@
           <annotation app="conformance"
                       lang="en">List of processed polarization layers with frequencyB</annotation>
         </string>
-        <real name="/science/LSAR/GCOV/grids/frequencyB/sceneCenterAlongTrackSpacing"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the COV image</annotation>
-        </real>
-        <real name="/science/LSAR/GCOV/grids/frequencyB/sceneCenterGroundRangeSpacing"
-              shape="scalar"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the COV image</annotation>
-        </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/rangeBandwidth"
               shape="scalar"
               width="64">
@@ -461,14 +447,14 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters">CF compliant dimension associated with X Coordinate</annotation>
+                          units="meters">CF compliant dimension associated with the X coordinate</annotation>
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/yCoordinates"
               shape="frequencyBLength"
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters">CF compliant dimension associated with Y Coordinate</annotation>
+                          units="meters">CF compliant dimension associated with the Y coordinate</annotation>
         </real>
 
         <!-- 2D CF compliant rasters -->
@@ -702,7 +688,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-dd HH:MM:SS">Y coordinate values corresponding to the radar grid</annotation>
+                          units="meters">Y coordinate values corresponding to the radar grid</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/radarGrid/heightAboveEllipsoid"
               shape="radarCubeHeight"
@@ -712,31 +698,6 @@
                           units="meters">Height values above WGS84 Ellipsoid corresponding to the radar grid</annotation>
         </real>
         <!-- End of Metadata cube -->
-
-        <!-- Start of calibration section -->
-        <!-- Start of LUTs. Ideally, these are function of geometry and independent of polarization / wavelength -->
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/yCoordinates"
-              shape="calibrationLength"
-              width="64">
-              <annotation app="conformance"
-                          lang="en"
-                          units="meters">Y coordinates dimension for calibration records</annotation>
-        </real>
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/xCoordinates"
-              shape="calibrationWidth"
-              width="64">
-              <annotation app="conformance"
-                          lang="en"
-                          units="meters">X coordinates dimension corresponding to calibration records</annotation>
-        </real>
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/geometry/gamma0"
-              shape="calibrationScaleShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">2D LUT to convert DN to gamma 0 as a function of X and Y coordinates</annotation>
-        </real>
-        <!-- End of LUTS -->
 
         <!-- Start of antenna pattern -->
         <!-- Ideally corresponds to number of available polarizations -->

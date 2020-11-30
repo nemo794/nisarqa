@@ -136,14 +136,14 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters">CF compliant dimension associated with y coordinates</annotation>
+                          units="meters">CF compliant dimension associated with the Y coordinate</annotation>
         </real>
         <real name="/science/LSAR/GSLC/grids/frequencyB/yCoordinates"
               shape="yCoordinateLength"
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters">CF compliant dimension associated with y coordinates</annotation>
+                          units="meters">CF compliant dimension associated with the Y coordinate</annotation>
         </real>
         <!-- Main layers for frequencyA -->
         <!-- Scalars -->
@@ -188,7 +188,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters">CF compliant dimension associated with x coordinates</annotation>
+                          units="meters">CF compliant dimension associated with the X coordinate</annotation>
         </real>
 
         <!-- 2D CF compliant rasters -->
@@ -467,7 +467,6 @@
                           lang="en"
                           units="meters">Height values above WGS84 Ellipsoid corresponding to the location grid</annotation>
         </real>
-        <!-- End of Metadata cube -->
 
         <!-- Start of calibration section -->
         <!-- Start of LUTs. Ideally, these are function of geometry and independent of polarization / wavelength -->

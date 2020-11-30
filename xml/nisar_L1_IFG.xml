@@ -53,6 +53,12 @@
                       lang="en">Product type</annotation>
         </string>
         <string length="0"
+                name="/science/LSAR/identification/productVersion"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Product version</annotation>
+        </string>
+        <string length="0"
                 name="/science/LSAR/identification/lookDirection"
                 shape="scalar">
           <annotation app="conformance"
@@ -151,14 +157,14 @@
                       lang="en"
                       units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the IFG image</annotation>
         </real>
-        <real name="/science/LSAR/IFG/swaths/frequencyA/rangeBandwidth"
+        <real name="/science/LSAR/IFG/swaths/frequencyA/interferogram/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed range bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/IFG/swaths/frequencyA/azimuthBandwidth"
+        <real name="/science/LSAR/IFG/swaths/frequencyA/interferogram/interferogramazimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
@@ -172,21 +178,21 @@
                       lang="en"
                       units="Hz">Center frequency of the processed image in Hz</annotation>
         </real>
-        <real name="/science/LSAR/IFG/swaths/frequencyA/slantRangeSpacing"
+        <real name="/science/LSAR/IFG/swaths/frequencyA/interferogram/slantRangeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">Slant range spacing of grid. Same as difference between consecutive samples in slantRange array</annotation>
         </real>
-        <real name="/science/LSAR/IFG/swaths/frequencyA/zeroDopplerTimeSpacing"
+        <real name="/science/LSAR/IFG/swaths/frequencyA/interferogram/zeroDopplerTimeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
-        <integer name="/science/LSAR/IFG/swaths/frequencyA/numberOfAzimuthLooks"
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/interferogram/numberOfAzimuthLooks"
                  shape="scalar"
                  signed="false"
                  width="8">
@@ -194,7 +200,7 @@
                              lang="en"
                              units="seconds">Averaging window size in pixels in azimuth direction for covariance estimation</annotation>
         </integer>
-        <integer name="/science/LSAR/IFG/swaths/frequencyA/numberOfRangeLooks"
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/interferogram/numberOfRangeLooks"
                  shape="scalar"
                  signed="false"
                  width="8">
@@ -220,7 +226,7 @@
 
         <!-- 2D CF compliant rasters -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
-        <real name="/science/LSAR/IFG/swaths/frequencyA/HH"
+        <real name="/science/LSAR/IFG/swaths/frequencyA/interferogram/HH/HH"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
@@ -228,7 +234,7 @@
                       units="DN">Interferogram between HH layers</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/IFG/swaths/frequencyA/VV"
+        <real name="/science/LSAR/IFG/swaths/frequencyA/interferogram/VV/VV"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
@@ -279,6 +285,129 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
         </integer>
+
+        <!-- 2D CF compliant rasters for pixel offsets -->
+        <!-- Number of layers in actual product will depend on list of available polarizations above -->
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/alongTrackWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Along track cross-correlation window size</annotation>
+        </integer>
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/slantRangeWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range cross-correlation window size</annotation>
+        </integer>
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/alongTrackSearchWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/slantRangeSearchWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/alongTrackSkipWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track skip window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/slantRangeSkipWindowSize"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range skip window size for cross-correlation</annotation>
+        </integer>
+        <string name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/crossCorrelationMethod"
+                length="0"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Method used for generating pixel offsets</annotation>
+        </string>
+        <integer name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/correlationSurfaceOversampling"
+                 shape="scalar"
+                 width="32"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Oversampling factor of the cross-correlation surface</annotation>
+        </integer>
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/HH/slantRangeOffset"
+              shape="offsetDataShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Slant range offset</annotation>
+        </real>
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/HH/alongTrackOffset"
+              shape="offsetDataShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Along track offset</annotation>
+        </real>
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/HH/correlation"
+              shape="offsetDataShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Correlation metric</annotation>
+        </real>
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/VV/slantRangeOffset"
+              shape="offsetDataShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Slant range offset</annotation>
+        </real>
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/VV/alongTrackOffset"
+              shape="offsetDataShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Along track offset</annotation>
+        </real>
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/VV/correlation"
+              shape="offsetDataShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Correlation metric</annotation>
+        </real>
+
+        <!-- 1D arrays / dimensions -->
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/slantRange"
+              shape="offsetSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">CF compliant dimension associated with slant range</annotation>
+        </real>
+        <real name="/science/LSAR/IFG/swaths/frequencyA/pixelOffsets/zeroDopplerTime"
+              shape="offsetZeroDopplerTimeLength"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-MM-DD HH:MM:SS">CF compliant dimension associated with azimuth time</annotation>
+        </real>
 
         <!-- Start of Metadata cube -->
         <integer name="/science/LSAR/IFG/metadata/geolocationGrid/epsg"
@@ -836,6 +965,31 @@
            <dimension extent="0"
                       name="frequencyASlantRangeWidth"/>
            <dimension name="complex" extent="2"/>
+    </shape>
+
+      <!-- Pixel offsets -->
+    <shape name="offsetDataShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape associated with Pixel Offset layers</annotation>
+           <dimension extent="0"
+                      name="offsetZeroDopplerTimeLength"/>
+           <dimension extent="0"
+                      name="offsetSlantRangeWidth"/>
+    </shape>
+    <shape name="offsetSlantRangeWidth"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of pixels in Pixel Offset layers</annotation>
+           <dimension extent="0"
+                      name="offsetSlantRangeWidth"/>
+    </shape>
+    <shape name="offsetZeroDopplerTimeLength"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Number of lines in all L-SAR frequency A imagery datasets</annotation>
+           <dimension extent="0"
+                      name="offsetZeroDopplerTimeLength"/>
     </shape>
 
     <!-- For marking valid samples in an image -->
