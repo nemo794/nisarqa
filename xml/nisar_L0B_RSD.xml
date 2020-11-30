@@ -245,7 +245,7 @@
           <annotation app="conformance"
                       lang="en">32-bit L-SAR range line index</annotation>
         </integer>
-        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/UTCTime"
+        <real name="/science/LSAR/RRSD/swaths/frequencyA/txH/UTCtime"
                  shape="alongTrackTimeLength"
                  width="64">
           <annotation app="conformance"
