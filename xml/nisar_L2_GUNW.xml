@@ -157,14 +157,14 @@
                       lang="en"
                       units="meters">Nominal spacing in meters between consecutive pixels</annotation>
         </real>
-        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/rangeBandwidth"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed range bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/azimuthBandwidth"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/azimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
@@ -192,22 +192,6 @@
                           lang="en"
                           units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/interferogram/numberOfAzimuthLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in azimuth direction for covariance estimation</annotation>
-        </integer>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/interferogram/numberOfRangeLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in slant range direction for covariance estimation</annotation>
-        </integer>
 
         <!-- 1D arrays / dimensions -->
         <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/xCoordinates"
@@ -250,12 +234,26 @@
                       lang="en"
                       units="DN">Coherence mask for HH layer</annotation>
         </integer>
-        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/phaseSigmaCoherence"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/coherenceMagnitude"
               shape="realDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="unitless">Phase sigma coherence for HH layer</annotation>
+        </real>
+        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/ionospherePhaseScreen"
+              shape="realDataFrequencyAShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="radians">Split spectrum ionosphere phase screen</annotation>
+        </real>
+        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/ionospherePhaseScreenUncertainty"
+              shape="realDataFrequencyAShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="radians">Uncertainty of split spectrum ionosphere phase screen</annotation>
         </real>
         <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/VV/unwrappedPhase"
               shape="realDataFrequencyAShape"
@@ -280,29 +278,29 @@
                       lang="en"
                       units="DN">Coherence mask for VV layer</annotation>
         </integer>
-        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/VV/phaseSigmaCoherence"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/VV/coherenceMagnitude"
               shape="realDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="unitless">Phase sigma coherence for VV layer</annotation>
         </real>
-
-        <!-- Ionosphere phase screen products -->
-        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/ionospherePhaseScreen"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/VV/ionospherePhaseScreen"
               shape="realDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Split spectrum ionosphere phase screen</annotation>
         </real>
-        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/ionospherePhaseScreenUncertainty"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/interferogram/VV/ionospherePhaseScreenUncertainty"
               shape="realDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Uncertainty of split spectrum ionosphere phase screen</annotation>
         </real>
+
+        <!-- Ionosphere phase screen products -->
         <integer name="/science/LSAR/GUNW/grids/frequencyA/interferogram/waterMask"
               shape="realDataFrequencyAShape"
               width="32"
@@ -334,68 +332,6 @@
 
         <!-- 2D CF compliant rasters for pixel offsets -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/alongTrackWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Along track cross-correlation window size</annotation>
-        </integer>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/slantRangeWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Slant range cross-correlation window size</annotation>
-        </integer>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/alongTrackSearchWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Along track search window size for cross-correlation</annotation>
-        </integer>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/slantRangeSearchWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Slant range search window size for cross-correlation</annotation>
-        </integer>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/alongTrackSkipWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Along track Skip window size for cross-correlation</annotation>
-        </integer>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/slantRangeSkipWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Slant range Skip window size for cross-correlation</annotation>
-        </integer>
-        <integer name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/correlationSurfaceOversampling"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">Oversampling factor of the cross-correlation surface</annotation>
-        </integer>
-        <string name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/crossCorrelationMethod"
-                length="0"
-                shape="scalar">
-          <annotation app="conformance"
-                      lang="en">Method used for generating pixel offsets</annotation>
-        </string>
         <real name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/slantRangeOffset"
               shape="offsetDataShape"
               width="32">
@@ -410,12 +346,12 @@
                       lang="en"
                       units="meters">Along track offset</annotation>
         </real>
-        <real name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/correlation"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/quality"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Correlation metric</annotation>
+                      units="unitless">Cross-correlation quality metric for HH pixel offset layer</annotation>
         </real>
         <real name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/VV/slantRangeOffset"
               shape="offsetDataShape"
@@ -431,12 +367,12 @@
                       lang="en"
                       units="meters">Along track offset</annotation>
         </real>
-        <real name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/VV/correlation"
+        <real name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/VV/quality"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Correlation metric</annotation>
+                      units="unitless">Cross-correlation quality metric for VV pixel offset layer</annotation>
         </real>
         <!-- 1D arrays / dimensions -->
         <real name="/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/xCoordinates"
@@ -699,7 +635,7 @@
                       lang="en"
                       units="Hz">Common Doppler Bandwidth used for processsing interferogram</annotation>
         </real>
-        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/numberOfRangeLooks"
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/interferogram/numberOfRangeLooks"
               shape="scalar"
               width="8"
               signed="false">
@@ -707,7 +643,7 @@
                       lang="en"
                       units="unitless">Number of looks applied in slant range direction</annotation>
         </integer>
-        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/numberOfAzimuthLooks"
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/interferogram/numberOfAzimuthLooks"
               shape="scalar"
               width="8"
               signed="false">
@@ -715,6 +651,68 @@
                       lang="en"
                       units="unitless">Number of looks applied in along track direction</annotation>
         </integer>
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/alongTrackWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track cross-correlation window size</annotation>
+        </integer>
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/slantRangeWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range cross-correlation window size</annotation>
+        </integer>
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/alongTrackSearchWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/slantRangeSearchWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/alongTrackSkipWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track Skip window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/slantRangeSkipWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range Skip window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/correlationSurfaceOversampling"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Oversampling factor of the cross-correlation surface</annotation>
+        </integer>
+        <string name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/crossCorrelationMethod"
+                length="0"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Method used for generating pixel offsets</annotation>
+        </string>
 
 
         <!-- Orbit ephemeris -->
