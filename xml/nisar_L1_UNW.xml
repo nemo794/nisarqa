@@ -2,12 +2,12 @@
 <algorithm name="L1_UnwrappedInterferogram"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://github.jpl.nasa.gov/niessner/SDS/blob/master/pix/schema.xsd">
-    <product template="L1_UNW_template">
+    <product template="L1_RUNW_template">
     <!-- Start of the science section of product -->
     <science uid="sci_1">
       <!-- Global attributes for the product -->
       <annotation app="conformance" Conventions="CF-1.7"
-                                    title="NISAR L1 UNW Product"
+                                    title="NISAR L1 RUNW Product"
                                     institution="NASA JPL"
                                     mission_name="NISAR"
                                     reference_document="TBD"
@@ -138,85 +138,69 @@
         <!-- Main layers for frequencyA -->
         <!-- Scalars -->
         <string length="4"
-              name="/science/LSAR/UNW/swaths/frequencyA/listOfPolarizations"
+              name="/science/LSAR/RUNW/swaths/frequencyA/listOfPolarizations"
               shape="numberOfFrequencyAPolarizations">
           <annotation app="conformance"
                       lang="en">List of processed polarization layers with frequencyA</annotation>
         </string>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/sceneCenterAlongTrackSpacing"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/sceneCenterAlongTrackSpacing"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the IFG image</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/sceneCenterGroundRangeSpacing"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/sceneCenterGroundRangeSpacing"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Nominal ground range spacing in meters between consecutive pixels near mid swath of the IFG image</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/rangeBandwidth"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/rangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed range bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/azimuthBandwidth"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/azimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Processed azimuth bandwidth in Hz</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/centerFrequency"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/centerFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Center frequency of the processed image in Hz</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/slantRangeSpacing"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/slantRangeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">Slant range spacing of grid. Same as difference between consecutive samples in slantRange array</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/zeroDopplerTimeSpacing"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/zeroDopplerTimeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/numberOfAzimuthLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in azimuth direction for covariance estimation</annotation>
-        </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/numberOfRangeLooks"
-                 shape="scalar"
-                 signed="false"
-                 width="8">
-                 <annotation app="conformance"
-                             lang="en"
-                             units="seconds">Averaging window size in pixels in slant range direction for covariance estimation</annotation>
-        </integer>
         <!-- 1D arrays / dimensions -->
-        <real name="/science/LSAR/UNW/swaths/frequencyA/slantRange"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/slantRange"
               shape="frequencyASlantRangeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">CF compliant dimension associated with slant range</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/zeroDopplerTime"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/zeroDopplerTime"
               shape="frequencyAZeroDopplerTimeLength"
               width="64">
               <annotation app="conformance"
@@ -226,21 +210,21 @@
 
         <!-- 2D CF compliant rasters -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/unwrappedPhase"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/HH/unwrappedPhase"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Unwrapped Interferogram between HH layers</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/phaseSigmaCoherence"
-              shape="complexDataFrequencyAShape"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/HH/coherenceMagnitude"
+              shape="realDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Phase Sigma coherence</annotation>
+                      units="unitless">Coherence magnitude for HH layers</annotation>
         </real>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/connectedComponents"
+        <integer name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/HH/connectedComponents"
                  shape="complexDataFrequencyAShape"
                  width="16"
                  signed="true">
@@ -248,35 +232,35 @@
                       lang="en"
                       units="DN">Connected components layer</annotation>
         </integer>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/ionospherePhaseScreen"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/HH/ionospherePhaseScreen"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Split spectrum ionosphere phase screen</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/HH/ionospherePhaseScreenUncertainty"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/HH/ionospherePhaseScreenUncertainty"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Uncertainty of split spectrum ionosphere phase screen</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/unwrappedPhase"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/VV/unwrappedPhase"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Unwrapped Interferogram between VV layers</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/phaseSigmaCoherence"
-              shape="complexDataFrequencyAShape"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/VV/coherenceMagnitude"
+              shape="realDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Phase sigma coherence</annotation>
+                      units="unitless">Coherence magnitude for VV layers</annotation>
         </real>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/connectedComponents"
+        <integer name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/VV/connectedComponents"
                  shape="complexDataFrequencyAShape"
                  width="16"
                  signed="true">
@@ -284,14 +268,14 @@
                       lang="en"
                       units="DN">Connected components layer</annotation>
         </integer>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/ionospherePhaseScreen"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/VV/ionospherePhaseScreen"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="radians">Split spectrum ionosphere phase screen</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/interferogram/VV/ionospherePhaseScreenUncertainty"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/interferogram/VV/ionospherePhaseScreenUncertainty"
               shape="complexDataFrequencyAShape"
               width="32">
           <annotation app="conformance"
@@ -301,7 +285,7 @@
 
         <!-- Valid data mask for frequencyA -->
         <!-- Ideally this is like pols, depending on number of subswaths - we would have as many valid sample entries -->
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/numberOfSubSwaths"
+        <integer name="/science/LSAR/RUNW/swaths/frequencyA/numberOfSubSwaths"
                  shape="scalar"
                  signed="false"
                  width="8">
@@ -309,7 +293,7 @@
                       lang="en"
                       units="unitless">Number of swaths of continuous imagery, due to transmit gaps</annotation>
         </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/validSamplesSubSwath1"
+        <integer name="/science/LSAR/RUNW/swaths/frequencyA/validSamplesSubSwath1"
                  shape="validSamplesShapeFrequencyA"
                  signed="false"
                  width="32">
@@ -317,7 +301,7 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 1st subswath</annotation>
         </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/validSamplesSubSwath2"
+        <integer name="/science/LSAR/RUNW/swaths/frequencyA/validSamplesSubSwath2"
                  shape="validSamplesShapeFrequencyA"
                  signed="false"
                  width="32">
@@ -325,7 +309,7 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 2nd subswath</annotation>
         </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/validSamplesSubSwath3"
+        <integer name="/science/LSAR/RUNW/swaths/frequencyA/validSamplesSubSwath3"
                  shape="validSamplesShapeFrequencyA"
                  signed="false"
                  width="32">
@@ -333,7 +317,7 @@
                       lang="en"
                       units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
         </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/validSamplesSubSwath4"
+        <integer name="/science/LSAR/RUNW/swaths/frequencyA/validSamplesSubSwath4"
                  shape="validSamplesShapeFrequencyA"
                  signed="false"
                  width="32">
@@ -346,120 +330,72 @@
 
         <!-- 2D CF compliant rasters for pixel offsets -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/alongTrackWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">Along track cross-correlation window size</annotation>
-        </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRangeWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Slant range cross-correlation window size</annotation>
-        </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/alongTrackSearchWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Along track search window size for cross-correlation</annotation>
-        </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRangeSearchWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Slant range search window size for cross-correlation</annotation>
-        </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/alongTrackSkipWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Along track skip window size for cross-correlation</annotation>
-        </integer>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRangeSkipWindowSize"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="pixels">Slant range skip window size for cross-correlation</annotation>
-        </integer>
-        <string name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/crossCorrelationMethod"
-                length="0"
-                shape="scalar">
-          <annotation app="conformance"
-                      lang="en">Method used for generating pixel offsets</annotation>
-        </string>
-        <integer name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/correlationSurfaceOversampling"
-                 shape="scalar"
-                 width="32"
-                 signed="false">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">Oversampling factor of the cross-correlation surface</annotation>
-        </integer>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/HH/slantRangeOffset"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/slantRangeSpacing"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range spacing of offset grid.</annotation>
+        </real>
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/zeroDopplerTimeSpacing"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds">Along track spacing of the offset grid</annotation>
+        </real>
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/HH/slantRangeOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Slant range offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/HH/alongTrackOffset"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/HH/alongTrackOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Along track offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/HH/correlation"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/HH/quality"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Correlation metric</annotation>
+                      units="unitless">Cross-correlation quality metric for HH pixel offset layer</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/VV/slantRangeOffset"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/VV/slantRangeOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Slant range offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/VV/alongTrackOffset"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/VV/alongTrackOffset"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Along track offset</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/VV/correlation"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/VV/quality"
               shape="offsetDataShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Correlation metric</annotation>
+                      units="unitless">Cross-correlation quality metric for VV pixel offset layer</annotation>
         </real>
 
         <!-- 1D arrays / dimensions -->
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/slantRange"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/slantRange"
               shape="offsetSlantRangeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">CF compliant dimension associated with slant range</annotation>
         </real>
-        <real name="/science/LSAR/UNW/swaths/frequencyA/pixelOffsets/zeroDopplerTime"
+        <real name="/science/LSAR/RUNW/swaths/frequencyA/pixelOffsets/zeroDopplerTime"
               shape="offsetZeroDopplerTimeLength"
               width="64">
               <annotation app="conformance"
@@ -468,7 +404,7 @@
         </real>
 
         <!-- Start of Metadata cube -->
-        <integer name="/science/LSAR/UNW/metadata/geolocationGrid/epsg"
+        <integer name="/science/LSAR/RUNW/metadata/geolocationGrid/epsg"
                  shape="scalar"
                  signed="true"
                  width="32">
@@ -476,21 +412,21 @@
                              lang="en"
                              grid_mapping_name="TBD">EPSG code corresponding to coordinate system used for representing geolocation grid</annotation>
         </integer>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/coordinateY"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/coordinateY"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="TBD">Y coordinate in specified EPSG code</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/coordinateX"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/coordinateX"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="TBD">X coordinate in specified EPSG code</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/incidenceAngle"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/incidenceAngle"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
@@ -499,7 +435,7 @@
                       min="0.0"
                       units="degrees">Incidence angle is defined as angle between LOS vector and normal at the target</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/losUnitVectorX"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/losUnitVectorX"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
@@ -508,7 +444,7 @@
                       min="1.0"
                       units="unitless">East component of unit vector of LOS from target to sensor</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/losUnitVectorY"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/losUnitVectorY"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
@@ -517,7 +453,7 @@
                       min="1.0"
                       units="unitless">North component of unit vector of LOS from target to sensor</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/alongTrackUnitVectorX"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/alongTrackUnitVectorX"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
@@ -526,7 +462,7 @@
                       min="1.0"
                       units="unitless">East component of unit vector along ground track</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/alongTrackUnitVectorY"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/alongTrackUnitVectorY"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
@@ -535,7 +471,7 @@
                       min="1.0"
                       units="unitless">North component of unit vector along ground track</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/elevationAngle"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/elevationAngle"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
@@ -544,28 +480,28 @@
                       min="0.0"
                       units="degrees">Elevation angle is defined as angle between LOS vector and norm at the sensor</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/secondaryZeroDopplerTime"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/secondaryZeroDopplerTime"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="seconds since yyyy-mm-dd">Zero Doppler azimuth time of corresponding pixel in secondary image</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/secondarySlantRange"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/secondarySlantRange"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Slant range of corresponding pixel in secondary image</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/parallelBaseline"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/parallelBaseline"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Parallel component of the InSAR baseline</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/perpendicularBaseline"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/perpendicularBaseline"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
@@ -574,28 +510,28 @@
         </real>
 
         <!-- 1D arrays / dimensions for metadata cube -->
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/slantRange"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/slantRange"
               shape="geolocationCubeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">Slant range values corresponding to the geolocation grid</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/zeroDopplerTime"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/zeroDopplerTime"
               shape="geolocationCubeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="seconds since 1970.1.1">Zero Doppler time values corresponding to the geolocation grid</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/groundTrackVelocity"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/groundTrackVelocity"
               shape="geolocationCubeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters per second">Ground track velocity needed to convert azimuth offsets in pixels to meters</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/geolocationGrid/heightAboveEllipsoid"
+        <real name="/science/LSAR/RUNW/metadata/geolocationGrid/heightAboveEllipsoid"
               shape="geolocationCubeHeight"
               width="64">
               <annotation app="conformance"
@@ -606,28 +542,28 @@
 
 
         <!-- Start of calibration section -->
-        <real name="/science/LSAR/UNW/metadata/calibrationInformation/frequencyA/HH/referencePhase"
+        <real name="/science/LSAR/RUNW/metadata/calibrationInformation/frequencyA/HH/referencePhase"
               shape="scalar"
               width="32">
               <annotation app="conformance"
                           lang="en"
                           units="radians">Constant wrapped reference phase used to balance the interferogram</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/calibrationInformation/frequencyA/VV/referencePhase"
+        <real name="/science/LSAR/RUNW/metadata/calibrationInformation/frequencyA/VV/referencePhase"
               shape="scalar"
               width="32">
               <annotation app="conformance"
                           lang="en"
                           units="radians">Constant wrapped reference phase used to balance the interferogram</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/calibrationInformation/frequencyA/bulkSlantRangeOffset"
+        <real name="/science/LSAR/RUNW/metadata/calibrationInformation/frequencyA/bulkSlantRangeOffset"
               shape="scalar"
               width="32">
               <annotation app="conformance"
                           lang="en"
                           units="meters">Bulk slant range offset used to align reference and secondary image</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/calibrationInformation/frequencyA/bulkAlongTrackTimeOffset"
+        <real name="/science/LSAR/RUNW/metadata/calibrationInformation/frequencyA/bulkAlongTrackTimeOffset"
               shape="scalar"
               width="32">
               <annotation app="conformance"
@@ -637,84 +573,84 @@
 
 
         <!-- Terrain height dependent parameters -->
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/referenceTerrainHeight"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/referenceTerrainHeight"
               shape="dopplerCentroidTimeLength"
               width="32">
               <annotation app="conformance"
                           lang="en"
                           units="meters">Reference Terrain Height as a function of time</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/zeroDopplerTime"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/zeroDopplerTime"
               shape="dopplerCentroidTimeLength"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="seconds since YYYY-MM-DD HH:MM:SS">Zero doppler time dimension corresponding to processing information records"</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/slantRange"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/slantRange"
               shape="dopplerCentroidSlantRangeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="meters">Slant range dimension corresponding to processing information records"</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/reference/effectiveVelocity"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/reference/effectiveVelocity"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters per second">2D LUT of Effective Velocity from imaging geometry</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/reference/frequencyA/dopplerCentroid"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/reference/frequencyA/dopplerCentroid"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">2D LUT of Doppler Centroid for Frequency A</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/reference/frequencyA/azimuthFMRate"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/reference/frequencyA/azimuthFMRate"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz per second`">2D LUT of azimuth FM rate for Frequency A</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/secondary/effectiveVelocity"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/secondary/effectiveVelocity"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters per second">2D LUT of Effective Velocity from imaging geometry</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/secondary/frequencyA/dopplerCentroid"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/secondary/frequencyA/dopplerCentroid"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">2D LUT of Doppler Centroid for Frequency A</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/secondary/frequencyA/azimuthFMRate"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/secondary/frequencyA/azimuthFMRate"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz per second`">2D LUT of azimuth FM rate for Frequency A</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/common/frequencyA/dopplerCentroid"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/dopplerCentroid"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters per second">Common Doppler Centroid used for processing interferogram</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/processingInformation/parameters/common/frequencyA/dopplerBandwidth"
+        <real name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/dopplerBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="Hz">Common Doppler Bandwidth used for processsing interferogram</annotation>
         </real>
-        <integer name="/science/LSAR/UNW/metadata/processingInformation/parameters/common/frequencyA/numberOfRangeLooks"
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/interferogram/numberOfRangeLooks"
               shape="scalar"
               width="8"
               signed="false">
@@ -722,7 +658,7 @@
                       lang="en"
                       units="unitless">Number of looks applied in slant range direction</annotation>
         </integer>
-        <integer name="/science/LSAR/UNW/metadata/processingInformation/parameters/common/frequencyA/numberOfAzimuthLooks"
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/interferogram/numberOfAzimuthLooks"
               shape="scalar"
               width="8"
               signed="false">
@@ -730,30 +666,92 @@
                       lang="en"
                       units="unitless">Number of looks applied in along track direction</annotation>
         </integer>
+          <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/alongTrackWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Along track cross-correlation window size</annotation>
+        </integer>
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/slantRangeWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range cross-correlation window size</annotation>
+        </integer>
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/alongTrackSearchWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/slantRangeSearchWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range search window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/alongTrackSkipWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Along track skip window size for cross-correlation</annotation>
+        </integer>
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/slantRangeSkipWindowSize"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="pixels">Slant range skip window size for cross-correlation</annotation>
+        </integer>
+        <string name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/crossCorrelationMethod"
+                length="0"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Method used for generating pixel offsets</annotation>
+        </string>
+        <integer name="/science/LSAR/RUNW/metadata/processingInformation/parameters/common/frequencyA/pixelOffsets/correlationSurfaceOversampling"
+                 shape="scalar"
+                 width="8"
+                 signed="false">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Oversampling factor of the cross-correlation surface</annotation>
+        </integer>
 
         <!-- Orbit ephemeris -->
-        <real name="/science/LSAR/UNW/metadata/orbit/time"
+        <real name="/science/LSAR/RUNW/metadata/orbit/time"
               shape="orbitListLength"
               width="64">
               <annotation app="conformance"
                           lang="en"
                           units="seconds since YYYY-MM-DD HH:MM:SS">Time vector record. This record contains the time corresponding to position, velocity, acceleration records</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/orbit/position"
+        <real name="/science/LSAR/RUNW/metadata/orbit/position"
               shape="orbitShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters">Position vector record. This record contains the platform position data with respect to WGS84 G1762 reference frame</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/orbit/velocity"
+        <real name="/science/LSAR/RUNW/metadata/orbit/velocity"
               shape="orbitShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
                       units="meters per second">Velocity vector record. This record contains the platform velocity data with respect to WGS84 G1762 reference frame</annotation>
         </real>
-        <real name="/science/LSAR/UNW/metadata/orbit/acceleration"
+        <real name="/science/LSAR/RUNW/metadata/orbit/acceleration"
               shape="orbitShape"
               width="64">
           <annotation app="conformance"
@@ -761,7 +759,7 @@
                       units="meters per second squared">Acceleration vector record. This record contains the platform acceleration data with respect to WGS84 G1762 reference frame</annotation>
         </real>
         <string length="0"
-                name="/science/LSAR/UNW/metadata/orbit/orbitType"
+                name="/science/LSAR/RUNW/metadata/orbit/orbitType"
                 shape="scalar">
                 <annotation app="conformance"
                             lang="en">PrOE (or) NOE (or) MOE (or) POE (or) Custom</annotation>
@@ -769,7 +767,7 @@
 
         <!-- Versions of various algorithm modules used -->
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/internalCalibration"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/internalCalibration"
                 shape="scalar">
           <annotation algorithm_type="pre-processing"
                       app="conformance"
@@ -779,7 +777,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/rangeReferenceFunctionGenerator"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/rangeReferenceFunctionGenerator"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -789,7 +787,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/driftCompensator"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/driftCompensator"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -799,7 +797,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/rangeCompression"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/rangeCompression"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -809,7 +807,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/rangeDependentGainCorrection"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/rangeDependentGainCorrection"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -819,7 +817,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/elevationAntennaPatternCorrection"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/elevationAntennaPatternCorrection"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -829,7 +827,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/rangeSpreadingLossCorrection"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/rangeSpreadingLossCorrection"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -839,7 +837,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/SWSTCorrection"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/SWSTCorrection"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
@@ -849,7 +847,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/dopplerCentroidEstimation"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/dopplerCentroidEstimation"
                 shape="scalar">
           <annotation algorithm_type="doppler centroid estimation"
                       app="conformance"
@@ -859,7 +857,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/azimuthPresumming"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/azimuthPresumming"
                 shape="scalar">
           <annotation algorithm_type="azimuth regridding"
                       app="conformance"
@@ -869,7 +867,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/azimuthCompression"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/azimuthCompression"
                 shape="scalar">
           <annotation algorithm_type="azimuth regridding"
                       app="conformance"
@@ -879,7 +877,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/secondaryRangeCompression"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/secondaryRangeCompression"
                 shape="scalar">
           <annotation algorithm_type="azimuth processing"
                       app="conformance"
@@ -889,7 +887,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/rangeCellMigration"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/rangeCellMigration"
                 shape="scalar">
           <annotation algorithm_type="azimuth processing"
                       app="conformance"
@@ -899,7 +897,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/patchProcessing"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/patchProcessing"
                 shape="scalar">
           <annotation algorithm_type="patch processing"
                       app="conformance"
@@ -909,7 +907,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/postProcessing"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/postProcessing"
                 shape="scalar">
           <annotation algorithm_type="post processing"
                       app="conformance"
@@ -919,7 +917,7 @@
                       version="x"></annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/UNW/metadata/processingInformation/algorithms/ISCEVersion"
+                name="/science/LSAR/RUNW/metadata/processingInformation/algorithms/ISCEVersion"
                 shape="scalar">
                 <annotation app="conformance"
                             lang="en">ISCE version used for processing</annotation>
@@ -927,19 +925,19 @@
 
         <!-- List of inputs -->
         <string length="0"
-                name="/science/LSAR/UNW/metadata/processingInformation/inputs/l1Granules"
+                name="/science/LSAR/RUNW/metadata/processingInformation/inputs/l1SlcGranules"
                 shape="numberOfInputL1Files">
           <annotation app="conformance"
                       lang="en">List of input L1 RSLC products used</annotation>
         </string>
         <string length="0"
-                name="/science/LSAR/UNW/metadata/processingInformation/inputs/configFiles"
+                name="/science/LSAR/RUNW/metadata/processingInformation/inputs/configFiles"
                 shape="numberOfInputConfigFiles">
           <annotation app="conformance"
                       lang="en">List of input config files used</annotation>
         </string>
         <string length="0"
-                name="/science/LSAR/UNW/metadata/processingInformation/inputs/demFiles"
+                name="/science/LSAR/RUNW/metadata/processingInformation/inputs/demFiles"
                 shape="numberOfInputDEMFiles">
           <annotation app="conformance"
                       lang="en">List of input dem files used</annotation>
@@ -1015,6 +1013,15 @@
            <dimension extent="0"
                       name="frequencyASlantRangeWidth"/>
            <dimension name="complex" extent="2"/>
+    </shape>
+    <shape name="realDataFrequencyAShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape associated with L-SAR frequency A imagery interferometric dataset</annotation>
+           <dimension extent="0"
+                      name="frequencyALength"/>
+           <dimension extent="0"
+                      name="frequencyAWidth"/>
     </shape>
 
     <!-- Pixel offsets -->
