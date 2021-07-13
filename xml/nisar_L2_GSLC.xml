@@ -53,6 +53,12 @@
                       lang="en">Product type</annotation>
         </string>
         <string length="0"
+                name="/science/LSAR/identification/productVersion"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Product version</annotation>
+        </string>
+        <string length="0"
                 name="/science/LSAR/identification/lookDirection"
                 shape="scalar">
           <annotation app="conformance"
@@ -153,6 +159,20 @@
           <annotation app="conformance"
                       lang="en">List of processed polarization layers with frequencyA</annotation>
         </string>
+        <real name="/science/LSAR/GSLC/grids/frequencyA/yCoordinateSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal spacing in meters between consecutive lines</annotation>
+        </real>
+        <real name="/science/LSAR/GSLC/grids/frequencyA/xCoordinateSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal spacing in meters between consecutive pixels</annotation>
+        </real>
         <real name="/science/LSAR/GSLC/grids/frequencyA/rangeBandwidth"
               shape="scalar"
               width="64">
@@ -180,6 +200,13 @@
               <annotation app="conformance"
                           lang="en"
                           units="meters">Slant range spacing of grid. Same as difference between consecutive samples in slantRange array</annotation>
+        </real>
+        <real name="/science/LSAR/GSLC/grids/frequencyA/zeroDopplerTimeSpacing"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
 
         <!-- 1D arrays / dimensions -->
@@ -261,6 +288,20 @@
               <annotation app="conformance"
                           lang="en">List of processed polarization layers with frequencyA</annotation>
         </string>
+        <real name="/science/LSAR/GSLC/grids/frequencyB/yCoordinateSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal spacing in meters between consecutive lines</annotation>
+        </real>
+        <real name="/science/LSAR/GSLC/grids/frequencyB/xCoordinateSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal spacing in meters between consecutive pixels</annotation>
+        </real>
         <real name="/science/LSAR/GSLC/grids/frequencyB/rangeBandwidth"
               shape="scalar"
               width="64">
@@ -288,6 +329,13 @@
               <annotation app="conformance"
                           lang="en"
                           units="meters">Slant range spacing of grid. Same as difference between consecutive samples in slantRange array</annotation>
+        </real>
+        <real name="/science/LSAR/GSLC/grids/frequencyB/zeroDopplerTimeSpacing"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
 
         <!-- 1D arrays / dimensions -->
@@ -509,6 +557,20 @@
 
         <!-- Start of antenna pattern -->
         <!-- Ideally corresponds to number of available polarizations -->
+        <real name="/science/LSAR/GSLC/metadata/calibrationInformation/frequencyA/yCoordinates"	
+              shape="calibrationLength"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">Y coordinates dimension corresponding to calibration records</annotation>	
+        </real>	
+        <real name="/science/LSAR/GSLC/metadata/calibrationInformation/frequencyA/xCoordinates"	
+              shape="calibrationWidth"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">X coordinates dimension corresponding to calibration records</annotation>	
+        </real>
         <real name="/science/LSAR/GSLC/metadata/calibrationInformation/frequencyA/HH/elevationAntennaPattern"
               shape="antennaPatternComplexShape"
               width="32">
@@ -557,6 +619,20 @@
                       units="unitless">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
+        <real name="/science/LSAR/GSLC/metadata/calibrationInformation/frequencyB/yCoordinates"	
+              shape="calibrationLength"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">Y coordinates dimension corresponding to calibration records</annotation>	
+        </real>	
+        <real name="/science/LSAR/GSLC/metadata/calibrationInformation/frequencyB/xCoordinates"	
+              shape="calibrationWidth"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">X coordinates dimension corresponding to calibration records</annotation>	
+        </real>    
         <real name="/science/LSAR/GSLC/metadata/calibrationInformation/frequencyB/HH/elevationAntennaPattern"
               shape="antennaPatternComplexShape"
               width="32">
@@ -1000,6 +1076,20 @@
                             lang="en">ISCE version used for processing</annotation>
         </string>
 
+        <!-- Versions of various algorithm modules used -->
+        <string length="27"
+              name="/science/LSAR/GSLC/metadata/processingInformation/algorithms/demInterpolation"
+              shape="scalar">
+          <annotation app="conformance"
+                      lang="en">DEM interpolation method</annotation>
+        </string>
+        <string length="27"
+              name="/science/LSAR/GSLC/metadata/processingInformation/algorithms/geocoding"
+              shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Geocoding algorithm</annotation>
+        </string>
+
         <!-- List of inputs -->
         <string length="0"
                 name="/science/LSAR/GSLC/metadata/processingInformation/inputs/l1SlcGranules"
@@ -1024,6 +1114,18 @@
                 shape="numberOfInputDEMFiles">
           <annotation app="conformance"
                       lang="en">List of input dem files used</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/GSLC/metadata/processingInformation/inputs/attitudeFiles"
+                shape="numberOfInputAttitudeFiles">
+          <annotation app="conformance"
+                      lang="en">List of input attitude files used</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/GSLC/metadata/processingInformation/inputs/auxcalFiles"
+                shape="numberOfInputAuxcalFiles">
+          <annotation app="conformance"
+                      lang="en">List of input calibration files used</annotation>
         </string>
       </nodes>
     </science>
@@ -1322,6 +1424,20 @@
                   lang="en">Number of input DEM files</annotation>
       <dimension extent="0"
                  name="numberOfInputDEMFiles"/>
+    </shape>
+    <shape name="numberOfInputAttitudeFiles"
+           order="slowest...fastest">
+      <annotation app="conformance"
+                  lang="en">Number of input attitude files</annotation>
+      <dimension extent="0"
+                 name="numberOfInputAttitudeFiles"/>
+    </shape>
+    <shape name="numberOfInputAuxcalFiles"
+           order="slowest...fastest">
+      <annotation app="conformance"
+                  lang="en">Number of input calibration files</annotation>
+      <dimension extent="0"
+                 name="numberOfInputAuxcalFiles"/>
     </shape>
   </product>
 </algorithm>

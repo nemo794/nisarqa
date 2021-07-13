@@ -53,6 +53,12 @@
                       lang="en">Product type</annotation>
         </string>
         <string length="0"
+                name="/science/LSAR/identification/productVersion"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Product version</annotation>
+        </string>
+        <string length="0"
                 name="/science/LSAR/identification/lookDirection"
                 shape="scalar">
           <annotation app="conformance"
@@ -131,11 +137,17 @@
 
         <!-- Main layers for frequencyA -->
         <!-- Scalars -->
-        <string length="4"
+        <string length="2"
               name="/science/LSAR/GCOV/grids/frequencyA/listOfPolarizations"
               shape="numberOfFrequencyAPolarizations">
           <annotation app="conformance"
                       lang="en">List of processed polarization layers with frequencyA</annotation>
+        </string>
+        <string length="4"
+              name="/science/LSAR/GCOV/grids/frequencyA/listOfCovarianceTerms"
+              shape="numberOfFrequencyAPolarizations">
+          <annotation app="conformance"
+                      lang="en">List of processed covariance terms</annotation>
         </string>
         <real name="/science/LSAR/GCOV/grids/frequencyA/yCoordinateSpacing"
               shape="scalar"
@@ -378,6 +390,26 @@
           <annotation app="conformance"
                       lang="en">List of processed polarization layers with frequencyB</annotation>
         </string>
+        <string length="4"
+              name="/science/LSAR/GCOV/grids/frequencyB/listOfCovarianceTerms"
+              shape="numberOfFrequencyAPolarizations">
+          <annotation app="conformance"
+                      lang="en">List of processed covariance terms</annotation>
+        </string>
+        <real name="/science/LSAR/GCOV/grids/frequencyB/yCoordinateSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal spacing in meters between consecutive lines</annotation>
+        </real>
+        <real name="/science/LSAR/GCOV/grids/frequencyB/xCoordinateSpacing"
+              shape="scalar"
+              width="64">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Nominal spacing in meters between consecutive pixels</annotation>
+        </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/rangeBandwidth"
               shape="scalar"
               width="64">
@@ -460,12 +492,19 @@
         <!-- 2D CF compliant rasters -->
         <!-- Number of layers in actual product will depend on list of available polarizations above -->
         <real name="/science/LSAR/GCOV/grids/frequencyB/numberOfLooks"
-              shape="complexDataFrequencyAShape"
+              shape="complexDataFrequencyBShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
                       units="Radar-grid looks">Number of averaged radar-grid pixels for covariance estimation</annotation>
           <annotation app="io" />
+        </real>
+        <real name="/science/LSAR/GCOV/grids/frequencyB/areaNormalizationFactor"
+              shape="complexDataFrequencyBShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="unitless">Area normalization factor from beta0 to gamma0 using DEM</annotation>
         </real>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HHHH"
               shape="complexDataFrequencyBShape"
@@ -701,6 +740,20 @@
 
         <!-- Start of antenna pattern -->
         <!-- Ideally corresponds to number of available polarizations -->
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/yCoordinates"	
+              shape="calibrationLength"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">Y coordinates dimension corresponding to calibration records</annotation>	
+        </real>	
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/xCoordinates"	
+              shape="calibrationWidth"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">X coordinates dimension corresponding to calibration records</annotation>	
+        </real>
         <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/HH/elevationAntennaPattern"
               shape="antennaPatternComplexShape"
               width="32">
@@ -748,6 +801,20 @@
                       lang="en"
                       units="unitless">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
+        </real>
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/yCoordinates"	
+              shape="calibrationLength"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">Y coordinates dimension corresponding to calibration records</annotation>	
+        </real>	
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/xCoordinates"	
+              shape="calibrationWidth"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">X coordinates dimension corresponding to calibration records</annotation>	
         </real>
         <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/HH/elevationAntennaPattern"
               shape="antennaPatternComplexShape"
@@ -961,6 +1028,20 @@
                       lang="en"
                       units="Hz per second`">2D LUT of azimuth FM rate for Frequency B</annotation>
         </real>
+
+        <!-- Versions of various algorithm modules used -->
+        <string length="27"
+              name="/science/LSAR/GCOV/metadata/processingInformation/algorithms/demInterpolation"
+              shape="scalar">
+          <annotation app="conformance"
+                      lang="en">DEM interpolation method</annotation>
+        </string>
+        <string length="27"
+              name="/science/LSAR/GCOV/metadata/processingInformation/algorithms/geocoding"
+              shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Geocoding algorithm</annotation>
+        </string>
 
         <!-- Orbit ephemeris -->
         <real name="/science/LSAR/GCOV/metadata/orbit/time"
@@ -1223,6 +1304,12 @@
           <annotation app="conformance"
                       lang="en">List of input config files used</annotation>
         </string>
+        <string length="0"
+                name="/science/LSAR/GCOV/metadata/processingInformation/inputs/demFiles"
+                shape="numberOfInputDEMFiles">
+          <annotation app="conformance"
+                      lang="en">List of input dem files used</annotation>
+        </string>
       </nodes>
     </science>
 
@@ -1283,7 +1370,7 @@
            <annotation app="conformance"
                        lang="en">Number of lines in all L-SAR frequency A imagery datasets</annotation>
            <dimension extent="0"
-                      name="frequencyAZeroDopplerTimeLength"/>
+                      name="frequencyALength"/>
     </shape>
     <shape name="complexDataFrequencyAShape"
            order="slowest...fastest">
@@ -1519,6 +1606,13 @@
                   lang="en">Number of input configuration files</annotation>
       <dimension extent="0"
                  name="numberOfInputConfigFiles"/>
+    </shape>
+    <shape name="numberOfInputDEMFiles"
+           order="slowest...fastest">
+      <annotation app="conformance"
+                  lang="en">Number of input DEM files</annotation>
+      <dimension extent="0"
+                 name="numberOfInputDEMFiles"/>
     </shape>
   </product>
 </algorithm>

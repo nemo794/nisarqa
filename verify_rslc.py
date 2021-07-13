@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_option("--validate", dest="validate", action="store_true", default=False)
     parser.add_option("--quality", dest="quality", action="store_true", default=False)
     parser.add_option("--xml_dir", dest="xml_dir", type="string", action="store", default="xml")
-    parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L1_SLC.xml")
+    parser.add_option("--xml_file", dest="xml_file", type="string", action="store", default="nisar_L1_RSLC.xml")
 
     (kwds, args) = utility.parse_args(parser)
     if ("flog" not in kwds.keys()) and ("fpdf" not in kwds.keys()) and \

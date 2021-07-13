@@ -71,16 +71,28 @@
                       lang="en">Orbit direction can be ascending or descending</annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/identification/zeroDopplerStartTime"
+                name="/science/LSAR/identification/referenceZeroDopplerStartTime"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Azimuth start time of product</annotation>
+                      lang="en">Azimuth start time of reference RSLC product</annotation>
         </string>
         <string length="27"
-                name="/science/LSAR/identification/zeroDopplerEndTime"
+                name="/science/LSAR/identification/secondaryZeroDopplerStartTime"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Azimuth stop time of product</annotation>
+                      lang="en">Azimuth start time of secondary RSLC product</annotation>
+        </string>
+        <string length="27"
+                name="/science/LSAR/identification/referenceZeroDopplerEndTime"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Azimuth stop time of reference RSLC product</annotation>
+        </string>
+        <string length="27"
+                name="/science/LSAR/identification/secondaryZeroDopplerEndTime"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Azimuth stop time of secondary RSLC product</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/plannedDatatakeId"
@@ -528,6 +540,20 @@
         <!-- End of Metadata cube -->
 
         <!-- Start of calibration section -->
+        <real name="/science/LSAR/GUNW/metadata/calibrationInformation/frequencyA/yCoordinates"	
+              shape="calibrationLength"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">Y coordinates dimension corresponding to calibration records</annotation>	
+        </real>	
+        <real name="/science/LSAR/GUNW/metadata/calibrationInformation/frequencyA/xCoordinates"	
+              shape="calibrationWidth"	
+              width="64">	
+              <annotation app="conformance"	
+                          lang="en"	
+                          units="meters">X coordinates dimension corresponding to calibration records</annotation>	
+        </real>
         <real name="/science/LSAR/GUNW/metadata/calibrationInformation/frequencyA/HH/referencePhase"
               shape="scalar"
               width="32">
@@ -633,7 +659,14 @@
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Common Doppler Bandwidth used for processsing interferogram</annotation>
+                      units="Hz">Common Doppler Bandwidth used for processing interferogram</annotation>
+        </real>
+        <real shape="scalar"
+              name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/referenceFlatteningElevation"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="meters">Reference elevation above WGS84 Ellipsoid used for flattening</annotation>
         </real>
         <integer name="/science/LSAR/GUNW/metadata/processingInformation/parameters/common/frequencyA/interferogram/numberOfRangeLooks"
               shape="scalar"
@@ -939,6 +972,18 @@
                       version="x"></annotation>
         </string>
         <string length="27"
+              name="/science/LSAR/GUNW/metadata/processingInformation/algorithms/demInterpolation"
+              shape="scalar">
+          <annotation app="conformance"
+                      lang="en">DEM interpolation method</annotation>
+        </string>
+        <string length="27"
+              name="/science/LSAR/GUNW/metadata/processingInformation/algorithms/geocoding"
+              shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Geocoding algorithm</annotation>
+        </string>
+        <string length="27"
                 name="/science/LSAR/GUNW/metadata/processingInformation/algorithms/ISCEVersion"
                 shape="scalar">
                 <annotation app="conformance"
@@ -975,6 +1020,12 @@
                 shape="numberOfInputConfigFiles">
           <annotation app="conformance"
                       lang="en">List of input config files used</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/GUNW/metadata/processingInformation/inputs/demFiles"
+                shape="numberOfInputDEMFiles">
+          <annotation app="conformance"
+                      lang="en">List of input dem files used</annotation>
         </string>
       </nodes>
     </science>
@@ -1036,7 +1087,7 @@
            <annotation app="conformance"
                        lang="en">Number of lines in all L-SAR frequency A imagery datasets</annotation>
            <dimension extent="0"
-                      name="frequencyAZeroDopplerTimeLength"/>
+                      name="frequencyALength"/>
     </shape>
     <shape name="complexDataFrequencyAShape"
            order="slowest...fastest">
@@ -1273,6 +1324,13 @@
                   lang="en">Number of input configuration files</annotation>
       <dimension extent="0"
                  name="numberOfInputConfigFiles"/>
+    </shape>
+    <shape name="numberOfInputDEMFiles"
+           order="slowest...fastest">
+      <annotation app="conformance"
+                  lang="en">Number of input DEM files</annotation>
+      <dimension extent="0"
+                 name="numberOfInputDEMFiles"/>
     </shape>
   </product>
 </algorithm>
