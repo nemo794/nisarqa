@@ -340,7 +340,7 @@ class GCOVFile(NISARFile):
         for b in self.bands:
             for f in self.FREQUENCIES[b].keys():
                 keys = [k for k in self.images.keys() if k.startswith("%s %s" % (b, f))]
-                self.logger.log_message(logging_base.LogFilterError, \
+                self.logger.log_message(logging_base.LogFilterInfo, \
                                         "Plotting %i images: %s" % (len(keys), keys))
                 (fig, axis) = pyplot.subplots(nrows=1, ncols=1, constrained_layout=True)
                 for k in keys:
