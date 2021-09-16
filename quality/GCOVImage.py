@@ -13,7 +13,7 @@ import traceback
 class GCOVImage(object):
 
     BADVALUE = -9999
-    EPS = 1.0e-03
+    GCOV_MIN_VALUE = 1.0e-10  # -100 dB
     
     def __init__(self, band, frequency, polarization):
 
@@ -22,15 +22,6 @@ class GCOVImage(object):
         self.polarization = polarization
 
         self.empty = False
-
-    def initialize(self, data_in, nan_mask):
-
-        self.xdata = np.copy(data_in)
-        self.nan_mask = nan_mask
-        self.shape = self.xdata.shape
-
-        self.zero_mask = np.where(np.abs(self.xdata.real < self.EPS), True, False)
-        self.mask_ok = np.where(~self.nan_mask & ~self.zero_mask, True, False)
 
     def read(self, handle, time_step=1, range_step=1):
 
@@ -42,7 +33,8 @@ class GCOVImage(object):
             
     def check_for_nan(self):
 
-        self.zero_mask = np.where( (self.xdata == 0.0), True, False)
+        self.zero_mask = np.where( (np.abs(self.xdata) < self.GCOV_MIN_VALUE), True, False)
+
         self.nan_mask = np.isnan(self.xdata) | np.isinf(self.xdata)
         self.num_nan = self.nan_mask.sum()
         self.perc_nan = 100.0*self.num_nan/self.xdata.size
