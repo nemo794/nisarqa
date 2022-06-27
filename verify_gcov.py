@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from quality import check_time
 from quality import errors_base
 from quality import errors_derived
