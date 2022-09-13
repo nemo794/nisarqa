@@ -25,7 +25,7 @@ def arr2pow(arr, linear_units=True):
 
     if not linear_units:
         # Convert to dB
-        power = pow2dB(power)
+        power = pow2db(power)
 
     return power
 

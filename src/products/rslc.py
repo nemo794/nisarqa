@@ -572,7 +572,7 @@ def plot_img_to_figure(fig, image_arr, \
     iv.verify_valid_percentile(middle_percentile)
 
     # Get vmin and vmax to set the desired range of the colorbar
-    vmin, vmax = calc_vmin_vmax(image_arr, percent=middle_percentile)
+    vmin, vmax = calc_vmin_vmax(image_arr, middle_percentile=middle_percentile)
 
     # Manually clip the image data (See `Notes` in function description)
     clipped_array = np.clip(image_arr, a_min = vmin, a_max = vmax)
