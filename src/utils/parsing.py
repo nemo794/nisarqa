@@ -16,7 +16,7 @@ import argparse
 #     - If --validate flag included, then xml_dir and xml_file must be included (or default). O/w not needed.    
 
 
-def parse_and_verify_args(nisar_product):
+def parse_args(nisar_product):
     """
     Wrapper function for the parsing the command line arguments
 
@@ -37,9 +37,6 @@ def parse_and_verify_args(nisar_product):
     # If a runconfig was provided, parse it.
     if args['runconfig']:
         args = parse_yaml(args['runconfig'])
-
-    # Verify that the arguments are valid
-    verify_inputs(args)
 
     return args
 
@@ -76,6 +73,7 @@ def parse_cli_args(nisar_product):
                         )
 
     parser.add_argument('--input', '--input_file',
+                        dest='input_file',
                         type=str,
                         help='filepath for NISAR .h5 product file for QA.' \
                              'Supported NISAR product types: rslc, gslc, gcov, gunw, runw,' \

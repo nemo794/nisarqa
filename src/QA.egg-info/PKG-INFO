@@ -1,3 +1,14 @@
+Metadata-Version: 2.1
+Name: QA
+Version: 2.0
+Summary: NISAR ADT Quality Assurance
+Home-page: http://nisar.jpl.nasa.gov
+Maintainer: NISAR ADT Team
+Maintainer-email: samantha.c.niemoeller@jpl.nasa.gov
+License: Copyright by the California Institute of Technology.All rights reserved
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
+
 # QualityAssurance
 Quality Assurance software for NISAR
 # Minimum PreRequisites:
@@ -36,35 +47,35 @@ TODO: Update this section (see original QA Code README), and remove the hardlink
 
 Multi-Freq, Multi-Pol.
 Data Size: Medium-Large
-`verify_rslc.py --quality --input /home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5`
+`verify_rslc.py --quality /home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5`
 
 Rosemond - Multi-Freq, Multi-Pol. Uses original "SLC" convention (not "RSLC")
 Data Size: Small
-`verify_rslc.py --quality --input /scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
+`verify_rslc.py --quality /scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
 
 Real Data that has been manipulated to be like NISAR data
 Data Size: Small
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP037370690/output_rslc/rslc.h5`
+`verify_rslc.py --quality /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP037370690/output_rslc/rslc.h5`
 
 Real Data that has been manipulated to be like NISAR data
 Data Size: Large, but could complete in original QA Code
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP271200680/output_rslc/rslc.h5`
+`verify_rslc.py --quality /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP271200680/output_rslc/rslc.h5`
 
 DIST1 - Simulated data to look like an actual image
 Data Size: Small
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_DIST1/output_rslc/rslc.h5`
+`verify_rslc.py --quality /home/niemoell/dat/qa_test_data_04182022/rslc_DIST1/output_rslc/rslc.h5`
 
 DIST2 - Simulated data to look like an actual image
 Data Size: Medium
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_DIST2/output_rslc/rslc.h5`
+`verify_rslc.py --quality /home/niemoell/dat/qa_test_data_04182022/rslc_DIST2/output_rslc/rslc.h5`
 
 REE1 - Simulated data to look like an actual image
 Data Size: Small
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_REE1/output_rslc/rslc.h5`
+`verify_rslc.py --quality /home/niemoell/dat/qa_test_data_04182022/rslc_REE1/output_rslc/rslc.h5`
 
 REE2 - Simulated data to look like an actual image
 Data Size: Large, could not complete in original QA Code
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_REE2/output_rslc/rslc.h5`
+`verify_rslc.py --quality /home/niemoell/dat/qa_test_data_04182022/rslc_REE2/output_rslc/rslc.h5`
 
 
 # Outputs
@@ -78,3 +89,5 @@ qa.h5 = statistical summary of file in HDF5 format
 qa.pdf = graphical summary of file
   
 For example, "rslc.h5", "rslc.pdf" and "rslc.log" are the statistical, graphical and error logs for the RSLC file.  Likewise, "gcov.h5", "gcov.pdf" and "gcov.log" are the outputs for the GCOV file and the hdf, pdf and log files for the GSLC are called "gslc.h5", "gslc.pdf" and "gslc.log" respectively. 
+
+
