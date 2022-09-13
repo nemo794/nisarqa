@@ -1,4 +1,0 @@
-argparse
-numpy
-h5py
-pytest
