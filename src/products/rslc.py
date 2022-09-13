@@ -577,22 +577,20 @@ def plot_img_to_figure(fig, image_arr, \
     # Manually clip the image data (See `Notes` in function description)
     clipped_array = np.clip(image_arr, a_min = vmin, a_max = vmax)
 
-    # TODO (Sam) - saving the clipped image data to an array will (temporarily)
+    # TODO Storing the clipped image data to an array will (temporarily)
     # use another big chunk of memory. Revisit this code later if/when this
     # becomes an issue.
 
     fig.add_subplot(1,1,1) #  add a subplot to fig
 
-    # Highlight infinite pixels, if requested.
+    # Highlight infinite pixels in green, if requested.
     cmap=plt.cm.gray
     if highlight_inf_pixels:
         cmap.set_bad('g')
 
     # Plot the image_arr image.
     plt.imshow(X=clipped_array, \
-                # Place the [0, 0] index of the array in the upper left corner of the Axes.
-                # origin="upper", \
-                cmap=cmap, \
+                cmap=cmap
                 )
 
     return fig
