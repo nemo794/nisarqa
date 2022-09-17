@@ -70,14 +70,17 @@ def main(args=None):
                 bands, freqs, pols = rslc.get_bands_freq_pols(in_file)
 
                 # Generate the RSLC Power Image
-                rslc.process_power_image(pols=pols, \
-                                         plots_pdf=plots_file, \
-                                         nlooks=None, \
-                                         linear_units=True, \
-                                         num_MPix=4.0, \
-                                         highlight_inf_pixels=True, \
-                                         browse_image_dir=".", \
-                                         browse_image_prefix=None)
+                rslc.process_power_image(pols=pols,
+                                         plots_pdf=plots_file,
+                                         nlooks_freqA=None,
+                                         nlooks_freqB=None, 
+                                         linear_units=True,
+                                         middle_percentile=95.0,
+                                         num_MPix=4.0,
+                                         highlight_inf_pixels=True,
+                                         browse_image_dir=".",
+                                         browse_image_prefix=None,
+                                         tile_shape=(512,-1))
 
                 # # Create output stats.h5 and graphs.pdf files
                 # fin.create_images(time_step=args["time_step"], range_step=args["range_step"])

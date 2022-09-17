@@ -5,6 +5,7 @@
 # This software may be subject to U.S. export control laws and regulations.
 
 import os
+import glob
 from setuptools import setup
 from setuptools import find_packages
 from setuptools import Command
@@ -30,8 +31,8 @@ setup(
     long_description_content_type='text/markdown',    
     license = 'Copyright by the California Institute of Technology.'
                 'All rights reserved',
-    url = "http://nisar.jpl.nasa.gov",
-    version = "V2.0",
+    url = 'http://nisar.jpl.nasa.gov',
+    version = 'V2.0',
 
     # Gather all packages located under `src`.
     # (A package is a directory containing an __init__.py file.)
@@ -39,28 +40,11 @@ setup(
 
     test_suite = "tests",
 
-    scripts=['bin/verify_rslc.py', 
-             'bin/verify_runw.py',
-             'bin/verify_roff.py',
-             'bin/verify_rifg.py',
-             'bin/verify_gslc.py', 
-             'bin/verify_gcov.py', 
-             'bin/verify_gunw.py', 
-             'bin/verify_roff.py'
-             ],
+    scripts=glob.glob(os.path.join('bin', 'verify_*.py'),
 
-    data_files=[( 'product_specs', [
-                'src/param_files/product_specs/nisar_L1_RSLC.xml',
-                'src/param_files/product_specs/nisar_L2_GSLC.xml',
-                'src/param_files/product_specs/nisar_L2_GCOV.xml',
-                'src/param_files/product_specs/nisar_L1_RUNW.xml',
-                'src/param_files/product_specs/nisar_L2_GUNW.xml',
-                'src/param_files/product_specs/nisar_L1_RIFG.xml'
-                # TODO: These product spec files are not in the existing QA repo
-                # 'src/param_files/product_specs/nisar_L1_ROFF.xml',
-                # 'src/param_files/product_specs/nisar_L2_GOFF.xml'
-                ])],
-
+    data_files=[( 'product_specs', \
+                   glob.glob(os.path.join('src', 'param_files', 'product_specs', '*.xml' ))
+    
     install_requires=['argparse', 
                       'numpy',
                       'h5py',

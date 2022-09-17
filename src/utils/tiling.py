@@ -257,7 +257,7 @@ def compute_multilooked_power_by_tiling(arr, \
         -1 to use all rows / all columns (respectively).
         Format: (num_rows, num_cols) 
         Defaults to (512, -1) to use all columns (i.e. full rows of data)
-        and leverage Python's row-major ordering for computational speedup.
+        and leverage Python's row-major ordering.
     
     Returns
     -------
@@ -310,20 +310,25 @@ def compute_multilooked_power_by_tiling(arr, \
                                     col_stride=out_tiling_shape[1])
 
     # Create an inner function for this use case.
-    def calc_power_and_multilook(arr, nlooks):
+    def calc_power_and_multilook(arr, nlooks, linear_units):
 
         # Calc power in linear of array
-        out = calc.arr2pow(arr, linear_units=linear_units)
+        out = calc.arr2pow(arr)
 
         # Multilook
         out = ml.multilook(out, nlooks)
+
+        if not linear_units:
+            # Convert to dB
+            out = calc.pow2db(out)
 
         return out
 
     # Partially instantiate the function
     partial_func = make_partial_func(func=calc_power_and_multilook, \
                                     num_unfrozen_positional_args=1, \
-                                    nlooks=nlooks)
+                                    nlooks=nlooks, \
+                                    linear_units=linear_units)
 
     # Instantiate the output array
     multilook_img = np.zeros(final_out_arr_shape, dtype=float)  # 32 bit precision

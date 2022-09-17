@@ -1,19 +1,16 @@
 import numpy as np
 from utils import input_verification as iv
 
-def arr2pow(arr, linear_units=True):
+def arr2pow(arr):
     """
-    Compute power of the input array.
+    Compute power in linear units of the input array.
 
-    Power is computed as magnitude squared. Defaults to linear units.
+    Power is computed as magnitude squared.
 
     Parameters
     ----------
     arr : array_like
         Complex-valued input array.
-    linear_units : bool
-        True to compute power in linear units, False for decibel units.
-        Defaults to True.
 
     Returns
     -------
@@ -22,10 +19,6 @@ def arr2pow(arr, linear_units=True):
     """
 
     power = arr.real**2 + arr.imag**2
-
-    if not linear_units:
-        # Convert to dB
-        power = pow2db(power)
 
     return power
 

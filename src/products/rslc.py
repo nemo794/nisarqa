@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 import h5py
 import os
+import time
+from datetime import datetime
 
 from typing import Any
 import numpy as np
@@ -21,8 +23,6 @@ class DataDecoder(object):
 
     Notes
     -----
-    Based on https://github-fn.jpl.nasa.gov/isce-3/isce/blob/develop/python/packages/nisar/products/readers/Raw/DataDecoder.py
-
     The DataDecoder class is an example of what the NumPy folks call a "duck array", 
     i.e. a class that exports some subset of np.ndarray's API so that it can be used 
     as a drop-in replacement for np.ndarray in some cases. This is different from an 
@@ -30,18 +30,45 @@ class DataDecoder(object):
     Reference: https://numpy.org/neps/nep-0022-ndarray-duck-typing-overview.html
     """
     def __init__(self, h5dataset, type_to_read_data_as=np.dtype('complex64')):
-        # TODO - turn these into properties
-        self.dataset = h5dataset
-        self.shape = self.dataset.shape
-        self.ndim = self.dataset.ndim        
-        self.dtype = type_to_read_data_as
-        self.group = h5dataset.parent
+        self._dataset = h5dataset
+        self._dtype = type_to_read_data_as
 
         # Have h5py convert to the desired dtype on the fly when reading in data
         self.decoder = lambda key: self.dataset.astype(self.dtype)[key]
 
     def __getitem__(self, key):
         return self.decoder(key)
+
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @property
+    def shape(self):
+        return self.dataset.shape
+
+    @property
+    def ndim(self):
+        return self.dataset.ndim
+
+    @property
+    def freq_group(self):
+        # HDF5 Group for e.g. "/science/LSAR/RSLC/swaths/frequencyA"
+        return self.dataset.parent
+
+    @property
+    def swaths_group(self):
+        # HDF5 Group for e.g. "/science/LSAR/RSLC/swaths"
+        return self.dataset.parent.parent
+
+    @property
+    def band_group(self):
+        # HDF5 Group for e.g. "/science/LSAR"
+        return self.dataset.parent.parent.parent.parent
 
 
 @dataclass
@@ -282,10 +309,14 @@ def _get_pols(h5_file, freqs):
 
 
 def process_power_image(pols, plots_pdf, 
-            nlooks=None, linear_units=True, num_MPix=4.0, \
-            highlight_inf_pixels=False, \
-            middle_percentile=95.0, \
-            browse_image_dir=".", browse_image_prefix=None):
+            nlooks_freqA=None, nlooks_freqB=None, 
+            linear_units=True,
+            num_MPix=4.0,
+            highlight_inf_pixels=False,
+            middle_percentile=100.0,
+            browse_image_dir=".",
+            browse_image_prefix=None,
+            tile_shape=(512,-1)):
     """
     Generate the RSLC Power Image plots for the `plots_pdf` and
     corresponding browse image products.
@@ -305,11 +336,13 @@ def process_power_image(pols, plots_pdf,
         Nested dict of RSLCRaster objects, where each object represents
         a polarization dataset in `h5_file`.
         Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRaster object
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
+                                       in a RSLCRaster object
     plots_pdf : PdfPages object
         The output file to append the power image plot to
-    nlooks : int or iterable of int
-        Number of looks along each axis of the input array.
+    nlooks_freqA, nlooks_freqB : int or iterable of int
+        Number of looks along each axis of the input array 
+        for the specified frequency.
     linear_units : bool
         True to compute power in linear units, False for decibel units.
         Defaults to True.
@@ -322,14 +355,24 @@ def process_power_image(pols, plots_pdf,
     middle_percentile : numeric
         Defines the middle percentile range of the `image_arr` 
         that the colormap covers. Must be in the range [0, 100].
-        Defaults to 95.0.
+        Defaults to 100.0.
     browse_image_dir : string
         Path to directory to save the browse image product.
     browse_image_prefix : string
         String to pre-pend to the name of the generated browse image product.
+    tile_shape : tuple of ints
+        Shape of each tile to be processed. If `tile_shape` is
+        larger than the shape of `arr`, or if the dimensions of `arr`
+        are not integer multiples of the dimensions of `tile_shape`,
+        then smaller tiles may be used.
+        -1 to use all rows / all columns (respectively).
+        Format: (num_rows, num_cols) 
+        Defaults to (512, -1) to use all columns (i.e. full rows of data)
+        and leverage Python's row-major ordering.
     """
 
-    nlooks_arg = nlooks
+    nlooks_FreqA_arg = nlooks_freqA
+    nlooks_FreqB_arg = nlooks_freqB
 
     for band in pols:
         for freq in pols[band]:
@@ -340,40 +383,49 @@ def process_power_image(pols, plots_pdf,
                 # print("Starting multilooking for Image: ", img.name)
 
                 # Get the window size for multilooking
-                if nlooks_arg is None: 
+                if (freq == 'A' and nlooks_FreqA_arg is None) or \
+                    (freq == 'B' and nlooks_FreqB_arg is None):
+
                     # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
                     # "Nominal along track spacing in meters between consecutive lines 
                     # near mid swath of the RSLC image."
-                    az_spacing = img.data.group['sceneCenterAlongTrackSpacing'][...]
+                    az_spacing = img.data.freq_group['sceneCenterAlongTrackSpacing'][...]
 
                     # From the xml Product Spec, sceneCenterGroundRangeSpacing is the 
                     # "Nominal ground range spacing in meters between consecutive pixels
                     # near mid swath of the RSLC image."
-                    range_spacing = img.data.group['sceneCenterGroundRangeSpacing'][...]
-
-                    print(f"\nImage {img.name}: ")
-                    print("shape of image data: ", img.data.shape)
-                    print("sceneCenterAlongTrackSpacing: ", az_spacing)
-                    print("sceneCenterGroundRangeSpacing: ", range_spacing)
+                    range_spacing = img.data.freq_group['sceneCenterGroundRangeSpacing'][...]
 
                     nlooks = ml.compute_square_pixel_nlooks(img.data.shape, \
                                                             sample_spacing=(az_spacing, range_spacing), \
                                                             num_MPix=num_MPix)
-                    print("nlooks: ", nlooks)
                     num_pix = ((img.data.shape[0] // nlooks[0]) * (img.data.shape[1] // nlooks[1])) / 1e6
-                    print("Estimated final size in MPix: ", num_pix)
+                elif freq == 'A':
+                    nlooks = nlooks_FreqA_arg
+                elif freq == 'B':
+                    nlooks = nlooks_FreqB_arg
                 else:
-                    nlooks = nlooks_arg
+                    raise ValueError(f"freqency is {freq}, but only `A` or `B` are valid options.")
+
+
+                print(f"Multilooking Image {img.name} with shape: {img.data.shape}")
+                print("sceneCenterAlongTrackSpacing: ", az_spacing)
+                print("sceneCenterGroundRangeSpacing: ", range_spacing)
+                print("Beginning Multilooking with nlooks window shape: ", nlooks)
 
                 # Multilook
+                print("tile_shape: ", tile_shape)
+                start_time = time.time()
                 multilook_power_img = tiling.compute_multilooked_power_by_tiling(arr = img.data, \
                                                                                 nlooks=nlooks, \
                                                                                 linear_units=linear_units, \
-                                                                                tile_shape=(1024,-1))
-                
-                print("shape of original data: ", img.data.shape)
-                print("shape of multilook_power_img: ", multilook_power_img.shape)
-                # print("multilook_power_img: \n", multilook_power_img)
+                                                                                tile_shape=tile_shape)
+                end_time = time.time()-start_time
+                print("time to multilook image (sec): ", end_time)
+                print("time to multilook image (min): ", end_time/60.)
+
+                print(f"Multilooking Complete. Multilooked shape: {multilook_power_img.shape}")
+                print(f"Multilooked size: {multilook_power_img.size} Mpix.")
 
                 # Plot and Save Power Image as Browse Image Product
                 browse_img_file = get_browse_product_filename(product_name="RSLC", \
@@ -396,9 +448,30 @@ def process_power_image(pols, plots_pdf,
                 else:
                     title=f"RSLC Multilooked Power (dB)\n{img.name}"
 
+                # Get Azimuth (y-axis) tick range + label
+                # path in h5 file: /science/LSAR/RSLC/metadata/calibrationInformation/
+                if 'RSLC' in img.data.band_group:
+                    az_start = float(img.data.swaths_group['zeroDopplerTime'][0])
+                    az_stop =  float(img.data.swaths_group['zeroDopplerTime'][-1])
+                else:
+                    print("WARNING: Stop using an `SLC` File! (Remove this msg after development.)")
+                    az_start = float(img.data.band_group['SLC']['metadata']['calibrationInformation']['zeroDopplerTime'][0])
+                    az_stop =  float(img.data.band_group['SLC']['metadata']['calibrationInformation']['zeroDopplerTime'][-1])
+                
+                az_title = "Zero Doppler Time\n(sec since Epoch)"
+
+                # Get Range (x-axis) tick range + label
+                rng_start = float(img.data.freq_group['slantRange'][0])
+                rng_stop = float(img.data.freq_group['slantRange'][-1])
+                rng_title = "Slant Range (m)"
+
                 plot2pdf(img_arr=multilook_power_img,  \
                         middle_percentile=middle_percentile, \
                         title=title, \
+                        ylim=[az_start, az_stop], \
+                        xlim=[rng_start, rng_stop], \
+                        ylabel=az_title, \
+                        xlabel=rng_title, \
                         highlight_inf_pixels=highlight_inf_pixels, \
                         plots_pdf=plots_pdf
                         )
@@ -406,7 +479,7 @@ def process_power_image(pols, plots_pdf,
 
 def plot2png(img_arr,  \
         filepath, \
-        middle_percentile=95.0, \
+        middle_percentile=100.0, \
         highlight_inf_pixels=False
         ):
     """
@@ -421,7 +494,7 @@ def plot2png(img_arr,  \
     middle_percentile : numeric
         Defines the middle percentile range of the `image_arr` 
         that the colormap covers. Must be in the range [0, 100].
-        Defaults to 95.0.
+        Defaults to 100.0.
     highlight_inf_pixels : bool
         True to color pixels with an infinite value green in saved images.
         Defaults to matplotlib's default.
@@ -483,8 +556,10 @@ def get_browse_product_filename(product_name, band, freq, pol, quantity, \
 
 def plot2pdf(img_arr,  \
         plots_pdf, \
-        title="", \
-        middle_percentile=95.0, \
+        title=None, \
+        xlim=None, ylim=None, \
+        xlabel=None, ylabel=None, \
+        middle_percentile=100.0, \
         highlight_inf_pixels=False
         ):
     """
@@ -496,13 +571,19 @@ def plot2pdf(img_arr,  \
         Image to plot
     plots_pdf : PdfPages object
         The output pdf file to append the power image plot to
-    title : string
+    title : string, optional
         The full title for the plot
-    middle_percentile : numeric
+    xlim, ylim : list_like of numeric
+        Lower and upper limits for the axes ticks for the plot.
+        Format: xlim=[<x-axis lower limit>, <x-axis upper limit>], 
+                ylim=[<y-axis lower limit>, <y-axis upper limit>]
+    xlabel, ylabel : string
+        Axes labels for the x-axis and y-axis (respectively)
+    middle_percentile : numeric, optional
         Defines the middle percentile range of the `image_arr` 
         that the colormap covers. Must be in the range [0, 100].
-        Defaults to 95.0.
-    highlight_inf_pixels : bool
+        Defaults to 100.0.
+    highlight_inf_pixels : bool, optional
         True to color pixels with an infinite value green in saved images.
         Defaults to matplotlib's default.
     """
@@ -515,11 +596,102 @@ def plot2pdf(img_arr,  \
     # Get Plot
     f = plot_img_to_figure(fig=f, \
                          image_arr=img_arr, \
+                         xlim=xlim, ylim=ylim, \
                          middle_percentile=middle_percentile, \
                          highlight_inf_pixels=highlight_inf_pixels)
 
+    # Add Colorbar
     plt.colorbar(ax=plt.gca())
-    plt.title(title)
+
+    ## Label the plot
+
+    # If xlim or ylim are not provided, let matplotlib auto-assign the ticks.
+    # Otherwise, dynamically calculate and set the ticks w/ labels for 
+    # the x-axis and/or y-axis.
+    # (Attempts to set the limits by using the `extent` argument for 
+    # matplotlib.imshow() caused significantly distorted images.
+    # So, compute and set the ticks w/ labels manually.)
+    if xlim is not None or ylim is not None:
+
+        ax = plt.gca()
+
+        # Set the density of the ticks on the figure
+        ticks_per_inch = 2.5
+
+        # Get full figure size in inches
+        fig_w, fig_h = f.get_size_inches()
+        W = img_arr.shape[1]
+        H = img_arr.shape[0]
+
+        # Update variables to the actual, displayed image size
+        # (The actual image will have a different aspect ratio
+        # than the matplotlib figure window's aspect ratio.
+        # But, altering the matplotlib figure window's aspect ratio
+        # will lead to inconsistently-sized pages in the output .pdf)
+        if H/W >= fig_h/fig_w:
+            # image will be limited by its height, so
+            # it will not use the full width of the figure
+            fig_w = W * (fig_h/H)
+        else:
+            # image will be limited by its width, so
+            # it will not use the full height of the figure
+            fig_h = H * (fig_w/W)
+
+    if xlim is not None:
+
+        # Compute num of xticks to use
+        num_xticks = int(ticks_per_inch * fig_w)
+
+        # Always have a minimum of 2 labeled ticks
+        num_xticks = num_xticks if num_xticks >=2 else 2
+
+        # Specify where we want the ticks, in pixel locations.
+        xticks = np.linspace(0,img_arr.shape[1], num_xticks)
+        ax.set_xticks(xticks)
+
+        # Specify what those pixel locations correspond to in data coordinates.
+        # By default, np.linspace is inclusive of the endpoint
+        xticklabels = ["{:.1E}".format(i) for i in np.linspace(start=xlim[0], \
+                                                               stop=xlim[1], \
+                                                               num=num_xticks)]
+        ax.set_xticklabels(xticklabels)
+
+        plt.xticks(rotation=45)
+
+    if ylim is not None:
+        
+        # Compute num of yticks to use
+        num_yticks = int(ticks_per_inch * fig_h)
+
+        # Always have a minimum of 2 labeled ticks
+        if num_yticks < 2:
+            num_yticks = 2
+
+        # Specify where we want the ticks, in pixel locations.
+        yticks = np.linspace(0,img_arr.shape[0], num_yticks)
+        ax.set_yticks(yticks)
+
+        # Specify what those pixel locations correspond to in data coordinates.
+        # By default, np.linspace is inclusive of the endpoint
+        yticklabels = [f"{int(i)}" for i in np.linspace(start=ylim[0], \
+                                                        stop=ylim[1], \
+                                                        num=num_yticks)]
+        ax.set_yticklabels(yticklabels)
+
+    # Label the Axes
+    if xlabel is not None:
+        plt.xlabel(xlabel)
+    if ylabel is not None:
+        plt.ylabel(ylabel)
+
+    # Add title
+    if title is not None:
+        plt.title(title)
+
+    # Make sure axes labels do not get cut off
+    f.tight_layout()
+
+    # Append figure to the output .pdf
     plots_pdf.savefig(plt.gcf())
 
     # Close the plot
@@ -528,7 +700,8 @@ def plot2pdf(img_arr,  \
 
 def plot_img_to_figure(fig, image_arr, \
                             highlight_inf_pixels, \
-                            middle_percentile=95.0):
+                            xlim=None, ylim=None, \
+                            middle_percentile=100.0):
     """
     Clip and plot `image_arr` onto `fig` and return that figure.
 
@@ -548,7 +721,7 @@ def plot_img_to_figure(fig, image_arr, \
     middle_percentile : numeric
         Defines the middle percentile range of the `image_arr` 
         that the colormap covers. Must be in the range [0, 100].
-        Defaults to 95.0.
+        Defaults to 100.0.
 
     Returns
     -------
@@ -581,7 +754,7 @@ def plot_img_to_figure(fig, image_arr, \
     # use another big chunk of memory. Revisit this code later if/when this
     # becomes an issue.
 
-    fig.add_subplot(1,1,1) #  add a subplot to fig
+    ax = fig.add_subplot(1,1,1) #  add a subplot to fig
 
     # Highlight infinite pixels in green, if requested.
     cmap=plt.cm.gray
@@ -593,11 +766,39 @@ def plot_img_to_figure(fig, image_arr, \
                 cmap=cmap
                 )
 
+    # if xlim is not None:
+    #     num_xticks = 4
+
+    #     # Where we want the ticks, in pixel locations
+    #     xticks = np.linspace(0,clipped_array.shape[1], num_xticks)
+    #     ax.set_xticks(xticks)
+
+    #     # What those pixel locations correspond to in data coordinates.
+    #     # Also set the float format here
+    #     xticklabels = ["{:10.1f}".format(i) for i in np.linspace(xlim[0], xlim[1],num_xticks)]
+    #     ax.set_xticklabels(xticklabels)
+
+    #     plt.xticks(rotation=45)
+
+    # if ylim is not None:
+    #     num_yticks = 8
+
+    #     # Where we want the ticks, in pixel locations
+    #     yticks = np.linspace(0,clipped_array.shape[0], num_yticks)
+
+    #     # What those pixel locations correspond to in data coordinates.
+    #     # Also set the float format here
+    #     yticklabels = ["{:10.1f}".format(i) for i in np.linspace(ylim[0], ylim[1],num_yticks)]
+
+    #     ax.set_yticks(yticks)
+    #     ax.set_yticklabels(yticklabels)
+
     return fig
 
 
-def calc_vmin_vmax(data_in, middle_percentile=95.0):
-    """Calculate the values of vmin and vmax for the 
+def calc_vmin_vmax(data_in, middle_percentile=100.0):
+    """
+    Calculate the values of vmin and vmax for the 
     input array using the given middle percentile.
 
     For example, if `middle_percentile` is 95.0, then this will
@@ -610,7 +811,7 @@ def calc_vmin_vmax(data_in, middle_percentile=95.0):
     middle_percentile : numeric
         Defines the middle percentile range of the `image_arr`. 
         Must be in the range [0, 100].
-        Defaults to 95.0.
+        Defaults to 100.0.
 
     Returns
     -------
