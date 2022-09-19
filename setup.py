@@ -40,10 +40,10 @@ setup(
 
     test_suite = "tests",
 
-    scripts=glob.glob(os.path.join('bin', 'verify_*.py'),
+    scripts=glob.glob(os.path.join('bin', 'verify_*.py')),
 
     data_files=[( 'product_specs', \
-                   glob.glob(os.path.join('src', 'param_files', 'product_specs', '*.xml' ))
+                   glob.glob(os.path.join('src', 'param_files', 'product_specs', '*.xml' )))],
     
     install_requires=['argparse', 
                       'numpy',
