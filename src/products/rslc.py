@@ -651,7 +651,7 @@ def plot2pdf(img_arr,  \
 
         # Specify what those pixel locations correspond to in data coordinates.
         # By default, np.linspace is inclusive of the endpoint
-        xticklabels = ["{:.1E}".format(i) for i in np.linspace(start=xlim[0], \
+        xticklabels = ["{:.1e}".format(i) for i in np.linspace(start=xlim[0], \
                                                                stop=xlim[1], \
                                                                num=num_xticks)]
         ax.set_xticklabels(xticklabels)
@@ -765,33 +765,6 @@ def plot_img_to_figure(fig, image_arr, \
     plt.imshow(X=clipped_array, \
                 cmap=cmap
                 )
-
-    # if xlim is not None:
-    #     num_xticks = 4
-
-    #     # Where we want the ticks, in pixel locations
-    #     xticks = np.linspace(0,clipped_array.shape[1], num_xticks)
-    #     ax.set_xticks(xticks)
-
-    #     # What those pixel locations correspond to in data coordinates.
-    #     # Also set the float format here
-    #     xticklabels = ["{:10.1f}".format(i) for i in np.linspace(xlim[0], xlim[1],num_xticks)]
-    #     ax.set_xticklabels(xticklabels)
-
-    #     plt.xticks(rotation=45)
-
-    # if ylim is not None:
-    #     num_yticks = 8
-
-    #     # Where we want the ticks, in pixel locations
-    #     yticks = np.linspace(0,clipped_array.shape[0], num_yticks)
-
-    #     # What those pixel locations correspond to in data coordinates.
-    #     # Also set the float format here
-    #     yticklabels = ["{:10.1f}".format(i) for i in np.linspace(ylim[0], ylim[1],num_yticks)]
-
-    #     ax.set_yticks(yticks)
-    #     ax.set_yticklabels(yticklabels)
 
     return fig
 
