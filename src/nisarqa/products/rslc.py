@@ -75,23 +75,12 @@ class RSLCRaster:
     # e.g. "LSAR_A_HH"
     name: str
 
-    # Mask of where the valid (True) and invalid (False)
-    # pixels are in `data`.
-    mask_ok: npt.ArrayLike = field(init=False)
-
     def __init__(self, h5dataset, name):
-        """After the default initialition, create the mask_ok.
+        """Initialize instance of RSLCRaster.
         """
         self.name = name
         self.data = DataDecoder(h5dataset, \
                                 dtype=np.dtype('c8'))
-
-        # print("Beginning Generate mask_ok for image: ", name)
-        # self.mask_ok = \
-        #         nisarqa.compute_mask_ok_by_tiling(self.data, max_tile_size=(1024, self.data.shape[1]))
-        # print("Complete: Generate mask_ok for image: ", name)
-        # print("Number of nan's: ", np.sum(~self.mask_ok))
-        # print("Percentage of pixels are invalid: ", (np.sum(~self.mask_ok)/self.mask_ok.size) * 100)
 
 
 def get_bands_freq_pols(h5_file):

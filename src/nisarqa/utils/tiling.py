@@ -94,8 +94,7 @@ def process_arr_by_tiles(in_arr, out_arr, func, \
     output_batches : TileIterator
         Iterator for the output array
     in_arr_2 : array_like, optional
-        Optional 2nd input argument of same shape as `in_arr`. Often used
-        for passing in a mask_ok array.
+        Optional 2nd input argument of same shape as `in_arr`.
 
     Returns
     -------
@@ -149,78 +148,6 @@ def make_partial_func(func, num_unfrozen_positional_args, **func_kwargs):
         raise ValueError('`num_unfrozen_positional_args` is '
                         f'{num_unfrozen_positional_args} but must be an integer'
                         'in range [1,3].')
-
-
-###############################################
-######   All-Products Tiling Functions  #######
-###############################################
-
-
-def compute_mask_ok_by_tiling(arr, max_tile_size=(1024,1024), epsilon=1.0E-05):
-    """
-    Create a mask of the valid (finite, non-zero) pixels in arr.
-
-    Mask is computed by processing the `arr` by tiles; this minimizes
-    memory usage but increases computation time. Set `use_np_memmap`
-    to True to further reduce memory usage.
-
-    Parameters
-    ----------
-    arr : array_like
-        The input array
-    max_tile_size : tuple of ints
-        (num_rows, num_cols) for the tile size.
-        Defaults to (1024, 1024)
-    epsilon : float, optional
-        Tolerance for if an element in `arr` is considered "zero"
-    
-    TODO: Implement memory mapping functionality
-    use_np_memmap : bool
-        If True, will return `mask_ok` as a numpy.memmap array.
-        Defaults to False.
-
-    Returns
-    -------
-    mask_ok : array_like
-        Array with same shape as `arr`.
-        True for valid entries. Valid entries finite values that are
-        not inf, not nan, and not "zero" (where zero is < params.EPS)
-        False for entries that have a nan or inf in either the real
-        or imaginary component, or a zero in both real and imag components.
-        If `use_np_memmap` is True, `mask_ok` will be a numpy.memmap array.
-        Otherwise, `mask_ok` will be a numpy.ndarray.
-
-    See Also
-    --------
-    nisarqa.utils.compute_mask_ok : Used to compute `mask_ok`
-    """
-
-    # max_tile_size = (arr.shape[0] // 2, arr.shape[1] // 2)
-
-    # validate_nlooks(arr, max_tile_size)
-
-    # Partially instantiate the function
-    partial_func = make_partial_func(func=nisarqa.compute_mask_ok, \
-                                    num_unfrozen_positional_args=1, \
-                                    epsilon=epsilon)
-
-    # Create Iterators
-    input_iter = TileIterator(arr.shape, row_stride=max_tile_size[0],
-                                col_stride=max_tile_size[1])
-    out_iter = TileIterator(arr.shape, row_stride=max_tile_size[0],
-                                col_stride=max_tile_size[1])
-    
-    # Create an empty boolean array
-    # TODO - make this an memory mapped array.
-    # For now, a bool is 1 byte, so the array will be 1/8 the size
-    # of the complex64 input array.
-    mask_ok = np.zeros(arr.shape, dtype=bool)
-
-    process_arr_by_tiles(arr, mask_ok, partial_func, \
-                        input_batches=input_iter, \
-                        output_batches=out_iter)
-
-    return mask_ok
 
 
 ###############################################

@@ -66,7 +66,6 @@ def main(args):
                      PdfPages(args["plots_file"]) as plots_file:
 
                 # Get the file's bands, frequencies, and polarizations.
-                # This will also create the mask_ok and log invalid pixels.
                 bands, freqs, pols = nisarqa.rslc.get_bands_freq_pols(in_file)
 
                 # Generate the RSLC Power Image

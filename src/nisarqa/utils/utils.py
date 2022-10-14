@@ -45,6 +45,8 @@ def compute_non_zero_mask(arr, epsilon=1.0E-05):
 
     Elements in the input array that are approximately equal to zero, 
     based on the specified tolerance, are masked out.
+    TODO - after development of the RSLC QA code is complete,
+    check that this function is used. If not, delete.
 
     Parameters
     ----------
@@ -68,6 +70,9 @@ def compute_non_zero_mask(arr, epsilon=1.0E-05):
 def compute_mask_ok(arr, epsilon=1.0E-05):
     """
     Create a mask of the valid (finite, non-zero) pixels in arr.
+
+    TODO - after development of the RSLC QA code is complete,
+    check that this function is used. If not, delete.
 
     Parameters
     ----------
