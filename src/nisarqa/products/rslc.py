@@ -9,17 +9,13 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 
-from param_files.QA_params import params
-from utils import input_verification as iv
-from utils import tiling
-from utils import multilook as ml
-
+import nisarqa
 
 class DataDecoder(object):
     """Wrapper to read in NISAR product datasets that are e.g. '<c4' type, 
     which raise an TypeError if accessed naively by h5py.
 
-    Indexing operatations always return data converted to `type_to_read_data_as`.
+    Indexing operatations always return data converted to `dtype`.
 
     Notes
     -----
@@ -29,15 +25,13 @@ class DataDecoder(object):
     "array_like" object, which is simply an object that can be converted to a numpy array. 
     Reference: https://numpy.org/neps/nep-0022-ndarray-duck-typing-overview.html
     """
-    def __init__(self, h5dataset, type_to_read_data_as=np.dtype('complex64')):
+    def __init__(self, h5dataset, dtype=np.complex64):
         self._dataset = h5dataset
-        self._dtype = type_to_read_data_as
-
-        # Have h5py convert to the desired dtype on the fly when reading in data
-        self.decoder = lambda key: self.dataset.astype(self.dtype)[key]
+        self._dtype = dtype
 
     def __getitem__(self, key):
-        return self.decoder(key)
+        # Have h5py convert to the desired dtype on the fly when reading in data
+        return self.dataset.astype(self.dtype)[key]
 
     @property
     def dataset(self):
@@ -90,11 +84,11 @@ class RSLCRaster:
         """
         self.name = name
         self.data = DataDecoder(h5dataset, \
-                                type_to_read_data_as=np.dtype('c8'))
+                                dtype=np.dtype('c8'))
 
         # print("Beginning Generate mask_ok for image: ", name)
         # self.mask_ok = \
-        #         tiling.compute_mask_ok_by_tiling(self.data, max_tile_size=(1024, self.data.shape[1]))
+        #         nisarqa.compute_mask_ok_by_tiling(self.data, max_tile_size=(1024, self.data.shape[1]))
         # print("Complete: Generate mask_ok for image: ", name)
         # print("Number of nan's: ", np.sum(~self.mask_ok))
         # print("Percentage of pixels are invalid: ", (np.sum(~self.mask_ok)/self.mask_ok.size) * 100)
@@ -160,7 +154,7 @@ def _get_bands(h5_file):
     """
 
     bands = {}
-    for band in params.BANDS:
+    for band in nisarqa.BANDS:
         path = f"/science/{band}"
         if path in h5_file:
             # self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
@@ -203,7 +197,7 @@ def _get_freqs(h5_file, bands):
     freqs = {}
     for band in bands.keys():
         freqs[band] = {}
-        for freq in params.RSLC_FREQS:
+        for freq in nisarqa.RSLC_FREQS:
             path = f"/science/{band}/RSLC/swaths/frequency{freq}"
             if path in h5_file:
                 # self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
@@ -270,7 +264,7 @@ def _get_pols(h5_file, freqs):
         pols[band] = {}
         for freq in freqs[band]:
             pols[band][freq] = {}
-            for pol in params.RSLC_POLS:
+            for pol in nisarqa.RSLC_POLS:
                 path = f"/science/{band}/RSLC/swaths/frequency{freq}/{pol}"
                 if path in h5_file:
                     # self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
@@ -396,7 +390,7 @@ def process_power_image(pols, plots_pdf,
                     # near mid swath of the RSLC image."
                     range_spacing = img.data.freq_group['sceneCenterGroundRangeSpacing'][...]
 
-                    nlooks = ml.compute_square_pixel_nlooks(img.data.shape, \
+                    nlooks = nisarqa.compute_square_pixel_nlooks(img.data.shape, \
                                                             sample_spacing=(az_spacing, range_spacing), \
                                                             num_MPix=num_MPix)
                     num_pix = ((img.data.shape[0] // nlooks[0]) * (img.data.shape[1] // nlooks[1])) / 1e6
@@ -408,7 +402,7 @@ def process_power_image(pols, plots_pdf,
                     raise ValueError(f"freqency is {freq}, but only `A` or `B` are valid options.")
 
 
-                print(f"Multilooking Image {img.name} with shape: {img.data.shape}")
+                print(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
                 print("sceneCenterAlongTrackSpacing: ", az_spacing)
                 print("sceneCenterGroundRangeSpacing: ", range_spacing)
                 print("Beginning Multilooking with nlooks window shape: ", nlooks)
@@ -416,7 +410,7 @@ def process_power_image(pols, plots_pdf,
                 # Multilook
                 print("tile_shape: ", tile_shape)
                 start_time = time.time()
-                multilook_power_img = tiling.compute_multilooked_power_by_tiling(arr = img.data, \
+                multilook_power_img = nisarqa.compute_multilooked_power_by_tiling(arr = img.data, \
                                                                                 nlooks=nlooks, \
                                                                                 linear_units=linear_units, \
                                                                                 tile_shape=tile_shape)
@@ -742,7 +736,7 @@ def plot_img_to_figure(fig, image_arr, \
     .pdf files that contain these figures to grow from e.g. 537KB to 877MB.
     """
 
-    iv.verify_valid_percentile(middle_percentile)
+    nisarqa.verify_valid_percentile(middle_percentile)
 
     # Get vmin and vmax to set the desired range of the colorbar
     vmin, vmax = calc_vmin_vmax(image_arr, middle_percentile=middle_percentile)
@@ -793,7 +787,7 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
         percentile.
 
     """
-    iv.verify_valid_percentile(middle_percentile)
+    nisarqa.verify_valid_percentile(middle_percentile)
 
     fraction = 0.5*(1.0 - middle_percentile/100.0)
 

@@ -1,5 +1,4 @@
 import numpy as np
-from utils import input_verification as iv
 
 def arr2pow(arr):
     """

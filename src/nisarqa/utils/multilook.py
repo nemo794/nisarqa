@@ -1,8 +1,7 @@
 import numpy as np
 import warnings
 
-from utils import input_verification as iv
-
+import nisarqa
 
 def multilook(arr, nlooks):
     """
@@ -34,7 +33,7 @@ def multilook(arr, nlooks):
     """
 
     # Step 1: Prepare and validate the inputs
-    iv.validate_arr(arr)
+    nisarqa.validate_arr(arr)
     nlooks = normalize_nlooks(nlooks, arr)
     validate_nlooks(nlooks, arr)
 

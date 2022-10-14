@@ -37,13 +37,13 @@ setup(
     # Gather all packages located under `src`.
     # (A package is a directory containing an __init__.py file.)
     package_dir={ '' : 'src'},
-
+    packages=find_packages(),
     test_suite = "tests",
 
     scripts=glob.glob(os.path.join('bin', 'verify_*.py')),
 
     data_files=[( 'product_specs', \
-                   glob.glob(os.path.join('src', 'param_files', 'product_specs', '*.xml' )))],
+                   glob.glob(os.path.join('src', 'parameters', 'product_specs', '*.xml' )))],
     
     install_requires=['argparse', 
                       'numpy',

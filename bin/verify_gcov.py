@@ -1,14 +1,6 @@
 #!/usr/bin/env python3
-import h5py
-# Switch backend to one that doesn't require DISPLAY to be set since we're
-# just plotting to file anyway. (Some compute notes do not allow X connections)
-import matplotlib
-matplotlib.use('Agg')
-from matplotlib.backends.backend_pdf import PdfPages
 
-# from products import gcov
-from utils import parsing
-from utils import utils
+import nisarqa
 
 def main(args=None):
     """
@@ -19,6 +11,6 @@ def main(args=None):
 
 
 if __name__ == "__main__":
-    args = parsing.parse_args('gcov')
+    args = nisarqa.parse_args('gcov')
     main(args)
     

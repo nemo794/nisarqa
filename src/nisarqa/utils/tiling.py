@@ -2,11 +2,7 @@ import numpy as np
 import itertools
 import warnings
 
-from utils import utils
-from utils import input_verification as iv
-from utils import calc
-from utils import multilook as ml
-
+import nisarqa
 
 ###############################################
 ######      Main Tiling Functions       #######
@@ -196,7 +192,7 @@ def compute_mask_ok_by_tiling(arr, max_tile_size=(1024,1024), epsilon=1.0E-05):
 
     See Also
     --------
-    utils.compute_mask_ok : Used to compute `mask_ok`
+    nisarqa.utils.compute_mask_ok : Used to compute `mask_ok`
     """
 
     # max_tile_size = (arr.shape[0] // 2, arr.shape[1] // 2)
@@ -204,7 +200,7 @@ def compute_mask_ok_by_tiling(arr, max_tile_size=(1024,1024), epsilon=1.0E-05):
     # validate_nlooks(arr, max_tile_size)
 
     # Partially instantiate the function
-    partial_func = make_partial_func(func=utils.compute_mask_ok, \
+    partial_func = make_partial_func(func=nisarqa.compute_mask_ok, \
                                     num_unfrozen_positional_args=1, \
                                     epsilon=epsilon)
 
@@ -313,14 +309,14 @@ def compute_multilooked_power_by_tiling(arr, \
     def calc_power_and_multilook(arr, nlooks, linear_units):
 
         # Calc power in linear of array
-        out = calc.arr2pow(arr)
+        out = nisarqa.arr2pow(arr)
 
         # Multilook
-        out = ml.multilook(out, nlooks)
+        out = nisarqa.multilook(out, nlooks)
 
         if not linear_units:
             # Convert to dB
-            out = calc.pow2db(out)
+            out = nisarqa.pow2db(out)
 
         return out
 
