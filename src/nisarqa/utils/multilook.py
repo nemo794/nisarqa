@@ -4,7 +4,7 @@ import warnings
 import nisarqa
 
 def multilook(arr, nlooks):
-    """
+    '''
     Multilook an array by simple averaging.
     
     Performs spatial averaging and decimation. Each element in the output array is the
@@ -30,10 +30,10 @@ def multilook(arr, nlooks):
 
     If a cell in the input array is nan (invalid), then the corresponding cell in the
     output array will also be nan.
-    """
+    '''
 
     # Step 1: Prepare and validate the inputs
-    nisarqa.validate_arr(arr)
+    nisarqa.verify_real_or_complex_dtype(arr)
     nlooks = normalize_nlooks(nlooks, arr)
     validate_nlooks(nlooks, arr)
 
@@ -44,7 +44,7 @@ def multilook(arr, nlooks):
     # Step 3: Compute the local average of samples by accumulating a weighted sum of
     # cells within each multilook window.
 
-    # Step 3.1: take a view without the "uneven edges" beyond even multiples of nlooks
+    # Step 3.1: take a view without the 'uneven edges' beyond even multiples of nlooks
     valid_portion = arr[:out_shape[0]*nlooks[0], : out_shape[1]*nlooks[1]]
 
     # Step 3.2: sum across Axis 1 first. (Idea: collapsing vertical blinds).
@@ -82,8 +82,8 @@ def normalize_nlooks(nlooks, arr):
         nlooks = tuple([int(n) for n in nlooks])
         if len(nlooks) != arr.ndim:
             raise ValueError(
-                f"length mismatch: length of nlooks ({len(nlooks)}) must match input"
-                f" array rank ({arr.ndim})"
+                f'length mismatch: length of nlooks ({len(nlooks)}) must match input'
+                f' array rank ({arr.ndim})'
             )
 
     return nlooks
@@ -94,24 +94,24 @@ def validate_nlooks(nlooks, arr):
     # along the corresponding axis.
     for m, n in zip(arr.shape, nlooks):
         if n < 1:
-            raise ValueError("number of looks must be >= 1")
+            raise ValueError('number of looks must be >= 1')
         elif n > m:
-            raise ValueError("number of looks should not exceed array shape")
+            raise ValueError('number of looks should not exceed array shape')
 
     # Warn if the array shape is not an integer multiple of `nlooks`. Warn at most once
     # (even if multiple axes have this issue).
     for m, n in zip(arr.shape, nlooks):
         if m % n != 0:
             warnings.warn(
-                "input array shape is not an integer multiple of nlooks -- remainder"
-                " samples will be excluded from output",
+                'input array shape is not an integer multiple of nlooks -- remainder'
+                ' samples will be excluded from output',
                 RuntimeWarning,
             )
             break
 
 
-def compute_square_pixel_nlooks(img_shape, sample_spacing, num_MPix=4.0):
-    """
+def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
+    '''
     Computes the nlooks values required to achieve approx. square pixels
     in a multilooked image.
 
@@ -129,7 +129,7 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_MPix=4.0):
         The azimuth sample spacing (da) and range sample spacing (dr)
         of the source array.
         Format: (da, dr)
-    num_MPix : scalar
+    num_mpix : scalar
         The approx. size (in megapixels) for the final multilooked image.
         Defaults to 4.0 MPix.
 
@@ -170,8 +170,8 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_MPix=4.0):
     (2) dr * kr = dr_1                # range sample spacing is scaled by nlooks
     (3) M / ka = M_1                  # num az lines is scaled by nlooks
     (4) N / kr = N_1                  # num range lines is scaled by nlooks
-    (5) num_Pix = `num_MPix` * 1e6    # convert Megapixels to pixels
-    (6) M_1 * N_1 = num_Pix           # output Multilooked image is `num_MPix` MPix
+    (5) num_Pix = `num_mpix` * 1e6    # convert Megapixels to pixels
+    (6) M_1 * N_1 = num_Pix           # output Multilooked image is `num_mpix` MPix
     (7) dr_1 = da_1                   # output Multilooked image should have square pixels
 
     Derivation:
@@ -188,14 +188,14 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_MPix=4.0):
     Because it is convenient for nlooks to be odd integer values,
     by computing ka and kr as Real values instead of integer values,
     rounding to the nearest odd-valued integers is easily computed.
-    """
+    '''
 
     # Variables
     M = img_shape[0]
     N = img_shape[1]
     da = sample_spacing[0]
     dr = sample_spacing[1]
-    num_Pix = num_MPix * 1e6
+    num_Pix = num_mpix * 1e6
 
     # Formula (12) -- see docstring
     ka_sqrd = (M * N * dr) / (da * num_Pix)
@@ -204,21 +204,8 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_MPix=4.0):
     ka = np.sqrt(ka_sqrd)
     kr = (ka * da) / dr  # Formula (8)
 
-    # Compute the nearest odd integer value for the nlooks.
-    def nearest_odd_int(k):
-        # Use int() to round down and convert to integer type.
-        # nlooks should always be positive, so its ok to round down.
-        k = int(k)
-        if k % 2 == 0:
-            k = k + 1
-        return k
-
-    kr = nearest_odd_int(kr)
-    ka = nearest_odd_int(ka)
-
-    # Sanity Check
-    assert kr % 2 == 1 and isinstance(kr, int), print("kr should be an odd integer.")
-    assert ka % 2 == 1 and isinstance(ka, int), print("ka should be an odd integer.")
+    kr = nisarqa.nearest_odd_int(kr)
+    ka = nisarqa.nearest_odd_int(ka)
 
     return (ka, kr)
 

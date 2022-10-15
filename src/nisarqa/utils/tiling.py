@@ -10,7 +10,7 @@ import nisarqa
 
 class TileIterator:
     def __init__(self, arr_shape, col_stride=-1, row_stride=-1):
-        """
+        '''
         Simple iterator class to iterate over a 1D or 2D array by tiles.
 
         Parameters
@@ -24,13 +24,8 @@ class TileIterator:
             Number of rows for each tile.
             Defaults to -1, meaning entire columns will be processed.
             To process entire columns in an array, set row_stride = arr_shape[0]
-            Will be ignored iff arr_shape is for a 1D array.
-
-        Returns
-        -------
-        ti : TileIterator
-            an instance of TileIterator with the given parameters
-        """
+            Will be ignored if arr_shape is for a 1D array.
+        '''
 
         self.arr_shape = arr_shape
 
@@ -41,8 +36,8 @@ class TileIterator:
 
         self.num_dim = len(arr_shape)
         if self.num_dim not in (1,2):
-            raise ValueError(f"Provided array shape has {self.num_dim} dimensions"
-                            "but only 1 or 2 dimensions are currently supported.")
+            raise ValueError(f'Provided array shape has {self.num_dim} dimensions'
+                            ' but only 1 or 2 dimensions are currently supported.')
 
         # If the array is 2D, set row_stride
         if self.num_dim == 2:
@@ -56,28 +51,32 @@ class TileIterator:
 
 
     def __iter__(self):
-        """
+        '''
         Iterator for TileIterator class.
 
-        Returns
-        -------
+        Yields
+        ------
         np_slice : tuple of slice objects
             A tuple of slice objects that can be used for 
             indexing into the next tile of an array_like object.
-        """
+        '''
         for row_start in range(0,self.arr_shape[0], self.row_stride):
             for col_start in range(0,self.arr_shape[1], self.col_stride):
                 if self.num_dim == 2:
-                    yield np.s_[row_start:row_start+self.row_stride, \
+                    yield np.s_[row_start:row_start+self.row_stride,
                                 col_start:col_start+self.col_stride]
 
                 else:  # 1 dimension array
                     yield np.s_[col_start:col_start+self.col_stride]
 
 
-def process_arr_by_tiles(in_arr, out_arr, func, \
+def process_arr_by_tiles(in_arr, out_arr, func,
                             input_batches, output_batches, in_arr_2=None):
-    """
+    '''
+    Map a function to tiles of an array.
+    
+    Apply `func` to the input array sequentially by tiles
+    and store the result in `out_arr`.
 
     Parameters
     ----------
@@ -95,11 +94,7 @@ def process_arr_by_tiles(in_arr, out_arr, func, \
         Iterator for the output array
     in_arr_2 : array_like, optional
         Optional 2nd input argument of same shape as `in_arr`.
-
-    Returns
-    -------
-    Populates `out_arr` with the results of the processing
-    """
+    '''
     for out_slice, in_slice in zip(output_batches, input_batches):
 
         # Process this batch
@@ -113,7 +108,7 @@ def process_arr_by_tiles(in_arr, out_arr, func, \
 
 
 def make_partial_func(func, num_unfrozen_positional_args, **func_kwargs):
-    """
+    '''
     Return a partial-instantiation of the function `func`.
 
     The arguments for `func` will be frozen to those provided 
@@ -129,14 +124,14 @@ def make_partial_func(func, num_unfrozen_positional_args, **func_kwargs):
         TODO: Allow this range to scale.
     **func_kwargs : keyword arguments
         The keyword arguments for `func` with corresponding values that will be 
-        "frozen" into the returned partial function.
+        'frozen' into the returned partial function.
     
     Returns
     -------
     partial_func : function
         Partial instantiation of `func` with `num_unfrozen_positional_args` 
         unfrozen and keyword arguments in `func_kwargs` frozen
-    """
+    '''
 
     if num_unfrozen_positional_args == 1:
         return lambda arg1 : func(arg1, **func_kwargs)
@@ -154,11 +149,11 @@ def make_partial_func(func, num_unfrozen_positional_args, **func_kwargs):
 ######       RSLC Tiling Functions      #######
 ###############################################
 
-def compute_multilooked_power_by_tiling(arr, \
-                                        nlooks, \
-                                        linear_units=True, \
+def compute_multilooked_power_by_tiling(arr,
+                                        nlooks,
+                                        linear_units=True,
                                         tile_shape=(512,-1)):
-    """
+    '''
     Compute the multilooked power array by tiling.
 
     Parameters
@@ -196,16 +191,16 @@ def compute_multilooked_power_by_tiling(arr, \
     If a cell in the input array is nan (invalid), then the corresponding cell in the
     output array will also be nan.
 
-    """
+    '''
 
     if tile_shape[0] == -1:
-        tile_shape = tuple((arr.shape[0], tile_shape[1]))
+        tile_shape = (arr.shape[0], tile_shape[1])
     if tile_shape[1] == -1:
-        tile_shape = tuple((tile_shape[0], arr.shape[1]))
+        tile_shape = (tile_shape[0], arr.shape[1])
 
     # Compute the portion (shape) of the input array 
     # that is integer multiples of nlooks.
-    # This will be used to trim off (discard) the "uneven edges" of the image,
+    # This will be used to trim off (discard) the 'uneven edges' of the image,
     # i.e. the pixels beyond the largest integer multiples of nlooks.
     in_arr_valid_shape = tuple([(m // n) * n for m, n in zip(arr.shape, nlooks)])
 
@@ -220,16 +215,16 @@ def compute_multilooked_power_by_tiling(arr, \
 
     # Ensure that the tiling size is big enough for at least one multilook window
     if nlooks[0] > in_tiling_shape[0] or nlooks[1] > in_tiling_shape[1]:
-        raise ValueError(f"Given nlooks values {nlooks} must be less than or "
-                        f"equal to the adjusted tiling shape {in_tiling_shape}. "
-                        f"(Provided, unadjusted tiling shape was {tile_shape}.")
+        raise ValueError(f'Given nlooks values {nlooks} must be less than or '
+                        f'equal to the adjusted tiling shape {in_tiling_shape}. '
+                        f'(Provided, unadjusted tiling shape was {tile_shape}.')
 
     # Create the Iterators 
-    input_iter = TileIterator(in_arr_valid_shape, \
-                                    row_stride=in_tiling_shape[0], \
+    input_iter = TileIterator(in_arr_valid_shape,
+                                    row_stride=in_tiling_shape[0],
                                     col_stride=in_tiling_shape[1])
-    out_iter = TileIterator(final_out_arr_shape, \
-                                    row_stride=out_tiling_shape[0], \
+    out_iter = TileIterator(final_out_arr_shape,
+                                    row_stride=out_tiling_shape[0],
                                     col_stride=out_tiling_shape[1])
 
     # Create an inner function for this use case.
@@ -248,18 +243,18 @@ def compute_multilooked_power_by_tiling(arr, \
         return out
 
     # Partially instantiate the function
-    partial_func = make_partial_func(func=calc_power_and_multilook, \
-                                    num_unfrozen_positional_args=1, \
-                                    nlooks=nlooks, \
+    partial_func = make_partial_func(func=calc_power_and_multilook,
+                                    num_unfrozen_positional_args=1,
+                                    nlooks=nlooks,
                                     linear_units=linear_units)
 
     # Instantiate the output array
-    multilook_img = np.zeros(final_out_arr_shape, dtype=float)  # 32 bit precision
+    multilook_img = np.zeros(final_out_arr_shape, dtype=np.float32)  # 32 bit precision
 
     # Ok to pass the full input array; the tiling iterators
-    # are constrained such that the "uneven edges" will be ignored.
-    process_arr_by_tiles(arr, multilook_img, partial_func, \
-                        input_batches=input_iter, \
+    # are constrained such that the 'uneven edges' will be ignored.
+    process_arr_by_tiles(arr, multilook_img, partial_func,
+                        input_batches=input_iter,
                         output_batches=out_iter)
 
     return multilook_img

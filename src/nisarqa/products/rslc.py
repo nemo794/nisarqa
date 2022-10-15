@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 import h5py
 import os
 import time
-from datetime import datetime
 
 from typing import Any
 import numpy as np
@@ -12,19 +11,19 @@ from matplotlib import pyplot as plt
 import nisarqa
 
 class DataDecoder(object):
-    """Wrapper to read in NISAR product datasets that are e.g. '<c4' type, 
+    '''Wrapper to read in NISAR product datasets that are e.g. '<c4' type, 
     which raise an TypeError if accessed naively by h5py.
 
     Indexing operatations always return data converted to `dtype`.
 
     Notes
     -----
-    The DataDecoder class is an example of what the NumPy folks call a "duck array", 
+    The DataDecoder class is an example of what the NumPy folks call a 'duck array', 
     i.e. a class that exports some subset of np.ndarray's API so that it can be used 
     as a drop-in replacement for np.ndarray in some cases. This is different from an 
-    "array_like" object, which is simply an object that can be converted to a numpy array. 
+    'array_like' object, which is simply an object that can be converted to a numpy array. 
     Reference: https://numpy.org/neps/nep-0022-ndarray-duck-typing-overview.html
-    """
+    '''
     def __init__(self, h5dataset, dtype=np.complex64):
         self._dataset = h5dataset
         self._dtype = dtype
@@ -49,42 +48,107 @@ class DataDecoder(object):
     def ndim(self):
         return self.dataset.ndim
 
-    @property
-    def freq_group(self):
-        # HDF5 Group for e.g. "/science/LSAR/RSLC/swaths/frequencyA"
-        return self.dataset.parent
-
-    @property
-    def swaths_group(self):
-        # HDF5 Group for e.g. "/science/LSAR/RSLC/swaths"
-        return self.dataset.parent.parent
-
-    @property
-    def band_group(self):
-        # HDF5 Group for e.g. "/science/LSAR"
-        return self.dataset.parent.parent.parent.parent
-
 
 @dataclass
 class RSLCRaster:
-    """RSLC image dataset with mask."""
+    '''
+    RSLC image dataset with name.
+    
+    Parameters
+    ----------
+    data : array_like
+        Raster data to be stored.
+    name : str
+        Name for the dataset
+    az_spacing : float
+        Azimuth spacing of pixels of input array
+    az_start : float
+        The start time of the observation for this
+        RSLC Raster
+    az_stop : float
+        The stopping time of the observation for this
+        RSLC Raster
+    range_spacing : float
+        Range spacing of pixels of input array
+    rng_start : float
+        Start (near) distance of the range of input array
+    rng_stop : float
+        End (far) distance of the range of input array
+    epoch_starttime : str
+        The start of the epoch for this observation,
+        in the format 'YYYY-MM-DD HH:MM:SS'
+
+    Notes
+    -----
+    If data is an HDF5 dataset, suggest initializing using
+    the class method `from_h5dataset(..)`.
+    '''
+
     # Raster data
     data: npt.ArrayLike
 
     # identifying name of this Raster; can be used for logging
-    # e.g. "LSAR_A_HH"
+    # e.g. 'LSAR_A_HH'
     name: str
 
-    def __init__(self, h5dataset, name):
-        """Initialize instance of RSLCRaster.
-        """
-        self.name = name
-        self.data = DataDecoder(h5dataset, \
-                                dtype=np.dtype('c8'))
+    # Attributes of the input array
+    az_spacing: float
+    az_start: float
+    az_stop: float
+
+    range_spacing: float
+    rng_start: float
+    rng_stop: float
+
+    epoch_starttime: str
 
 
-def get_bands_freq_pols(h5_file):
-    """
+    @classmethod
+    def from_h5dataset(cls, h5dataset, name, dtype,
+                       az_spacing, az_start, az_stop,
+                       range_spacing, rng_start, rng_stop,
+                       epoch_starttime):
+        '''
+        Initialize an RSLCRaster object for a HDF5 dataset
+        that needs to be decoded via a specific dtype.
+
+        This will store the dataset as a DataDecoder object
+        instead of a standard Arraylike object; the dataset
+        will be decoded as type `dtype`.
+
+        Parameters
+        ----------
+        h5dataset : array_like
+            Raster data to be stored.
+        name : str
+            Name for the dataset
+        dtype : dtype
+        az_spacing : float
+            Azimuth spacing of pixels of input array
+        az_start : float
+            The start time of the observation for this
+            RSLC Raster
+        az_stop : float
+            The stopping time of the observation for this
+            RSLC Raster
+        range_spacing : float
+            Range spacing of pixels of input array
+        rng_start : float
+            Start (near) distance of the range of input array
+        rng_stop : float
+            End (far) distance of the range of input array
+        epoch_starttime : str
+            The start of the epoch for this observation,
+            in the format 'YYYY-MM-DD HH:MM:SS'
+        '''
+        data = DataDecoder(h5dataset, dtype)
+        return cls(data, name, az_spacing, az_start, az_stop,
+                   range_spacing, rng_start, rng_stop,
+                   epoch_starttime)
+
+
+def get_bands_freqs_pols(h5_file):
+    '''
     TODO
 
     Parameters
@@ -96,23 +160,21 @@ def get_bands_freq_pols(h5_file):
     -------
     bands : dict of h5py Groups
         Dict of the h5py Groups for each band in `h5_file`,
-        where the keys are the available bands (i.e. "SSAR" or "LSAR").
+        where the keys are the available bands (i.e. 'SSAR' or 'LSAR').
         Format: bands[<band>] -> a h5py Group
         Ex: bands['LSAR'] -> the h5py Group for LSAR
-
     freqs : dict of h5py Groups
         Dict of the h5py Groups for each freq in `h5_file`,
-        where the keys are the available bands-freqs (i.e. "LSAR B" or "SSAR A").
+        where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
         Format: freqs[<band>][<freq>] -> a h5py Group
         Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
-
     pols : nested dict of RSLCRaster
         Nested dict of RSLCRaster objects, where each object represents
         a polarization dataset in `h5_file`.
         Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRaster object
 
-    """
+    '''
 
     bands = _get_bands(h5_file)
     freqs = _get_freqs(h5_file, bands)
@@ -122,7 +184,7 @@ def get_bands_freq_pols(h5_file):
 
 
 def _get_bands(h5_file):
-    """
+    '''
     Finds the available bands in the input file
     and stores their paths in a nested dictionary.
 
@@ -137,26 +199,26 @@ def _get_bands(h5_file):
     -------
     bands : dict of h5py Groups
         Dict of the h5py Groups for each band in `h5_file`,
-        where the keys are the available bands (i.e. "SSAR" and/or "LSAR").
+        where the keys are the available bands (i.e. 'SSAR' and/or 'LSAR').
         Format: bands[<band>] -> a h5py Group
         Ex: bands['LSAR'] -> the h5py Group for LSAR
-    """
+    '''
 
     bands = {}
     for band in nisarqa.BANDS:
-        path = f"/science/{band}"
+        path = f'/science/{band}'
         if path in h5_file:
-            # self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
+            # self.logger.log_message(logging_base.LogFilterInfo, 'Found band %s' % band)
             bands[band] = h5_file[path]
         else:
-            # self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
+            # self.logger.log_message(logging_base.LogFilterInfo, '%s not present' % band)
             pass
 
     return bands
 
 
 def _get_freqs(h5_file, bands):
-    """
+    '''
     Finds the available frequencies in the input file
     and stores their paths in a nested dictionary.
 
@@ -172,42 +234,42 @@ def _get_freqs(h5_file, bands):
 
     Returns
     -------
-    freqs : dict of h5py Groups
+    freqs : nested dict of h5py Groups
         Dict of the h5py Groups for each freq in `h5_file`,
-        where the keys are the available bands-freqs (i.e. "LSAR B" or "SSAR A").
+        where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
         Format: freqs[<band>][<freq>] -> a h5py Group
         Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
 
     See Also
     --------
     get_bands : function to generate the `bands` input argument
-    """
+    '''
 
     freqs = {}
     for band in bands.keys():
         freqs[band] = {}
         for freq in nisarqa.RSLC_FREQS:
-            path = f"/science/{band}/RSLC/swaths/frequency{freq}"
+            path = f'/science/{band}/RSLC/swaths/frequency{freq}'
             if path in h5_file:
-                # self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
+                # self.logger.log_message(logging_base.LogFilterInfo, 'Found band %s' % band)
                 freqs[band][freq] = h5_file[path]
 
-            # TODO - The original test datasets were created with only the "SLC"
-            # filepath. New NISAR RSLC Products should only contain "RSLC" file paths.
-            # Once the test datasets have been updated to "RSLC", then remove this
+            # TODO - The original test datasets were created with only the 'SLC'
+            # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
+            # Once the test datasets have been updated to 'RSLC', then remove this
             # warning, and raise a fatal error.
-            elif path.replace("RSLC", "SLC") in h5_file:
-                freqs[band][freq] = h5_file[path.replace("RSLC", "SLC")]
-                print("WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.")
+            elif path.replace('RSLC', 'SLC') in h5_file:
+                freqs[band][freq] = h5_file[path.replace('RSLC', 'SLC')]
+                print('WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.')
             else:
-                # self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
+                # self.logger.log_message(logging_base.LogFilterInfo, '%s not present' % band)
                 pass
 
     # Sanity Check - if a band does not have any frequencies, this is a validation error.
     # This check should be handled during the validation process before this function was called,
     # not the quality process, so raise an error.
     # In the future, this step might be moved earlier in the processing, and changed to
-    # be handled via: "log the error and remove the band from the dictionary" 
+    # be handled via: 'log the error and remove the band from the dictionary' 
     for band in freqs.keys():
         # Empty dictionaries evaluate to False in Python
         if not freqs[band]:
@@ -218,7 +280,7 @@ def _get_freqs(h5_file, bands):
 
 
 def _get_pols(h5_file, freqs):
-    """
+    '''
     Finds the available polarization rasters in the input file
     and stores their paths in a nested dictionary.
 
@@ -229,9 +291,9 @@ def _get_pols(h5_file, freqs):
         frequencies must be located in the h5 file in the path: 
         /science/<band>/RSLC/swaths/freqency<freq>/<pol>
         or they will not be found.
-    freqs : dict of h5py Groups
+    freqs : nested dict of h5py Groups
         Dict of the h5py Groups for each freq in `h5_file`,
-        where the keys are the available bands-freqs (i.e. "LSAR B" or "SSAR A").
+        where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
         Format: freqs[<band>][<freq>] -> a h5py Group
         Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
 
@@ -246,61 +308,143 @@ def _get_pols(h5_file, freqs):
     See Also
     --------
     get_freqs : function to generate the `freqs` input argument
-    """
+    '''
 
+    # Discover images in dataset and populate the dictionary
     pols = {}
     for band in freqs:
         pols[band] = {}
         for freq in freqs[band]:
             pols[band][freq] = {}
             for pol in nisarqa.RSLC_POLS:
-                path = f"/science/{band}/RSLC/swaths/frequency{freq}/{pol}"
-                if path in h5_file:
-                    # self.logger.log_message(logging_base.LogFilterInfo, "Found band %s" % band)
 
-                    band_freq_pol_str = f"{band}_{freq}_{pol}"
-                    pols[band][freq][pol] = RSLCRaster(h5_file[path], \
-                                                        name=band_freq_pol_str)
+                tmp_RSLCRaster = create_NISAR_RSLCRaster(h5_file, band, freq, pol)
 
-                # TODO - The original test datasets were created with only the "SLC"
-                # filepath. New NISAR RSLC Products should only contain "RSLC" file paths.
-                # Once the test datasets have been updated to "RSLC", then remove this
-                # warning, and raise a fatal error.
-                elif path.replace("RSLC", "SLC") in h5_file:
-                    band_freq_pol_str = f"{band}_{freq}_{pol}"
-                    pols[band][freq][pol] = RSLCRaster(h5_file[path.replace("RSLC", "SLC")], \
-                                                        name=band_freq_pol_str)
-                    print("WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.")
+                if isinstance(tmp_RSLCRaster, RSLCRaster):
+                    pols[band][freq][pol] = tmp_RSLCRaster
 
-                else:
-                    # self.logger.log_message(logging_base.LogFilterInfo, "%s not present" % band)
-                    pass
-
-    # Sanity Check - if a band/freq does not have any polarizations, this is a validation error.
-    # This check should be handled during the validation process before this function was called,
+    # Sanity Check - if a band/freq does not have any polarizations, 
+    # this is a validation error. This check should be handled during 
+    # the validation process before this function was called,
     # not the quality process, so raise an error.
-    # In the future, this step might be moved earlier in the processing, and changed to
-    # be handled via: "log the error and remove the band from the dictionary" 
+    # In the future, this step might be moved earlier in the 
+    # processing, and changed to be handled via: 'log the error 
+    # and remove the band from the dictionary' 
     for band in pols.keys():
         for freq in pols[band].keys():
             # Empty dictionaries evaluate to False in Python
             if not pols[band][freq]:
-                raise ValueError(f"Provided input file does not have any polarizations"
-                            f"included under band {band}, frequency {freq}.")
+                raise ValueError(f'Provided input file does not have any polarizations'
+                            f' included under band {band}, frequency {freq}.')
 
     return pols
 
 
-def process_power_image(pols, plots_pdf, 
-            nlooks_freqA=None, nlooks_freqB=None, 
+def create_NISAR_RSLCRaster(h5_file, band, freq, pol):
+    '''
+    Return a RSLCRaster instance of the given band-freq-pol
+    image in the input HDF5 file, if that image exists.
+
+    Parameters
+    ----------
+    h5_file : h5py file handle
+        File handle to a valid NISAR RSLC hdf5 file.
+        Polarization images must be located in the h5 file in the path: 
+        /science/<band>/RSLC/swaths/freqency<freq>/<pol>
+        or they will not be found. This is the file structure
+        as determined from the NISAR Product Spec.
+    band : str
+        name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        name of the frequency for `img`, e.g. 'A' or 'B'
+    pol : str
+        name of the polarization for `img`, e.g. 'HH' or 'HV'
+
+    Returns
+    -------
+    rslc_raster_image : RSLCRaster
+        An instance of RSLCRaster representing the given
+        band-freq-pol image in the input HDF5 file.
+        If the image does not exist, None will be returned.
+
+    '''
+    # check if this is an RSLC or and SLC file.
+    if f'/science/{band}/RSLC' in h5_file:
+        slc_type = 'RSLC'
+    elif f'/science/{band}/SLC' in h5_file:
+        # TODO - The UAVSAR test datasets were created with only the 'SLC'
+        # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
+        # Once the test datasets have been updated to 'RSLC', then remove this
+        # warning, and raise a fatal error.
+        print('WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.')
+
+        slc_type = 'SLC'
+    else:
+        # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
+        return None
+
+    # Hardcoded paths to various groups in the NISAR RSLC h5 file.
+    # These paths are determined by the RSLC .xml product spec
+    swaths_path = f'/science/{band}/{slc_type}/swaths'
+    freq_path = f'{swaths_path}/frequency{freq}/'
+    pol_path = f'{freq_path}/{pol}'
+    band_freq_pol_str = f'{band}_{freq}_{pol}'
+
+    if pol_path in h5_file:
+        # self.logger.log_message(logging_base.LogFilterInfo, 
+        #                         'Found image %s' % band_freq_pol_str)
+        pass
+    else:
+        # self.logger.log_message(logging_base.LogFilterInfo, 
+        #                         'Image %s not present' % band_freq_pol_str)
+        return None
+
+    # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
+    # 'Nominal along track spacing in meters between consecutive lines 
+    # near mid swath of the RSLC image.'
+    az_spacing = h5_file[freq_path]['sceneCenterAlongTrackSpacing'][...]
+
+    # Get Azimuth (y-axis) tick range + label
+    # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
+    az_start = float(h5_file[swaths_path]['zeroDopplerTime'][0])
+    az_stop =  float(h5_file[swaths_path]['zeroDopplerTime'][-1])
+
+    # From the xml Product Spec, sceneCenterGroundRangeSpacing is the 
+    # 'Nominal ground range spacing in meters between consecutive pixels
+    # near mid swath of the RSLC image.'
+    range_spacing = h5_file[freq_path]['sceneCenterGroundRangeSpacing'][...]
+
+    rng_start = float(h5_file[freq_path]['slantRange'][0])
+    rng_stop = float(h5_file[freq_path]['slantRange'][-1])
+
+    # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
+    sec_since_epoch = h5_file[swaths_path]['zeroDopplerTime'].attrs['units'].decode('utf-8')
+    epoch_starttime = sec_since_epoch.replace('seconds since ', '').strip()
+
+    return RSLCRaster.from_h5dataset(h5_file[pol_path],
+                                     name=band_freq_pol_str,
+                                     dtype=np.complex64,
+                                     az_spacing=az_spacing,
+                                     az_start=az_start,
+                                     az_stop=az_stop,
+                                     range_spacing=range_spacing,
+                                     rng_start=rng_start,
+                                     rng_stop=rng_stop,
+                                     epoch_starttime=epoch_starttime)
+
+def process_power_images(
+            pols,
+            plots_pdf, 
+            nlooks_freqa=None,
+            nlooks_freqb=None, 
             linear_units=True,
-            num_MPix=4.0,
+            num_mpix=4.0,
             highlight_inf_pixels=False,
             middle_percentile=100.0,
-            browse_image_dir=".",
+            browse_image_dir='.',
             browse_image_prefix=None,
             tile_shape=(512,-1)):
-    """
+    '''
     Generate the RSLC Power Image plots for the `plots_pdf` and
     corresponding browse image products.
 
@@ -313,6 +457,8 @@ def process_power_image(pols, plots_pdf,
             PP              : polarization
             qqq             : pow (because this function is for power images)
 
+    TODO - double check the file naming convention
+
     Parameters
     ----------
     pols : nested dict of RSLCRaster
@@ -321,15 +467,15 @@ def process_power_image(pols, plots_pdf,
         Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
                                        in a RSLCRaster object
-    plots_pdf : PdfPages object
+    plots_pdf : PdfPages
         The output file to append the power image plot to
-    nlooks_freqA, nlooks_freqB : int or iterable of int
+    nlooks_freqa, nlooks_freqb : int or iterable of int
         Number of looks along each axis of the input array 
         for the specified frequency.
     linear_units : bool
         True to compute power in linear units, False for decibel units.
         Defaults to True.
-    num_MPix : scalar
+    num_mpix : scalar
         The approx. size (in megapixels) for the final multilooked image.
         Defaults to 4.0 MPix.
     highlight_inf_pixels : bool
@@ -339,9 +485,9 @@ def process_power_image(pols, plots_pdf,
         Defines the middle percentile range of the `image_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
-    browse_image_dir : string
+    browse_image_dir : str
         Path to directory to save the browse image product.
-    browse_image_prefix : string
+    browse_image_prefix : str
         String to pre-pend to the name of the generated browse image product.
     tile_shape : tuple of ints
         Shape of each tile to be processed. If `tile_shape` is
@@ -352,127 +498,197 @@ def process_power_image(pols, plots_pdf,
         Format: (num_rows, num_cols) 
         Defaults to (512, -1) to use all columns (i.e. full rows of data)
         and leverage Python's row-major ordering.
-    """
-
-    nlooks_FreqA_arg = nlooks_freqA
-    nlooks_FreqB_arg = nlooks_freqB
-
+    '''
+    # Process each image in the dataset
     for band in pols:
         for freq in pols[band]:
             for pol in pols[band][freq]:
-
                 img = pols[band][freq][pol]
 
-                # print("Starting multilooking for Image: ", img.name)
-
-                # Get the window size for multilooking
-                if (freq == 'A' and nlooks_FreqA_arg is None) or \
-                    (freq == 'B' and nlooks_FreqB_arg is None):
-
-                    # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
-                    # "Nominal along track spacing in meters between consecutive lines 
-                    # near mid swath of the RSLC image."
-                    az_spacing = img.data.freq_group['sceneCenterAlongTrackSpacing'][...]
-
-                    # From the xml Product Spec, sceneCenterGroundRangeSpacing is the 
-                    # "Nominal ground range spacing in meters between consecutive pixels
-                    # near mid swath of the RSLC image."
-                    range_spacing = img.data.freq_group['sceneCenterGroundRangeSpacing'][...]
-
-                    nlooks = nisarqa.compute_square_pixel_nlooks(img.data.shape, \
-                                                            sample_spacing=(az_spacing, range_spacing), \
-                                                            num_MPix=num_MPix)
-                    num_pix = ((img.data.shape[0] // nlooks[0]) * (img.data.shape[1] // nlooks[1])) / 1e6
-                elif freq == 'A':
-                    nlooks = nlooks_FreqA_arg
-                elif freq == 'B':
-                    nlooks = nlooks_FreqB_arg
-                else:
-                    raise ValueError(f"freqency is {freq}, but only `A` or `B` are valid options.")
+                process_single_power_image(
+                            img=img,
+                            band=band,
+                            freq=freq,
+                            pol=pol,
+                            plots_pdf=plots_pdf, 
+                            nlooks_freqa=nlooks_freqa,
+                            nlooks_freqb=nlooks_freqb, 
+                            linear_units=linear_units,
+                            num_mpix=num_mpix,
+                            highlight_inf_pixels=highlight_inf_pixels,
+                            middle_percentile=middle_percentile,
+                            browse_image_dir=browse_image_dir,
+                            browse_image_prefix=browse_image_prefix,
+                            tile_shape=tile_shape)
 
 
-                print(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
-                print("sceneCenterAlongTrackSpacing: ", az_spacing)
-                print("sceneCenterGroundRangeSpacing: ", range_spacing)
-                print("Beginning Multilooking with nlooks window shape: ", nlooks)
+def process_single_power_image(img,
+                               band,
+                               freq,
+                               pol,
+                               plots_pdf, 
+                               nlooks_freqa=None,
+                               nlooks_freqb=None, 
+                               linear_units=True,
+                               num_mpix=4.0,
+                               highlight_inf_pixels=False,
+                               middle_percentile=100.0,
+                               browse_image_dir='.',
+                               browse_image_prefix=None,
+                               tile_shape=(512,-1)):
+    '''
+    Generate the RSLC Power Image plots for the `plots_pdf` and
+    corresponding browse image products for a single RSLC image.
 
-                # Multilook
-                print("tile_shape: ", tile_shape)
-                start_time = time.time()
-                multilook_power_img = nisarqa.compute_multilooked_power_by_tiling(arr = img.data, \
-                                                                                nlooks=nlooks, \
-                                                                                linear_units=linear_units, \
-                                                                                tile_shape=tile_shape)
-                end_time = time.time()-start_time
-                print("time to multilook image (sec): ", end_time)
-                print("time to multilook image (min): ", end_time/60.)
+    The browse image products will follow this naming convention:
+        <prefix>_<product name>_BAND_F_PP_qqq
+            <prefix>        : `browse_image_prefix`, supplied from SDS
+            <product name>  : RSLC, GLSC, etc.
+            BAND            : LSAR or SSAR
+            F               : frequency A or B 
+            PP              : polarization
+            qqq             : pow (because this function is for power images)
 
-                print(f"Multilooking Complete. Multilooked shape: {multilook_power_img.shape}")
-                print(f"Multilooked size: {multilook_power_img.size} Mpix.")
+    TODO - double check the file naming convention
 
-                # Plot and Save Power Image as Browse Image Product
-                browse_img_file = get_browse_product_filename(product_name="RSLC", \
-                                                              band=band, \
-                                                              freq=freq, \
-                                                              pol=pol, \
-                                                              quantity="pow", \
-                                                              browse_image_dir=browse_image_dir, \
-                                                              browse_image_prefix=browse_image_prefix)
+    Parameters
+    ----------
+    img : RSLCRaster
+        The RSLC raster to be processed
+    band : str
+        name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        name of the frequency for `img`, e.g. 'A' or 'B'
+    pol : str
+        name of the polarization for `img`, e.g. 'HH' or 'HV'
+    plots_pdf : PdfPages
+        The output file to append the power image plot to
+    nlooks_freqa, nlooks_freqb : int or iterable of int
+        Number of looks along each axis of the input array 
+        for the specified frequency.
+    linear_units : bool
+        True to compute power in linear units, False for decibel units.
+        Defaults to True.
+    num_mpix : scalar
+        The approx. size (in megapixels) for the final multilooked image.
+        Defaults to 4.0 MPix.
+    highlight_inf_pixels : bool
+        True to color invalid pixels green in saved images.
+        Defaults to black.
+    middle_percentile : numeric
+        Defines the middle percentile range of the `image_arr` 
+        that the colormap covers. Must be in the range [0, 100].
+        Defaults to 100.0.
+    browse_image_dir : str
+        Path to directory to save the browse image product.
+    browse_image_prefix : str
+        String to pre-pend to the name of the generated browse image product.
+    tile_shape : tuple of ints
+        Shape of each tile to be processed. If `tile_shape` is
+        larger than the shape of `arr`, or if the dimensions of `arr`
+        are not integer multiples of the dimensions of `tile_shape`,
+        then smaller tiles may be used.
+        -1 to use all rows / all columns (respectively).
+        Format: (num_rows, num_cols) 
+        Defaults to (512, -1) to use all columns (i.e. full rows of data)
+        and leverage Python's row-major ordering.
+    '''
 
-                plot2png(img_arr=multilook_power_img,  \
-                        filepath=browse_img_file, \
-                        middle_percentile=middle_percentile, \
-                        highlight_inf_pixels=highlight_inf_pixels, \
-                        )
+    nlooks_freqa_arg = nlooks_freqa
+    nlooks_freqb_arg = nlooks_freqb
 
-                # Plot and Save Power Image to graphical summary pdf
-                if linear_units:
-                    title=f"RSLC Multilooked Power (linear)\n{img.name}"
-                else:
-                    title=f"RSLC Multilooked Power (dB)\n{img.name}"
+    # Get the window size for multilooking
+    if (freq == 'A' and nlooks_freqa_arg is None) or \
+        (freq == 'B' and nlooks_freqb_arg is None):
 
-                # Get Azimuth (y-axis) tick range + label
-                # path in h5 file: /science/LSAR/RSLC/metadata/calibrationInformation/
-                if 'RSLC' in img.data.band_group:
-                    az_start = float(img.data.swaths_group['zeroDopplerTime'][0])
-                    az_stop =  float(img.data.swaths_group['zeroDopplerTime'][-1])
-                else:
-                    print("WARNING: Stop using an `SLC` File! (Remove this msg after development.)")
-                    az_start = float(img.data.band_group['SLC']['metadata']['calibrationInformation']['zeroDopplerTime'][0])
-                    az_stop =  float(img.data.band_group['SLC']['metadata']['calibrationInformation']['zeroDopplerTime'][-1])
-                
-                az_title = "Zero Doppler Time\n(sec since Epoch)"
+        az_spacing = img.az_spacing
+        range_spacing = img.range_spacing
 
-                # Get Range (x-axis) tick range + label
-                rng_start = float(img.data.freq_group['slantRange'][0])
-                rng_stop = float(img.data.freq_group['slantRange'][-1])
-                rng_title = "Slant Range (m)"
-
-                plot2pdf(img_arr=multilook_power_img,  \
-                        middle_percentile=middle_percentile, \
-                        title=title, \
-                        ylim=[az_start, az_stop], \
-                        xlim=[rng_start, rng_stop], \
-                        ylabel=az_title, \
-                        xlabel=rng_title, \
-                        highlight_inf_pixels=highlight_inf_pixels, \
-                        plots_pdf=plots_pdf
-                        )
+        nlooks = nisarqa.compute_square_pixel_nlooks(img.data.shape,
+                                                sample_spacing=(az_spacing, range_spacing),
+                                                num_mpix=num_mpix)
+        num_pix = ((img.data.shape[0] // nlooks[0]) * (img.data.shape[1] // nlooks[1])) / 1e6
+    elif freq == 'A':
+        nlooks = nlooks_freqa_arg
+    elif freq == 'B':
+        nlooks = nlooks_freqb_arg
+    else:
+        raise ValueError(f'freqency is {freq}, but only `A` or `B` are valid options.')
 
 
-def plot2png(img_arr,  \
-        filepath, \
-        middle_percentile=100.0, \
-        highlight_inf_pixels=False
-        ):
-    """
+    print(f'\nMultilooking Image {img.name} with shape: {img.data.shape}')
+    print('sceneCenterAlongTrackSpacing: ', az_spacing)
+    print('sceneCenterGroundRangeSpacing: ', range_spacing)
+    print('Beginning Multilooking with nlooks window shape: ', nlooks)
+
+    # Multilook
+    print('tile_shape: ', tile_shape)
+    start_time = time.time()
+    multilook_power_img = nisarqa.compute_multilooked_power_by_tiling(
+                                            arr=img.data,
+                                            nlooks=nlooks,
+                                            linear_units=linear_units,
+                                            tile_shape=tile_shape)
+    end_time = time.time()-start_time
+    print('time to multilook image (sec): ', end_time)
+    print('time to multilook image (min): ', end_time/60.)
+
+    print(f'Multilooking Complete. Multilooked shape: {multilook_power_img.shape}')
+    print(f'Multilooked size: {multilook_power_img.size} Mpix.')
+
+    # Plot and Save Power Image as Browse Image Product
+    browse_img_file = get_browse_product_filename(
+                                product_name='RSLC',
+                                band=band,
+                                freq=freq,
+                                pol=pol,
+                                quantity='pow',
+                                browse_image_dir=browse_image_dir,
+                                browse_image_prefix=browse_image_prefix)
+
+    plot2png(img_arr=multilook_power_img,
+                filepath=browse_img_file,
+                middle_percentile=middle_percentile,
+                highlight_inf_pixels=highlight_inf_pixels,
+                )
+
+    # Plot and Save Power Image to graphical summary pdf
+    if linear_units:
+        title=f'RSLC Multilooked Power (linear)\n{img.name}'
+    else:
+        title=f'RSLC Multilooked Power (dB)\n{img.name}'
+
+    # Get Azimuth (y-axis) label
+    az_title = f"Zero Doppler Time\n(seconds since {img.epoch_starttime})"
+
+    # Get Range (x-axis) label
+    rng_title = 'Slant Range (m)'
+
+    plot2pdf(img_arr=multilook_power_img,
+                middle_percentile=middle_percentile,
+                title=title,
+                ylim=[img.az_start, img.az_stop],
+                xlim=[img.rng_start, img.rng_stop],
+                ylabel=az_title,
+                xlabel=rng_title,
+                highlight_inf_pixels=highlight_inf_pixels,
+                plots_pdf=plots_pdf
+                )
+
+
+def plot2png(img_arr,
+             filepath,
+             middle_percentile=100.0,
+             highlight_inf_pixels=False
+             ):
+    '''
     Plot the clipped image array and save it to a browse image png.
 
     Parameters
     ----------
     img_arr : array_like
         Image to plot
-    filepath : string
+    filepath : str
         Full filepath the browse image product.
     middle_percentile : numeric
         Defines the middle percentile range of the `image_arr` 
@@ -481,7 +697,7 @@ def plot2png(img_arr,  \
     highlight_inf_pixels : bool
         True to color pixels with an infinite value green in saved images.
         Defaults to matplotlib's default.
-    """
+    '''
 
     # Instantiate the figure object
     # (Need to instantiate it outside of the plotting function
@@ -491,30 +707,36 @@ def plot2png(img_arr,  \
     DPI = f.get_dpi()
     H = img_arr.shape[0]
     W = img_arr.shape[1]
-    f.set_size_inches(w=float(W)/float(DPI), \
+    f.set_size_inches(w=float(W)/float(DPI),
                         h=float(H)/float(DPI))
 
     # Get Plot
-    f = plot_img_to_figure(fig=f, \
-                         image_arr=img_arr, \
-                         middle_percentile=middle_percentile, \
+    f = plot_img_to_figure(fig=f,
+                         image_arr=img_arr,
+                         middle_percentile=middle_percentile,
                          highlight_inf_pixels=highlight_inf_pixels)
 
     f.subplots_adjust(bottom=0.,left=0.,right=1.,top=1.)
 
     # Save plot to png (Browse Image Product)
     plt.axis('off')
-    plt.savefig(filepath, \
-                bbox_inches='tight', pad_inches=0, \
+    plt.savefig(filepath,
+                bbox_inches='tight', pad_inches=0,
                 dpi=DPI
                 )
 
     plt.close()
 
 
-def get_browse_product_filename(product_name, band, freq, pol, quantity, \
-            browse_image_dir, browse_image_prefix=None):
-    """
+def get_browse_product_filename(
+        product_name,
+        band,
+        freq,
+        pol,
+        quantity,
+        browse_image_dir,
+        browse_image_prefix=None):
+    '''
     Returns the full filename (with path) for Browse Image Product.
 
     The browse image products should follow this naming convention,
@@ -524,43 +746,48 @@ def get_browse_product_filename(product_name, band, freq, pol, quantity, \
             <product name>  : RSLC, GLSC, etc.
             BAND            : LSAR or SSAR
             F               : frequency A or B 
-            PP              : polarization, e.g. "HH" or "HV".
+            PP              : polarization, e.g. 'HH' or 'HV'.
                               [PP] additional polarization for GCOV 
             qqq             : quantity: mag, phs, coh, cov, rof, aof, cnc, iph 
                                         (see product list)
-    """
-    filename = f"{product_name.upper()}_{band}_{freq}_{pol}_{quantity}.png"
+
+    TODO - double check the file naming convention
+
+    '''
+    filename = f'{product_name.upper()}_{band}_{freq}_{pol}_{quantity}.png'
     if browse_image_prefix is not None:
-        filename = f"{browse_image_prefix}_{filename}"
+        filename = f'{browse_image_prefix}_{filename}'
     filename = os.path.join(browse_image_dir, filename)
 
     return filename
 
 
-def plot2pdf(img_arr,  \
-        plots_pdf, \
-        title=None, \
-        xlim=None, ylim=None, \
-        xlabel=None, ylabel=None, \
-        middle_percentile=100.0, \
-        highlight_inf_pixels=False
-        ):
-    """
+def plot2pdf(img_arr,
+             plots_pdf,
+             title=None,
+             xlim=None,
+             ylim=None,
+             xlabel=None,
+             ylabel=None,
+             middle_percentile=100.0,
+             highlight_inf_pixels=False
+             ):
+    '''
     Plot the clipped image array and append it to the pdf.
 
     Parameters
     ----------
     img_arr : array_like
         Image to plot
-    plots_pdf : PdfPages object
+    plots_pdf : PdfPages
         The output pdf file to append the power image plot to
-    title : string, optional
+    title : str, optional
         The full title for the plot
-    xlim, ylim : list_like of numeric
+    xlim, ylim : sequence of numeric, optional
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>], 
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
-    xlabel, ylabel : string
+    xlabel, ylabel : str
         Axes labels for the x-axis and y-axis (respectively)
     middle_percentile : numeric, optional
         Defines the middle percentile range of the `image_arr` 
@@ -568,8 +795,9 @@ def plot2pdf(img_arr,  \
         Defaults to 100.0.
     highlight_inf_pixels : bool, optional
         True to color pixels with an infinite value green in saved images.
-        Defaults to matplotlib's default.
-    """
+        False to color infinite pixels with matplotlib's default
+        for infinite values. Defaults to False.
+    '''
 
     # Instantiate the figure object
     # (Need to instantiate it outside of the plotting function
@@ -577,10 +805,10 @@ def plot2pdf(img_arr,  \
     f = plt.figure()
 
     # Get Plot
-    f = plot_img_to_figure(fig=f, \
-                         image_arr=img_arr, \
-                         xlim=xlim, ylim=ylim, \
-                         middle_percentile=middle_percentile, \
+    f = plot_img_to_figure(fig=f,
+                         image_arr=img_arr,
+                         xlim=xlim, ylim=ylim,
+                         middle_percentile=middle_percentile,
                          highlight_inf_pixels=highlight_inf_pixels)
 
     # Add Colorbar
@@ -634,8 +862,8 @@ def plot2pdf(img_arr,  \
 
         # Specify what those pixel locations correspond to in data coordinates.
         # By default, np.linspace is inclusive of the endpoint
-        xticklabels = ["{:.1e}".format(i) for i in np.linspace(start=xlim[0], \
-                                                               stop=xlim[1], \
+        xticklabels = ['{:.1e}'.format(i) for i in np.linspace(start=xlim[0],
+                                                               stop=xlim[1],
                                                                num=num_xticks)]
         ax.set_xticklabels(xticklabels)
 
@@ -656,8 +884,8 @@ def plot2pdf(img_arr,  \
 
         # Specify what those pixel locations correspond to in data coordinates.
         # By default, np.linspace is inclusive of the endpoint
-        yticklabels = [f"{int(i)}" for i in np.linspace(start=ylim[0], \
-                                                        stop=ylim[1], \
+        yticklabels = [f'{int(i)}' for i in np.linspace(start=ylim[0],
+                                                        stop=ylim[1],
                                                         num=num_yticks)]
         ax.set_yticklabels(yticklabels)
 
@@ -681,11 +909,13 @@ def plot2pdf(img_arr,  \
     plt.close()
 
 
-def plot_img_to_figure(fig, image_arr, \
-                            highlight_inf_pixels, \
-                            xlim=None, ylim=None, \
-                            middle_percentile=100.0):
-    """
+def plot_img_to_figure(fig,
+                       image_arr,
+                       highlight_inf_pixels,
+                       xlim=None,
+                       ylim=None,
+                       middle_percentile=100.0):
+    '''
     Clip and plot `image_arr` onto `fig` and return that figure.
 
     For example, this function can be used to plot the power image
@@ -693,7 +923,7 @@ def plot_img_to_figure(fig, image_arr, \
 
     Parameters
     ----------
-    fig : matplotlib Figure
+    fig : matplotlib.figure.Figure
         The figure object to plot the image on.
     image_arr : array_like
         The image data, such as matches matplotlib.plt.imshow's
@@ -723,15 +953,13 @@ def plot_img_to_figure(fig, image_arr, \
     2) The interpolation method is imshow()'s default of antialiasing.
     Setting interpolation='none' causes the size of the output
     .pdf files that contain these figures to grow from e.g. 537KB to 877MB.
-    """
-
-    nisarqa.verify_valid_percentile(middle_percentile)
+    '''
 
     # Get vmin and vmax to set the desired range of the colorbar
     vmin, vmax = calc_vmin_vmax(image_arr, middle_percentile=middle_percentile)
 
     # Manually clip the image data (See `Notes` in function description)
-    clipped_array = np.clip(image_arr, a_min = vmin, a_max = vmax)
+    clipped_array = np.clip(image_arr, a_min=vmin, a_max=vmax)
 
     # TODO Storing the clipped image data to an array will (temporarily)
     # use another big chunk of memory. Revisit this code later if/when this
@@ -745,15 +973,13 @@ def plot_img_to_figure(fig, image_arr, \
         cmap.set_bad('g')
 
     # Plot the image_arr image.
-    plt.imshow(X=clipped_array, \
-                cmap=cmap
-                )
+    plt.imshow(X=clipped_array, cmap=cmap)
 
     return fig
 
 
 def calc_vmin_vmax(data_in, middle_percentile=100.0):
-    """
+    '''
     Calculate the values of vmin and vmax for the 
     input array using the given middle percentile.
 
@@ -765,7 +991,7 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
     data_in : array_like
         Input array
     middle_percentile : numeric
-        Defines the middle percentile range of the `image_arr`. 
+        Defines the middle percentile range of the `data_in`. 
         Must be in the range [0, 100].
         Defaults to 100.0.
 
@@ -775,7 +1001,7 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
         The lower and upper values (respectively) of the middle 
         percentile.
 
-    """
+    '''
     nisarqa.verify_valid_percentile(middle_percentile)
 
     fraction = 0.5*(1.0 - middle_percentile/100.0)
@@ -784,4 +1010,3 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
     vmin, vmax = np.quantile(data_in, [fraction, 1-fraction])
 
     return vmin, vmax
-

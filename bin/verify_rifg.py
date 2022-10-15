@@ -3,14 +3,14 @@
 import nisarqa
 
 def main(args=None):
-    """
+    '''
     Main executable script for QA checks of NISAR RIFG products.
-    """
+    '''
 
-    print("TODO: Complete RIFG QA script and checks.")
+    print('TODO: Complete RIFG QA script and checks.')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     args = nisarqa.parse_args('rifg')
     main(args)
     

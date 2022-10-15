@@ -4,7 +4,7 @@ import numpy as np
 
 @contextmanager
 def open_h5_file(in_file, mode='r'):
-    """
+    '''
     Open or create a handle for a h5 file.
 
     Parameters
@@ -23,15 +23,15 @@ def open_h5_file(in_file, mode='r'):
     -------
     handle : h5py.File
         Handle to `filepath` file
-    """
+    '''
     try:
         input_file = h5py.File(in_file, mode)
     
     # TODO If file is already open, this error is thrown: BlockingIOError
     except (FileNotFoundError, IOError) as e:
-        print("File couldn't open. Add logger and remove this print statement.")
-        # logger.log_message(logging_base.LogFilterError, \
-        #                     "File %s has a Fatal Error(s): %s" % (rslc_file, errors))
+        print('Could not open file. Add logger and remove this print statement.')
+        # logger.log_message(logging_base.LogFilterError,
+        #                     'File %s has a Fatal Error(s): %s' % (rslc_file, errors))
         raise
     else:
         yield input_file
@@ -40,7 +40,7 @@ def open_h5_file(in_file, mode='r'):
 
 
 def compute_non_zero_mask(arr, epsilon=1.0E-05):
-    """
+    '''
     Create a mask of the non-zero pixels in the input array.
 
     Elements in the input array that are approximately equal to zero, 
@@ -62,13 +62,13 @@ def compute_non_zero_mask(arr, epsilon=1.0E-05):
         Array with same shape as `arr`.
         True for non-zero entries. False where the absolute 
         value of the entry is less than `epsilon`.
-    """
+    '''
     zero_real = np.abs(arr) < epsilon
     return ~zero_real
 
 
 def compute_mask_ok(arr, epsilon=1.0E-05):
-    """
+    '''
     Create a mask of the valid (finite, non-zero) pixels in arr.
 
     TODO - after development of the RSLC QA code is complete,
@@ -79,14 +79,14 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
     arr : array_like
         The input array
     epsilon : float, optional
-        Tolerance for if an element in `arr` is considered "zero"
+        Tolerance for if an element in `arr` is considered 'zero'
 
     Returns
     -------
     mask_ok : array_like
         Array with same shape as `arr`.
-        True for valid entries. Valid entries finite values that are
-        not inf, not nan, and not "zero" (where zero is < `epsilon`)
+        True for valid entries. Valid entries are finite values that are
+        not approximately equal to zero.
         False for entries that have a nan or inf in either the real
         or imaginary component, or a zero in both real and imag components.
 
@@ -94,7 +94,7 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
     --------
     numpy.isfinite : Can be used to compute `finite_entries`
     utils.compute_non_zero_mask : Can be used to compute `non_zero`
-    """
+    '''
 
     finite_mask = np.isfinite(arr)
     non_zero_mask = compute_non_zero_mask(arr, epsilon)
