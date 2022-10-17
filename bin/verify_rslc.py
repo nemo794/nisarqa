@@ -68,8 +68,8 @@ def main(args):
                 # Get the file's bands, frequencies, and polarizations.
                 bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
 
-                # Generate the RSLC Power Image
-                nisarqa.rslc.process_power_images(pols=pols,
+                # Store the parameters into a well-defined data structure
+                rslc_output_params = nisarqa.rslc.QAPlotsAndMetricsParamsRSLC(
                                          plots_pdf=plots_file,
                                          nlooks_freqa=None,
                                          nlooks_freqb=None, 
@@ -80,6 +80,10 @@ def main(args):
                                          browse_image_dir='.',
                                          browse_image_prefix=None,
                                          tile_shape=(1024,1024))
+
+                # Generate the RSLC Power Image
+                nisarqa.rslc.process_power_images(
+                    pols=pols, params=rslc_output_params)
 
                 # # Create output stats.h5 and graphs.pdf files
                 # fin.create_images(time_step=args['time_step'], range_step=args['range_step'])

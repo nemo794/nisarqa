@@ -7,8 +7,96 @@ from typing import Any
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa
+
+
+@dataclass
+class QAPlotsAndMetricsParams:
+    '''
+    Data structure to hold the parameters for the
+    QA code's output plots and statistics files that are
+    common to all NISAR products.
+
+    TODO - add the `stats_h5` attribute. (This will come
+    with the RSLC histogram PR.)
+
+    Parameters
+    ----------
+    plots_pdf : PdfPages
+        The output file to append the power image plot to
+    browse_image_dir : str
+        Path to directory to save the browse image product.
+    browse_image_prefix : str
+        String to pre-pend to the name of the generated browse image product.
+    tile_shape : tuple of ints
+        Shape of each tile to be processed. If `tile_shape` is
+        larger than the shape of `arr`, or if the dimensions of `arr`
+        are not integer multiples of the dimensions of `tile_shape`,
+        then smaller tiles may be used.
+        -1 to use all rows / all columns (respectively).
+        Format: (num_rows, num_cols) 
+        Defaults to (512, -1) to use all columns (i.e. full rows of data)
+        and leverage Python's row-major ordering.
+    '''
+
+    # Attributes that are common to all NISAR Products
+    plots_pdf: PdfPages
+    browse_image_dir: str = '.'
+    browse_image_prefix: str = None
+    tile_shape: tuple = (512,-1)
+
+
+@dataclass
+class QAPlotsAndMetricsParamsRSLC(QAPlotsAndMetricsParams):
+    '''
+    Data structure to hold the parameters for the QA
+    code's output plots and statistics files for RSLC.
+
+    Parameters
+    ----------
+    plots_pdf : PdfPages
+        The output file to append the power image plot to
+    browse_image_dir : str
+        Path to directory to save the browse image product.
+    browse_image_prefix : str
+        String to pre-pend to the name of the generated browse image product.
+    tile_shape : tuple of ints
+        Shape of each tile to be processed. If `tile_shape` is
+        larger than the shape of `arr`, or if the dimensions of `arr`
+        are not integer multiples of the dimensions of `tile_shape`,
+        then smaller tiles may be used.
+        -1 to use all rows / all columns (respectively).
+        Format: (num_rows, num_cols) 
+        Defaults to (512, -1) to use all columns (i.e. full rows of data)
+        and leverage Python's row-major ordering.
+    nlooks_freqa, nlooks_freqb : int or iterable of int
+        Number of looks along each axis of the input array 
+        for the specified frequency.
+    linear_units : bool
+        True to compute power in linear units, False for decibel units.
+        Defaults to True.
+    num_mpix : scalar
+        The approx. size (in megapixels) for the final multilooked image.
+        Defaults to 4.0 MPix.
+    highlight_inf_pixels : bool
+        True to color invalid pixels green in saved images.
+        Defaults to black.
+    middle_percentile : numeric
+        Defines the middle percentile range of the `image_arr` 
+        that the colormap covers. Must be in the range [0, 100].
+        Defaults to 100.0.
+    '''
+
+    # Attributes that are specific to the RSLC product
+    nlooks_freqa: int = None
+    nlooks_freqb: int = None 
+    linear_units: bool = True
+    num_mpix: int = 4.0
+    highlight_inf_pixels: bool = False
+    middle_percentile: int = 100.0
+
 
 class DataDecoder(object):
     '''Wrapper to read in NISAR product datasets that are e.g. '<c4' type, 
@@ -60,6 +148,62 @@ class RSLCRaster:
         Raster data to be stored.
     name : str
         Name for the dataset
+
+    Notes
+    -----
+    If data is an HDF5 dataset, suggest initializing using
+    the class method `from_h5dataset(..)`.
+    '''
+
+    # Raster data
+    data: npt.ArrayLike
+
+    # identifying name of this Raster; can be used for logging
+    # e.g. 'LSAR_A_HH'
+    name: str
+
+
+    @classmethod
+    def from_h5dataset(cls, h5dataset, name, dtype):
+        '''
+        Initialize an RSLCRaster object for a HDF5 dataset
+        that needs to be decoded via a specific dtype.
+
+        This will store the dataset as a DataDecoder object
+        instead of a standard Arraylike object; the dataset
+        will be decoded as type `dtype`.
+
+        Parameters
+        ----------
+        h5dataset : array_like
+            Raster data to be stored.
+        name : str
+            Name for the dataset
+        dtype : dtype
+            The data type that the input array should be read as.
+            e.g. numpy.complex64 for NISAR RSLC rasters.
+        '''
+        data = DataDecoder(h5dataset, dtype)
+        return cls(data, name)
+
+
+@dataclass
+class RSLCRasterQA(RSLCRaster):
+    '''
+    An RSLCRaster with additional attributes specific to the QA Code.
+    
+    Parameters
+    ----------
+    data : array_like
+        Raster data to be stored.
+    name : str
+        Name for the dataset
+    band : str
+        name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        name of the frequency for `img`, e.g. 'A' or 'B'
+    pol : str
+        name of the polarization for `img`, e.g. 'HH' or 'HV'
     az_spacing : float
         Azimuth spacing of pixels of input array
     az_start : float
@@ -84,14 +228,11 @@ class RSLCRaster:
     the class method `from_h5dataset(..)`.
     '''
 
-    # Raster data
-    data: npt.ArrayLike
-
-    # identifying name of this Raster; can be used for logging
-    # e.g. 'LSAR_A_HH'
-    name: str
-
     # Attributes of the input array
+    band: str
+    freq: str
+    pol: str
+
     az_spacing: float
     az_start: float
     az_stop: float
@@ -104,12 +245,13 @@ class RSLCRaster:
 
 
     @classmethod
-    def from_h5dataset(cls, h5dataset, name, dtype,
+    def from_h5dataset(cls,
+                       h5dataset, band, freq, pol, dtype,
                        az_spacing, az_start, az_stop,
                        range_spacing, rng_start, rng_stop,
                        epoch_starttime):
         '''
-        Initialize an RSLCRaster object for a HDF5 dataset
+        Initialize an RSLCRasterQA object for a HDF5 dataset
         that needs to be decoded via a specific dtype.
 
         This will store the dataset as a DataDecoder object
@@ -120,9 +262,15 @@ class RSLCRaster:
         ----------
         h5dataset : array_like
             Raster data to be stored.
-        name : str
-            Name for the dataset
+        band : str
+            name of the band for `img`, e.g. 'LSAR'
+        freq : str
+            name of the frequency for `img`, e.g. 'A' or 'B'
+        pol : str
+            name of the polarization for `img`, e.g. 'HH' or 'HV'
         dtype : dtype
+            The data type that the input array should be read as.
+            e.g. numpy.complex64 for NISAR RSLC rasters.
         az_spacing : float
             Azimuth spacing of pixels of input array
         az_start : float
@@ -140,9 +288,25 @@ class RSLCRaster:
         epoch_starttime : str
             The start of the epoch for this observation,
             in the format 'YYYY-MM-DD HH:MM:SS'
+
+        Notes
+        -----
+        Unlike the default constructor for RSLCRasterQA, this
+        function does not include a user-specified input 
+        parameter `name`. Instead, to maintain consistency of
+        the format of the `name` for each NISAR RSLC QA image,
+        the `name` attribute will be populated with a string
+        of the format: <band>_<freq>_<pol>
         '''
         data = DataDecoder(h5dataset, dtype)
-        return cls(data, name, az_spacing, az_start, az_stop,
+
+        # Format the name
+        name = f"{band}_{freq}_{pol}"
+
+        # Note the order of the positional arguments being passed;
+        # the attributes of the parent class must be passed first.
+        return cls(data, name, band, freq, pol, 
+                   az_spacing, az_start, az_stop,
                    range_spacing, rng_start, rng_stop,
                    epoch_starttime)
 
@@ -168,11 +332,11 @@ def get_bands_freqs_pols(h5_file):
         where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
         Format: freqs[<band>][<freq>] -> a h5py Group
         Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
-    pols : nested dict of RSLCRaster
-        Nested dict of RSLCRaster objects, where each object represents
+    pols : nested dict of RSLCRasterQA
+        Nested dict of RSLCRasterQA objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRaster object
+        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRasterQA object
 
     '''
 
@@ -299,11 +463,11 @@ def _get_pols(h5_file, freqs):
 
     Returns
     -------
-    pols : nested dict of RSLCRaster
-        Nested dict of RSLCRaster objects, where each object represents
+    pols : nested dict of RSLCRasterQA
+        Nested dict of RSLCRasterQA objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRaster object
+        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRasterQA object
 
     See Also
     --------
@@ -318,10 +482,10 @@ def _get_pols(h5_file, freqs):
             pols[band][freq] = {}
             for pol in nisarqa.RSLC_POLS:
 
-                tmp_RSLCRaster = create_NISAR_RSLCRaster(h5_file, band, freq, pol)
+                tmp_RSLCRasterQA = create_RSLCRasterQA(h5_file, band, freq, pol)
 
-                if isinstance(tmp_RSLCRaster, RSLCRaster):
-                    pols[band][freq][pol] = tmp_RSLCRaster
+                if isinstance(tmp_RSLCRasterQA, RSLCRasterQA):
+                    pols[band][freq][pol] = tmp_RSLCRasterQA
 
     # Sanity Check - if a band/freq does not have any polarizations, 
     # this is a validation error. This check should be handled during 
@@ -340,9 +504,9 @@ def _get_pols(h5_file, freqs):
     return pols
 
 
-def create_NISAR_RSLCRaster(h5_file, band, freq, pol):
+def create_RSLCRasterQA(h5_file, band, freq, pol):
     '''
-    Return a RSLCRaster instance of the given band-freq-pol
+    Return a RSLCRasterQA instance of the given band-freq-pol
     image in the input HDF5 file, if that image exists.
 
     Parameters
@@ -362,8 +526,8 @@ def create_NISAR_RSLCRaster(h5_file, band, freq, pol):
 
     Returns
     -------
-    rslc_raster_image : RSLCRaster
-        An instance of RSLCRaster representing the given
+    rslc_raster_image : RSLCRasterQA
+        An instance of RSLCRasterQA representing the given
         band-freq-pol image in the input HDF5 file.
         If the image does not exist, None will be returned.
 
@@ -421,8 +585,10 @@ def create_NISAR_RSLCRaster(h5_file, band, freq, pol):
     sec_since_epoch = h5_file[swaths_path]['zeroDopplerTime'].attrs['units'].decode('utf-8')
     epoch_starttime = sec_since_epoch.replace('seconds since ', '').strip()
 
-    return RSLCRaster.from_h5dataset(h5_file[pol_path],
-                                     name=band_freq_pol_str,
+    return RSLCRasterQA.from_h5dataset(h5_file[pol_path],
+                                     band=band,
+                                     freq=freq,
+                                     pol=pol,
                                      dtype=np.complex64,
                                      az_spacing=az_spacing,
                                      az_start=az_start,
@@ -432,18 +598,8 @@ def create_NISAR_RSLCRaster(h5_file, band, freq, pol):
                                      rng_stop=rng_stop,
                                      epoch_starttime=epoch_starttime)
 
-def process_power_images(
-            pols,
-            plots_pdf, 
-            nlooks_freqa=None,
-            nlooks_freqb=None, 
-            linear_units=True,
-            num_mpix=4.0,
-            highlight_inf_pixels=False,
-            middle_percentile=100.0,
-            browse_image_dir='.',
-            browse_image_prefix=None,
-            tile_shape=(512,-1)):
+
+def process_power_images(pols, params):
     '''
     Generate the RSLC Power Image plots for the `plots_pdf` and
     corresponding browse image products.
@@ -461,43 +617,15 @@ def process_power_images(
 
     Parameters
     ----------
-    pols : nested dict of RSLCRaster
-        Nested dict of RSLCRaster objects, where each object represents
+    pols : nested dict of RSLCRasterQA
+        Nested dict of RSLCRasterQA objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
+        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
-                                       in a RSLCRaster object
-    plots_pdf : PdfPages
-        The output file to append the power image plot to
-    nlooks_freqa, nlooks_freqb : int or iterable of int
-        Number of looks along each axis of the input array 
-        for the specified frequency.
-    linear_units : bool
-        True to compute power in linear units, False for decibel units.
-        Defaults to True.
-    num_mpix : scalar
-        The approx. size (in megapixels) for the final multilooked image.
-        Defaults to 4.0 MPix.
-    highlight_inf_pixels : bool
-        True to color invalid pixels green in saved images.
-        Defaults to black.
-    middle_percentile : numeric
-        Defines the middle percentile range of the `image_arr` 
-        that the colormap covers. Must be in the range [0, 100].
-        Defaults to 100.0.
-    browse_image_dir : str
-        Path to directory to save the browse image product.
-    browse_image_prefix : str
-        String to pre-pend to the name of the generated browse image product.
-    tile_shape : tuple of ints
-        Shape of each tile to be processed. If `tile_shape` is
-        larger than the shape of `arr`, or if the dimensions of `arr`
-        are not integer multiples of the dimensions of `tile_shape`,
-        then smaller tiles may be used.
-        -1 to use all rows / all columns (respectively).
-        Format: (num_rows, num_cols) 
-        Defaults to (512, -1) to use all columns (i.e. full rows of data)
-        and leverage Python's row-major ordering.
+                                       in a RSLCRasterQA object
+    params : RSLCGraphsMetricsParams
+        A structure containing the parameters for processing
+        and outputting the power image(s).
     '''
     # Process each image in the dataset
     for band in pols:
@@ -505,37 +633,10 @@ def process_power_images(
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
-                process_single_power_image(
-                            img=img,
-                            band=band,
-                            freq=freq,
-                            pol=pol,
-                            plots_pdf=plots_pdf, 
-                            nlooks_freqa=nlooks_freqa,
-                            nlooks_freqb=nlooks_freqb, 
-                            linear_units=linear_units,
-                            num_mpix=num_mpix,
-                            highlight_inf_pixels=highlight_inf_pixels,
-                            middle_percentile=middle_percentile,
-                            browse_image_dir=browse_image_dir,
-                            browse_image_prefix=browse_image_prefix,
-                            tile_shape=tile_shape)
+                process_single_power_image(img, params)
 
 
-def process_single_power_image(img,
-                               band,
-                               freq,
-                               pol,
-                               plots_pdf, 
-                               nlooks_freqa=None,
-                               nlooks_freqb=None, 
-                               linear_units=True,
-                               num_mpix=4.0,
-                               highlight_inf_pixels=False,
-                               middle_percentile=100.0,
-                               browse_image_dir='.',
-                               browse_image_prefix=None,
-                               tile_shape=(512,-1)):
+def process_single_power_image(img, params):
     '''
     Generate the RSLC Power Image plots for the `plots_pdf` and
     corresponding browse image products for a single RSLC image.
@@ -553,82 +654,45 @@ def process_single_power_image(img,
 
     Parameters
     ----------
-    img : RSLCRaster
+    img : RSLCRasterQA
         The RSLC raster to be processed
-    band : str
-        name of the band for `img`, e.g. 'LSAR'
-    freq : str
-        name of the frequency for `img`, e.g. 'A' or 'B'
-    pol : str
-        name of the polarization for `img`, e.g. 'HH' or 'HV'
-    plots_pdf : PdfPages
-        The output file to append the power image plot to
-    nlooks_freqa, nlooks_freqb : int or iterable of int
-        Number of looks along each axis of the input array 
-        for the specified frequency.
-    linear_units : bool
-        True to compute power in linear units, False for decibel units.
-        Defaults to True.
-    num_mpix : scalar
-        The approx. size (in megapixels) for the final multilooked image.
-        Defaults to 4.0 MPix.
-    highlight_inf_pixels : bool
-        True to color invalid pixels green in saved images.
-        Defaults to black.
-    middle_percentile : numeric
-        Defines the middle percentile range of the `image_arr` 
-        that the colormap covers. Must be in the range [0, 100].
-        Defaults to 100.0.
-    browse_image_dir : str
-        Path to directory to save the browse image product.
-    browse_image_prefix : str
-        String to pre-pend to the name of the generated browse image product.
-    tile_shape : tuple of ints
-        Shape of each tile to be processed. If `tile_shape` is
-        larger than the shape of `arr`, or if the dimensions of `arr`
-        are not integer multiples of the dimensions of `tile_shape`,
-        then smaller tiles may be used.
-        -1 to use all rows / all columns (respectively).
-        Format: (num_rows, num_cols) 
-        Defaults to (512, -1) to use all columns (i.e. full rows of data)
-        and leverage Python's row-major ordering.
+    params : RSLCGraphsMetricsParams
+        A structure containing the parameters for processing
+        and outputting the power image(s).
     '''
 
-    nlooks_freqa_arg = nlooks_freqa
-    nlooks_freqb_arg = nlooks_freqb
+    nlooks_freqa_arg = params.nlooks_freqa
+    nlooks_freqb_arg = params.nlooks_freqb
 
     # Get the window size for multilooking
-    if (freq == 'A' and nlooks_freqa_arg is None) or \
-        (freq == 'B' and nlooks_freqb_arg is None):
+    if (img.freq == 'A' and nlooks_freqa_arg is None) or \
+        (img.freq == 'B' and nlooks_freqb_arg is None):
 
-        az_spacing = img.az_spacing
-        range_spacing = img.range_spacing
+        nlooks = nisarqa.compute_square_pixel_nlooks(
+                    img.data.shape,
+                    sample_spacing=(img.az_spacing, img.range_spacing),
+                    num_mpix=params.num_mpix)
 
-        nlooks = nisarqa.compute_square_pixel_nlooks(img.data.shape,
-                                                sample_spacing=(az_spacing, range_spacing),
-                                                num_mpix=num_mpix)
-        num_pix = ((img.data.shape[0] // nlooks[0]) * (img.data.shape[1] // nlooks[1])) / 1e6
-    elif freq == 'A':
+    elif img.freq == 'A':
         nlooks = nlooks_freqa_arg
-    elif freq == 'B':
+    elif img.freq == 'B':
         nlooks = nlooks_freqb_arg
     else:
         raise ValueError(f'freqency is {freq}, but only `A` or `B` are valid options.')
 
-
     print(f'\nMultilooking Image {img.name} with shape: {img.data.shape}')
-    print('sceneCenterAlongTrackSpacing: ', az_spacing)
-    print('sceneCenterGroundRangeSpacing: ', range_spacing)
+    print('sceneCenterAlongTrackSpacing: ', img.az_spacing)
+    print('sceneCenterGroundRangeSpacing: ', img.range_spacing)
     print('Beginning Multilooking with nlooks window shape: ', nlooks)
 
     # Multilook
-    print('tile_shape: ', tile_shape)
+    print('tile_shape: ', params.tile_shape)
     start_time = time.time()
     multilook_power_img = nisarqa.compute_multilooked_power_by_tiling(
                                             arr=img.data,
                                             nlooks=nlooks,
-                                            linear_units=linear_units,
-                                            tile_shape=tile_shape)
+                                            linear_units=params.linear_units,
+                                            tile_shape=params.tile_shape)
     end_time = time.time()-start_time
     print('time to multilook image (sec): ', end_time)
     print('time to multilook image (min): ', end_time/60.)
@@ -639,21 +703,21 @@ def process_single_power_image(img,
     # Plot and Save Power Image as Browse Image Product
     browse_img_file = get_browse_product_filename(
                                 product_name='RSLC',
-                                band=band,
-                                freq=freq,
-                                pol=pol,
+                                band=img.band,
+                                freq=img.freq,
+                                pol=img.pol,
                                 quantity='pow',
-                                browse_image_dir=browse_image_dir,
-                                browse_image_prefix=browse_image_prefix)
+                                browse_image_dir=params.browse_image_dir,
+                                browse_image_prefix=params.browse_image_prefix)
 
     plot2png(img_arr=multilook_power_img,
                 filepath=browse_img_file,
-                middle_percentile=middle_percentile,
-                highlight_inf_pixels=highlight_inf_pixels,
+                middle_percentile=params.middle_percentile,
+                highlight_inf_pixels=params.highlight_inf_pixels,
                 )
 
     # Plot and Save Power Image to graphical summary pdf
-    if linear_units:
+    if params.linear_units:
         title=f'RSLC Multilooked Power (linear)\n{img.name}'
     else:
         title=f'RSLC Multilooked Power (dB)\n{img.name}'
@@ -665,14 +729,14 @@ def process_single_power_image(img,
     rng_title = 'Slant Range (m)'
 
     plot2pdf(img_arr=multilook_power_img,
-                middle_percentile=middle_percentile,
+                middle_percentile=params.middle_percentile,
                 title=title,
                 ylim=[img.az_start, img.az_stop],
                 xlim=[img.rng_start, img.rng_stop],
                 ylabel=az_title,
                 xlabel=rng_title,
-                highlight_inf_pixels=highlight_inf_pixels,
-                plots_pdf=plots_pdf
+                highlight_inf_pixels=params.highlight_inf_pixels,
+                plots_pdf=params.plots_pdf
                 )
 
 
