@@ -783,11 +783,11 @@ def plot2png(img_arr,
                         h=float(H)/float(DPI))
 
     # Get Plot
-    f = plot_img_to_figure(fig=f,
-                         img_arr=img_arr,
-                         middle_percentile=middle_percentile,
-                         highlight_inf_pixels=highlight_inf_pixels)
-
+    plot_img_to_axis(ax=plt.gca(),
+                     img_arr=img_arr,
+                     middle_percentile=middle_percentile,
+                     highlight_inf_pixels=highlight_inf_pixels)
+ 
     f.subplots_adjust(bottom=0.,left=0.,right=1.,top=1.)
 
     # Save plot to png (Browse Image Product)
@@ -875,16 +875,18 @@ def plot2pdf(img_arr,
     # (Need to instantiate it outside of the plotting function
     # in order to later modify the plot for saving purposes.)
     f = plt.figure()
+    ax = plt.gca()
 
     # Get Plot
-    f = plot_img_to_figure(fig=f,
-                         img_arr=img_arr,
-                         xlim=xlim, ylim=ylim,
-                         middle_percentile=middle_percentile,
-                         highlight_inf_pixels=highlight_inf_pixels)
+    ax_img = plot_img_to_axis(
+                     ax=ax,
+                     img_arr=img_arr,
+                     xlim=xlim, ylim=ylim,
+                     middle_percentile=middle_percentile,
+                     highlight_inf_pixels=highlight_inf_pixels)
 
     # Add Colorbar
-    plt.colorbar(ax=plt.gca())
+    plt.colorbar(ax_img, ax=ax)
 
     ## Label the plot
 
@@ -897,8 +899,6 @@ def plot2pdf(img_arr,
     if xlim is not None or ylim is not None:
 
         img_arr_shape = np.shape(img_arr)
-
-        ax = plt.gca()
 
         # Set the density of the ticks on the figure
         ticks_per_inch = 2.5
@@ -983,12 +983,12 @@ def plot2pdf(img_arr,
     plt.close()
 
 
-def plot_img_to_figure(fig,
-                       img_arr,
-                       highlight_inf_pixels,
-                       xlim=None,
-                       ylim=None,
-                       middle_percentile=100.0):
+def plot_img_to_axis(ax,
+                     img_arr,
+                     highlight_inf_pixels,
+                     xlim=None,
+                     ylim=None,
+                     middle_percentile=100.0):
     '''
     Clip and plot `img_arr` onto `fig` and return that figure.
 
@@ -997,8 +997,8 @@ def plot_img_to_figure(fig,
 
     Parameters
     ----------
-    fig : matplotlib.figure.Figure
-        The figure object to plot the image on.
+    ax : matplotlib.axes._subplots.AxesSubplot
+        The axis to plot the image on.
     img_arr : array_like
         The image data, such as matches matplotlib.plt.imshow's
         specifications for `X`
@@ -1012,14 +1012,14 @@ def plot_img_to_figure(fig,
 
     Returns
     -------
-    fig_out : matplotlib Figure
-        `img_arr` clipped to the `middle_percentile` and plotted on `fig`
+    ax_img : matplotlib.image.AxesImage
+        `img_arr` clipped to the `middle_percentile` and plotted on `ax`
 
     Notes
     -----
     1) In this function, the `img_arr` will be manually clipped
-    before being passed to plt.imshow().
-    While plt.imshow() can do the clipping automatically if the
+    before being passed to ax.imshow().
+    While imshow() can do the clipping automatically if the
     vmin and vmax values are passed in, in practise, doing so 
     causes the resultant size of the output .pdf files that contain 
     these figures to grow from e.g. 537KB to 877MB.
@@ -1028,7 +1028,7 @@ def plot_img_to_figure(fig,
     Setting interpolation='none' causes the size of the output
     .pdf files that contain these figures to grow from e.g. 537KB to 877MB.
     '''
-
+    print("type(ax): ", type(ax))
     # Get vmin and vmax to set the desired range of the colorbar
     vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
 
@@ -1039,17 +1039,13 @@ def plot_img_to_figure(fig,
     # use another big chunk of memory. Revisit this code later if/when this
     # becomes an issue.
 
-    ax = fig.add_subplot(1,1,1) #  add a subplot to fig
-
     # Highlight infinite pixels in green, if requested.
     cmap=plt.cm.gray
     if highlight_inf_pixels:
         cmap.set_bad('g')
 
     # Plot the img_arr image.
-    plt.imshow(X=clipped_array, cmap=cmap)
-
-    return fig
+    return ax.imshow(X=clipped_array, cmap=cmap)
 
 
 def calc_vmin_vmax(data_in, middle_percentile=100.0):
