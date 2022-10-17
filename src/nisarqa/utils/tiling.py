@@ -159,7 +159,7 @@ def compute_multilooked_power_by_tiling(arr,
     Parameters
     ----------
     arr : array_like
-        The input array
+        The input 2D array
     nlooks : tuple of ints
         Number of looks along each axis of the input array to be 
         averaged during multilooking.
@@ -192,20 +192,25 @@ def compute_multilooked_power_by_tiling(arr,
     output array will also be nan.
 
     '''
+    arr_shape = np.shape(arr)
+
+    if len(arr_shape) != 2:
+        raise ValueError(f'Input array has shape {arr_shape}'
+                          ' but can only have 2 dimensions.')
 
     if tile_shape[0] == -1:
-        tile_shape = (arr.shape[0], tile_shape[1])
+        tile_shape = (arr_shape[0], tile_shape[1])
     if tile_shape[1] == -1:
-        tile_shape = (tile_shape[0], arr.shape[1])
+        tile_shape = (tile_shape[0], arr_shape[1])
 
     # Compute the portion (shape) of the input array 
     # that is integer multiples of nlooks.
     # This will be used to trim off (discard) the 'uneven edges' of the image,
     # i.e. the pixels beyond the largest integer multiples of nlooks.
-    in_arr_valid_shape = tuple([(m // n) * n for m, n in zip(arr.shape, nlooks)])
+    in_arr_valid_shape = tuple([(m // n) * n for m, n in zip(arr_shape, nlooks)])
 
     # Compute the shape of the output multilooked array
-    final_out_arr_shape = tuple([m // n for m, n in zip(arr.shape, nlooks)])
+    final_out_arr_shape = tuple([m // n for m, n in zip(arr_shape, nlooks)])
 
     # Reduce the tiling shape to be integer multiples of nlooks
     # Otherwise, the tiling will get messy to book-keep.

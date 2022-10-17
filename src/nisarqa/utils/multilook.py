@@ -12,7 +12,7 @@ def multilook(arr, nlooks):
 
     Parameters
     ----------
-    arr : array_like 
+    arr : numpy.ndarray 
         Input array with a dtype of float. Invalid values should be np.nan
     nlooks : int or iterable of int
         Number of looks along each axis of the input array.

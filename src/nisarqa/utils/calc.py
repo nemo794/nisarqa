@@ -33,7 +33,7 @@ def pow2db(power):
 
     Returns
     -------
-    power_db : scalar or numpy.ndarray
+    power_db : numpy scalar or numpy.ndarray
         Output in decibels, with the same shape as the input.
     '''
     return 10.0*np.log10(power)

@@ -84,7 +84,7 @@ class QAPlotsAndMetricsParamsRSLC(QAPlotsAndMetricsParams):
         True to color invalid pixels green in saved images.
         Defaults to black.
     middle_percentile : numeric
-        Defines the middle percentile range of the `image_arr` 
+        Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
     '''
@@ -103,6 +103,14 @@ class DataDecoder(object):
     which raise an TypeError if accessed naively by h5py.
 
     Indexing operatations always return data converted to `dtype`.
+
+    Parameters
+    ----------
+    h5dataset : h5py.Dataset
+        Dataset to be stored
+    dtype : DTypeLike
+        Data type (dtype) that `h5dataset` should be read in as
+        when accessed by the callin function.
 
     Notes
     -----
@@ -175,7 +183,7 @@ class RSLCRaster:
 
         Parameters
         ----------
-        h5dataset : array_like
+        h5dataset : h5py.Dataset
             Raster data to be stored.
         name : str
             Name for the dataset
@@ -260,7 +268,7 @@ class RSLCRasterQA(RSLCRaster):
 
         Parameters
         ----------
-        h5dataset : array_like
+        h5dataset : h5py.Dataset
             Raster data to be stored.
         band : str
             name of the band for `img`, e.g. 'LSAR'
@@ -755,7 +763,7 @@ def plot2png(img_arr,
     filepath : str
         Full filepath the browse image product.
     middle_percentile : numeric
-        Defines the middle percentile range of the `image_arr` 
+        Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
     highlight_inf_pixels : bool
@@ -776,7 +784,7 @@ def plot2png(img_arr,
 
     # Get Plot
     f = plot_img_to_figure(fig=f,
-                         image_arr=img_arr,
+                         img_arr=img_arr,
                          middle_percentile=middle_percentile,
                          highlight_inf_pixels=highlight_inf_pixels)
 
@@ -854,7 +862,7 @@ def plot2pdf(img_arr,
     xlabel, ylabel : str
         Axes labels for the x-axis and y-axis (respectively)
     middle_percentile : numeric, optional
-        Defines the middle percentile range of the `image_arr` 
+        Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
     highlight_inf_pixels : bool, optional
@@ -870,7 +878,7 @@ def plot2pdf(img_arr,
 
     # Get Plot
     f = plot_img_to_figure(fig=f,
-                         image_arr=img_arr,
+                         img_arr=img_arr,
                          xlim=xlim, ylim=ylim,
                          middle_percentile=middle_percentile,
                          highlight_inf_pixels=highlight_inf_pixels)
@@ -888,6 +896,8 @@ def plot2pdf(img_arr,
     # So, compute and set the ticks w/ labels manually.)
     if xlim is not None or ylim is not None:
 
+        img_arr_shape = np.shape(img_arr)
+
         ax = plt.gca()
 
         # Set the density of the ticks on the figure
@@ -895,8 +905,8 @@ def plot2pdf(img_arr,
 
         # Get full figure size in inches
         fig_w, fig_h = f.get_size_inches()
-        W = img_arr.shape[1]
-        H = img_arr.shape[0]
+        W = img_arr_shape[1]
+        H = img_arr_shape[0]
 
         # Update variables to the actual, displayed image size
         # (The actual image will have a different aspect ratio
@@ -921,7 +931,7 @@ def plot2pdf(img_arr,
         num_xticks = num_xticks if num_xticks >=2 else 2
 
         # Specify where we want the ticks, in pixel locations.
-        xticks = np.linspace(0,img_arr.shape[1], num_xticks)
+        xticks = np.linspace(0,img_arr_shape[1], num_xticks)
         ax.set_xticks(xticks)
 
         # Specify what those pixel locations correspond to in data coordinates.
@@ -943,7 +953,7 @@ def plot2pdf(img_arr,
             num_yticks = 2
 
         # Specify where we want the ticks, in pixel locations.
-        yticks = np.linspace(0,img_arr.shape[0], num_yticks)
+        yticks = np.linspace(0,img_arr_shape[0], num_yticks)
         ax.set_yticks(yticks)
 
         # Specify what those pixel locations correspond to in data coordinates.
@@ -974,13 +984,13 @@ def plot2pdf(img_arr,
 
 
 def plot_img_to_figure(fig,
-                       image_arr,
+                       img_arr,
                        highlight_inf_pixels,
                        xlim=None,
                        ylim=None,
                        middle_percentile=100.0):
     '''
-    Clip and plot `image_arr` onto `fig` and return that figure.
+    Clip and plot `img_arr` onto `fig` and return that figure.
 
     For example, this function can be used to plot the power image
     for an RSLC product.
@@ -989,25 +999,25 @@ def plot_img_to_figure(fig,
     ----------
     fig : matplotlib.figure.Figure
         The figure object to plot the image on.
-    image_arr : array_like
+    img_arr : array_like
         The image data, such as matches matplotlib.plt.imshow's
         specifications for `X`
     highlight_inf_pixels : bool
         True to color pixels with an infinite value green in saved images.
         Defaults to matplotlib's default.
     middle_percentile : numeric
-        Defines the middle percentile range of the `image_arr` 
+        Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
 
     Returns
     -------
     fig_out : matplotlib Figure
-        `image_arr` clipped to the `middle_percentile` and plotted on `fig`
+        `img_arr` clipped to the `middle_percentile` and plotted on `fig`
 
     Notes
     -----
-    1) In this function, the `image_arr` will be manually clipped
+    1) In this function, the `img_arr` will be manually clipped
     before being passed to plt.imshow().
     While plt.imshow() can do the clipping automatically if the
     vmin and vmax values are passed in, in practise, doing so 
@@ -1020,10 +1030,10 @@ def plot_img_to_figure(fig,
     '''
 
     # Get vmin and vmax to set the desired range of the colorbar
-    vmin, vmax = calc_vmin_vmax(image_arr, middle_percentile=middle_percentile)
+    vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
 
     # Manually clip the image data (See `Notes` in function description)
-    clipped_array = np.clip(image_arr, a_min=vmin, a_max=vmax)
+    clipped_array = np.clip(img_arr, a_min=vmin, a_max=vmax)
 
     # TODO Storing the clipped image data to an array will (temporarily)
     # use another big chunk of memory. Revisit this code later if/when this
@@ -1036,7 +1046,7 @@ def plot_img_to_figure(fig,
     if highlight_inf_pixels:
         cmap.set_bad('g')
 
-    # Plot the image_arr image.
+    # Plot the img_arr image.
     plt.imshow(X=clipped_array, cmap=cmap)
 
     return fig
