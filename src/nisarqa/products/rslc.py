@@ -98,35 +98,55 @@ class QAPlotsAndMetricsParamsRSLC(QAPlotsAndMetricsParams):
     middle_percentile: int = 100.0
 
 
-class DataDecoder(object):
-    '''Wrapper to read in NISAR product datasets that are e.g. '<c4' type, 
+class ComplexFloat16Decoder(object):
+    '''Wrapper to read in NISAR product datasets that are '<c4' type,
     which raise an TypeError if accessed naively by h5py.
 
-    Indexing operatations always return data converted to `dtype`.
+    Indexing operatations always return data converted to numpy.complex64.
 
     Parameters
     ----------
     h5dataset : h5py.Dataset
-        Dataset to be stored
-    dtype : DTypeLike
-        Data type (dtype) that `h5dataset` should be read in as
-        when accessed by the callin function.
+        Dataset to be stored. Dataset should have type '<c4'.
 
     Notes
     -----
-    The DataDecoder class is an example of what the NumPy folks call a 'duck array', 
+    The ComplexFloat16Decoder class is an example of what the NumPy folks call a 'duck array', 
     i.e. a class that exports some subset of np.ndarray's API so that it can be used 
     as a drop-in replacement for np.ndarray in some cases. This is different from an 
     'array_like' object, which is simply an object that can be converted to a numpy array. 
     Reference: https://numpy.org/neps/nep-0022-ndarray-duck-typing-overview.html
     '''
-    def __init__(self, h5dataset, dtype=np.complex64):
+
+    def __init__(self, h5dataset):
         self._dataset = h5dataset
-        self._dtype = dtype
+        self._dtype = np.complex64
 
     def __getitem__(self, key):
         # Have h5py convert to the desired dtype on the fly when reading in data
-        return self.dataset.astype(self.dtype)[key]
+        return self.read_c4_dataset_as_c8(self.dataset, key)
+
+    @staticmethod
+    def read_c4_dataset_as_c8(ds: h5py.Dataset, key=np.s_[...]):
+        """
+        Read a complex float16 HDF5 dataset as a numpy.complex64 array.
+        Avoids h5py/numpy dtype bugs and uses numpy float16 -> float32 conversions
+        which are about 10x faster than HDF5 ones.
+        """
+        # This avoids h5py exception:
+        # TypeError: data type '<c4' not understood
+        # Also note this syntax changed in h5py 3.0 and was deprecated in 3.6, see
+        # https://docs.h5py.org/en/stable/whatsnew/3.6.html
+
+        complex32 = np.dtype([('r', np.float16), ('i', np.float16)])
+        z = ds.astype(complex32)[key]
+
+        # Define a similar datatype for complex64 to be sure we cast safely.
+        complex64 = np.dtype([("r", np.float32), ("i", np.float32)])
+
+        # Cast safely and then view as native complex64 numpy dtype.
+        return z.astype(complex64).view(np.complex64)
+
 
     @property
     def dataset(self):
@@ -177,9 +197,8 @@ class RSLCRaster:
         Initialize an RSLCRaster object for a HDF5 dataset
         that needs to be decoded via a specific dtype.
 
-        This will store the dataset as a DataDecoder object
-        instead of a standard Arraylike object; the dataset
-        will be decoded as type `dtype`.
+        This will store the dataset as a ComplexFloat16Decoder
+        object instead of a standard Arraylike object.
 
         Parameters
         ----------
@@ -187,11 +206,8 @@ class RSLCRaster:
             Raster data to be stored.
         name : str
             Name for the dataset
-        dtype : dtype
-            The data type that the input array should be read as.
-            e.g. numpy.complex64 for NISAR RSLC rasters.
         '''
-        data = DataDecoder(h5dataset, dtype)
+        data = ComplexFloat16Decoder(h5dataset)
         return cls(data, name)
 
 
@@ -262,9 +278,8 @@ class RSLCRasterQA(RSLCRaster):
         Initialize an RSLCRasterQA object for a HDF5 dataset
         that needs to be decoded via a specific dtype.
 
-        This will store the dataset as a DataDecoder object
-        instead of a standard Arraylike object; the dataset
-        will be decoded as type `dtype`.
+        This will store the dataset as a ComplexFloat16Decoder
+        object instead of a standard Arraylike object.
 
         Parameters
         ----------
@@ -276,9 +291,6 @@ class RSLCRasterQA(RSLCRaster):
             name of the frequency for `img`, e.g. 'A' or 'B'
         pol : str
             name of the polarization for `img`, e.g. 'HH' or 'HV'
-        dtype : dtype
-            The data type that the input array should be read as.
-            e.g. numpy.complex64 for NISAR RSLC rasters.
         az_spacing : float
             Azimuth spacing of pixels of input array
         az_start : float
@@ -306,7 +318,7 @@ class RSLCRasterQA(RSLCRaster):
         the `name` attribute will be populated with a string
         of the format: <band>_<freq>_<pol>
         '''
-        data = DataDecoder(h5dataset, dtype)
+        data = ComplexFloat16Decoder(h5dataset)
 
         # Format the name
         name = f"{band}_{freq}_{pol}"
@@ -321,7 +333,8 @@ class RSLCRasterQA(RSLCRaster):
 
 def get_bands_freqs_pols(h5_file):
     '''
-    TODO
+    Locate the available bands, frequencies, and polarizations
+    in the input HDF5 file.
 
     Parameters
     ----------
