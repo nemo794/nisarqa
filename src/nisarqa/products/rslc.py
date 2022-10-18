@@ -599,6 +599,7 @@ def create_RSLCRasterQA(h5_file, band, freq, pol):
     # near mid swath of the RSLC image.'
     range_spacing = h5_file[freq_path]['sceneCenterGroundRangeSpacing'][...]
 
+    # Range in meters (units are specified as meters in the product spec)
     rng_start = float(h5_file[freq_path]['slantRange'][0])
     rng_stop = float(h5_file[freq_path]['slantRange'][-1])
 
@@ -746,14 +747,17 @@ def process_single_power_image(img, params):
     # Get Azimuth (y-axis) label
     az_title = f"Zero Doppler Time\n(seconds since {img.epoch_starttime})"
 
-    # Get Range (x-axis) label
-    rng_title = 'Slant Range (m)'
+    # Get Range (x-axis) labels and scale
+    # Convert range from meters to km
+    rng_start_km = img.rng_start/1000.
+    rng_stop_km = img.rng_stop/1000.
+    rng_title = 'Slant Range (km)'
 
     plot2pdf(img_arr=multilook_power_img,
                 middle_percentile=params.middle_percentile,
                 title=title,
                 ylim=[img.az_start, img.az_stop],
-                xlim=[img.rng_start, img.rng_stop],
+                xlim=[rng_start_km, rng_stop_km],
                 ylabel=az_title,
                 xlabel=rng_title,
                 highlight_inf_pixels=params.highlight_inf_pixels,
@@ -949,9 +953,9 @@ def plot2pdf(img_arr,
 
         # Specify what those pixel locations correspond to in data coordinates.
         # By default, np.linspace is inclusive of the endpoint
-        xticklabels = ['{:.1e}'.format(i) for i in np.linspace(start=xlim[0],
-                                                               stop=xlim[1],
-                                                               num=num_xticks)]
+        xticklabels = ['{:.1f}'.format(i) for i in np.linspace(start=xlim[0],
+                                              stop=xlim[1],
+                                              num=num_xticks)]
         ax.set_xticklabels(xticklabels)
 
         plt.xticks(rotation=45)
@@ -971,7 +975,7 @@ def plot2pdf(img_arr,
 
         # Specify what those pixel locations correspond to in data coordinates.
         # By default, np.linspace is inclusive of the endpoint
-        yticklabels = [f'{int(i)}' for i in np.linspace(start=ylim[0],
+        yticklabels = ['{:.1f}'.format(i) for i in np.linspace(start=ylim[0],
                                                         stop=ylim[1],
                                                         num=num_yticks)]
         ax.set_yticklabels(yticklabels)
