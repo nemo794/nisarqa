@@ -889,7 +889,7 @@ def plot2pdf(img_arr,
     plt.colorbar(ax_img, ax=ax)
 
     ## Label the plot
-
+    
     # If xlim or ylim are not provided, let matplotlib auto-assign the ticks.
     # Otherwise, dynamically calculate and set the ticks w/ labels for 
     # the x-axis and/or y-axis.
@@ -962,7 +962,7 @@ def plot2pdf(img_arr,
                                                         stop=ylim[1],
                                                         num=num_yticks)]
         ax.set_yticklabels(yticklabels)
-
+    
     # Label the Axes
     if xlabel is not None:
         plt.xlabel(xlabel)
@@ -990,7 +990,7 @@ def plot_img_to_axis(ax,
                      ylim=None,
                      middle_percentile=100.0):
     '''
-    Clip and plot `img_arr` onto `fig` and return that figure.
+    Clip and plot `img_arr` onto `ax`.
 
     For example, this function can be used to plot the power image
     for an RSLC product.
@@ -1028,7 +1028,7 @@ def plot_img_to_axis(ax,
     Setting interpolation='none' causes the size of the output
     .pdf files that contain these figures to grow from e.g. 537KB to 877MB.
     '''
-    print("type(ax): ", type(ax))
+
     # Get vmin and vmax to set the desired range of the colorbar
     vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
 

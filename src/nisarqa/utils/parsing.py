@@ -63,7 +63,8 @@ def parse_cli_args(nisar_product):
                 formatter_class=argparse.ArgumentDefaultsHelpFormatter
                 )
 
-    parser.add_argument('--runconfig', '--yaml',
+    parser.add_argument('runconfig',
+                        nargs='?',
                         type=str,
                         default='',
                         help='filepath to a runconfig file. If specified, all other'

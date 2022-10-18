@@ -1,6 +1,7 @@
 import numpy as np
 import itertools
 import warnings
+from functools import partial
 
 import nisarqa
 
@@ -85,8 +86,8 @@ def process_arr_by_tiles(in_arr, out_arr, func,
     out_arr : array_like
         Output 1D or 2D array. Will be populated by this function.
     func : 
-        Function to process arrays that has been partially-instantiated 
-        via make_partial_func(). For a given input tile shape, `func` must 
+        Function to process arrays that has been partially-instantiated.
+        For a given input tile shape, `func` must 
         return an array with the same shape as an output tile shape
     input_batches : TileIterator
         Iterator for the input array
@@ -105,44 +106,6 @@ def process_arr_by_tiles(in_arr, out_arr, func,
 
         # Write the batch output to the output array
         out_arr[out_slice] = tmp_out
-
-
-def make_partial_func(func, num_unfrozen_positional_args, **func_kwargs):
-    '''
-    Return a partial-instantiation of the function `func`.
-
-    The arguments for `func` will be frozen to those provided 
-    as the `func_kwargs`.
-
-    Parameters
-    ----------
-    func : function
-        A function
-    num_unfrozen_positional_args : int
-        The number of unfrozen positional arguments for `func`.
-        Currently only supported for range [1,3].
-        TODO: Allow this range to scale.
-    **func_kwargs : keyword arguments
-        The keyword arguments for `func` with corresponding values that will be 
-        'frozen' into the returned partial function.
-    
-    Returns
-    -------
-    partial_func : function
-        Partial instantiation of `func` with `num_unfrozen_positional_args` 
-        unfrozen and keyword arguments in `func_kwargs` frozen
-    '''
-
-    if num_unfrozen_positional_args == 1:
-        return lambda arg1 : func(arg1, **func_kwargs)
-    elif num_unfrozen_positional_args == 2:
-        return lambda arg1, arg2 : func(arg1, arg2, **func_kwargs)
-    elif num_unfrozen_positional_args == 3:
-        return lambda arg1, arg2, arg3 : func(arg1, arg2, arg3, **func_kwargs)
-    else:
-        raise ValueError('`num_unfrozen_positional_args` is '
-                        f'{num_unfrozen_positional_args} but must be an integer'
-                        'in range [1,3].')
 
 
 ###############################################
@@ -248,10 +211,9 @@ def compute_multilooked_power_by_tiling(arr,
         return out
 
     # Partially instantiate the function
-    partial_func = make_partial_func(func=calc_power_and_multilook,
-                                    num_unfrozen_positional_args=1,
-                                    nlooks=nlooks,
-                                    linear_units=linear_units)
+    partial_func = partial(calc_power_and_multilook,
+                            nlooks=nlooks,
+                            linear_units=linear_units)
 
     # Instantiate the output array
     multilook_img = np.zeros(final_out_arr_shape, dtype=np.float32)  # 32 bit precision
