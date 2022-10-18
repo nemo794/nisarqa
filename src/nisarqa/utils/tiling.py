@@ -1,7 +1,6 @@
 import numpy as np
 import itertools
 import warnings
-from functools import partial
 
 import nisarqa
 
@@ -85,10 +84,12 @@ def process_arr_by_tiles(in_arr, out_arr, func,
         Input 1D or 2D array
     out_arr : array_like
         Output 1D or 2D array. Will be populated by this function.
-    func : 
-        Function to process arrays that has been partially-instantiated.
-        For a given input tile shape, `func` must 
-        return an array with the same shape as an output tile shape
+    func : function or partial function
+        Function to apply to every tile in the input array(s). 
+        The function should take an array as a single positional argument
+        (or two arrays as positional arguments if `in_arr_2` is not None)
+        and return an output array. For a given input tile shape,
+        `func` must return an array with the same shape as an output tile shape.
     input_batches : TileIterator
         Iterator for the input array
     output_batches : TileIterator
@@ -96,6 +97,7 @@ def process_arr_by_tiles(in_arr, out_arr, func,
     in_arr_2 : array_like, optional
         Optional 2nd input argument of same shape as `in_arr`.
     '''
+
     for out_slice, in_slice in zip(output_batches, input_batches):
 
         # Process this batch
@@ -196,7 +198,7 @@ def compute_multilooked_power_by_tiling(arr,
                                     col_stride=out_tiling_shape[1])
 
     # Create an inner function for this use case.
-    def calc_power_and_multilook(arr, nlooks, linear_units):
+    def calc_power_and_multilook(arr):
 
         # Calc power in linear of array
         out = nisarqa.arr2pow(arr)
@@ -210,17 +212,12 @@ def compute_multilooked_power_by_tiling(arr,
 
         return out
 
-    # Partially instantiate the function
-    partial_func = partial(calc_power_and_multilook,
-                            nlooks=nlooks,
-                            linear_units=linear_units)
-
     # Instantiate the output array
     multilook_img = np.zeros(final_out_arr_shape, dtype=np.float32)  # 32 bit precision
 
     # Ok to pass the full input array; the tiling iterators
     # are constrained such that the 'uneven edges' will be ignored.
-    process_arr_by_tiles(arr, multilook_img, partial_func,
+    process_arr_by_tiles(arr, multilook_img, calc_power_and_multilook,
                         input_batches=input_iter,
                         output_batches=out_iter)
 
