@@ -1,5 +1,3 @@
-import itertools
-
 BANDS = ('LSAR', 'SSAR')
 
 RSLC_FREQS = ('A', 'B')

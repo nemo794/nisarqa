@@ -13,7 +13,7 @@ def multilook(arr, nlooks):
     Parameters
     ----------
     arr : numpy.ndarray 
-        Input array with a dtype of float. Invalid values should be np.nan
+        1D or 2D Input array with a dtype of float. Invalid values should be np.nan.
     nlooks : int or iterable of int
         Number of looks along each axis of the input array.
     
@@ -33,6 +33,8 @@ def multilook(arr, nlooks):
     '''
 
     # Step 1: Prepare and validate the inputs
+    if arr.ndim not in (1, 2):
+        raise ValueError(f'Input array has {arr.ndim} but must be 1D or 2D.')
     nisarqa.verify_real_or_complex_dtype(arr)
     nlooks = normalize_nlooks(nlooks, arr)
     validate_nlooks(nlooks, arr)

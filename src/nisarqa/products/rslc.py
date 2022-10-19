@@ -1,9 +1,9 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 import h5py
 import os
 import time
 
-from typing import Any
+from typing import Any, Union, Iterable
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -11,11 +11,10 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa
 
-
 @dataclass
-class QAPlotsAndMetricsParams:
+class CoreQAParams:
     '''
-    Data structure to hold the parameters for the
+    Data structure to hold the core parameters for the
     QA code's output plots and statistics files that are
     common to all NISAR products.
 
@@ -42,35 +41,25 @@ class QAPlotsAndMetricsParams:
     '''
 
     # Attributes that are common to all NISAR Products
-    plots_pdf: PdfPages
+    plots_pdf: PdfPages = PdfPages('stats.h5', 'w')
     browse_image_dir: str = '.'
-    browse_image_prefix: str = None
+    browse_image_prefix: str = ""
     tile_shape: tuple = (512,-1)
 
 
 @dataclass
-class QAPlotsAndMetricsParamsRSLC(QAPlotsAndMetricsParams):
+class RSLCPowerImageParams(CoreQAParams):
     '''
-    Data structure to hold the parameters for the QA
-    code's output plots and statistics files for RSLC.
+    Data structure to hold the parameters to generate the
+    RSLC Power Images.
+
+    Use the class method .from_parent() to construct
+    an instance from an existing CoreQAParams object.
 
     Parameters
     ----------
-    plots_pdf : PdfPages
-        The output file to append the power image plot to
-    browse_image_dir : str
-        Path to directory to save the browse image product.
-    browse_image_prefix : str
-        String to pre-pend to the name of the generated browse image product.
-    tile_shape : tuple of ints
-        Shape of each tile to be processed. If `tile_shape` is
-        larger than the shape of `arr`, or if the dimensions of `arr`
-        are not integer multiples of the dimensions of `tile_shape`,
-        then smaller tiles may be used.
-        -1 to use all rows / all columns (respectively).
-        Format: (num_rows, num_cols) 
-        Defaults to (512, -1) to use all columns (i.e. full rows of data)
-        and leverage Python's row-major ordering.
+    **core : CoreQAParams
+        All fields from the parent class CoreQAParams.
     nlooks_freqa, nlooks_freqb : int or iterable of int
         Number of looks along each axis of the input array 
         for the specified frequency.
@@ -89,13 +78,42 @@ class QAPlotsAndMetricsParamsRSLC(QAPlotsAndMetricsParams):
         Defaults to 100.0.
     '''
 
-    # Attributes that are specific to the RSLC product
-    nlooks_freqa: int = None
-    nlooks_freqb: int = None 
+    nlooks_freqa: Union[int, Iterable[int]] = 1  # No apparent multilooking
+    nlooks_freqb: Union[int, Iterable[int]] = 1  # No apparent multilooking
     linear_units: bool = True
-    num_mpix: int = 4.0
+    num_mpix: float = 4.0
     highlight_inf_pixels: bool = False
-    middle_percentile: int = 100.0
+    middle_percentile: float = 100.0
+
+
+    @classmethod
+    def from_parent(cls, core, **kwargs):
+        '''
+        Initialize an RSLCRaster object for a HDF5 dataset
+        that needs to be decoded via a specific dtype.
+
+        This will store the dataset as a ComplexFloat16Decoder
+        object instead of a standard Arraylike object.
+
+        Parameters
+        ----------
+        core : CoreQAParams
+            Instance of CoreQAParams whose values will be used
+            to populate this new child class.
+        **kwargs : 
+            Attributes specific to the RSLCPowerImageParams child class
+        '''
+        if not isinstance(core, CoreQAParams):
+            raise ValueError("`core` input must be of type CoreQAParams.")
+
+        # Create shallow copy of the dataclass into a dict.
+        # (Using the asdict() method to create a deep copy throws a
+        # "TypeError: cannot serialize '_io.BufferedWriter' object" 
+        # exception when copying the field with the PdfPages object.)
+        core_dict = dict((field.name, getattr(core, field.name)) 
+                                            for field in fields(core))
+
+        return cls(**core_dict, **kwargs)
 
 
 class ComplexFloat16Decoder(object):
@@ -645,8 +663,8 @@ def process_power_images(pols, params):
         Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
                                        in a RSLCRasterQA object
-    params : RSLCGraphsMetricsParams
-        A structure containing the parameters for processing
+    params : RSLCPowerImageParams
+        A dataclass containing the parameters for processing
         and outputting the power image(s).
     '''
     # Process each image in the dataset
@@ -678,7 +696,7 @@ def process_single_power_image(img, params):
     ----------
     img : RSLCRasterQA
         The RSLC raster to be processed
-    params : RSLCGraphsMetricsParams
+    params : RSLCPowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
     '''
@@ -824,7 +842,7 @@ def get_browse_product_filename(
         pol,
         quantity,
         browse_image_dir,
-        browse_image_prefix=None):
+        browse_image_prefix=""):
     '''
     Returns the full filename (with path) for Browse Image Product.
 
@@ -844,7 +862,7 @@ def get_browse_product_filename(
 
     '''
     filename = f'{product_name.upper()}_{band}_{freq}_{pol}_{quantity}.png'
-    if browse_image_prefix is not None:
+    if browse_image_prefix is not '':
         filename = f'{browse_image_prefix}_{filename}'
     filename = os.path.join(browse_image_dir, filename)
 
