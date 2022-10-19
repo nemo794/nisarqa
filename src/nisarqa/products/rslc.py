@@ -41,7 +41,7 @@ class CoreQAParams:
     '''
 
     # Attributes that are common to all NISAR Products
-    plots_pdf: PdfPages = PdfPages('stats.h5', 'w')
+    plots_pdf: PdfPages = PdfPages('plots.pdf', 'w')
     browse_image_dir: str = '.'
     browse_image_prefix: str = ""
     tile_shape: tuple = (512,-1)
