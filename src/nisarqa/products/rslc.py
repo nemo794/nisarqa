@@ -43,7 +43,7 @@ class CoreQAParams:
     # Attributes that are common to all NISAR Products
     plots_pdf: PdfPages = PdfPages('plots.pdf', 'w')
     browse_image_dir: str = '.'
-    browse_image_prefix: str = ""
+    browse_image_prefix: str = ''
     tile_shape: tuple = (512,-1)
 
 
@@ -366,8 +366,8 @@ def get_bands_freqs_pols(h5_file):
         where the keys are the available bands (i.e. 'SSAR' or 'LSAR').
         Format: bands[<band>] -> a h5py Group
         Ex: bands['LSAR'] -> the h5py Group for LSAR
-    freqs : dict of h5py Groups
-        Dict of the h5py Groups for each freq in `h5_file`,
+    freqs : nested dict of h5py Groups
+        Nested dict of the h5py Groups for each freq in `h5_file`,
         where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
         Format: freqs[<band>][<freq>] -> a h5py Group
         Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
@@ -550,7 +550,7 @@ def create_RSLCRasterQA(h5_file, band, freq, pol):
 
     Parameters
     ----------
-    h5_file : h5py file handle
+    h5_file : h5py.File
         File handle to a valid NISAR RSLC hdf5 file.
         Polarization images must be located in the h5 file in the path: 
         /science/<band>/RSLC/swaths/freqency<freq>/<pol>
@@ -842,7 +842,7 @@ def get_browse_product_filename(
         pol,
         quantity,
         browse_image_dir,
-        browse_image_prefix=""):
+        browse_image_prefix=''):
     '''
     Returns the full filename (with path) for Browse Image Product.
 
@@ -1038,7 +1038,7 @@ def plot_img_to_axis(ax,
         The image data, such as matches matplotlib.plt.imshow's
         specifications for `X`
     highlight_inf_pixels : bool
-        True to color pixels with an infinite value green in saved images.
+        True to color pixels with a non-finite value green in saved images.
         Defaults to matplotlib's default.
     middle_percentile : numeric
         Defines the middle percentile range of the `img_arr` 

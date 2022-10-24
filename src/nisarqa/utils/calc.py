@@ -9,7 +9,7 @@ def arr2pow(arr):
     Parameters
     ----------
     arr : array_like
-        Complex-valued input array.
+        Input array.
 
     Returns
     -------
