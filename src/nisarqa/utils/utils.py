@@ -1,6 +1,9 @@
 import h5py
 from contextlib import contextmanager
 import numpy as np
+import nisarqa
+
+objects_to_skip = nisarqa.get_all(name=__name__)
 
 @contextmanager
 def open_h5_file(in_file, mode='r'):
@@ -37,6 +40,14 @@ def open_h5_file(in_file, mode='r'):
         yield input_file
     finally:
         input_file.close()
+
+
+class DatasetNotFoundError(Exception):
+    '''Custom exception name for when a dataset is
+    not found in an e.g. HDF5 file.
+    '''
+    def __init__(self):
+        super().__init__("Dataset not found.")
 
 
 def compute_non_zero_mask(arr, epsilon=1.0E-05):
@@ -101,3 +112,5 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
     mask_ok = finite_mask & non_zero_mask
 
     return mask_ok
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

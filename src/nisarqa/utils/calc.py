@@ -1,4 +1,7 @@
 import numpy as np
+import nisarqa
+
+objects_to_skip = nisarqa.get_all(__name__)
 
 def arr2pow(arr):
     '''
@@ -51,3 +54,5 @@ def nearest_odd_int(k):
     assert isinstance(result, int), print('the result should be an integer.')
 
     return result
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

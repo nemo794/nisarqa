@@ -5,6 +5,9 @@ from scipy import constants
 import os, os.path
 import shutil
 import time
+import nisarqa
+
+objects_to_skip = nisarqa.get_all(name=__name__)
 
 TEST_DIR_IN = "test_data_inputs"
 TEST_DIR_OUT = "test_data"
@@ -1067,3 +1070,5 @@ if __name__ == "__main__":
     gunw_coord_shape(GUNW_FILE, "gunw_nocoords2.h5")
     gunw_connected(GUNW_FILE, "gunw_connected.h5")
     gunw_missing_all(GUNW_FILE, "gunw_missing_all.h5")
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -1,6 +1,10 @@
 import yaml
 import argparse
 
+import nisarqa
+
+objects_to_skip = nisarqa.get_all(__name__)
+
 # TODO:
 #     - Check that filepaths can be relative paths.
 #     - Check if any of the optionals are required (e.g. the xml files).
@@ -55,6 +59,14 @@ def parse_cli_args(nisar_product):
     args : dict
         The parsed arguments in a dictionary.
     '''
+
+    # TODO - Re-write the input argument strategy to account for the location
+    # to store the default values (possibly in a dataclass?), and for
+    # integration with ISCE3's input strategy.
+    # TODO - Currently, parse_args() only supports input by CLI or input by a runconfig yaml.
+    # (And input by runconfig is not yet implemented.) In the future, allow users to provide 
+    # a combination of command-line arguments and yaml arguments, with CLI arguments
+    # having higher precendence than the runconfig.
 
     xml_default = './xml/nisar_L1_%s.xml' % nisar_product.upper()
 
@@ -147,3 +159,4 @@ def verify_inputs(args):
     # TODO - check that input arguments are valid
     pass
 
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

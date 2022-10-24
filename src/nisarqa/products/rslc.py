@@ -11,6 +11,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa
 
+# List of objects from the import statements that
+# should not be included when importing this module
+objects_to_skip = nisarqa.get_all(name=__name__)
+
+
 @dataclass
 class CoreQAParams:
     '''
@@ -210,7 +215,7 @@ class RSLCRaster:
 
 
     @classmethod
-    def from_h5dataset(cls, h5dataset, name, dtype):
+    def from_h5dataset(cls, h5dataset, name):
         '''
         Initialize an RSLCRaster object for a HDF5 dataset
         that needs to be decoded via a specific dtype.
@@ -260,7 +265,7 @@ class RSLCRasterQA(RSLCRaster):
         Start (near) distance of the range of input array
     rng_stop : float
         End (far) distance of the range of input array
-    epoch_starttime : str
+    epoch : str
         The start of the epoch for this observation,
         in the format 'YYYY-MM-DD HH:MM:SS'
 
@@ -283,15 +288,15 @@ class RSLCRasterQA(RSLCRaster):
     rng_start: float
     rng_stop: float
 
-    epoch_starttime: str
+    epoch: str
 
 
     @classmethod
     def from_h5dataset(cls,
-                       h5dataset, band, freq, pol, dtype,
+                       h5dataset, band, freq, pol,
                        az_spacing, az_start, az_stop,
                        range_spacing, rng_start, rng_stop,
-                       epoch_starttime):
+                       epoch):
         '''
         Initialize an RSLCRasterQA object for a HDF5 dataset
         that needs to be decoded via a specific dtype.
@@ -323,8 +328,8 @@ class RSLCRasterQA(RSLCRaster):
             Start (near) distance of the range of input array
         rng_stop : float
             End (far) distance of the range of input array
-        epoch_starttime : str
-            The start of the epoch for this observation,
+        epoch : str
+            The reference epoch for this observation,
             in the format 'YYYY-MM-DD HH:MM:SS'
 
         Notes
@@ -346,7 +351,107 @@ class RSLCRasterQA(RSLCRaster):
         return cls(data, name, band, freq, pol, 
                    az_spacing, az_start, az_stop,
                    range_spacing, rng_start, rng_stop,
-                   epoch_starttime)
+                   epoch)
+
+    @classmethod
+    def from_nisar_rslc_h5_dataset(cls,
+                       h5_file, band, freq, pol):
+        '''
+        Initialize an RSLCRasterQA object for the given 
+        band-freq-pol image in the input NISAR RSLC HDF5 file.
+        
+        This will store the dataset as a ComplexFloat16Decoder
+        object instead of a standard Arraylike object. If the file 
+        does not contain an image dataset for the given 
+        band-freq-pol combination, a DatasetNotFoundError
+        exception will be thrown.
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            File handle to a valid NISAR RSLC hdf5 file.
+            Polarization images must be located in the h5 file in the path: 
+            /science/<band>/RSLC/swaths/freqency<freq>/<pol>
+            or they will not be found. This is the file structure
+            as determined from the NISAR Product Spec.
+        band : str
+            name of the band for `img`, e.g. 'LSAR'
+        freq : str
+            name of the frequency for `img`, e.g. 'A' or 'B'
+        pol : str
+            name of the polarization for `img`, e.g. 'HH' or 'HV'
+
+        Notes
+        -----
+        The `name` attribute will be populated with a string
+        of the format: <band>_<freq>_<pol>
+        '''
+
+        # check if this is an RSLC or and SLC file.
+        if f'/science/{band}/RSLC' in h5_file:
+            slc_type = 'RSLC'
+        elif f'/science/{band}/SLC' in h5_file:
+            # TODO - The UAVSAR test datasets were created with only the 'SLC'
+            # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
+            # Once the test datasets have been updated to 'RSLC', then remove this
+            # warning, and raise a fatal error.
+            print('WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.')
+
+            slc_type = 'SLC'
+        else:
+            # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
+            raise DatasetNotFoundError
+
+        # Hardcoded paths to various groups in the NISAR RSLC h5 file.
+        # These paths are determined by the RSLC .xml product spec
+        swaths_path = f'/science/{band}/{slc_type}/swaths'
+        freq_path = f'{swaths_path}/frequency{freq}/'
+        pol_path = f'{freq_path}/{pol}'
+        band_freq_pol_str = f'{band}_{freq}_{pol}'
+
+        if pol_path in h5_file:
+            # self.logger.log_message(logging_base.LogFilterInfo, 
+            #                         'Found image %s' % band_freq_pol_str)
+            pass
+        else:
+            # self.logger.log_message(logging_base.LogFilterInfo, 
+            #                         'Image %s not present' % band_freq_pol_str)
+            return None
+
+        # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
+        # 'Nominal along track spacing in meters between consecutive lines 
+        # near mid swath of the RSLC image.'
+        az_spacing = h5_file[freq_path]['sceneCenterAlongTrackSpacing'][...]
+
+        # Get Azimuth (y-axis) tick range + label
+        # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
+        az_start = float(h5_file[swaths_path]['zeroDopplerTime'][0])
+        az_stop =  float(h5_file[swaths_path]['zeroDopplerTime'][-1])
+
+        # From the xml Product Spec, sceneCenterGroundRangeSpacing is the 
+        # 'Nominal ground range spacing in meters between consecutive pixels
+        # near mid swath of the RSLC image.'
+        range_spacing = h5_file[freq_path]['sceneCenterGroundRangeSpacing'][...]
+
+        # Range in meters (units are specified as meters in the product spec)
+        rng_start = float(h5_file[freq_path]['slantRange'][0])
+        rng_stop = float(h5_file[freq_path]['slantRange'][-1])
+
+        # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
+        sec_since_epoch = h5_file[swaths_path]['zeroDopplerTime'].attrs['units'].decode('utf-8')
+        epoch = sec_since_epoch.replace('seconds since ', '').strip()
+
+        return RSLCRasterQA.from_h5dataset(h5_file[pol_path],
+                                   band=band,
+                                   freq=freq,
+                                   pol=pol,
+                                   az_spacing=az_spacing,
+                                   az_start=az_start,
+                                   az_stop=az_stop,
+                                   range_spacing=range_spacing,
+                                   rng_start=rng_start,
+                                   rng_stop=rng_stop,
+                                   epoch=epoch)
 
 
 def get_bands_freqs_pols(h5_file):
@@ -521,7 +626,14 @@ def _get_pols(h5_file, freqs):
             pols[band][freq] = {}
             for pol in nisarqa.RSLC_POLS:
 
-                tmp_RSLCRasterQA = create_RSLCRasterQA(h5_file, band, freq, pol)
+                try:
+                    tmp_RSLCRasterQA = \
+                        RSLCRasterQA.from_nisar_rslc_h5_dataset(h5_file, band, freq, pol)
+                except nisarqa.DatasetNotFoundError:
+                    # RSLC Raster QA could not be created, which means that the
+                    # input file did not contain am image with the current
+                    # `band`, `freq`, and `pol` combination.
+                    continue
 
                 if isinstance(tmp_RSLCRasterQA, RSLCRasterQA):
                     pols[band][freq][pol] = tmp_RSLCRasterQA
@@ -541,102 +653,6 @@ def _get_pols(h5_file, freqs):
                             f' included under band {band}, frequency {freq}.')
 
     return pols
-
-
-def create_RSLCRasterQA(h5_file, band, freq, pol):
-    '''
-    Return a RSLCRasterQA instance of the given band-freq-pol
-    image in the input HDF5 file, if that image exists.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-        File handle to a valid NISAR RSLC hdf5 file.
-        Polarization images must be located in the h5 file in the path: 
-        /science/<band>/RSLC/swaths/freqency<freq>/<pol>
-        or they will not be found. This is the file structure
-        as determined from the NISAR Product Spec.
-    band : str
-        name of the band for `img`, e.g. 'LSAR'
-    freq : str
-        name of the frequency for `img`, e.g. 'A' or 'B'
-    pol : str
-        name of the polarization for `img`, e.g. 'HH' or 'HV'
-
-    Returns
-    -------
-    rslc_raster_image : RSLCRasterQA
-        An instance of RSLCRasterQA representing the given
-        band-freq-pol image in the input HDF5 file.
-        If the image does not exist, None will be returned.
-
-    '''
-    # check if this is an RSLC or and SLC file.
-    if f'/science/{band}/RSLC' in h5_file:
-        slc_type = 'RSLC'
-    elif f'/science/{band}/SLC' in h5_file:
-        # TODO - The UAVSAR test datasets were created with only the 'SLC'
-        # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
-        # Once the test datasets have been updated to 'RSLC', then remove this
-        # warning, and raise a fatal error.
-        print('WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.')
-
-        slc_type = 'SLC'
-    else:
-        # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
-        return None
-
-    # Hardcoded paths to various groups in the NISAR RSLC h5 file.
-    # These paths are determined by the RSLC .xml product spec
-    swaths_path = f'/science/{band}/{slc_type}/swaths'
-    freq_path = f'{swaths_path}/frequency{freq}/'
-    pol_path = f'{freq_path}/{pol}'
-    band_freq_pol_str = f'{band}_{freq}_{pol}'
-
-    if pol_path in h5_file:
-        # self.logger.log_message(logging_base.LogFilterInfo, 
-        #                         'Found image %s' % band_freq_pol_str)
-        pass
-    else:
-        # self.logger.log_message(logging_base.LogFilterInfo, 
-        #                         'Image %s not present' % band_freq_pol_str)
-        return None
-
-    # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
-    # 'Nominal along track spacing in meters between consecutive lines 
-    # near mid swath of the RSLC image.'
-    az_spacing = h5_file[freq_path]['sceneCenterAlongTrackSpacing'][...]
-
-    # Get Azimuth (y-axis) tick range + label
-    # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
-    az_start = float(h5_file[swaths_path]['zeroDopplerTime'][0])
-    az_stop =  float(h5_file[swaths_path]['zeroDopplerTime'][-1])
-
-    # From the xml Product Spec, sceneCenterGroundRangeSpacing is the 
-    # 'Nominal ground range spacing in meters between consecutive pixels
-    # near mid swath of the RSLC image.'
-    range_spacing = h5_file[freq_path]['sceneCenterGroundRangeSpacing'][...]
-
-    # Range in meters (units are specified as meters in the product spec)
-    rng_start = float(h5_file[freq_path]['slantRange'][0])
-    rng_stop = float(h5_file[freq_path]['slantRange'][-1])
-
-    # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
-    sec_since_epoch = h5_file[swaths_path]['zeroDopplerTime'].attrs['units'].decode('utf-8')
-    epoch_starttime = sec_since_epoch.replace('seconds since ', '').strip()
-
-    return RSLCRasterQA.from_h5dataset(h5_file[pol_path],
-                                     band=band,
-                                     freq=freq,
-                                     pol=pol,
-                                     dtype=np.complex64,
-                                     az_spacing=az_spacing,
-                                     az_start=az_start,
-                                     az_stop=az_stop,
-                                     range_spacing=range_spacing,
-                                     rng_start=rng_start,
-                                     rng_stop=rng_stop,
-                                     epoch_starttime=epoch_starttime)
 
 
 def process_power_images(pols, params):
@@ -763,7 +779,7 @@ def process_single_power_image(img, params):
         title=f'RSLC Multilooked Power (dB)\n{img.name}'
 
     # Get Azimuth (y-axis) label
-    az_title = f"Zero Doppler Time\n(seconds since {img.epoch_starttime})"
+    az_title = f"Zero Doppler Time\n(seconds since {img.epoch})"
 
     # Get Range (x-axis) labels and scale
     # Convert range from meters to km
@@ -1089,7 +1105,8 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
     input array using the given middle percentile.
 
     For example, if `middle_percentile` is 95.0, then this will
-    return the value of the 2.5th quantile and the 97.5th quantile.
+    return the value of the 2.5th percentile and the 97.5th 
+    percentile.
 
     Parameters
     ----------
@@ -1111,7 +1128,9 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
 
     fraction = 0.5*(1.0 - middle_percentile/100.0)
 
-    # Get the value of the e.g. 2.5th quantile and the 97.5th quantile
+    # Get the value of the e.g. 0.025 quantile and the 0.975 quantile
     vmin, vmax = np.quantile(data_in, [fraction, 1-fraction])
 
     return vmin, vmax
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

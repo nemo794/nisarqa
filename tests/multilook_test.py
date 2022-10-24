@@ -3,6 +3,8 @@ import pytest
 
 import nisarqa
 
+objects_to_skip = nisarqa.get_all(__name__)
+
 # Tolerances for floating point errors
 # Format follows order of inputs for 
 # numpy.testing.assert_allclose: (<rtol>, <atol>)
@@ -165,3 +167,5 @@ def test_multilook_negatives():
     actual_out = nisarqa.multilook(arr, (2,2))
 
     np.testing.assert_allclose(expected_out, actual_out, *tol)
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

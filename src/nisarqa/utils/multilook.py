@@ -3,6 +3,8 @@ import warnings
 
 import nisarqa
 
+objects_to_skip = nisarqa.get_all(__name__)
+
 def multilook(arr, nlooks):
     '''
     Multilook an array by simple averaging.
@@ -211,3 +213,4 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
 
     return (ka, kr)
 
+__all__ = nisarqa.get_all(__name__, objects_to_skip)
