@@ -28,36 +28,44 @@ def get_all(name, objects_to_skip=None, skip_private=True):
     To import all from my_module.py into this __init__.py
     file like this:
         `from my_module import *`
-    we need to set the `__all__` variable in the `my_module` 
-    to avoid reimporting all of objects from the import
-    statements (e.g. numpy, etc.).
+    we need to set the `__all__` variable in `my_module.py` 
+    to avoid reimporting all of objects from that module's
+    import statements (e.g. numpy, etc.).
     
-    my_module.py:
+    Example my_module.py:
 
     from dataclasses import dataclass
+    import nisarqa
 
     # Immediately following the import statements,
     # get the list of currently-available objects.
     # We do not want to import these objects from outside
-    # codebases when the calling module is imported.
-    objects_to_skip = nisarqa.get_all('__name__')  # will return ['dataclass']
+    # codebases.
+    # Note: `__name__` is the module attribute; there
+    # are no quote marks.
+    objects_to_skip = nisarqa.get_all(__name__)
+    #    Will set `objects_to_skip` equal to ['dataclass']
 
     @dataclass
     class MyDataClass:
         item1: str
         item2: str
-    
+
     def my_func():
         pass
 
     def _my_private_foo():
         pass
 
-    __all__ = nisarqa.get_all('__name__', objects_to_skip=objects_to_skip)
-        # __all__ will be set equal to ['MyDataClass', 'my_func']
+    # Call `get_all()` again at the very end of the module
+    # to include all functions and classes created during
+    # the module.
+    __all__ = nisarqa.get_all(__name__, objects_to_skip=objects_to_skip)
+    #    __all__ will be set equal to ['MyDataClass', 'my_func']
 
-    __all__ = nisarqa.get_all('__name__', skip_private=False)
-        # __all__ will be set equal to ['dataclass', 'MyDataClass', 'my_func', '_my_private_foo']
+    # Alternatively, could include private functions:
+    __all__ = nisarqa.get_all(__name__, skip_private=False)
+    #    __all__ will be set equal to ['MyDataClass', '_my_private_foo', 'dataclass', 'my_func']
     '''
 
     # Get all objects from the calling code
