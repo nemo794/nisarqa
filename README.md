@@ -3,72 +3,78 @@ Quality Assurance software for NISAR
 # Minimum PreRequisites:
 
 Python 3.7
-numpy 1.17.2
-scipy 1.5.0
-matplotlib 3.1.1
-h5py 2.10.0
-testfixures
-scikit-image 0.17.2
+TODO
 
 # Operating Instructions:
 
-python verify_rslc.py –-flog <textual log file of all errors encountered>
-                       --fhdf <HDF5 file containing a statistical summary>
-                       --fpdf <PDF file containing graphical summary> --validate --quality
-                       <path to all RSLC files you want to validate, wildcards accepted>
+## Installation
 
-python verify_gcov.py –-flog <textual log file of all errors encountered>
-                       --fhdf <HDF5 file containing a statistical summary>
-                       --fpdf <PDF file containing graphical summary> --validate --quality
-                       <path to all GCOV files you want to validate, wildcards accepted>
+Clone the repo and `cd` into the top level directory.
 
+For standard installation, run:
+```
+python setup.py install
+python setup.py clean
+```
 
-python verify_gslc.py –-flog <textual log file of all errors encountered>
-                       --fhdf <HDF5 file containing a statistical summary>
-                       --fpdf <PDF file containing graphical summary> --validate --quality
-                       <path to all GSLC files you want to validate, wildcards accepted>
+For develop mode, run:
+```
+python setup.py develop
+```
 
-python verify_gunw.py –-flog <textual log file of all errors encountered>
-                       --fhdf <HDF5 file containing a statistical summary>
-                       --fpdf <PDF file containing graphical summary> --validate --quality
-                       <path to all GUNW files you want to validate, wildcards accepted>
+##
+verify_rslc.py --quality
+               --input <path to RSLC files you want to validate>
 
-Specifying the "--validate" flag instructs the code to check for all errors and output the <flog> file.
-Specifying the "--quality" flag instructs the code to produce the graphical <fpdf> and statistical <fhdf> files.
-One or both flags may be specified.
+Specifying the '--quality' flag instructs the code to produce the graphical <fpdf> and statistical <fhdf> output files.
 
-The code only works on NISAR sample RSLC, GSLC, GCOV and GUNW files.  Other file formats are not supported at this time.
+The code only works on NISAR sample RSLC files.  Other file formats are not supported at this time.
 
-# Sample Files
+## Test RSLC Data
 
-Three sample files are included (one of each type), both in the "samples" subdirectory.
-The RSLC file is named winnip_09002_12055_006_120703_L090_CX_129_02.h5, the GCOV one is called
-NISARP_32039_19049_005_190717_L090_CX_129_03_L2GCOV.h5 and GSLC_utm_2.h5 is the GSLC file.
+TODO: Update this section (see original QA Code README), and remove the hardlinks.
 
-Note that due to problems in the GCOV and GSLC PGE's, the QA software will NOT run to completion on the outputs
-of these codes.  The sample files described above have been manually edited to correct these problems so the QA
-software will run all the way through on these particular files.
+Multi-Freq, Multi-Pol.
+Data Size: Medium-Large
+`verify_rslc.py --quality --input /home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5`
+
+Rosemond - Multi-Freq, Multi-Pol. Uses original 'SLC' convention (not 'RSLC')
+Data Size: Small
+`verify_rslc.py --quality --input /scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
+
+Real Data that has been manipulated to be like NISAR data
+Data Size: Small
+`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP037370690/output_rslc/rslc.h5`
+
+Real Data that has been manipulated to be like NISAR data
+Data Size: Large, but could complete in original QA Code
+`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP271200680/output_rslc/rslc.h5`
+
+DIST1 - Simulated data to look like an actual image
+Data Size: Small
+`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_DIST1/output_rslc/rslc.h5`
+
+DIST2 - Simulated data to look like an actual image
+Data Size: Medium
+`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_DIST2/output_rslc/rslc.h5`
+
+REE1 - Simulated data to look like an actual image
+Data Size: Small
+`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_REE1/output_rslc/rslc.h5`
+
+REE2 - Simulated data to look like an actual image
+Data Size: Large, could not complete in original QA Code
+`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_REE2/output_rslc/rslc.h5`
+
 
 # Outputs
 
 This software generates three types of outputs:  
 
-flog = textual listing of errors encountered
+qa.log = textual listing of errors encountered
 
-fhdf = statistical summary of file in HDF5 format
+qa.h5 = statistical summary of file in HDF5 format
 
-fpdf = graphical summary of file
+qa.pdf = graphical summary of file
   
-This delivery includes the expected output files, located in the "expected" subdirectory.  "rslc.h5", "rslc.pdf" and "rslc.log" are the statistical, graphical and error logs for the RSLC file.  Likewise, "gcov.h5", "gcov.pdf" and "gcov.log" are the outputs for the GCOV file and the hdf, pdf and log files for the GSLC are called "gslc.h5", "gslc.pdf" and "gslc.log" respectively. 
-
-To test the RSLC file run the command:
-
-python verify_rslc.py --fhdf rslc.h5 --fpdf rslc.pdf --flog rslc.log --quality --validate winnip_09002_12055_006_120703_L090_CX_129_02.h5
-
-And to test the GCOV file:
-
-python verify_gcov.py --fhdf gcov.h5 --fpdf gcov.pdf --flog gcov.log --quality --validate NISARP_32039_19049_005_190717_L090_CX_129_03_L2GCOV.h5
-
-And finally the GSLC file:
-
-python verify_gslc.py --fhdf gslc.h5 --fpdf gslc.pdf --flog gslc.log --quality --validate GSLC_utm_2.h5
+For example, 'rslc.h5', 'rslc.pdf' and 'rslc.log' are the statistical, graphical and error logs for the RSLC file.  Likewise, 'gcov.h5', 'gcov.pdf' and 'gcov.log' are the outputs for the GCOV file and the hdf, pdf and log files for the GSLC are called 'gslc.h5', 'gslc.pdf' and 'gslc.log' respectively. 
