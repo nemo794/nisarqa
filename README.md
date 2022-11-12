@@ -38,10 +38,6 @@ Multi-Freq, Multi-Pol.
 Data Size: Medium-Large
 `verify_rslc.py --quality --input /home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5`
 
-Rosemond - Multi-Freq, Multi-Pol. Uses original 'SLC' convention (not 'RSLC')
-Data Size: Small
-`verify_rslc.py --quality --input /scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
-
 Real Data that has been manipulated to be like NISAR data
 Data Size: Small
 `verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP037370690/output_rslc/rslc.h5`
@@ -65,6 +61,13 @@ Data Size: Small
 REE2 - Simulated data to look like an actual image
 Data Size: Large, could not complete in original QA Code
 `verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_REE2/output_rslc/rslc.h5`
+
+Rosamond - Multi-Freq, Multi-Pol. Modified UAVSAR data.
+Data Size: Small
+`verify_rslc.py --quality --input /scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
+
+Hawaii (Big Island)
+`verify_rslc.py --quality --input /home/niemoell/dat/UAVSAR_RSLC_testdata_09222022/BigIsl_32905_10003_012_100106_L090_CX_143_02.h5`
 
 
 # Outputs

@@ -57,7 +57,7 @@ def main(args):
 
         # If --quality flag was included, check the images for NaN's, create plots, etc.
         if args['quality']:
-            msg = f"Generating Quality reports {args['stats_file']} and {args['plots_file']} for file {in_file}"
+            msg = f'Generating Quality reports {args["stats_file"]} and {args["plots_file"]} for file {in_file}'
             print(msg)
             # logger.log_message(logging_base.LogFilterInfo, msg)
 
@@ -65,32 +65,51 @@ def main(args):
             with nisarqa.open_h5_file(args['stats_file'], mode='w') as stats_file, \
                      PdfPages(args['plots_file']) as plots_file:
 
+                # Store the parameters into a well-defined data structure
+                # TODO - Move these hardcoded values into a yaml runconfig
+                core_params = nisarqa.rslc.CoreQAParams(
+                                plots_pdf=plots_file,
+                                stats_h5=stats_file,
+                                browse_image_dir='.',
+                                browse_image_prefix='',
+                                tile_shape=(1024,1024))
+
+                pow_img_params = nisarqa.rslc.RSLCPowerImageParams.from_parent(
+                                core=core_params,
+                                nlooks_freqa=None,
+                                nlooks_freqb=None, 
+                                linear_units=True,
+                                middle_percentile=95.0,
+                                num_mpix=4.0,
+                                highlight_inf_pixels=True)
+
+                hist_params = nisarqa.rslc.RSLCHistogramParams.from_parent(
+                                core=core_params,
+                                decimation_ratio=(8,8),
+                                phs_in_radians=True,
+                                pow_histogram_start=-80,
+                                pow_histogram_endpoint=20)
+
                 # Get the file's bands, frequencies, and polarizations.
                 bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
 
-                # Store the parameters into well-defined data structures
-                core_params = nisarqa.rslc.CoreQAParams(
-                                         plots_pdf=plots_file,
-                                         browse_image_dir='.',
-                                         browse_image_prefix="",
-                                         tile_shape=(1024,1024))
-
-                pow_img_params = nisarqa.rslc.RSLCPowerImageParams.from_parent(
-                                         core=core_params,
-                                         nlooks_freqa=None,
-                                         nlooks_freqb=None, 
-                                         linear_units=True,
-                                         middle_percentile=95.0,
-                                         num_mpix=4.0,
-                                         highlight_inf_pixels=True)
-
                 # Generate the RSLC Power Image
-                nisarqa.rslc.process_power_images(pols=pols, params=pow_img_params)
+                nisarqa.rslc.process_power_images(
+                                pols=pols,
+                                params=pow_img_params)
 
-                # # Create output stats.h5 and graphs.pdf files
-                # fin.create_images(time_step=args['time_step'], range_step=args['range_step'])
-                # fin.check_for_invalid_values()
-                # fin.check_images(fpdf_out, fhdf_out)
+                # Generate the RSLC Power and Phase Histograms
+                nisarqa.rslc.process_power_and_phase_histograms(
+                                pols=pols,
+                                params=hist_params)
+
+                # Process Interferograms
+
+                # Generate Spectra
+
+                # Check for invalid values
+
+                # Compute metrics for stats.h5
 
 
     # logger.log_message(logging_base.LogFilterInfo, 'Runtime = %i seconds' % (time.time() - time1))

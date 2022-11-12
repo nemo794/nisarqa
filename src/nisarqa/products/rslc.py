@@ -3,11 +3,12 @@ import h5py
 import os
 import time
 
-from typing import Any, Union, Iterable
+from typing import Any, Union, Iterable, Tuple
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from cycler import cycler
 
 import nisarqa
 
@@ -23,33 +24,78 @@ class CoreQAParams:
     QA code's output plots and statistics files that are
     common to all NISAR products.
 
-    TODO - add the `stats_h5` attribute. (This will come
-    with the RSLC histogram PR.)
-
     Parameters
     ----------
     plots_pdf : PdfPages
         The output file to append the power image plot to
-    browse_image_dir : str
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to
+    browse_image_dir : str, optional
         Path to directory to save the browse image product.
-    browse_image_prefix : str
+        Defaults to the current directory.
+    browse_image_prefix : str, optional
         String to pre-pend to the name of the generated browse image product.
-    tile_shape : tuple of ints
+        Defaults to "".
+    tile_shape : tuple of ints, optional
         Shape of each tile to be processed. If `tile_shape` is
         larger than the shape of `arr`, or if the dimensions of `arr`
         are not integer multiples of the dimensions of `tile_shape`,
         then smaller tiles may be used.
         -1 to use all rows / all columns (respectively).
         Format: (num_rows, num_cols) 
-        Defaults to (512, -1) to use all columns (i.e. full rows of data)
+        Defaults to (1024, -1) to use all columns (i.e. full rows of data)
         and leverage Python's row-major ordering.
     '''
 
     # Attributes that are common to all NISAR Products
-    plots_pdf: PdfPages = PdfPages('plots.pdf', 'w')
+    stats_h5: h5py.File
+    plots_pdf: PdfPages
     browse_image_dir: str = '.'
-    browse_image_prefix: str = ''
-    tile_shape: tuple = (512,-1)
+    browse_image_prefix: str = ""
+    tile_shape: tuple = (1024,-1)
+
+    @classmethod
+    def from_parent(cls, core, **kwargs):
+        '''
+        Construct a child of CoreQAParams
+        from an existing instance of CoreQAParams.
+
+        Parameters
+        ----------
+        core : CoreQAParams
+            Instance of CoreQAParams whose attributes will
+            populate the new child class instance.
+            Note that a only shallow copy is performed when populating
+            the new instance; for parent attributes that contain
+            references, the child object will reference the same
+            same 
+        **kwargs : optional
+            Attributes specific to the child class of CoreQAParams.
+
+        Example
+        -------
+        >>> parent = CoreQAParams()
+        >>> @dataclass
+        ... class ChildParams(CoreQAParams):
+        ...     x: int
+        ... 
+        >>> y = ChildParams.from_parent(core=parent, x=2)
+        >>> print(y)
+        ChildParams(plots_pdf=<matplotlib.backends.backend_pdf.PdfPages object at 0x7fd04cab6050>,
+        stats_h5=<contextlib._GeneratorContextManager object at 0x7fd04cab6690>,
+        browse_image_dir='.', browse_image_prefix='', tile_shape=(1024, -1), x=2)        
+        '''
+        if not isinstance(core, CoreQAParams):
+            raise ValueError("`core` input must be of type CoreQAParams.")
+
+        # Create shallow copy of the dataclass into a dict.
+        # (Using the asdict() method to create a deep copy throws a
+        # "TypeError: cannot serialize '_io.BufferedWriter' object" 
+        # exception when copying the field with the PdfPages object.)
+        core_dict = dict((field.name, getattr(core, field.name)) 
+                                            for field in fields(core))
+
+        return cls(**core_dict, **kwargs)
 
 
 @dataclass
@@ -71,7 +117,7 @@ class RSLCPowerImageParams(CoreQAParams):
     linear_units : bool
         True to compute power in linear units, False for decibel units.
         Defaults to True.
-    num_mpix : scalar
+    num_mpix : numeric
         The approx. size (in megapixels) for the final multilooked image.
         Defaults to 4.0 MPix.
     highlight_inf_pixels : bool
@@ -81,8 +127,16 @@ class RSLCPowerImageParams(CoreQAParams):
         Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
+
+    Attributes
+    ----------
+    pow_units : str
+        Units of the power image.
+        If `linear_units` is True, this will be set to 'linear'.
+        If `linear_units` is False, this will be set to 'dB'.
     '''
 
+    # Attributes for generating the Power Image(s)
     nlooks_freqa: Union[int, Iterable[int]] = 1  # No apparent multilooking
     nlooks_freqb: Union[int, Iterable[int]] = 1  # No apparent multilooking
     linear_units: bool = True
@@ -90,35 +144,109 @@ class RSLCPowerImageParams(CoreQAParams):
     highlight_inf_pixels: bool = False
     middle_percentile: float = 100.0
 
+    # Auto-generated attributes
+    pow_units: str = field(init=False)
 
-    @classmethod
-    def from_parent(cls, core, **kwargs):
-        '''
-        Initialize an RSLCRaster object for a HDF5 dataset
-        that needs to be decoded via a specific dtype.
+    def __post_init__(self):
+        # Phase bin edges - allow for either radians or degrees
+        if self.linear_units:
+            self.pow_units = 'linear'
+        else:
+            self.pow_units = 'dB'
 
-        This will store the dataset as a ComplexFloat16Decoder
-        object instead of a standard Arraylike object.
 
-        Parameters
-        ----------
-        core : CoreQAParams
-            Instance of CoreQAParams whose values will be used
-            to populate this new child class.
-        **kwargs : 
-            Attributes specific to the RSLCPowerImageParams child class
-        '''
-        if not isinstance(core, CoreQAParams):
-            raise ValueError("`core` input must be of type CoreQAParams.")
+@dataclass
+class RSLCHistogramParams(CoreQAParams):
+    '''
+    Data structure to hold the parameters to generate the
+    RSLC Power and Phase Histograms.
 
-        # Create shallow copy of the dataclass into a dict.
-        # (Using the asdict() method to create a deep copy throws a
-        # "TypeError: cannot serialize '_io.BufferedWriter' object" 
-        # exception when copying the field with the PdfPages object.)
-        core_dict = dict((field.name, getattr(core, field.name)) 
-                                            for field in fields(core))
+    Use the class method .from_parent() to construct
+    an instance from an existing CoreQAParams object.
 
-        return cls(**core_dict, **kwargs)
+    Parameters
+    ----------
+    **core : CoreQAParams
+        All fields from the parent class CoreQAParams.
+    decimation_ratio : pair of int
+        The step size to decimate the input array for computing
+        the power and phase histograms.
+        For example, (2,3) means every 2nd azimuth line and
+        every 3rd range line will be used to compute the histograms.
+        Defaults to (1,1), i.e. no decimation will occur.
+        Format: (<azimuth>, <range>)
+    phs_in_radians : bool
+        True to compute phase in radians units, False for degrees units.
+        Defaults to True.
+    pow_histogram_start : numeric, optional
+        The starting value for the range of the power histogram edges.
+        Defaults to -80. (units are dB)
+    pow_histogram_endpoint : numeric, optional
+        The endpoint value for the range of the power histogram edges.
+        Defaults to 20. (units are dB)
+    
+
+    Attributes
+    ----------
+    pow_bin_edges : numpy.ndarray
+        The bin edges (including endpoint) to use when computing
+        the power histograms. Will be set to 100 uniformly-spaced bins
+        in range [`pow_histogram_start`, `pow_histogram_endpoint`],
+        including endpoint.
+    pow_units : str
+        Units of the power histograms; this will be set to 'dB'.
+    phs_bin_edges : numpy.ndarray
+        The bin edges (including endpoint) to use when computing
+        the phase histograms.
+        If `phs_in_radians` is True, this will be set to 100 
+        uniformly-spaced bins in range [-pi,pi], including endpoint.
+        If `phs_in_radians` is False, this will be set to 100
+        uniformly-spaced bins in range [-180,180], including endpoint.
+    pow_units : str
+        Units of the phase histograms.
+        If `phs_in_radians` is True, this will be set to 'radians'.
+        If `phs_in_radians` is True, this will be set to 'degrees'.
+    '''
+
+    # Attributes for generating Power and Phase Histograms
+    # User-Provided attributes:
+    decimation_ratio: Tuple[int, int] = (1,1)  # no decimation
+    phs_in_radians: bool = True
+
+    pow_histogram_start: float = -80.0
+    pow_histogram_endpoint: float = 20.0
+
+    # Auto-generated attributes
+    # Power Bin Edges (generated based upon
+    # `pow_histogram_start` and `pow_histogram_endpoint`)
+    pow_bin_edges: np.ndarray = field(init=False)
+    pow_units: str = field(init=False)
+
+    # Phase bin edges (generated based upon `phs_in_radians`)
+    phs_bin_edges: np.ndarray = field(init=False)
+    phs_units: str = field(init=False)
+
+    def __post_init__(self):
+        # Power Bin Edges - hardcode to be in decibels
+        # 101 bin edges => 100 bins
+        self.pow_bin_edges = np.linspace(self.pow_histogram_start,
+                                         self.pow_histogram_endpoint,
+                                         num=101,
+                                         endpoint=True)
+        self.pow_units = 'dB'
+
+        # Phase bin edges - allow for either radians or degrees
+        if self.phs_in_radians:
+            self.phs_units = 'radians'
+            start = -np.pi
+            stop = np.pi
+        else:
+            self.phs_units = 'degrees'
+            start = -180
+            stop = 180
+
+        # 101 bin edges => 100 bins
+        self.phs_bin_edges = np.linspace(start, stop, num=101, endpoint=True)
 
 
 class ComplexFloat16Decoder(object):
@@ -151,11 +279,11 @@ class ComplexFloat16Decoder(object):
 
     @staticmethod
     def read_c4_dataset_as_c8(ds: h5py.Dataset, key=np.s_[...]):
-        """
+        '''
         Read a complex float16 HDF5 dataset as a numpy.complex64 array.
         Avoids h5py/numpy dtype bugs and uses numpy float16 -> float32 conversions
         which are about 10x faster than HDF5 ones.
-        """
+        '''
         # This avoids h5py exception:
         # TypeError: data type '<c4' not understood
         # Also note this syntax changed in h5py 3.0 and was deprecated in 3.6, see
@@ -165,7 +293,7 @@ class ComplexFloat16Decoder(object):
         z = ds.astype(complex32)[key]
 
         # Define a similar datatype for complex64 to be sure we cast safely.
-        complex64 = np.dtype([("r", np.float32), ("i", np.float32)])
+        complex64 = np.dtype([('r', np.float32), ('i', np.float32)])
 
         # Cast safely and then view as native complex64 numpy dtype.
         return z.astype(complex64).view(np.complex64)
@@ -344,7 +472,7 @@ class RSLCRasterQA(RSLCRaster):
         data = ComplexFloat16Decoder(h5dataset)
 
         # Format the name
-        name = f"{band}_{freq}_{pol}"
+        name = f'{band}_{freq}_{pol}'
 
         # Note the order of the positional arguments being passed;
         # the attributes of the parent class must be passed first.
@@ -461,7 +589,7 @@ def get_bands_freqs_pols(h5_file):
 
     Parameters
     ----------
-    h5_file : h5py file handle
+    h5_file : h5py.File
         Handle to the input product h5 file
 
     Returns
@@ -498,7 +626,7 @@ def _get_bands(h5_file):
 
     Parameters
     ----------
-    h5_file : h5py file handle
+    h5_file : h5py.File
         File handle to a valid NISAR RSLC hdf5 file.
         Bands must be located in the h5 file in the path: /science/<band>
         or they will not be found.
@@ -532,7 +660,7 @@ def _get_freqs(h5_file, bands):
 
     Parameters
     ----------
-    h5_file : h5py file handle
+    h5_file : h5py.File
         File handle to a valid NISAR RSLC hdf5 file.
         Frequencies must be located in the h5 file in the path: 
         /science/<band>/RSLC/swaths/freqency<freq>
@@ -581,8 +709,8 @@ def _get_freqs(h5_file, bands):
     for band in freqs.keys():
         # Empty dictionaries evaluate to False in Python
         if not freqs[band]:
-            raise ValueError(f"Provided input file's band {band} does not "
-                              "contain any frequency groups.")
+            raise ValueError(f'Provided input file\'s band {band} does not '
+                              'contain any frequency groups.')
 
     return freqs
 
@@ -594,7 +722,7 @@ def _get_pols(h5_file, freqs):
 
     Parameters
     ----------
-    h5_file : h5py file handle
+    h5_file : h5py.File
         File handle to a valid NISAR RSLC hdf5 file.
         frequencies must be located in the h5 file in the path: 
         /science/<band>/RSLC/swaths/freqency<freq>/<pol>
@@ -773,10 +901,7 @@ def process_single_power_image(img, params):
                 )
 
     # Plot and Save Power Image to graphical summary pdf
-    if params.linear_units:
-        title=f'RSLC Multilooked Power (linear)\n{img.name}'
-    else:
-        title=f'RSLC Multilooked Power (dB)\n{img.name}'
+    title = f'RSLC Multilooked Power ({params.pow_units})\n{img.name}'
 
     # Get Azimuth (y-axis) label
     az_title = f"Zero Doppler Time\n(seconds since {img.epoch})"
@@ -813,7 +938,7 @@ def plot2png(img_arr,
         Image to plot
     filepath : str
         Full filepath the browse image product.
-    middle_percentile : numeric
+    middle_percentile : numeric, optional
         Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
@@ -848,8 +973,7 @@ def plot2png(img_arr,
                 dpi=DPI
                 )
 
-    plt.close()
-
+    plt.close(f)
 
 def get_browse_product_filename(
         product_name,
@@ -1031,7 +1155,7 @@ def plot2pdf(img_arr,
     plots_pdf.savefig(plt.gcf())
 
     # Close the plot
-    plt.close()
+    plt.close(f)
 
 
 def plot_img_to_axis(ax,
@@ -1132,5 +1256,162 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
     vmin, vmax = np.quantile(data_in, [fraction, 1-fraction])
 
     return vmin, vmax
+
+
+def process_power_and_phase_histograms(pols, params):
+    '''
+    Generate the RSLC Power Histograms; save their plots
+    to the graphical summary .pdf file and their data to the
+    statistics .h5 file.
+
+    Power histogram will be computed in decibel units.
+    Phase histogram defaults to being computed in radians, 
+    configurable to be computed in degrees.
+
+    Parameters
+    ----------
+    pols : nested dict of RSLCRaster
+        Nested dict of RSLCRaster objects, where each object represents
+        a polarization dataset in `h5_file`.
+        Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
+                                       in a RSLCRaster object
+    params : RSLCHistogramParams
+        A structure containing the parameters for processing
+        and outputting the power and phase histograms.
+    '''
+
+    # Store processing settings in stats HDF5 file
+    stats_h5 = params.stats_h5
+    proc_path = f'/processing/'
+    stats_h5[proc_path + 'histogramEdgesPower'] = \
+                params.pow_bin_edges
+    stats_h5[proc_path + 'histogramEdgesPhase'] = \
+                params.phs_bin_edges
+    stats_h5[proc_path + 'histogramDecimationAz'] = \
+                params.decimation_ratio[0]
+    stats_h5[proc_path + 'histogramDecimationRange'] = \
+                params.decimation_ratio[1]
+    stats_h5[proc_path + 'histogramUnitsPower'] = \
+                params.pow_units
+    stats_h5[proc_path + 'histogramUnitsPhase'] = \
+                params.phs_units
+
+    # Generate and store the histograms
+    for band in pols:
+        for freq in pols[band]:
+            generate_histogram_single_freq(pols[band][freq],
+                                            band, freq, params)
+
+
+def generate_histogram_single_freq(pol, band, freq, params):
+    '''
+    Generate the RSLC Power Histograms for a single frequency.
+    
+    The histograms' plots will be appended to the graphical
+    summary file `params.plots_pdf`, and their data will be
+    stored in the statistics .h5 file `params.stats_h5`.
+    Power histogram will be computed in decibel units.
+    Phase histogram defaults to being computed in radians, 
+    configurable to be computed in degrees.
+
+    Parameters
+    ----------
+    pol : dict of RSLCRaster
+        dict of RSLCRaster objects for the given `band`
+        and `freq`. Each key is a polarization (e.g. 'HH'
+        or 'HV'), and each key's item is the corresponding
+        RSLCRaster instance.
+        Ex: pol['HH'] -> the HH dataset, stored 
+                         in a RSLCRaster object
+    band : str
+        Band name for the histograms to be processed,
+        e.g. 'LSAR'
+    freq : str
+        Frequency name for the histograms to be processed,
+        e.g. 'A' or 'B'
+    params : RSLCHistogramParams
+        A structure containing the parameters for processing
+        and outputting the power and phase histograms.
+    '''
+
+    print(f'Generating Histograms for Frequency {freq}...')
+
+    # Open separate figures for each of the power and phase histograms.
+    # Each band+frequency will have a distinct plot, with all of the
+    # polarization images for that setup plotted together on the same plot.
+    pow_fig, pow_ax = plt.subplots(nrows=1, ncols=1)
+    phs_fig, phs_ax = plt.subplots(nrows=1, ncols=1)
+
+    # Use custom cycler for accessibility
+    pow_ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+    phs_ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+
+    for pol_name, pol_data in pol.items():
+        # Get histogram probability densities
+        pow_hist_density, phs_hist_density = \
+                nisarqa.compute_power_and_phase_histograms_by_tiling(
+                            arr=pol_data.data,
+                            pow_bin_edges=params.pow_bin_edges,
+                            phs_bin_edges=params.phs_bin_edges,
+                            decimation_ratio=params.decimation_ratio,
+                            tile_shape=params.tile_shape,
+                            density=True)
+
+        # Save to stats.h5 file
+        h5_pol_grp_path = f'/data/frequency{freq}/{pol_name}/'
+        params.stats_h5[h5_pol_grp_path + 'powerHistogramDensity'] = pow_hist_density
+        params.stats_h5[h5_pol_grp_path + 'phaseHistogramDensity'] = phs_hist_density
+
+        # Add these densities to the figures
+        add_hist_to_axis(pow_ax,
+                         counts=pow_hist_density, 
+                         edges=params.pow_bin_edges,
+                         label=pol_name)
+
+        add_hist_to_axis(phs_ax,
+                         counts=phs_hist_density,
+                         edges=params.phs_bin_edges,
+                         label=pol_name)
+
+    # Label the Power Figure
+    title = f'{band} Frequency {freq} Power Histograms'
+    pow_ax.set_title(title)
+
+    pow_ax.legend(loc='upper right')
+    pow_ax.set_xlabel(f'RSLC Power ({params.pow_units})')
+    pow_ax.set_ylabel(f'Density (1/{params.pow_units})')
+
+    # Per ADT, let the top limit float for Power Spectra
+    pow_ax.set_ylim(bottom=0.0)
+    pow_ax.grid()
+
+    # Label the Phase Figure
+    phs_ax.set_title(f'{band} Frequency {freq} Phase Histograms')
+    phs_ax.legend(loc='upper right')
+    phs_ax.set_xlabel(f'RSLC Phase ({params.phs_units})')
+    phs_ax.set_ylabel(f'Density (1/{params.phs_units})')
+    phs_ax.set_ylim(bottom=0.0, top=0.5)
+    phs_ax.grid()
+
+    # Save complete plots to graphical summary pdf file
+    params.plots_pdf.savefig(pow_fig)
+    params.plots_pdf.savefig(phs_fig)
+
+    # Close all figures
+    plt.close(pow_fig)
+    plt.close(phs_fig)
+
+    print(f'Histograms for Frequency {freq} complete.')
+
+
+def add_hist_to_axis(axis, counts, edges, label):
+    '''Add the plot of the given counts and edges to the
+    axis object. Points will be centered in each bin,
+    and the plot will be denoted `label` in the legend.
+    '''
+    bin_centers = 0.5 * (edges[:-1] + edges[1:])
+    axis.plot(bin_centers, counts, label=label)
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

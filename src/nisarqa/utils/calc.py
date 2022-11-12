@@ -55,4 +55,42 @@ def nearest_odd_int(k):
 
     return result
 
+
+def counts2density(counts, bins):
+    '''
+    Compute the probability density for the given counts and bins.
+
+    This function implements numpy.histogram's 'density' parameter.
+    Each bin will display the bin's raw count divided by the 
+    total number of counts and the bin width 
+    (density = counts / (sum(counts) * np.diff(bins))), 
+    so that the area under the histogram integrates to 1 
+    (np.sum(density * np.diff(bins)) == 1).
+
+    Parameters
+    ----------
+    counts : array_like
+        The values of the histogram bins, such as returned from np.histogram.
+        This is an array of length (len(bins) - 1). 
+    bins : array_like
+        The edges of the bins. Length is the number of bins + 1,
+        i.e. len(counts) + 1.
+
+    Returns
+    -------
+    density : numpy.ndarray
+        Each bin will contain that bin's density (as described above), 
+        so that the area under the histogram integrates to 1.
+    '''
+
+    # Formula per numpy.histogram's documentation:
+    density = counts / (np.sum(counts) * np.diff(bins))
+
+    # Sanity check
+    actual=np.sum(density * np.diff(bins))
+    assert np.abs(actual - 1) < 1e-6
+
+    return density
+
+    
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
