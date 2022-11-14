@@ -48,7 +48,7 @@ class DatasetNotFoundError(Exception):
     not found in an e.g. HDF5 file.
     '''
     def __init__(self):
-        super().__init__("Dataset not found.")
+        super().__init__('Dataset not found.')
 
 
 def compute_non_zero_mask(arr, epsilon=1.0E-05):

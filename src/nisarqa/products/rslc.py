@@ -36,7 +36,7 @@ class CoreQAParams:
         Defaults to the current directory.
     browse_image_prefix : str, optional
         String to pre-pend to the name of the generated browse image product.
-        Defaults to "".
+        Defaults to ''.
     tile_shape : tuple of ints, optional
         Shape of each tile to be processed. If `tile_shape` is
         larger than the shape of `arr`, or if the dimensions of `arr`
@@ -52,7 +52,7 @@ class CoreQAParams:
     stats_h5: h5py.File
     plots_pdf: PdfPages
     browse_image_dir: str = '.'
-    browse_image_prefix: str = ""
+    browse_image_prefix: str = ''
     tile_shape: tuple = (1024,-1)
 
     @classmethod
@@ -87,7 +87,7 @@ class CoreQAParams:
         browse_image_dir='.', browse_image_prefix='', tile_shape=(1024, -1), x=2)        
         '''
         if not isinstance(core, CoreQAParams):
-            raise ValueError("`core` input must be of type CoreQAParams.")
+            raise ValueError('`core` input must be of type CoreQAParams.')
 
         # Create shallow copy of the dataclass into a dict.
         # (Using the asdict() method to create a deep copy throws a
@@ -140,6 +140,7 @@ class RSLCPowerImageParams(CoreQAParams):
     linear_units: bool = True
     num_mpix: float = 4.0
     middle_percentile: float = 100.0
+    gamma: float = 1.0
 
     # Auto-generated attributes
     pow_units: str = field(init=False)
@@ -869,21 +870,23 @@ def process_single_power_image(img, params):
     # Multilook
     print('tile_shape: ', params.tile_shape)
     start_time = time.time()
-    output_power_img = nisarqa.compute_multilooked_power_by_tiling(
+    out_power_img = nisarqa.compute_multilooked_power_by_tiling(
                                             arr=img.data,
                                             nlooks=nlooks,
-                                            linear_units=params.linear_units,
                                             tile_shape=params.tile_shape)
     end_time = time.time()-start_time
     print('time to multilook image (sec): ', end_time)
     print('time to multilook image (min): ', end_time/60.)
 
-    print(f'Multilooking Complete. Multilooked shape: {output_power_img.shape}')
-    print(f'Multilooked size: {output_power_img.size} Mpix.')
+    print(f'Multilooking Complete. Multilooked shape: {out_power_img.shape}')
+    print(f'Multilooked size: {out_power_img.size} Mpix.')
 
     # Apply image correction to the multilooked array
-    output_power_img = apply_img_correction(img_arr=output_power_img,
-                                       middle_percentile=params.middle_percentile)
+    out_power_img, vmin, vmax = apply_img_correction(
+                                    img_arr=out_power_img,
+                                    middle_percentile=params.middle_percentile,
+                                    linear_units=params.linear_units,
+                                    gamma=params.gamma)
 
     # Apply image correction to the multilooked array
     output_power_img = apply_img_correction(img_arr=output_power_img,
@@ -899,14 +902,18 @@ def process_single_power_image(img, params):
                                 browse_image_dir=params.browse_image_dir,
                                 browse_image_prefix=params.browse_image_prefix)
 
-    plot_to_grayscale_png(img_arr=output_power_img,
+    plot_to_grayscale_png(img_arr=out_power_img,
                           filepath=browse_img_file)
 
     # Plot and Save Power Image to graphical summary pdf
-    title = f'RSLC Multilooked Power ({params.pow_units})\n{img.name}'
+    title = f'RSLC Multilooked Power ({params.pow_units}%s)\n{img.name}'
+    if np.isclose(params.gamma, 1.0):
+        title = title % ''
+    else:
+        title = title % fr', $\gamma$={params.gamma}'
 
     # Get Azimuth (y-axis) label
-    az_title = f"Zero Doppler Time\n(seconds since {img.epoch})"
+    az_title = f'Zero Doppler Time\n(seconds since {img.epoch})'
 
     # Get Range (x-axis) labels and scale
     # Convert range from meters to km
@@ -914,22 +921,28 @@ def process_single_power_image(img, params):
     rng_stop_km = img.rng_stop/1000.
     rng_title = 'Slant Range (km)'
 
-    plot2pdf(img_arr=output_power_img,
+    plot2pdf(img_arr=out_power_img,
              title=title,
              ylim=[img.az_start, img.az_stop],
              xlim=[rng_start_km, rng_stop_km],
+             cbar_lim=[vmin, vmax],
              ylabel=az_title,
              xlabel=rng_title,
              plots_pdf=params.plots_pdf
              )
 
 
-def apply_img_correction(img_arr, middle_percentile=100.0):
+def apply_img_correction(img_arr,
+                         middle_percentile=100.0,
+                         linear_units=True,
+                         gamma=1.0):
     '''
     Apply image correction to the input array.
 
     Returns a copy of the input image with the following modifications:
-        * Values outside of the range defined by `middle_percentile` clipped
+        Step 1) Values outside of the range defined by `middle_percentile` clipped
+        Step 2) If `linear_units` is True, convert array from linear units to dB
+        Step 3) If `gamma` is not equal to 1.0, apply gamma correction to array
 
     Parameters
     ----------
@@ -939,17 +952,51 @@ def apply_img_correction(img_arr, middle_percentile=100.0):
         Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
+    linear_units : bool, optional
+        True to compute power in linear units, False for decibel units.
+        Defaults to True.
+    gamma : float, optional
+        The amount of gamma correction to apply to the input array.
+        Gamma will be applied as follows: arr_out = arr_in ^ gamma
+        If gamma correction is applied, `out_power_img` will
+        have values in range [0,1]; use the returned `vmin` and
+        `vmax` values to set the output image array's colorbar
+        limits to the correct range of values.
+        Defaults to 1.0, meaning that no gamma correction
+        will be applied.
 
     Returns
     -------
-    output_img : numpy.ndarray
-        The input array with the specified image correction applied.
+    out_power_img : numpy.ndarray
+        The input array with the specified image correction applied
+    vmin, vmax : float
+        The minimum and maximum values (respectively) of the input
+        array after (optional) clipping and (optional) conversion
+        to decibel units have been applied, but before gamma correction.
+        `vmin` and `vmax` can be used to set colorbar limits for
+        'out_power_img`.
+
     '''
     # Clip the image data
     vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
-    output_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
+    out_power_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
 
-    return output_img
+    # Convert to dB
+    if not linear_units:
+        out_power_img = nisarqa.pow2db(out_power_img)
+        vmin = nisarqa.pow2db(vmin)
+        vmax = nisarqa.pow2db(vmax)
+    
+    # Apply gamma correction
+    if not np.isclose(gamma, 1.0):
+    
+        # Normalize to range [0,1]
+        out_power_img = nisarqa.normalize(out_power_img)
+
+        # Apply gamma correction
+        out_power_img = np.power(out_power_img, gamma)
+
+    return out_power_img, vmin, vmax
 
 
 def plot_to_grayscale_png(img_arr, filepath):
@@ -969,12 +1016,9 @@ def plot_to_grayscale_png(img_arr, filepath):
     if len(np.shape(img_arr)) != 2:
         raise ValueError('Input array must be 2D.')
 
-    # Normalize array, and scale to 0-255 for unsigned int8
-    arr_min = np.min(img_arr)
-    arr_max = np.max(img_arr)
-    img_arr = (img_arr - arr_min) / (arr_max - arr_min)
-    img_arr *= 255
-    img_arr = np.uint8(img_arr)
+    # Normalize array to range [0,1], then scale to 0-255 for unsigned int8
+    img_arr = nisarqa.normalize(img_arr)
+    img_arr = np.uint8(img_arr * 255)
 
     # Save as grayscale (1-channel) image using PIL.Image
     # (Pyplot only saves png's as RGB, even if cmap=plt.cm.gray)
@@ -1021,6 +1065,7 @@ def plot2pdf(img_arr,
              title=None,
              xlim=None,
              ylim=None,
+             cbar_lim=None,
              xlabel=None,
              ylabel=None
              ):
@@ -1039,6 +1084,9 @@ def plot2pdf(img_arr,
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>], 
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
+    cbar_lim : sequence of numeric, optional
+        Lower and upper limits for the colorbar ticks
+        Format: cbar_lim=[<colorbar lower limit>, <colorbar upper limit>]
     xlabel, ylabel : str
         Axes labels for the x-axis and y-axis (respectively)
     '''
@@ -1063,7 +1111,7 @@ def plot2pdf(img_arr,
     # (Attempts to set the limits by using the `extent` argument for 
     # matplotlib.imshow() caused significantly distorted images.
     # So, compute and set the ticks w/ labels manually.)
-    if xlim is not None or ylim is not None:
+    if xlim is not None or ylim is not None or cbar_lim is not None:
 
         img_arr_shape = np.shape(img_arr)
 
@@ -1129,7 +1177,29 @@ def plot2pdf(img_arr,
                                                         stop=ylim[1],
                                                         num=num_yticks)]
         ax.set_yticklabels(yticklabels)
-    
+
+    # Add Colorbar
+    cbar = plt.colorbar(ax_img, ax=ax)
+
+    if cbar_lim is not None:
+        # Get the pixel locations of the tick marks
+        cbar_ticks = cbar.ax.get_yticks()
+
+        # Specify what those pixel locations correspond to in data coordinates.
+        linear_units=True
+        if linear_units:
+            # By default, np.linspace is inclusive of the endpoint
+            cbar_ticklabels = ['{:.2f}'.format(i) for i in np.linspace(
+                                                            start=cbar_lim[0],
+                                                            stop=cbar_lim[1],
+                                                            num=len(cbar_ticks))]
+        else:
+            cbar_ticklabels = ['{:.2f}'.format(i*10) for i in np.logspace(
+                                                            start=cbar_lim[0],
+                                                            stop=cbar_lim[1],
+                                                            num=len(cbar_ticks))]
+        cbar.set_ticklabels(cbar_ticklabels)
+
     # Label the Axes
     if xlabel is not None:
         plt.xlabel(xlabel)
@@ -1144,7 +1214,7 @@ def plot2pdf(img_arr,
     f.tight_layout()
 
     # Append figure to the output .pdf
-    plots_pdf.savefig(plt.gcf())
+    plots_pdf.savefig(f)
 
     # Close the plot
     plt.close(f)

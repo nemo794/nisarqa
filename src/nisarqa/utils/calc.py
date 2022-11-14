@@ -92,5 +92,14 @@ def counts2density(counts, bins):
 
     return density
 
+
+def normalize(arr):
+    '''Normalize input array to range [0,1]
+    '''
+    arr_min = np.min(arr)
+    arr_max = np.max(arr)
+    
+    return (arr - arr_min) / (arr_max - arr_min)
+
     
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -154,10 +154,9 @@ def process_arr_by_tiles(in_arr, out_arr, func,
 
 def compute_multilooked_power_by_tiling(arr,
                                         nlooks,
-                                        linear_units=True,
                                         tile_shape=(512,-1)):
     '''
-    Compute the multilooked power array by tiling.
+    Compute the multilooked power array (linear units) by tiling.
 
     Parameters
     ----------
@@ -166,10 +165,7 @@ def compute_multilooked_power_by_tiling(arr,
     nlooks : tuple of ints
         Number of looks along each axis of the input array to be 
         averaged during multilooking.
-        Format: (num_rows, num_cols) 
-    linear_units : bool
-        True to compute power in linear units, False for decibel units.
-        Defaults to True.
+        Format: (num_rows, num_cols)
     tile_shape : tuple of ints
         Shape of each tile to be processed. If `tile_shape` is
         larger than the shape of `arr`, or if the dimensions of `arr`
@@ -183,7 +179,7 @@ def compute_multilooked_power_by_tiling(arr,
     Returns
     -------
     multilook_img : numpy.ndarray
-        The multilooked power image.
+        The multilooked power image in linear units
 
     Notes
     -----
@@ -243,10 +239,6 @@ def compute_multilooked_power_by_tiling(arr,
 
         # Multilook
         out = nisarqa.multilook(out, nlooks)
-
-        if not linear_units:
-            # Convert to dB
-            out = nisarqa.pow2db(out)
 
         return out
 
