@@ -1042,11 +1042,8 @@ def plot2pdf(img_arr,
     f = plt.figure()
     ax = plt.gca()
 
-    # Get Plot
-    ax_img = plot_img_to_axis(
-                     ax=ax,
-                     img_arr=img_arr,
-                     xlim=xlim, ylim=ylim)
+    # Plot the img_arr image.
+    ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
 
     # Add Colorbar
     plt.colorbar(ax_img, ax=ax)
@@ -1144,42 +1141,6 @@ def plot2pdf(img_arr,
 
     # Close the plot
     plt.close(f)
-
-
-def plot_img_to_axis(ax,
-                     img_arr,
-                     xlim=None,
-                     ylim=None):
-    '''
-    Clip and plot `img_arr` in grayscale onto `ax`.
-
-    For example, this function can be used to plot the power image
-    for an RSLC product.
-
-    Parameters
-    ----------
-    ax : matplotlib.axes._subplots.AxesSubplot
-        The axis to plot the image on.
-    img_arr : array_like
-        The image data to be plotted in grayscale, such as 
-        matches matplotlib.plt.imshow's specifications for `X`
-
-    Returns
-    -------
-    ax_img : matplotlib.image.AxesImage
-        `img_arr` plotted on `ax`
-
-    Notes
-    -----
-    The interpolation method is imshow()'s default of antialiasing.
-    Setting interpolation='none' causes the size of the output
-    .pdf files that contain these figures to grow from e.g. 537KB to 877MB.
-    '''
-
-    cmap=plt.cm.gray
-
-    # Plot the img_arr image.
-    return ax.imshow(X=img_arr, cmap=cmap)
 
 
 def calc_vmin_vmax(data_in, middle_percentile=100.0):
