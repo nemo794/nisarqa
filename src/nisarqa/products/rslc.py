@@ -889,8 +889,11 @@ def process_single_power_image(img, params):
                                     gamma=params.gamma)
 
     # Apply image correction to the multilooked array
-    output_power_img = apply_img_correction(img_arr=output_power_img,
-                                       middle_percentile=params.middle_percentile)
+    out_power_img, vmin, vmax = apply_img_correction(
+                                    img_arr=out_power_img,
+                                    middle_percentile=params.middle_percentile,
+                                    linear_units=params.linear_units,
+                                    gamma=params.gamma)
 
     # Plot and Save Power Image as Browse Image Product
     browse_img_file = get_browse_product_filename(
@@ -1152,7 +1155,7 @@ def plot2pdf(img_arr,
     # (Attempts to set the limits by using the `extent` argument for 
     # matplotlib.imshow() caused significantly distorted images.
     # So, compute and set the ticks w/ labels manually.)
-    if xlim is not None or ylim is not None:
+    if xlim is not None or ylim is not None or cbar_lim is not None:
 
         img_arr_shape = np.shape(img_arr)
 
