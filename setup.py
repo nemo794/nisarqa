@@ -48,7 +48,9 @@ setup(
     install_requires=['argparse', 
                       'numpy',
                       'h5py',
-                      'pytest'],
+                      'pytest',
+                      'PIL'
+                      ],
     cmdclass={
         'clean': CleanCommand,
         }

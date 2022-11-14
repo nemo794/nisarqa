@@ -9,6 +9,7 @@ import numpy.typing as npt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from cycler import cycler
+from PIL import Image
 
 import nisarqa
 
@@ -120,9 +121,6 @@ class RSLCPowerImageParams(CoreQAParams):
     num_mpix : numeric
         The approx. size (in megapixels) for the final multilooked image.
         Defaults to 4.0 MPix.
-    highlight_inf_pixels : bool
-        True to color invalid pixels green in saved images.
-        Defaults to black.
     middle_percentile : numeric
         Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
@@ -141,7 +139,6 @@ class RSLCPowerImageParams(CoreQAParams):
     nlooks_freqb: Union[int, Iterable[int]] = 1  # No apparent multilooking
     linear_units: bool = True
     num_mpix: float = 4.0
-    highlight_inf_pixels: bool = False
     middle_percentile: float = 100.0
 
     # Auto-generated attributes
@@ -885,6 +882,9 @@ def process_single_power_image(img, params):
     print(f'Multilooked size: {multilook_power_img.size} Mpix.')
 
     # Plot and Save Power Image as Browse Image Product
+    img_corrected_arr = apply_img_correction(img_arr=multilook_power_img,
+                                       middle_percentile=params.middle_percentile)
+
     browse_img_file = get_browse_product_filename(
                                 product_name='RSLC',
                                 band=img.band,
@@ -894,11 +894,8 @@ def process_single_power_image(img, params):
                                 browse_image_dir=params.browse_image_dir,
                                 browse_image_prefix=params.browse_image_prefix)
 
-    plot2png(img_arr=multilook_power_img,
-                filepath=browse_img_file,
-                middle_percentile=params.middle_percentile,
-                highlight_inf_pixels=params.highlight_inf_pixels,
-                )
+    plot_to_grayscale_png(img_arr=img_corrected_arr,
+                          filepath=browse_img_file)
 
     # Plot and Save Power Image to graphical summary pdf
     title = f'RSLC Multilooked Power ({params.pow_units})\n{img.name}'
@@ -912,68 +909,70 @@ def process_single_power_image(img, params):
     rng_stop_km = img.rng_stop/1000.
     rng_title = 'Slant Range (km)'
 
-    plot2pdf(img_arr=multilook_power_img,
-                middle_percentile=params.middle_percentile,
-                title=title,
-                ylim=[img.az_start, img.az_stop],
-                xlim=[rng_start_km, rng_stop_km],
-                ylabel=az_title,
-                xlabel=rng_title,
-                highlight_inf_pixels=params.highlight_inf_pixels,
-                plots_pdf=params.plots_pdf
-                )
+    plot2pdf(img_arr=img_corrected_arr,
+             title=title,
+             ylim=[img.az_start, img.az_stop],
+             xlim=[rng_start_km, rng_stop_km],
+             ylabel=az_title,
+             xlabel=rng_title,
+             plots_pdf=params.plots_pdf
+             )
 
 
-def plot2png(img_arr,
-             filepath,
-             middle_percentile=100.0,
-             highlight_inf_pixels=False
-             ):
+def apply_img_correction(img_arr, middle_percentile=100.0):
     '''
-    Plot the clipped image array and save it to a browse image png.
+    Apply image correction to the input array.
 
     Parameters
     ----------
     img_arr : array_like
-        Image to plot
-    filepath : str
-        Full filepath the browse image product.
+        Input array
     middle_percentile : numeric, optional
         Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
-    highlight_inf_pixels : bool
-        True to color pixels with an infinite value green in saved images.
-        Defaults to matplotlib's default.
+
+    Returns
+    -------
+    img_corrected_arr : numpy.ndarray
+        The input array with the specified image correction applied.
+    '''
+    # Clip the image data
+    vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
+    img_corrected_arr = np.clip(img_arr, a_min=vmin, a_max=vmax)
+
+    return img_corrected_arr
+
+
+def plot_to_grayscale_png(img_arr, filepath):
+    '''
+    Clip and save the image array to a grayscale (1 channel)
+    browse image png.
+
+    Parameters
+    ----------
+    img_arr : array_like
+        2D Image to plot
+    filepath : str
+        Full filepath the browse image product.
     '''
 
-    # Instantiate the figure object
-    # (Need to instantiate it outside of the plotting function
-    # in order to later modify the plot for saving purposes.)
-    f = plt.figure()
+    # Only use 2D arrays
+    if len(np.shape(img_arr)) != 2:
+        raise ValueError('Input array must be 2D.')
 
-    DPI = f.get_dpi()
-    H = img_arr.shape[0]
-    W = img_arr.shape[1]
-    f.set_size_inches(w=float(W)/float(DPI),
-                        h=float(H)/float(DPI))
+    # Normalize array, and scale to 0-255 for unsigned int8
+    arr_min = np.min(img_arr)
+    arr_max = np.max(img_arr)
+    img_arr = (img_arr - arr_min) / (arr_max - arr_min)
+    img_arr *= 255
+    img_arr = np.uint8(img_arr)
 
-    # Get Plot
-    plot_img_to_axis(ax=plt.gca(),
-                     img_arr=img_arr,
-                     middle_percentile=middle_percentile,
-                     highlight_inf_pixels=highlight_inf_pixels)
- 
-    f.subplots_adjust(bottom=0.,left=0.,right=1.,top=1.)
+    # Save as grayscale (1-channel) image using PIL.Image
+    # (Pyplot only saves png's as RGB, even if cmap=plt.cm.gray)
+    im = Image.fromarray(img_arr)
+    im.save(filepath)  # default = 72 dpi
 
-    # Save plot to png (Browse Image Product)
-    plt.axis('off')
-    plt.savefig(filepath,
-                bbox_inches='tight', pad_inches=0,
-                dpi=DPI
-                )
-
-    plt.close(f)
 
 def get_browse_product_filename(
         product_name,
@@ -1015,9 +1014,7 @@ def plot2pdf(img_arr,
              xlim=None,
              ylim=None,
              xlabel=None,
-             ylabel=None,
-             middle_percentile=100.0,
-             highlight_inf_pixels=False
+             ylabel=None
              ):
     '''
     Plot the clipped image array and append it to the pdf.
@@ -1036,14 +1033,6 @@ def plot2pdf(img_arr,
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
     xlabel, ylabel : str
         Axes labels for the x-axis and y-axis (respectively)
-    middle_percentile : numeric, optional
-        Defines the middle percentile range of the `img_arr` 
-        that the colormap covers. Must be in the range [0, 100].
-        Defaults to 100.0.
-    highlight_inf_pixels : bool, optional
-        True to color pixels with an infinite value green in saved images.
-        False to color infinite pixels with matplotlib's default
-        for infinite values. Defaults to False.
     '''
 
     # Instantiate the figure object
@@ -1056,9 +1045,7 @@ def plot2pdf(img_arr,
     ax_img = plot_img_to_axis(
                      ax=ax,
                      img_arr=img_arr,
-                     xlim=xlim, ylim=ylim,
-                     middle_percentile=middle_percentile,
-                     highlight_inf_pixels=highlight_inf_pixels)
+                     xlim=xlim, ylim=ylim)
 
     # Add Colorbar
     plt.colorbar(ax_img, ax=ax)
@@ -1160,12 +1147,10 @@ def plot2pdf(img_arr,
 
 def plot_img_to_axis(ax,
                      img_arr,
-                     highlight_inf_pixels,
                      xlim=None,
-                     ylim=None,
-                     middle_percentile=100.0):
+                     ylim=None):
     '''
-    Clip and plot `img_arr` onto `ax`.
+    Clip and plot `img_arr` in grayscale onto `ax`.
 
     For example, this function can be used to plot the power image
     for an RSLC product.
@@ -1175,52 +1160,25 @@ def plot_img_to_axis(ax,
     ax : matplotlib.axes._subplots.AxesSubplot
         The axis to plot the image on.
     img_arr : array_like
-        The image data, such as matches matplotlib.plt.imshow's
-        specifications for `X`
-    highlight_inf_pixels : bool
-        True to color pixels with a non-finite value green in saved images.
-        Defaults to matplotlib's default.
-    middle_percentile : numeric
-        Defines the middle percentile range of the `img_arr` 
-        that the colormap covers. Must be in the range [0, 100].
-        Defaults to 100.0.
+        The image data to be plotted in grayscale, such as 
+        matches matplotlib.plt.imshow's specifications for `X`
 
     Returns
     -------
     ax_img : matplotlib.image.AxesImage
-        `img_arr` clipped to the `middle_percentile` and plotted on `ax`
+        `img_arr` plotted on `ax`
 
     Notes
     -----
-    1) In this function, the `img_arr` will be manually clipped
-    before being passed to ax.imshow().
-    While imshow() can do the clipping automatically if the
-    vmin and vmax values are passed in, in practise, doing so 
-    causes the resultant size of the output .pdf files that contain 
-    these figures to grow from e.g. 537KB to 877MB.
-    A workaround is to clip the image data in advance.
-    2) The interpolation method is imshow()'s default of antialiasing.
+    The interpolation method is imshow()'s default of antialiasing.
     Setting interpolation='none' causes the size of the output
     .pdf files that contain these figures to grow from e.g. 537KB to 877MB.
     '''
 
-    # Get vmin and vmax to set the desired range of the colorbar
-    vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
-
-    # Manually clip the image data (See `Notes` in function description)
-    clipped_array = np.clip(img_arr, a_min=vmin, a_max=vmax)
-
-    # TODO Storing the clipped image data to an array will (temporarily)
-    # use another big chunk of memory. Revisit this code later if/when this
-    # becomes an issue.
-
-    # Highlight infinite pixels in green, if requested.
     cmap=plt.cm.gray
-    if highlight_inf_pixels:
-        cmap.set_bad('g')
 
     # Plot the img_arr image.
-    return ax.imshow(X=clipped_array, cmap=cmap)
+    return ax.imshow(X=img_arr, cmap=cmap)
 
 
 def calc_vmin_vmax(data_in, middle_percentile=100.0):
