@@ -869,7 +869,7 @@ def process_single_power_image(img, params):
     # Multilook
     print('tile_shape: ', params.tile_shape)
     start_time = time.time()
-    multilook_power_img = nisarqa.compute_multilooked_power_by_tiling(
+    output_power_img = nisarqa.compute_multilooked_power_by_tiling(
                                             arr=img.data,
                                             nlooks=nlooks,
                                             linear_units=params.linear_units,
@@ -878,13 +878,14 @@ def process_single_power_image(img, params):
     print('time to multilook image (sec): ', end_time)
     print('time to multilook image (min): ', end_time/60.)
 
-    print(f'Multilooking Complete. Multilooked shape: {multilook_power_img.shape}')
-    print(f'Multilooked size: {multilook_power_img.size} Mpix.')
+    print(f'Multilooking Complete. Multilooked shape: {output_power_img.shape}')
+    print(f'Multilooked size: {output_power_img.size} Mpix.')
 
-    # Plot and Save Power Image as Browse Image Product
-    img_corrected_arr = apply_img_correction(img_arr=multilook_power_img,
+    # Apply image correction to the multilooked array
+    output_power_img = apply_img_correction(img_arr=output_power_img,
                                        middle_percentile=params.middle_percentile)
 
+    # Plot and Save Power Image as Browse Image Product
     browse_img_file = get_browse_product_filename(
                                 product_name='RSLC',
                                 band=img.band,
@@ -894,7 +895,7 @@ def process_single_power_image(img, params):
                                 browse_image_dir=params.browse_image_dir,
                                 browse_image_prefix=params.browse_image_prefix)
 
-    plot_to_grayscale_png(img_arr=img_corrected_arr,
+    plot_to_grayscale_png(img_arr=output_power_img,
                           filepath=browse_img_file)
 
     # Plot and Save Power Image to graphical summary pdf
@@ -909,7 +910,7 @@ def process_single_power_image(img, params):
     rng_stop_km = img.rng_stop/1000.
     rng_title = 'Slant Range (km)'
 
-    plot2pdf(img_arr=img_corrected_arr,
+    plot2pdf(img_arr=output_power_img,
              title=title,
              ylim=[img.az_start, img.az_stop],
              xlim=[rng_start_km, rng_stop_km],
@@ -934,14 +935,14 @@ def apply_img_correction(img_arr, middle_percentile=100.0):
 
     Returns
     -------
-    img_corrected_arr : numpy.ndarray
+    output_power_img : numpy.ndarray
         The input array with the specified image correction applied.
     '''
     # Clip the image data
     vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
-    img_corrected_arr = np.clip(img_arr, a_min=vmin, a_max=vmax)
+    output_power_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
 
-    return img_corrected_arr
+    return output_power_img
 
 
 def plot_to_grayscale_png(img_arr, filepath):
