@@ -886,6 +886,9 @@ def process_single_power_image(img, params):
                                        middle_percentile=params.middle_percentile)
 
     # Plot and Save Power Image as Browse Image Product
+    img_corrected_arr = apply_img_correction(img_arr=multilook_power_img,
+                                       middle_percentile=params.middle_percentile)
+
     browse_img_file = get_browse_product_filename(
                                 product_name='RSLC',
                                 band=img.band,
