@@ -924,6 +924,9 @@ def apply_img_correction(img_arr, middle_percentile=100.0):
     '''
     Apply image correction to the input array.
 
+    Returns a copy of the input image with the following modifications:
+        * Values outside of the range defined by `middle_percentile` clipped
+
     Parameters
     ----------
     img_arr : array_like
@@ -935,14 +938,14 @@ def apply_img_correction(img_arr, middle_percentile=100.0):
 
     Returns
     -------
-    output_power_img : numpy.ndarray
+    output_img : numpy.ndarray
         The input array with the specified image correction applied.
     '''
     # Clip the image data
     vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
-    output_power_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
+    output_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
 
-    return output_power_img
+    return output_img
 
 
 def plot_to_grayscale_png(img_arr, filepath):
