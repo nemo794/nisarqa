@@ -925,7 +925,8 @@ def process_single_power_image(img, params):
              title=title,
              ylim=[img.az_start, img.az_stop],
              xlim=[rng_start_km, rng_stop_km],
-             cbar_lim=[vmin, vmax],
+             gamma=params.gamma,
+             vmin_vmax=[vmin, vmax],
              ylabel=az_title,
              xlabel=rng_title,
              plots_pdf=params.plots_pdf
@@ -1065,7 +1066,8 @@ def plot2pdf(img_arr,
              title=None,
              xlim=None,
              ylim=None,
-             cbar_lim=None,
+             gamma=None,
+             vmin_vmax=None,
              xlabel=None,
              ylabel=None
              ):
@@ -1084,12 +1086,25 @@ def plot2pdf(img_arr,
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>], 
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
-    cbar_lim : sequence of numeric, optional
-        Lower and upper limits for the colorbar ticks
-        Format: cbar_lim=[<colorbar lower limit>, <colorbar upper limit>]
-    xlabel, ylabel : str
+    gamma : float, optional
+        The amount of gamma correction that was applied
+        to the input array. This is used to label the colorbar's
+        ticks with the non-gamma corrected values (i.e. the original
+        linear or dB values.)
+        Defaults to None (no gamma correction)
+    vmin_vmax : sequence of numeric, optional
+        Lower and upper limits for the colorbar ticks.
+        These should be the min and max values for the input array
+        prior to any gamma correction that was applied.
+        Format: vmin_vmax=[<colorbar lower limit>, <colorbar upper limit>]
+        Defaults to the min and max of `img_arr`.
+    xlabel, ylabel : str, optional
         Axes labels for the x-axis and y-axis (respectively)
     '''
+
+    # If gamma is 1.0, then effectively no gamma correction was applied
+    if np.isclose(gamma, 1.0):
+        gamma = None
 
     # Instantiate the figure object
     # (Need to instantiate it outside of the plotting function
@@ -1111,7 +1126,7 @@ def plot2pdf(img_arr,
     # (Attempts to set the limits by using the `extent` argument for 
     # matplotlib.imshow() caused significantly distorted images.
     # So, compute and set the ticks w/ labels manually.)
-    if xlim is not None or ylim is not None or cbar_lim is not None:
+    if xlim is not None or ylim is not None or gamma is not None:
 
         img_arr_shape = np.shape(img_arr)
 
@@ -1181,24 +1196,34 @@ def plot2pdf(img_arr,
     # Add Colorbar
     cbar = plt.colorbar(ax_img, ax=ax)
 
-    if cbar_lim is not None:
-        # Get the pixel locations of the tick marks
-        cbar_ticks = cbar.ax.get_yticks()
+    if gamma is not None:
 
-        # Specify what those pixel locations correspond to in data coordinates.
-        linear_units=True
-        if linear_units:
-            # By default, np.linspace is inclusive of the endpoint
-            cbar_ticklabels = ['{:.2f}'.format(i) for i in np.linspace(
-                                                            start=cbar_lim[0],
-                                                            stop=cbar_lim[1],
-                                                            num=len(cbar_ticks))]
-        else:
-            cbar_ticklabels = ['{:.2f}'.format(i*10) for i in np.logspace(
-                                                            start=cbar_lim[0],
-                                                            stop=cbar_lim[1],
-                                                            num=len(cbar_ticks))]
-        cbar.set_ticklabels(cbar_ticklabels)
+        # Define the formatter function to invert the gamma correction
+        # and produce the colorbar labels with values that match
+        # the underlying, pre-gamma corrected data.
+        def inverse_gamma_correction(x, pos):
+            '''
+            FuncFormatter to invert the gamma correction values
+            and return the "true" value of the data for a 
+            given tick.
+
+            FuncFormatter functions must take two arguments: 
+            `x` for the tick value and `pos` for the tick position,
+            and must return a `str`. The `pos` argument is used
+            internally by matplotblib.
+            '''
+            vmin = vmin_vmax[0]
+            vmax = vmin_vmax[1]
+
+            # Invert the power
+            val = np.power(x, 1/gamma)
+
+            # Invert the normalization
+            val = (val * (vmax - vmin)) + vmin
+
+            return '{:.2f}'.format(val)
+
+        cbar.ax.yaxis.set_major_formatter(inverse_gamma_correction)
 
     # Label the Axes
     if xlabel is not None:

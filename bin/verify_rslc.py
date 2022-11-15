@@ -78,10 +78,10 @@ def main(args):
                                 core=core_params,
                                 nlooks_freqa=None,
                                 nlooks_freqb=None, 
-                                linear_units=True,
+                                linear_units=False,
                                 middle_percentile=95.0,
                                 num_mpix=4.0,
-                                gamma=0.5)
+                                gamma=0.6)
 
                 hist_params = nisarqa.rslc.RSLCHistogramParams.from_parent(
                                 core=core_params,
