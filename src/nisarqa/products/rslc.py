@@ -1132,6 +1132,10 @@ def plot2pdf(img_arr,
         Axes labels for the x-axis and y-axis (respectively)
     '''
 
+    # If gamma is 1.0, then effectively no gamma correction was applied
+    if np.isclose(gamma, 1.0):
+        gamma = None
+
     # Instantiate the figure object
     # (Need to instantiate it outside of the plotting function
     # in order to later modify the plot for saving purposes.)
@@ -1155,7 +1159,7 @@ def plot2pdf(img_arr,
     # (Attempts to set the limits by using the `extent` argument for 
     # matplotlib.imshow() caused significantly distorted images.
     # So, compute and set the ticks w/ labels manually.)
-    if xlim is not None or ylim is not None or cbar_lim is not None:
+    if xlim is not None or ylim is not None or gamma is not None:
 
         img_arr_shape = np.shape(img_arr)
 
