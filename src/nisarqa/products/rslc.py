@@ -1139,9 +1139,6 @@ def plot2pdf(img_arr,
     ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
 
     # Add Colorbar
-    plt.colorbar(ax_img, ax=ax)
-
-    # Add Colorbar
     cbar = plt.colorbar(ax_img, ax=ax)
 
     if colorbar_formatter is not None:
