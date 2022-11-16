@@ -3,7 +3,7 @@ import h5py
 import os
 import time
 
-from typing import Any, Union, Iterable, Tuple
+from typing import Union, Iterable, Tuple, Optional
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -140,7 +140,7 @@ class RSLCPowerImageParams(CoreQAParams):
     linear_units: bool = True
     num_mpix: float = 4.0
     middle_percentile: float = 100.0
-    gamma: float = 1.0
+    gamma: Optional[float] = None
 
     # Auto-generated attributes
     pow_units: str = field(init=False)
@@ -870,7 +870,7 @@ def process_single_power_image(img, params):
     # Multilook
     print('tile_shape: ', params.tile_shape)
     start_time = time.time()
-    out_power_img = nisarqa.compute_multilooked_power_by_tiling(
+    out_img = nisarqa.compute_multilooked_power_by_tiling(
                                             arr=img.data,
                                             nlooks=nlooks,
                                             tile_shape=params.tile_shape)
@@ -878,12 +878,12 @@ def process_single_power_image(img, params):
     print('time to multilook image (sec): ', end_time)
     print('time to multilook image (min): ', end_time/60.)
 
-    print(f'Multilooking Complete. Multilooked shape: {out_power_img.shape}')
-    print(f'Multilooked size: {out_power_img.size} Mpix.')
+    print(f'Multilooking Complete. Multilooked shape: {out_img.shape}')
+    print(f'Multilooked size: {out_img.size} Mpix.')
 
     # Apply image correction to the multilooked array
-    out_power_img, vmin, vmax = apply_img_correction(
-                                    img_arr=out_power_img,
+    out_img, vmin, vmax = apply_img_correction(
+                                    img_arr=out_img,
                                     middle_percentile=params.middle_percentile,
                                     linear_units=params.linear_units,
                                     gamma=params.gamma)
@@ -902,12 +902,12 @@ def process_single_power_image(img, params):
                                 browse_image_dir=params.browse_image_dir,
                                 browse_image_prefix=params.browse_image_prefix)
 
-    plot_to_grayscale_png(img_arr=out_power_img,
+    plot_to_grayscale_png(img_arr=out_img,
                           filepath=browse_img_file)
 
     # Plot and Save Power Image to graphical summary pdf
     title = f'RSLC Multilooked Power ({params.pow_units}%s)\n{img.name}'
-    if np.isclose(params.gamma, 1.0):
+    if params.gamma is None:
         title = title % ''
     else:
         title = title % fr', $\gamma$={params.gamma}'
@@ -921,12 +921,41 @@ def process_single_power_image(img, params):
     rng_stop_km = img.rng_stop/1000.
     rng_title = 'Slant Range (km)'
 
-    plot2pdf(img_arr=out_power_img,
+    # Define the formatter function to invert the gamma correction
+    # and produce the colorbar labels with values that match
+    # the underlying, pre-gamma corrected data.
+    # See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
+    if params.gamma is not None:
+        def inverse_gamma_correction(x, pos):
+            '''
+            FuncFormatter to invert the gamma correction values
+            and return the "true" value of the data for a 
+            given tick.
+
+            FuncFormatter functions must take two arguments: 
+            `x` for the tick value and `pos` for the tick position,
+            and must return a `str`. The `pos` argument is used
+            internally by matplotblib.
+            '''
+            # Invert the power
+            val = np.power(x, 1 / params.gamma)
+
+            # Invert the normalization
+            val = (val * (vmax - vmin)) + vmin
+
+            return '{:.2f}'.format(val)
+
+        colorbar_formatter = inverse_gamma_correction
+        
+    else:
+        colorbar_formatter = None
+        
+
+    plot2pdf(img_arr=out_img,
              title=title,
              ylim=[img.az_start, img.az_stop],
              xlim=[rng_start_km, rng_stop_km],
-             gamma=params.gamma,
-             vmin_vmax=[vmin, vmax],
+             colorbar_formatter=colorbar_formatter,
              ylabel=az_title,
              xlabel=rng_title,
              plots_pdf=params.plots_pdf
@@ -936,14 +965,15 @@ def process_single_power_image(img, params):
 def apply_img_correction(img_arr,
                          middle_percentile=100.0,
                          linear_units=True,
-                         gamma=1.0):
+                         gamma=None):
     '''
     Apply image correction to the input array.
 
     Returns a copy of the input image with the following modifications:
         Step 1) Values outside of the range defined by `middle_percentile` clipped
         Step 2) If `linear_units` is True, convert array from linear units to dB
-        Step 3) If `gamma` is not equal to 1.0, apply gamma correction to array
+        Step 3) If `gamma` is not None, normalize the array and apply gamma
+                correction. The returned output array will remain in range [0,1].
 
     Parameters
     ----------
@@ -958,46 +988,47 @@ def apply_img_correction(img_arr,
         Defaults to True.
     gamma : float, optional
         The amount of gamma correction to apply to the input array.
-        Gamma will be applied as follows: arr_out = arr_in ^ gamma
-        If gamma correction is applied, `out_power_img` will
+        Gamma will be applied as follows:
+            array_out = normalized_array ^ gamma
+        If gamma correction is applied, `out_img` will
         have values in range [0,1]; use the returned `vmin` and
         `vmax` values to set the output image array's colorbar
         limits to the correct range of values.
-        Defaults to 1.0, meaning that no gamma correction
-        will be applied.
+        Defaults to None (no normalization, no gamma correction)
 
     Returns
     -------
-    out_power_img : numpy.ndarray
-        The input array with the specified image correction applied
+    out_img : numpy.ndarray
+        The input array with the specified image correction applied.
+        If `gamma` is not None, the `out_img` will be in range [0,1].
     vmin, vmax : float
         The minimum and maximum values (respectively) of the input
         array after (optional) clipping and (optional) conversion
         to decibel units have been applied, but before gamma correction.
-        `vmin` and `vmax` can be used to set colorbar limits for
-        'out_power_img`.
+        `vmin` and `vmax` can be used when setting colorbar limits for
+        `out_img`.
 
     '''
     # Clip the image data
     vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
-    out_power_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
+    out_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
 
     # Convert to dB
     if not linear_units:
-        out_power_img = nisarqa.pow2db(out_power_img)
+        out_img = nisarqa.pow2db(out_img)
         vmin = nisarqa.pow2db(vmin)
         vmax = nisarqa.pow2db(vmax)
     
     # Apply gamma correction
-    if not np.isclose(gamma, 1.0):
+    if gamma is not None:
     
         # Normalize to range [0,1]
-        out_power_img = nisarqa.normalize(out_power_img)
+        out_img = nisarqa.normalize(out_img)
 
         # Apply gamma correction
-        out_power_img = np.power(out_power_img, gamma)
+        out_img = np.power(out_img, gamma)
 
-    return out_power_img, vmin, vmax
+    return out_img, vmin, vmax
 
 
 def plot_to_grayscale_png(img_arr, filepath):
@@ -1066,8 +1097,7 @@ def plot2pdf(img_arr,
              title=None,
              xlim=None,
              ylim=None,
-             gamma=None,
-             vmin_vmax=None,
+             colorbar_formatter=None,
              xlabel=None,
              ylabel=None
              ):
@@ -1086,25 +1116,18 @@ def plot2pdf(img_arr,
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>], 
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
-    gamma : float, optional
-        The amount of gamma correction that was applied
-        to the input array. This is used to label the colorbar's
-        ticks with the non-gamma corrected values (i.e. the original
-        linear or dB values.)
-        Defaults to None (no gamma correction)
-    vmin_vmax : sequence of numeric, optional
-        Lower and upper limits for the colorbar ticks.
-        These should be the min and max values for the input array
-        prior to any gamma correction that was applied.
-        Format: vmin_vmax=[<colorbar lower limit>, <colorbar upper limit>]
-        Defaults to the min and max of `img_arr`.
+    colorbar_formatter : function, optional
+        Tick formatter function to define how the numeric value 
+        associated with each tick on the colorbar axis is formatted
+        as a string. This function must take exactly two arguments: 
+        `x` for the tick value and `pos` for the tick position,
+        and must return a `str`. The `pos` argument is used
+        internally by matplotblib.
+        See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
+        (Wrapping the function with FuncFormatter is optional.)
     xlabel, ylabel : str, optional
         Axes labels for the x-axis and y-axis (respectively)
     '''
-
-    # If gamma is 1.0, then effectively no gamma correction was applied
-    if np.isclose(gamma, 1.0):
-        gamma = None
 
     # Instantiate the figure object
     # (Need to instantiate it outside of the plotting function
@@ -1118,6 +1141,12 @@ def plot2pdf(img_arr,
     # Add Colorbar
     plt.colorbar(ax_img, ax=ax)
 
+    # Add Colorbar
+    cbar = plt.colorbar(ax_img, ax=ax)
+
+    if colorbar_formatter is not None:
+        cbar.ax.yaxis.set_major_formatter(colorbar_formatter)
+
     ## Label the plot
     
     # If xlim or ylim are not provided, let matplotlib auto-assign the ticks.
@@ -1126,7 +1155,7 @@ def plot2pdf(img_arr,
     # (Attempts to set the limits by using the `extent` argument for 
     # matplotlib.imshow() caused significantly distorted images.
     # So, compute and set the ticks w/ labels manually.)
-    if xlim is not None or ylim is not None or gamma is not None:
+    if xlim is not None or ylim is not None:
 
         img_arr_shape = np.shape(img_arr)
 
@@ -1192,38 +1221,6 @@ def plot2pdf(img_arr,
                                                         stop=ylim[1],
                                                         num=num_yticks)]
         ax.set_yticklabels(yticklabels)
-
-    # Add Colorbar
-    cbar = plt.colorbar(ax_img, ax=ax)
-
-    if gamma is not None:
-
-        # Define the formatter function to invert the gamma correction
-        # and produce the colorbar labels with values that match
-        # the underlying, pre-gamma corrected data.
-        def inverse_gamma_correction(x, pos):
-            '''
-            FuncFormatter to invert the gamma correction values
-            and return the "true" value of the data for a 
-            given tick.
-
-            FuncFormatter functions must take two arguments: 
-            `x` for the tick value and `pos` for the tick position,
-            and must return a `str`. The `pos` argument is used
-            internally by matplotblib.
-            '''
-            vmin = vmin_vmax[0]
-            vmax = vmin_vmax[1]
-
-            # Invert the power
-            val = np.power(x, 1/gamma)
-
-            # Invert the normalization
-            val = (val * (vmax - vmin)) + vmin
-
-            return '{:.2f}'.format(val)
-
-        cbar.ax.yaxis.set_major_formatter(inverse_gamma_correction)
 
     # Label the Axes
     if xlabel is not None:
