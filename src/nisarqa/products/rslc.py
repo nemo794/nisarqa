@@ -889,8 +889,8 @@ def process_single_power_image(img, params):
                                     gamma=params.gamma)
 
     # Apply image correction to the multilooked array
-    out_power_img, vmin, vmax = apply_img_correction(
-                                    img_arr=out_power_img,
+    out_img, vmin, vmax = apply_img_correction(
+                                    img_arr=out_img,
                                     middle_percentile=params.middle_percentile,
                                     linear_units=params.linear_units,
                                     gamma=params.gamma)
@@ -1132,10 +1132,6 @@ def plot2pdf(img_arr,
         Axes labels for the x-axis and y-axis (respectively)
     '''
 
-    # If gamma is 1.0, then effectively no gamma correction was applied
-    if np.isclose(gamma, 1.0):
-        gamma = None
-
     # Instantiate the figure object
     # (Need to instantiate it outside of the plotting function
     # in order to later modify the plot for saving purposes.)
@@ -1151,6 +1147,12 @@ def plot2pdf(img_arr,
     if colorbar_formatter is not None:
         cbar.ax.yaxis.set_major_formatter(colorbar_formatter)
 
+    # Add Colorbar
+    cbar = plt.colorbar(ax_img, ax=ax)
+
+    if colorbar_formatter is not None:
+        cbar.ax.yaxis.set_major_formatter(colorbar_formatter)
+
     ## Label the plot
     
     # If xlim or ylim are not provided, let matplotlib auto-assign the ticks.
@@ -1159,7 +1161,7 @@ def plot2pdf(img_arr,
     # (Attempts to set the limits by using the `extent` argument for 
     # matplotlib.imshow() caused significantly distorted images.
     # So, compute and set the ticks w/ labels manually.)
-    if xlim is not None or ylim is not None or gamma is not None:
+    if xlim is not None or ylim is not None:
 
         img_arr_shape = np.shape(img_arr)
 
