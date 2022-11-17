@@ -127,6 +127,13 @@ def parse_cli_args(nisar_product):
                         help='TODO'
                         )
 
+    parser.add_argument('--caltools', '--cal',
+                        dest='caltools',
+                        action='store_true',
+                        default=False,  
+                        help='TODO'
+                        )
+
     # parser.add_argument('-v', '--verbose',
     #                     dest='verbose',
     #                     action='store_true',

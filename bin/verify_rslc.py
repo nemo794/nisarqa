@@ -61,6 +61,9 @@ def main(args):
             print(msg)
             # logger.log_message(logging_base.LogFilterInfo, msg)
 
+            # Get the file's bands, frequencies, and polarizations.
+            bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
+
             # Open file handles for output stats.h5 and graphs.pdf files
             with nisarqa.open_h5_file(args['stats_file'], mode='w') as stats_file, \
                      PdfPages(args['plots_file']) as plots_file:
@@ -90,8 +93,13 @@ def main(args):
                                 pow_histogram_start=-80,
                                 pow_histogram_endpoint=20)
 
-                # Get the file's bands, frequencies, and polarizations.
-                bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
+                # Save parameters to stats.h5 file
+                pow_img_params.save_processing_params_to_h5()
+                hist_params.save_processing_params_to_h5()
+                nisarqa.rslc.save_NISAR_identification_group_to_h5(
+                                nisar_h5=in_file,
+                                stats_h5=stats_file,
+                                pols=pols)
 
                 # Generate the RSLC Power Image
                 nisarqa.rslc.process_power_images(
@@ -110,6 +118,65 @@ def main(args):
                 # Check for invalid values
 
                 # Compute metrics for stats.h5
+
+        # If --caltools flag was included, check the images for NaN's, create plots, etc.
+        if args['caltools']:
+
+            msg = f'Generating Caltools reports for file {in_file}'
+            print(msg)
+            # logger.log_message(logging_base.LogFilterInfo, msg)
+
+            # Open file handle for output stats.h5 file
+            # Since file might have already been created during --quality step,
+            # open in append mode.
+            with nisarqa.open_h5_file(args['stats_file'], mode='a') as stats_file:
+
+                # If QA quality metrics were not generated, then generate the identification group
+                if not args['quality']:
+                    _, _, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
+
+                    # Save parameters to stats.h5 file
+                    nisarqa.rslc.save_NISAR_identification_group_to_h5(
+                                    nisar_h5=in_file,
+                                    stats_h5=stats_file,
+                                    pols=pols)
+
+                # Store the parameters into a well-defined data structure
+                # TODO - Move these hardcoded values into a yaml runconfig
+                core_params = nisarqa.caltools.CoreCalToolsParams(
+                                stats_h5=stats_file)
+
+                abscal_params = nisarqa.caltools.AbsCalParams.from_parent(
+                                core=core_params,
+                                corner_reflector_filename='../corner_reflectors.txt',
+                                attr1=3.0)                                
+
+                nesz_params = nisarqa.caltools.NESZParams.from_parent(
+                                core=core_params,
+                                attr1=5.0)                                
+
+                pta_params = nisarqa.caltools.PointTargetAnalyzerParams.from_parent(
+                                core=core_params,
+                                corner_reflector_filename='../corner_reflectors.txt',
+                                attr1=4.5)                                
+
+                # Save processing parameters to stats.h5 file
+                abscal_params.save_processing_params_to_h5()
+                nesz_params.save_processing_params_to_h5()
+                pta_params.save_processing_params_to_h5()
+
+                # Run Absolute Calibration Factor tool
+                nisarqa.caltools.run_absolute_cal_factor(
+                                params=abscal_params)
+
+                # Run NESZ tool
+                nisarqa.caltools.run_nesz(
+                                params=nesz_params)
+
+                # Run Point Analyzer tool
+                nisarqa.caltools.run_point_target_analyzer(
+                                params=pta_params)
+
 
 
     # logger.log_message(logging_base.LogFilterInfo, 'Runtime = %i seconds' % (time.time() - time1))

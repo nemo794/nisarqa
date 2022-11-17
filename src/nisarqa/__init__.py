@@ -105,3 +105,4 @@ from .utils.utils import *
 # Keep each product in a unique namespace, due to a higher
 # potential for overlapping function names
 from .products import rslc
+from .products import caltools

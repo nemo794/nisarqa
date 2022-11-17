@@ -48,7 +48,7 @@ class CoreQAParams:
         and leverage Python's row-major ordering.
     '''
 
-    # Attributes that are common to all NISAR Products
+    # Attributes that are common to all NISAR QA Products
     stats_h5: h5py.File
     plots_pdf: PdfPages
     browse_image_dir: str = '.'
@@ -161,6 +161,40 @@ class RSLCPowerImageParams(CoreQAParams):
         else:
             self.pow_units = 'dB'
 
+    def save_processing_params_to_h5(self):
+        '''
+        Populate this instance's `stats_h5` HDF5 file 
+        with its processing parameters.
+
+        This function will populate the following fields
+        in `stats_h5`:
+            /QA/processing/powerImageMiddlePercentile
+            /QA/processing/powerImageUnits
+            /QA/processing/powerImageGammaCorrection
+        '''
+
+        # Open the group in the file, creating it if it doesn’t exist.
+        proc_grp = self.stats_h5.require_group('/QA/processing')
+
+        nisarqa.create_dataset_in_h5group(grp=proc_grp,
+                                          ds_name='powerImageMiddlePercentile',
+                                          ds_data=self.middle_percentile,
+                                          ds_units='unitless',
+                                          ds_description='Bin edges for the Power Histogram')
+
+        nisarqa.create_dataset_in_h5group(grp=proc_grp,
+                                          ds_name='powerImageUnits',
+                                          ds_data=self.pow_units,
+                                          ds_units='unitless',
+                                          ds_description='Units for the Power Image (browse image and graphical summary pdf)')
+
+        # TODO - uncomment this once the gamma correction PR is merged.
+        # nisarqa.create_dataset_in_h5group(grp=proc_grp,
+        #                                   ds_name='powerImageGammaCorrection',
+        #                                   ds_data=self.gamma,
+        #                                   ds_units='unitless',
+        #                                   ds_description='Gamma value applied to the Power Image (browse image and graphical summary pdf)')
+
 
 @dataclass
 class RSLCHistogramParams(CoreQAParams):
@@ -254,6 +288,127 @@ class RSLCHistogramParams(CoreQAParams):
 
         # 101 bin edges => 100 bins
         self.phs_bin_edges = np.linspace(start, stop, num=101, endpoint=True)
+
+
+    def save_processing_params_to_h5(self):
+        '''
+        Populate this instance's `stats_h5` HDF5 file 
+        with its processing parameters.
+
+        This function will populate the following fields
+        in `stats_h5`:
+            /QA/processing/histogramDecimationAz
+            /QA/processing/histogramDecimationRange
+            /QA/processing/histogramEdgesPower
+            /QA/processing/histogramEdgesPhase
+        '''
+
+        # Open the group in the file, creating it if it doesn’t exist.
+        proc_grp = self.stats_h5.require_group('/QA/processing/')
+
+        nisarqa.create_dataset_in_h5group(grp=proc_grp,
+                                          ds_name='histogramEdgesPower',
+                                          ds_data=self.pow_bin_edges,
+                                          ds_units=self.pow_units,
+                                          ds_description='Bin edges for the Power Histogram')
+
+        nisarqa.create_dataset_in_h5group(grp=proc_grp,
+                                          ds_name='histogramEdgesPhase',
+                                          ds_data=self.phs_bin_edges,
+                                          ds_units=self.phs_units,
+                                          ds_description='Bin edges for the Phase Histogram')
+
+        nisarqa.create_dataset_in_h5group(grp=proc_grp,
+                                          ds_name='histogramDecimationAz',
+                                          ds_data=self.decimation_ratio[0],
+                                          ds_units='unitless',
+                                          ds_description='Azimuth decimation stride used to compute power and phase histograms')
+
+        nisarqa.create_dataset_in_h5group(grp=proc_grp,
+                                          ds_name='histogramDecimationRange',
+                                          ds_data=self.decimation_ratio[1],
+                                          ds_units='unitless',
+                                          ds_description='Range decimation stride used to compute power and phase histograms')
+
+
+def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5, pols=None):
+    '''
+    Populate the `stats_h5` HDF5 file with metadata.
+
+    This function will populate the following fields
+    in `stats_h5`:
+        /identification/band
+        /identification/listOfFrequencies
+        /identification/NISARProductFilename
+        /identification/fromNISARSourceProduct/*
+        /QA/data/frequencyA/listOfPolarizations (if available)
+        /QA/data/frequencyB/listOfPolarizations (if available)
+
+    /identification/fromNISARSourceProduct/* will be populated
+    with all recursively-available items in the `nisar_h5` group
+    '/science/<band>/identification'
+
+    Parameters
+    ----------
+    nisar_h5 : h5py.File
+        Handle to the input NISAR product h5 file
+    stats_h5 : h5py.File
+        Handle to an h5 file where the identification metadata
+        should be saved
+    pols : nested dict of RSLCRasterQA, optional
+        Nested dict of RSLCRasterQA objects, where each object represents
+        a polarization dataset in `nisar_h5`.
+        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRasterQA object
+    '''
+
+    grp = stats_h5.require_group('/identification')
+
+    # Generate and save identification metadata for this input NISAR product
+    nisarqa.create_dataset_in_h5group(grp=grp,
+                                        ds_name='NISARProductFilename',
+                                        ds_data=os.path.basename(nisar_h5.filename),
+                                        ds_units='unitless',
+                                        ds_description='Input NISAR product filename')
+
+    if pols is None:
+        _,_,pols = get_bands_freqs_pols(nisar_h5)
+
+    # There should only be one band per file
+    if len(list(pols)) != 1:
+        raise ValueError('Each NISAR product should only contain one band.')
+
+    band = list(pols)[0]  # should be LSAR or SSAR
+    nisarqa.create_dataset_in_h5group(grp=grp,
+                                        ds_name='band',
+                                        ds_data=band,
+                                        ds_units='unitless',
+                                        ds_description='Band discovered in input NISAR product band by QA code (LSAR or SSAR)')
+
+    listOfFreq = []
+    for freq in pols[band]:
+        listOfFreq.append(freq)
+    nisarqa.create_dataset_in_h5group(grp=grp,
+                                        ds_name='listOfFrequencies',
+                                        ds_data=listOfFreq,
+                                        ds_units='unitless',
+                                        ds_description='Frequencies discovered in input NISAR product by QA code')
+
+    # Copy identification metadata from input file to stats.h5
+    id_group_nisar = '/identification/fromNISARSourceProduct'
+    nisar_h5.copy(nisar_h5[f'/science/{band}/identification'], stats_h5, id_group_nisar)
+
+    # Populate data group's metadata
+    for freq in pols[band]:
+        listOfPols = []
+        for pol in pols[band][freq]:
+            listOfPols.append(pol)
+        grp = stats_h5.require_group(f'/QA/data/frequency{freq}/listOfPolarizations')
+        nisarqa.create_dataset_in_h5group(grp=grp,
+                                            ds_name='listOfPolarizations',
+                                            ds_data=listOfPols,
+                                            ds_units='unitless',
+                                            ds_description=f'Polarizations for Frequency {freq} discovered in input NISAR product by QA code')
 
 
 class ComplexFloat16Decoder(object):
@@ -1283,9 +1438,8 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
 
 def process_power_and_phase_histograms(pols, params):
     '''
-    Generate the RSLC Power Histograms; save their plots
-    to the graphical summary .pdf file and their data to the
-    statistics .h5 file.
+    Generate the RSLC Power Histograms and save their plots
+    to the graphical summary .pdf file.
 
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians, 
@@ -1303,22 +1457,6 @@ def process_power_and_phase_histograms(pols, params):
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
     '''
-
-    # Store processing settings in stats HDF5 file
-    stats_h5 = params.stats_h5
-    proc_path = f'/processing/'
-    stats_h5[proc_path + 'histogramEdgesPower'] = \
-                params.pow_bin_edges
-    stats_h5[proc_path + 'histogramEdgesPhase'] = \
-                params.phs_bin_edges
-    stats_h5[proc_path + 'histogramDecimationAz'] = \
-                params.decimation_ratio[0]
-    stats_h5[proc_path + 'histogramDecimationRange'] = \
-                params.decimation_ratio[1]
-    stats_h5[proc_path + 'histogramUnitsPower'] = \
-                params.pow_units
-    stats_h5[proc_path + 'histogramUnitsPhase'] = \
-                params.phs_units
 
     # Generate and store the histograms
     for band in pols:
@@ -1382,9 +1520,19 @@ def generate_histogram_single_freq(pol, band, freq, params):
                             density=True)
 
         # Save to stats.h5 file
-        h5_pol_grp_path = f'/data/frequency{freq}/{pol_name}/'
-        params.stats_h5[h5_pol_grp_path + 'powerHistogramDensity'] = pow_hist_density
-        params.stats_h5[h5_pol_grp_path + 'phaseHistogramDensity'] = phs_hist_density
+        pol_grp = params.stats_h5.create_group(f'/QA/data/frequency{freq}/{pol_name}/')
+
+        nisarqa.create_dataset_in_h5group(grp=pol_grp,
+                                          ds_name='powerHistogramDensity',
+                                          ds_data=pow_hist_density,
+                                          ds_units=params.pow_units,
+                                          ds_description='Normalized density of the power histogram')
+
+        nisarqa.create_dataset_in_h5group(grp=pol_grp,
+                                          ds_name='phaseHistogramDensity',
+                                          ds_data=phs_hist_density,
+                                          ds_units=params.phs_units,
+                                          ds_description='Normalized density of the phase histogram')
 
         # Add these densities to the figures
         add_hist_to_axis(pow_ax,

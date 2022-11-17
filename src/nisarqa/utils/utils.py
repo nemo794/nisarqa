@@ -114,4 +114,42 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
 
     return mask_ok
 
+
+def create_dataset_in_h5group(grp,
+                              ds_name,
+                              ds_data,
+                              ds_units=None,
+                              ds_description=None):
+    '''
+    Add a dataset with attributes to the provided group.
+
+    Parameters
+    ----------
+    grp : h5py.Group
+        h5py Group to add the dataset to, with corresponding attributes
+    ds_name : str
+        Name (key) for the Dataset in the `grp`
+    ds_data : Any
+        Data to be stored as a Dataset in `grp`
+    ds_units : str, optional
+        Units of `ds_data`; will be stored in a `units` attribute
+        for the new Dataset
+        Defaults to None (no units attribute will be created)
+    ds_description : str, optional
+        Description of `ds_data`; will be stored in a `description`
+        attribute for the new Dataset
+        Defaults to None (no description attribute will be created)
+    '''
+
+    ds = grp.create_dataset(ds_name, data=ds_data)
+
+    if ds_units is not None:
+        ds.attrs.create(name='units', data=ds_units,
+                            dtype=f'<S{len(ds_units)}')
+
+    if ds_description is not None:
+        ds.attrs.create(name='description', data=ds_description, 
+                            dtype=f'<S{len(ds_description)}')
+
+
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
