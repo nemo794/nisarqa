@@ -125,6 +125,15 @@ class RSLCPowerImageParams(CoreQAParams):
         Defines the middle percentile range of the `img_arr` 
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
+    gamma : float or None, optional
+        The gamma correction parameter.
+        Gamma will be applied as follows:
+            array_out = normalized_array ^ gamma
+        If gamma correction is applied, `out_img` will
+        have values in range [0,1]; use the returned `vmin` and
+        `vmax` values to set the output image array's colorbar
+        limits to the correct range of values.
+        Defaults to None (no normalization, no gamma correction)
 
     Attributes
     ----------
@@ -895,6 +904,22 @@ def process_single_power_image(img, params):
                                     linear_units=params.linear_units,
                                     gamma=params.gamma)
 
+    # Clip the image array's outliers
+    out_img = clip_array(out_img, middle_percentile=params.middle_percentile)
+
+    # Convert from linear units to dB
+    if not params.linear_units:
+        out_img = nisarqa.pow2db(out_img)
+
+    if params.gamma is not None:
+        # Get the vmin and vmax prior to applying gamma correction.
+        # These will later be used for setting the colorbar's
+        # tick mark values.
+        vmin = np.min(out_img)
+        vmax = np.max(out_img)
+
+        out_img = apply_gamma_correction(out_img, gamma=params.gamma)
+
     # Plot and Save Power Image as Browse Image Product
     browse_img_file = get_browse_product_filename(
                                 product_name='RSLC',
@@ -965,63 +990,58 @@ def process_single_power_image(img, params):
              )
 
 
-def apply_img_correction(img_arr,
-                         middle_percentile=100.0,
-                         linear_units=True,
-                         gamma=None):
+def clip_array(arr, middle_percentile=100.0):
     '''
-    Apply image correction to the input array.
+    Clip input array to the middle percentile.
 
-    Returns a copy of the input image with the following modifications:
-        Step 1) Values outside of the range defined by `middle_percentile` clipped
-        Step 2) If `linear_units` is True, convert array from linear units to dB
-        Step 3) If `gamma` is not None, normalize the array and apply gamma
-                correction. The returned output array will remain in range [0,1].
+    Parameters
+    ----------
+    arr : array_like
+        Input array
+    middle_percentile : numeric, optional
+        Defines the middle percentile range of the `arr` 
+        that the colormap covers. Must be in the range [0, 100].
+        Defaults to 100.0.
+
+    Returns
+    -------
+    out_img : numpy.ndarray
+        A copy of the input array with the values outside of the
+        range defined by `middle_percentile` clipped.
+    '''
+    # Clip the image data
+    vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
+    out_arr = np.clip(img_arr, a_min=vmin, a_max=vmax)
+
+    return out_arr
+
+
+def apply_gamma_correction(img_arr, gamma=None):
+    '''
+    Apply gamma correction to the input array.
+
+    If `gamma` is not None, function will normalize the array
+    and apply gamma correction. The returned output array
+    will remain in range [0,1].
 
     Parameters
     ----------
     img_arr : array_like
         Input array
-    middle_percentile : numeric, optional
-        Defines the middle percentile range of the `img_arr` 
-        that the colormap covers. Must be in the range [0, 100].
-        Defaults to 100.0.
-    linear_units : bool, optional
-        True to compute power in linear units, False for decibel units.
-        Defaults to True.
-    gamma : float, optional
-        The amount of gamma correction to apply to the input array.
+    gamma : float or None, optional
+        The gamma correction parameter.
         Gamma will be applied as follows:
-            array_out = normalized_array ^ gamma
+            out_img = normalized_array ^ gamma
         If gamma correction is applied, `out_img` will
-        have values in range [0,1]; use the returned `vmin` and
-        `vmax` values to set the output image array's colorbar
-        limits to the correct range of values.
-        Defaults to None (no normalization, no gamma correction)
+        have values in range [0,1].
+        Defaults to None (no normalization, no gamma correction).
 
     Returns
     -------
     out_img : numpy.ndarray
-        The input array with the specified image correction applied.
-        If `gamma` is not None, the `out_img` will be in range [0,1].
-    vmin, vmax : float
-        The minimum and maximum values (respectively) of the input
-        array after (optional) clipping and (optional) conversion
-        to decibel units have been applied, but before gamma correction.
-        `vmin` and `vmax` can be used when setting colorbar limits for
-        `out_img`.
-
+        Copy of `img_arr` with the specified gamma correction applied.
+        If `gamma` is not None, `out_img` will be in range [0,1].
     '''
-    # Clip the image data
-    vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
-    out_img = np.clip(img_arr, a_min=vmin, a_max=vmax)
-
-    # Convert to dB
-    if not linear_units:
-        out_img = nisarqa.pow2db(out_img)
-        vmin = nisarqa.pow2db(vmin)
-        vmax = nisarqa.pow2db(vmax)
-    
     # Apply gamma correction
     if gamma is not None:
     
@@ -1031,12 +1051,12 @@ def apply_img_correction(img_arr,
         # Apply gamma correction
         out_img = np.power(out_img, gamma)
 
-    return out_img, vmin, vmax
+    return out_img
 
 
 def plot_to_grayscale_png(img_arr, filepath):
     '''
-    Clip and save the image array to a grayscale (1 channel)
+    Save the image array to a grayscale (1 channel)
     browse image png.
 
     Parameters

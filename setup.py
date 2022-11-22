@@ -49,7 +49,7 @@ setup(
                       'numpy',
                       'h5py',
                       'pytest',
-                      'PIL'
+                      'pillow'
                       ],
     cmdclass={
         'clean': CleanCommand,
