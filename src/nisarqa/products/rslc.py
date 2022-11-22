@@ -129,10 +129,10 @@ class RSLCPowerImageParams(CoreQAParams):
         The gamma correction parameter.
         Gamma will be applied as follows:
             array_out = normalized_array ^ gamma
-        If gamma correction is applied, `out_img` will
-        have values in range [0,1]; use the returned `vmin` and
-        `vmax` values to set the output image array's colorbar
-        limits to the correct range of values.
+        where normalized_array is a copy of the image with values
+        scaled to the range [0,1]. 
+        The image colorbar will be defined with respect to the input
+        image values prior to normalization and gamma correction.
         Defaults to None (no normalization, no gamma correction)
 
     Attributes
@@ -1012,40 +1012,35 @@ def clip_array(arr, middle_percentile=100.0):
     return out_arr
 
 
-def apply_gamma_correction(img_arr, gamma=None):
+def apply_gamma_correction(img_arr, gamma):
     '''
     Apply gamma correction to the input array.
 
-    If `gamma` is not None, function will normalize the array
-    and apply gamma correction. The returned output array
-    will remain in range [0,1].
+    Function will normalize the array and apply gamma correction.
+    The returned output array will remain in range [0,1].
 
     Parameters
     ----------
     img_arr : array_like
         Input array
-    gamma : float or None, optional
+    gamma : float
         The gamma correction parameter.
         Gamma will be applied as follows:
-            out_img = normalized_array ^ gamma
-        If gamma correction is applied, `out_img` will
-        have values in range [0,1].
-        Defaults to None (no normalization, no gamma correction).
+            array_out = normalized_array ^ gamma
+        where normalized_array is a copy of `img_arr` with values
+        scaled to the range [0,1].
 
     Returns
     -------
     out_img : numpy.ndarray
         Copy of `img_arr` with the specified gamma correction applied.
-        If `gamma` is not None, `out_img` will be in range [0,1].
+        Due to normalization, values in `out_img` will be in range [0,1].
     '''
-    # Apply gamma correction
-    if gamma is not None:
-    
-        # Normalize to range [0,1]
-        out_img = nisarqa.normalize(img_arr)
+    # Normalize to range [0,1]
+    out_img = nisarqa.normalize(img_arr)
 
-        # Apply gamma correction
-        out_img = np.power(out_img, gamma)
+    # Apply gamma correction
+    out_img = np.power(out_img, gamma)
 
     return out_img
 
