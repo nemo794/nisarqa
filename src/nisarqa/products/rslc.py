@@ -126,7 +126,7 @@ class RSLCPowerImageParams(CoreQAParams):
         The approx. size (in megapixels) for the final multilooked image.
         Defaults to 4.0 MPix.
     middle_percentile : numeric
-        Defines the middle percentile range of the `img_arr` 
+        Defines the middle percentile range of the image array
         that the colormap covers. Must be in the range [0, 100].
         Defaults to 100.0.
     gamma : float or None, optional
