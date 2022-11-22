@@ -892,14 +892,7 @@ def process_single_power_image(img, params):
 
     # Apply image correction to the multilooked array
 
-    # Apply image correction to the multilooked array
-    out_img, vmin, vmax = apply_img_correction(
-                                    img_arr=out_img,
-                                    middle_percentile=params.middle_percentile,
-                                    linear_units=params.linear_units,
-                                    gamma=params.gamma)
-
-    # Clip the image array's outliers
+    # Step 1: Clip the image array's outliers
     out_img = clip_array(out_img, middle_percentile=params.middle_percentile)
 
     # Step 2: Convert from linear units to dB
@@ -1151,12 +1144,6 @@ def plot2pdf(img_arr,
 
     # Plot the img_arr image.
     ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
-
-    # Add Colorbar
-    cbar = plt.colorbar(ax_img, ax=ax)
-
-    if colorbar_formatter is not None:
-        cbar.ax.yaxis.set_major_formatter(colorbar_formatter)
 
     # Add Colorbar
     cbar = plt.colorbar(ax_img, ax=ax)
