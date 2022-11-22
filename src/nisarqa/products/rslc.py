@@ -891,11 +891,6 @@ def process_single_power_image(img, params):
     print(f'Multilooked size: {out_img.size} Mpix.')
 
     # Apply image correction to the multilooked array
-    out_img, vmin, vmax = apply_img_correction(
-                                    img_arr=out_img,
-                                    middle_percentile=params.middle_percentile,
-                                    linear_units=params.linear_units,
-                                    gamma=params.gamma)
 
     # Apply image correction to the multilooked array
     out_img, vmin, vmax = apply_img_correction(
@@ -907,10 +902,11 @@ def process_single_power_image(img, params):
     # Clip the image array's outliers
     out_img = clip_array(out_img, middle_percentile=params.middle_percentile)
 
-    # Convert from linear units to dB
+    # Step 2: Convert from linear units to dB
     if not params.linear_units:
         out_img = nisarqa.pow2db(out_img)
 
+    # Step 3: Apply gamma correction
     if params.gamma is not None:
         # Get the vmin and vmax prior to applying gamma correction.
         # These will later be used for setting the colorbar's
@@ -963,7 +959,7 @@ def process_single_power_image(img, params):
             FuncFormatter functions must take two arguments: 
             `x` for the tick value and `pos` for the tick position,
             and must return a `str`. The `pos` argument is used
-            internally by matplotblib.
+            internally by matplotlib.
             '''
             # Invert the power
             val = np.power(x, 1 / params.gamma)
@@ -1010,8 +1006,8 @@ def clip_array(arr, middle_percentile=100.0):
         range defined by `middle_percentile` clipped.
     '''
     # Clip the image data
-    vmin, vmax = calc_vmin_vmax(img_arr, middle_percentile=middle_percentile)
-    out_arr = np.clip(img_arr, a_min=vmin, a_max=vmax)
+    vmin, vmax = calc_vmin_vmax(arr, middle_percentile=middle_percentile)
+    out_arr = np.clip(arr, a_min=vmin, a_max=vmax)
 
     return out_arr
 
@@ -1046,7 +1042,7 @@ def apply_gamma_correction(img_arr, gamma=None):
     if gamma is not None:
     
         # Normalize to range [0,1]
-        out_img = nisarqa.normalize(out_img)
+        out_img = nisarqa.normalize(img_arr)
 
         # Apply gamma correction
         out_img = np.power(out_img, gamma)
@@ -1145,7 +1141,7 @@ def plot2pdf(img_arr,
         as a string. This function must take exactly two arguments: 
         `x` for the tick value and `pos` for the tick position,
         and must return a `str`. The `pos` argument is used
-        internally by matplotblib.
+        internally by matplotlib.
         See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
         (Wrapping the function with FuncFormatter is optional.)
     xlabel, ylabel : str, optional

@@ -94,10 +94,11 @@ def counts2density(counts, bins):
 
 
 def normalize(arr):
-    '''Normalize input array to range [0,1]
+    '''Normalize input array to range [0,1], ignoring
+    any NaN values.
     '''
-    arr_min = np.min(arr)
-    arr_max = np.max(arr)
+    arr_min = np.nanmin(arr)
+    arr_max = np.nanmax(arr)
     
     return (arr - arr_min) / (arr_max - arr_min)
 
