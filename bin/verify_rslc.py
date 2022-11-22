@@ -73,6 +73,7 @@ def main(args):
                 core_params = nisarqa.rslc.CoreQAParams(
                                 plots_pdf=plots_file,
                                 stats_h5=stats_file,
+                                bands=list(pols),
                                 browse_image_dir='.',
                                 browse_image_prefix='',
                                 tile_shape=(1024,1024))
@@ -94,11 +95,15 @@ def main(args):
                                 pow_histogram_endpoint=20)
 
                 # Save parameters to stats.h5 file
-                pow_img_params.save_processing_params_to_h5()
-                hist_params.save_processing_params_to_h5()
+                pow_img_params.save_processing_params_to_h5('/QA/processing')
+                hist_params.save_processing_params_to_h5('/QA/processing')
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                                 nisar_h5=in_file,
                                 stats_h5=stats_file,
+                                path_to_group='/identification')
+                nisarqa.rslc.save_NISAR_freq_metadata_to_h5(
+                                stats_h5=stats_file,
+                                path_to_group='/QA/data',
                                 pols=pols)
 
                 # Generate the RSLC Power Image
@@ -127,9 +132,10 @@ def main(args):
             # logger.log_message(logging_base.LogFilterInfo, msg)
 
             # Open file handle for output stats.h5 file
-            # Since file might have already been created during --quality step,
+            # If file was already been created during --quality step,
             # open in append mode.
-            with nisarqa.open_h5_file(args['stats_file'], mode='a') as stats_file:
+            mode = 'a' if args['quality'] else 'w'
+            with nisarqa.open_h5_file(args['stats_file'], mode=mode) as stats_file:
 
                 # If QA quality metrics were not generated, then generate the identification group
                 if not args['quality']:
@@ -137,14 +143,15 @@ def main(args):
 
                     # Save parameters to stats.h5 file
                     nisarqa.rslc.save_NISAR_identification_group_to_h5(
-                                    nisar_h5=in_file,
-                                    stats_h5=stats_file,
-                                    pols=pols)
+                                nisar_h5=in_file,
+                                stats_h5=stats_file,
+                                path_to_group='/identification')
 
                 # Store the parameters into a well-defined data structure
                 # TODO - Move these hardcoded values into a yaml runconfig
                 core_params = nisarqa.caltools.CoreCalToolsParams(
-                                stats_h5=stats_file)
+                                stats_h5=stats_file,
+                                bands=list(pols))
 
                 abscal_params = nisarqa.caltools.AbsCalParams.from_parent(
                                 core=core_params,
@@ -161,9 +168,9 @@ def main(args):
                                 attr1=4.5)                                
 
                 # Save processing parameters to stats.h5 file
-                abscal_params.save_processing_params_to_h5()
-                nesz_params.save_processing_params_to_h5()
-                pta_params.save_processing_params_to_h5()
+                abscal_params.save_processing_params_to_h5('/absoluteCalibrationFactor/processing')
+                nesz_params.save_processing_params_to_h5('/NESZ/processing')
+                pta_params.save_processing_params_to_h5('/pointTargetAnalyzer/processing')
 
                 # Run Absolute Calibration Factor tool
                 nisarqa.caltools.run_absolute_cal_factor(
