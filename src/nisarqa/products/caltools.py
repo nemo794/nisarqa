@@ -141,7 +141,6 @@ class AbsCalParams(CoreCalToolsParams):
             nisarqa.create_dataset_in_h5group(grp=proc_grp,
                                             ds_name='cornerReflectorFile',
                                             ds_data=self.corner_reflector_filename,
-                                            ds_units='unitless',
                                             ds_description='TODO Source file for corner reflector locations')
 
             nisarqa.create_dataset_in_h5group(grp=proc_grp,
@@ -301,7 +300,6 @@ class PointTargetAnalyzerParams(CoreCalToolsParams):
             nisarqa.create_dataset_in_h5group(grp=proc_grp,
                                             ds_name='cornerReflectorFile',
                                             ds_data=self.corner_reflector_filename,
-                                            ds_units='unitless',
                                             ds_description='TODO Source file for corner reflector locations')
 
             nisarqa.create_dataset_in_h5group(grp=proc_grp,

@@ -118,8 +118,8 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
 def create_dataset_in_h5group(grp,
                               ds_name,
                               ds_data,
-                              ds_units=None,
-                              ds_description=None):
+                              ds_description,
+                              ds_units=None):
     '''
     Add a dataset with attributes to the provided group.
 
@@ -129,16 +129,23 @@ def create_dataset_in_h5group(grp,
         h5py Group to add the dataset to, with corresponding attributes
     ds_name : str
         Name (key) for the Dataset in the `grp`
-    ds_data : Any
+    ds_data : array_like or str
         Data to be stored as a Dataset in `grp`
-    ds_units : str, optional
-        Units of `ds_data`; will be stored in a `units` attribute
-        for the new Dataset
-        Defaults to None (no units attribute will be created)
-    ds_description : str, optional
+    ds_description : str
         Description of `ds_data`; will be stored in a `description`
         attribute for the new Dataset
-        Defaults to None (no description attribute will be created)
+    ds_units : str, optional
+        Units of `ds_data`; will be stored in a `units` attribute
+        for the new Dataset.
+        For NISAR datasets, use this convention:
+            - If the values have dimensions, use CF-compliant names (e.g. 'meters')
+            - If the values are numeric but dimensionless (e.g. ratios),
+              set `ds_units` to 'unitless'
+            - If the values are inherently descriptive and have no units
+              (e.g. a file name, or a list of frequency names such as ['A', 'B']),
+              then set `ds_units` to None so that no units attribute
+              is created.
+        Defaults to None (no units attribute will be created)
     '''
 
     ds = grp.create_dataset(ds_name, data=ds_data)
@@ -147,9 +154,8 @@ def create_dataset_in_h5group(grp,
         ds.attrs.create(name='units', data=ds_units,
                             dtype=f'<S{len(ds_units)}')
 
-    if ds_description is not None:
-        ds.attrs.create(name='description', data=ds_description, 
-                            dtype=f'<S{len(ds_description)}')
+    ds.attrs.create(name='description', data=ds_description, 
+                        dtype=f'<S{len(ds_description)}')
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

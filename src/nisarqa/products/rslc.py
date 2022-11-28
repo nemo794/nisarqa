@@ -197,15 +197,13 @@ class RSLCPowerImageParams(CoreQAParams):
             nisarqa.create_dataset_in_h5group(grp=proc_grp,
                                             ds_name='powerImageUnits',
                                             ds_data=self.pow_units,
-                                            ds_units='unitless',
                                             ds_description='Units for the Power Image (browse image and graphical summary pdf)')
 
-            # TODO - uncomment this once the gamma correction PR is merged.
-            # nisarqa.create_dataset_in_h5group(grp=proc_grp,
-            #                                   ds_name='powerImageGammaCorrection',
-            #                                   ds_data=self.gamma,
-            #                                   ds_units='unitless',
-            #                                   ds_description='Gamma value applied to the Power Image (browse image and graphical summary pdf)')
+            nisarqa.create_dataset_in_h5group(grp=proc_grp,
+                                              ds_name='powerImageGammaCorrection',
+                                              ds_data=self.gamma,
+                                              ds_units='unitless',
+                                              ds_description='Gamma value applied to the Power Image (browse image and graphical summary pdf)')
 
 
 @dataclass
@@ -394,7 +392,6 @@ def save_NISAR_identification_group_to_h5(nisar_h5,
         nisarqa.create_dataset_in_h5group(grp=grp,
                                             ds_name='NISARProductFilename',
                                             ds_data=os.path.basename(nisar_h5.filename),
-                                            ds_units='unitless',
                                             ds_description='Input NISAR product filename')
 
 
@@ -440,7 +437,6 @@ def save_NISAR_freq_metadata_to_h5(stats_h5,
             nisarqa.create_dataset_in_h5group(grp=grp,
                                               ds_name='listOfPolarizations',
                                               ds_data=listOfPols,
-                                              ds_units='unitless',
                                               ds_description=f'Polarizations for Frequency {freq} discovered in input NISAR product by QA code')
 
 
@@ -1558,13 +1554,13 @@ def generate_histogram_single_freq(pol, band, freq, params):
         nisarqa.create_dataset_in_h5group(grp=pol_grp,
                                           ds_name='powerHistogramDensity',
                                           ds_data=pow_hist_density,
-                                          ds_units=params.pow_units,
+                                          ds_units=f'1/{params.pow_units}',
                                           ds_description='Normalized density of the power histogram')
 
         nisarqa.create_dataset_in_h5group(grp=pol_grp,
                                           ds_name='phaseHistogramDensity',
                                           ds_data=phs_hist_density,
-                                          ds_units=params.phs_units,
+                                          ds_units=f'1/{params.phs_units}',
                                           ds_description='Normalized density of the phase histogram')
 
         # Add these densities to the figures
