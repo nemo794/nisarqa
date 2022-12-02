@@ -1,0 +1,183 @@
+runconfig:
+    # TODO - this file is based on https://github-fn.jpl.nasa.gov/isce-3/isce/blob/develop/share/nisar/schemas/focus.yaml
+    # This file follows that structure, but only contains the (mostly new) fields which
+    # would be relevant to QA.
+
+    groups:
+        dynamic_ancillary_file_group:
+            # Locations of the corner reflectors in the input product.
+            # Required for the CalTools Absolute Calibration Factor
+            # and/or Point Target Analyzer tools; will be ignored otherwise.
+            corner_reflector_file: str(required=False)
+
+        product_path_group:
+            # TODO - this is the name of the temporary output file from
+            # the RSLC workflow. It will be used as the input rslc.h5 input
+            # file to the QA and CalTools workflows.
+            # TODO: ask SDS et al if this is the correct workflow?
+
+            # Intermediate file name.  SAS writes output product to the following file
+            # before it gets renamed by the PGE wrapper.
+            # This will also be the filename of the input file for QA-CalTools.
+            # NOTE: R2 needs to handle mixed-mode case with multiple outputs.
+            sas_output_file: str()
+
+            # QA/CalTools output file names.
+            # QA and CalTools workflows output products to the following
+            # files before they get renamed by the PGE wrapper.
+            # Note: These will only be used if the corresponding QA/CalTools are requested.
+            # TODO - Will this need to handle mixed-mode case with multiple outputs?
+            plots_file: str(required=False, ends_with='.pdf')
+            stats_file: str(required=False, ends_with='.h5')
+            summary_file: str(required=False, ends_with='.csv')
+            qa_log_file: str(required=False, ends_with='.txt')
+
+            # QA Browse image file name.
+            # To account for when multiple browse images are generated, such as
+            # when a NISAR product contains multiple polarizations, the QA code
+            # will temporarily remove the `.png` ending and update browse_image_file
+            # per this naming convention:
+            #     <prefix>_<product name>_BAND_F_PP_qqq.png
+            #         <prefix>        : `browse_image_prefix`, supplied from SDS
+            #         <product name>  : RSLC, GLSC, etc.
+            #         BAND            : LSAR or SSAR
+            #         F               : frequency A or B 
+            #         PP              : polarization
+            #         qqq             : pow (RSLC's browse images are of power images)
+            browse_image_file: str(required=False, ends_with='.png')
+
+
+        processing:
+            qa: include('qa_options', required=False)
+
+---
+qa_options:
+    # Note: By default, all QA-CalTools workflows will run.
+    # To disable a workflow, include that workflow's
+    # options and set its `enabled` field to False.
+
+    # Run the File Format Validation workflow
+    validate: include('validate_options', required=False)
+
+    # Generate reports of QA Statistics, Graphical Summary Plots,
+    # and summary PASS/FAIL checks.
+    qa_reports: include('qa_reports_options', required=False)
+
+    # Run the absolute calibration factor CalTool
+    absolute_calibration_factor: include('abscal_options', required=False)
+
+    # Run the NESZ CalTool
+    nesz: include('nesz_options', required=False)
+
+    # Run the point target analyzer CalTool
+    point_target_analyzer: include('point_target_analyzer_options', required=False)
+
+
+validate_options:
+    # Flag to enable/disable file validation. Default: True
+    enabled: bool(required=False)
+
+qa_reports_options:
+    # Flag to enable/disable generation of QA Reports. Default: True
+    enabled: bool(required=False)
+
+    core:
+        # Prefix for the browse images.
+        # Defaults to no prefix. 
+        browse_image_prefix: str(required=False)
+
+        # Default Tile Shape
+        # The default tile shape to use for processing images
+        # by batches. Note that the actual tile shapes used during
+        # processing might vary slightly from this, but they will
+        # be similar.
+        tile_shape: list(int(min=1), min=2, max=2, required=False)
+
+    power_image:
+        # Number of looks along each axis of the Frequency A
+        # image arrays for multilooking the power image.
+        # Example: (6,7)
+        # If not provided, will default to computing the nlooks
+        # values that would produce an approx. `num_mpix` MPix
+        # browse image.
+        nlooks_freqa: list(int(min=1), min=2, max=2, required=False)
+
+        # Number of looks along each axis of the Frequency B
+        # image arrays for multilooking the power image.
+        # Example: (6,4)
+        # If not provided, will default to computing the nlooks
+        # values that would produce an approx. `num_mpix` MPix
+        # browse image.
+        nlooks_freqb: list(int(min=1), min=2, max=2, required=False)
+
+        # True to compute power in linear units when generating 
+        # the power image for the browse images and graphical
+        # summary PDF. False for decibel units.
+        # Defaults to True.
+        linear_units: bool(required=False)
+
+        # The approx. size (in megapixels) for the final
+        # multilooked browse image(s). Defaults to 4.0 MPix.
+        num_mpix: num(min=0.0001, required=False)
+
+        # Defines the middle percentile range of the image
+        # array when plotting the power image; is used to
+        # clip outlier pixels in the power image. Must be 
+        # in the range [0, 100].
+        # Defaults to 100.0 (no clipping will occur).
+        middle_percentile: num(min=0.0, max=100.0, required=False)
+
+        # The gamma correction parameter.
+        # Gamma will be applied to the power image(s) as follows:
+        #     array_out = normalized_array ^ gamma
+        # where normalized_array is a copy of the image with values
+        # scaled to the range [0,1]. 
+        # The image colorbar in the graphical summary will be
+        # defined with respect to the input image values prior
+        # to normalization and gamma correction.
+        # Set to None for no normalization, no gamma correction
+        # (None is the default).
+        gamma: num(min=0.0, required=False)
+
+    histograms:
+        # The step size to decimate the input array for computing
+        # the power and phase histograms.
+        # For example, (2,3) means every 2nd azimuth line and
+        # every 3rd range line will be used to compute the histograms.
+        # Defaults to (1,1), i.e. no decimation will occur.
+        # Format: (<azimuth>, <range>)
+        decimation_ratio: list(int(min=1), min=2, max=2, required=False)
+
+        # The starting value for the range of the power histogram edges.
+        # Defaults to -80. (units are dB)
+        pow_histogram_start: num(required=False)
+
+        # The endpoint value for the range of the power histogram edges.
+        # Defaults to 20. (units are dB)
+        pow_histogram_endpoint: num(required=False)
+
+        # True to compute phase in radians units, False for degrees units.
+        # Defaults to True.
+        phs_in_radians: bool(required=False)
+
+# TODO: All items in the CalTools group are placeholder fields.
+# These are here to create a template for the CalTools developers
+# to update and add in the actual parameters.
+abscal_options:
+    # Flag to enable/disable the absolute calibration factor CalTool.
+    # Default: True
+    enabled: bool(required=False)
+
+    attr1: num(required=False)
+
+nesz_options:
+    # Flag to enable/disable the NESZ CalTool. Default: True
+    enabled: bool(required=False)
+
+    attr1: num(required=False)
+
+point_target_analyzer_options:
+    # Flag to enable/disable the point target analyzer CalTool. Default: True
+    enabled: bool(required=False)
+
+    attr1: num(required=False)

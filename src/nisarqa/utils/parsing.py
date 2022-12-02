@@ -138,21 +138,6 @@ def parse_cli_args(nisar_product):
                         help='TODO'
                         )
 
-    # parser.add_argument('-v', '--verbose',
-    #                     dest='verbose',
-    #                     action='store_true',
-    #                     default=False,
-    #                     help='Display progress, warnings, and errors in Terminal'
-    #                     )
-
-    parser.add_argument('--xml', '--xml_file',
-                        dest='xml_file',
-                        type=str,
-                        default=xml_default,
-                        help='.xml file which specifies the HDF5 layout '
-                             'of the input NISAR product.'
-                             'Will only be used if --validate is selected.'
-                        )
 
     # put args into a dictionary
     args = vars(parser.parse_args())

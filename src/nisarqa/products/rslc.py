@@ -34,12 +34,20 @@ class CoreQAParams:
     bands : sequence of str
         A sequence of the bands in the input file,
         Examples: ['LSAR','SSAR'] or ('LSAR')
-    browse_image_dir : str, optional
-        Path to directory to save the browse image product.
-        Defaults to the current directory.
-    browse_image_prefix : str, optional
-        String to pre-pend to the name of the generated browse image product.
-        Defaults to ''.
+    browse_image_file : str, optional
+        QA Browse image file name.
+        To account for when multiple browse images are generated, such as
+        when a NISAR product contains multiple polarizations, the QA code
+        will temporarily remove the `.png` ending and update browse_image_file
+        per this naming convention:
+            <prefix>_<product name>_BAND_F_PP_qqq.png
+                <prefix>        : `browse_image_prefix`, supplied from SDS
+                <product name>  : RSLC, GLSC, etc.
+                BAND            : LSAR or SSAR
+                F               : frequency A or B 
+                PP              : polarization
+                qqq             : pow (RSLC's browse images are of power images)
+        Defaults to './<product name>_BAND_F_PP_qqq.png' (current working directory)
     tile_shape : tuple of ints, optional
         Shape of each tile to be processed. If `tile_shape` is
         larger than the shape of `arr`, or if the dimensions of `arr`
@@ -55,8 +63,7 @@ class CoreQAParams:
     stats_h5: h5py.File
     plots_pdf: PdfPages
     bands: Iterable[str]
-    browse_image_dir: str = '.'
-    browse_image_prefix: str = ''
+    browse_image_file: str = '.'
     tile_shape: tuple = (1024,-1)
 
     @classmethod
@@ -88,7 +95,7 @@ class CoreQAParams:
         >>> print(y)
         ChildParams(plots_pdf=<matplotlib.backends.backend_pdf.PdfPages object at 0x7fd04cab6050>,
         stats_h5=<contextlib._GeneratorContextManager object at 0x7fd04cab6690>,
-        browse_image_dir='.', browse_image_prefix='', tile_shape=(1024, -1), x=2)        
+        browse_image_file='.' tile_shape=(1024, -1), x=2)        
         '''
         if not isinstance(core, CoreQAParams):
             raise ValueError('`core` input must be of type CoreQAParams.')
@@ -1100,8 +1107,7 @@ def process_single_power_image(img, params):
                                 freq=img.freq,
                                 pol=img.pol,
                                 quantity='pow',
-                                browse_image_dir=params.browse_image_dir,
-                                browse_image_prefix=params.browse_image_prefix)
+                                browse_image_file=params.browse_image_file)
 
     plot_to_grayscale_png(img_arr=out_img,
                           filepath=browse_img_file)
@@ -1255,29 +1261,52 @@ def get_browse_product_filename(
         freq,
         pol,
         quantity,
-        browse_image_dir,
-        browse_image_prefix=''):
+        browse_image_file='.'):
     '''
-    Returns the full filename (with path) for Browse Image Product.
+    Return the full filename (with path) for Browse Image Product.
 
     The browse image products should follow this naming convention,
     (Convention modified from Phil Callahan's slides on 11 Aug 2022.)
-        <prefix>_<product name>_BAND_F_PP[PP]_qqq
-            <prefix>        : browse image prefix, supplied by SDS
-            <product name>  : RSLC, GLSC, etc.
-            BAND            : LSAR or SSAR
-            F               : frequency A or B 
-            PP              : polarization, e.g. 'HH' or 'HV'.
-                              [PP] additional polarization for GCOV 
-            qqq             : quantity: mag, phs, coh, cov, rof, aof, cnc, iph 
+        <browse_image_file>_<product name>_BAND_F_PP[PP]_qqq.png
+            <browse_image_file>       : generic browse image filename, supplied by SDS
+            <product name>             : RSLC, GLSC, etc.
+            BAND                       : LSAR or SSAR
+            F                          : frequency A or B 
+            PP                         : polarization, e.g. 'HH' or 'HV'.
+                                         [PP] additional polarization for GCOV 
+            qqq                        : quantity: mag, phs, coh, cov, rof, aof, cnc, iph 
                                         (see product list)
 
     TODO - double check the file naming convention
 
+    Parameters
+    ----------
+    product_name : str
+        Name of the type of NISAR product, e.g. 'RSLC'
+    band : str
+        Name of the band for this browse image, e.g. 'LSAR'
+    freq : str
+        Name of the frequency for this browse image, e.g. 'A'
+    pol : str
+        Name of the polarization for this browse image, e.g. 'HH'
+    quantity : str
+        The quantity that this browse image represents, e.g. 'pow' for power
+    browse_image_file : str
+        The filename (with path) for 
+        If `browse_image_file` is set to '.' (the default), then
+        no prefix will be appended.
+
+
+
+
     '''
     filename = f'{product_name.upper()}_{band}_{freq}_{pol}_{quantity}.png'
-    if browse_image_prefix is not '':
-        filename = f'{browse_image_prefix}_{filename}'
+    if browse_image_file is not '.':
+        if not browse_image_file.endswith('.png'):
+            raise ValueError(f'Input browse image filename must end in .png: {browse_image_file}')
+
+        filename = file.replace('.png', f'{browse_image_file}_{filename}.png')
+
     filename = os.path.join(browse_image_dir, filename)
 
     return filename
