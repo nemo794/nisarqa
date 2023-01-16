@@ -4,6 +4,7 @@ from typing import Any, Optional
 
 import nisarqa
 from ruamel.yaml import CommentedMap as CM
+from ruamel.yaml import CommentedSeq as CS
 
 
 @dataclass
@@ -117,9 +118,22 @@ class BaseParams(ABC):
         # set indentation for displaying the comments correctly in the yaml
         comment_indent = len(self.get_path_to_group_in_runconfig()) * 4
 
+        # To have ruamel.yaml display list values as a list in the runconfig,
+        # use CommentedSequence
+        # https://stackoverflow.com/questions/56937691/making-yaml-ruamel-yaml-always-dump-lists-inline
+
+        if isinstance(param_attr.val, (list, tuple)):
+            seq = CS()
+            seq.fa.set_flow_style()
+            for item in param_attr.val:
+                seq.append(item)
+            val = seq
+        else:
+            val = param_attr.val
+
         # Add attribute to the group
         name = param_attr.name
-        params_cm[name] = param_attr.val
+        params_cm[name] = val
         comment = param_attr.long_descr
         for line in nisarqa.multi_line_string_iter(comment):
             params_cm.yaml_set_comment_before_after_key(

@@ -771,6 +771,8 @@ class RSLCPowerImageParams(BaseParams):
     def _get_tile_shape_param(self, tile_shape):
         '''Return `tile_shape` as a Param.
         
+        TODO - this is duplicate code to other Params dataclasses. Fix.
+        
         Parameters
         ----------
         tile_shape : iterable of int, Param, None
@@ -1228,6 +1230,8 @@ class RSLCHistogramParams(BaseParams):
 
     def _get_tile_shape_param(self, tile_shape):
         '''Return `tile_shape` as a Param.
+
+        TODO - this is duplicate code to other Params dataclasses. Fix.
         
         Parameters
         ----------
@@ -1358,13 +1362,6 @@ class RSLCHistogramParams(BaseParams):
         '''
         # Create a default instance of this class
         default = RSLCHistogramParams()
-
-        # When outputing using ruamel.yaml.dump(), list objects get broken
-        # apart into separate fields. This is hard to read.
-        # TODO As a hack to make these more palatable to read in the runconfig,
-        # update those parameters' values to be str.
-        default.decimation_ratio.val = str(default.decimation_ratio.val)
-        default.tile_shape.val = str(default.tile_shape.val)
 
         # build new yaml params group for this dataclass
         params_cm = CM()
