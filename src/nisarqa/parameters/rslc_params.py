@@ -15,6 +15,23 @@ objects_to_skip = nisarqa.get_all(__name__)
 
 @dataclass
 class WorkflowsParams(BaseParams):
+    '''
+    The parameters specifying which RSLC-Caltools QA workflows should be run.
+
+    Parameters
+    ----------
+    validate : bool, optional
+        True to run the validate workflow. Default: True
+    qa_reports : bool, optional
+        True to run the QA Reports workflow. Default: True
+    absolute_calibration_factor : bool, optional
+        True to run the Absolute Calibration Factor (AbsCal) workflow.
+        Default: True
+    nesz : bool, optional
+        True to run the Noise Estimator (NESZ) workflow. Default: True
+    point_target_analyzer : bool, optional
+        True to run the Point Target Analyzer (PTA) workflow. Default: True
+    '''
 
     # None of the attributes in this class will be saved to the 
     # stats.h5 file, so they can be type bool (not required for them
@@ -31,15 +48,9 @@ class WorkflowsParams(BaseParams):
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
-        '''
-        
-        Parameters
-        ----------
-        runconfig_cm : ruamel.yaml.comments.CommentedMap
-            The base commented map object; this will be modified to
-            include the appropriate dataclass parameters with comments
-            and default values.
-        '''
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
         # Create a default instance of this class
         default = WorkflowsParams()
 
@@ -54,38 +65,42 @@ class WorkflowsParams(BaseParams):
             params_cm[field.name] = field.default
             params_cm.yaml_set_comment_before_after_key(field.name, 
                 before=f'\nTrue to run the {field.name} workflow. Default: '
-                       f'{str(field.default)}.',
+                       f'{str(field.default)}',
                 indent=comment_indent)
 
         # Add the new parameter group to the runconfig
         default.add_param_group_to_runconfig(runconfig_cm, params_cm)
 
     def write_params_to_h5(self, h5_file=None, bands=None):
-        # no params to save to h5 file
+        '''
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
+
+        No params will be added for this dataclass. Input parameters
+        are included to conform to the API, but will be ignored.
+        '''
+        # this dataclass has no params to save to h5 file
         pass
 
 
 @dataclass
 class DynamicAncillaryFileParams(BaseParams):
     '''
-    Data structure to hold information about a QA Dynamic Ancillary File
-    group parameters.
+    The parameters from the QA Dynamic Ancillary File runconfig group.
 
-    Note that however data values are passed into this dataclass,
-    they will always be processed, stored, and accessible as Param instances.
-        - If a non-Param type is provided, default values will be used
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
           to fill in the additional Param attributes.
         - If a Param type is provided, then the <attribute>.val must contain
           a valid non-Param input for that attribute.
-        - If no value or `None` is supplied, then the attribute will be 
+        - If no value or `None` is provided, then the attribute will be 
           set to its default Param value.
 
     Parameters
     ----------
     corner_reflector_file : str, Param, optional
-        The input corner reflector file file name (with path).
-        If a Param is supplied, `corner_reflector_file.val` must contain 
-        the filename.
+        The input corner reflector file's file name (with path).
     '''
 
     corner_reflector_file: Optional[Union[str, Param]] = None
@@ -151,18 +166,8 @@ class DynamicAncillaryFileParams(BaseParams):
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
-        '''
-        Add the desired attributes of this dataclass to a Commented Map
-        that will be used to generate a QA runconfig.
-
-        Only default values will be used.
-
-        Parameters
-        ----------
-        runconfig_cm : ruamel.yaml.comments.CommentedMap
-            The base commented map; will be updated with the attributes
-            from this dataclass that are in the QA runconfig file
-        '''
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
 
         # Create a default instance of this class
         default = DynamicAncillaryFileParams()
@@ -179,6 +184,23 @@ class DynamicAncillaryFileParams(BaseParams):
 
 
     def write_params_to_h5(self, h5_file, bands=('LSAR')):
+        '''
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
+
+        This function will populate the following fields
+        in `h5_file` for all bands in `bands`:
+            /science/<band>/identification/cornerReflectorFilename
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            Handle to an h5 file where the parameter metadata
+            should be saved
+        bands : iterable of str, optional
+            Sequence of the band names. Ex: ('SSAR', 'LSAR')
+            Defaults to ('LSAR')
+        '''
         for band in bands:
             filename = self.corner_reflector_file.val
             if filename is None:
@@ -195,15 +217,15 @@ class DynamicAncillaryFileParams(BaseParams):
 @dataclass
 class ProductPathGroupParams(BaseParams):
     '''
-    Data structure to hold information about a QA Product Path Group parameters.
+    Parameters from the Product Path Group runconfig group.
 
-    Note that however data values are passed into this dataclass,
-    they will always be processed, stored, and accessible as Param instances.
-        - If a non-Param type is provided, default values will be used
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
           to fill in the additional Param attributes.
         - If a Param type is provided, then the <attribute>.val must contain
           a valid non-Param input for that attribute.
-        - If no value or `None` is supplied, then the attribute will be 
+        - If no value or `None` is provided, then the attribute will be 
           set to its default Param value.
 
     Parameters
@@ -327,12 +349,9 @@ class ProductPathGroupParams(BaseParams):
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
-        '''
-        Parameters
-        ----------
-        runconfig_cm : ruamel.yaml.comments.CommentedMap
-            The base commented map to add the parameters to.
-        '''
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
         # Create a default instance of this class
         default = ProductPathGroupParams()
 
@@ -351,23 +370,30 @@ class ProductPathGroupParams(BaseParams):
 
 
     def write_params_to_h5(self, h5_file=None, bands=None):
-        # No attributes to save to the .h5 file
+        '''
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
+
+        No params will be added for this dataclass. Input parameters
+        are included to conform to the API, but will be ignored.
+        '''
+        # this dataclass has no params to save to h5 file
         pass
 
 
 @dataclass
 class RSLCPowerImageParams(BaseParams):
     '''
-    Data structure to hold the parameters to generate the
-    RSLC Power Images.
+    Parameters to generate RSLC Power Images; this corresponds to the
+    `qa_reports: power_image` runconfig group.
 
-    Note that however data values are passed into this dataclass,
-    they will always be processed, stored, and accessible as Param instances.
-        - If a non-Param type is provided, default values will be used
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
           to fill in the additional Param attributes.
         - If a Param type is provided, then the <attribute>.val must contain
           a valid non-Param input for that attribute.
-        - If no value or `None` is supplied, then the attribute will be 
+        - If no value or `None` is provided, then the attribute will be 
           set to its default Param value.
 
     Parameters
@@ -530,7 +556,7 @@ class RSLCPowerImageParams(BaseParams):
 
 
     def _get_linear_units_param(self, linear_units):
-        '''Return linear_units as a Param.
+        '''Return `linear_units` as a Param.
         
         Parameters
         ----------
@@ -581,7 +607,7 @@ class RSLCPowerImageParams(BaseParams):
                 f'linear_units must be a bool or None')
 
     def _get_num_mpix_param(self, num_mpix):
-        '''Return num_mpix as a Param.
+        '''Return `num_mpix` as a Param.
         
         Parameters
         ----------
@@ -639,7 +665,7 @@ class RSLCPowerImageParams(BaseParams):
 
 
     def _get_middle_percentile_param(self, middle_percentile):
-        '''Return middle_percentile as a Param.
+        '''Return `middle_percentile` as a Param.
         
         Parameters
         ----------
@@ -699,7 +725,7 @@ class RSLCPowerImageParams(BaseParams):
 
 
     def _get_gamma_param(self, gamma):
-        '''Return gamma as a Param.
+        '''Return `gamma` as a Param.
         
         Parameters
         ----------
@@ -832,6 +858,8 @@ class RSLCPowerImageParams(BaseParams):
 
 
     def _get_pow_units_param(self):
+        '''Return `pow_units` as a Param.'''
+
         template = Param(
                 name='pow_units',
                 val='TBD',
@@ -856,12 +884,9 @@ class RSLCPowerImageParams(BaseParams):
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
-        '''
-        Parameters
-        ----------
-        runconfig_cm : ruamel.yaml.comments.CommentedMap
-            The base commented map to add the parameters to.
-        '''
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
         # Create a default instance of this class
         default = RSLCPowerImageParams()
 
@@ -890,7 +915,8 @@ class RSLCPowerImageParams(BaseParams):
 
     def write_params_to_h5(self, h5_file, bands=('LSAR')):
         '''
-        Populate h5_file HDF5 file this dataclass' processing parameters.
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
 
         This function will populate the following fields
         in `h5_file` for all bands in `bands`:
@@ -945,16 +971,16 @@ class RSLCPowerImageParams(BaseParams):
 @dataclass
 class RSLCHistogramParams(BaseParams):
     '''
-    Data structure to hold the parameters to generate the
-    RSLC Power and Phase Histograms.
+    Parameters to generate the RSLC Power and Phase Histograms;
+    this corresponds to the `qa_reports: histogram` runconfig group.
 
-    Note that however data values are passed into this dataclass,
-    they will always be processed, stored, and accessible as Param instances.
-        - If a non-Param type is provided, default values will be used
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
           to fill in the additional Param attributes.
         - If a Param type is provided, then the <attribute>.val must contain
           a valid non-Param input for that attribute.
-        - If no value or `None` is supplied, then the attribute will be 
+        - If no value or `None` is provided, then the attribute will be 
           set to its default Param value.
 
     Parameters
@@ -1110,7 +1136,7 @@ class RSLCHistogramParams(BaseParams):
 
 
     def _get_pow_histogram_start_param(self, pow_histogram_start):
-        '''Return pow_histogram_start as a Param.'''
+        '''Return `pow_histogram_start` as a Param.'''
 
         if isinstance(pow_histogram_start, Param):
             if not pow_histogram_start.name == 'pow_histogram_start':
@@ -1150,7 +1176,7 @@ class RSLCHistogramParams(BaseParams):
                 f'pow_histogram_start must be a float, Param, or None')
 
     def _get_pow_histogram_endpoint_param(self, pow_histogram_endpoint):
-        '''Return pow_histogram_endpoint as a Param.'''
+        '''Return `pow_histogram_endpoint` as a Param.'''
 
         if isinstance(pow_histogram_endpoint, Param):
             if not pow_histogram_endpoint.name == 'pow_histogram_endpoint':
@@ -1191,7 +1217,7 @@ class RSLCHistogramParams(BaseParams):
 
 
     def _get_phs_in_radians_param(self, phs_in_radians):
-        '''Return phs_in_radians as a Param.'''
+        '''Return `phs_in_radians` as a Param.'''
 
         if isinstance(phs_in_radians, Param):
             if not phs_in_radians.name == 'phs_in_radians':
@@ -1292,6 +1318,7 @@ class RSLCHistogramParams(BaseParams):
 
 
     def _get_pow_bin_edges_param(self):
+        '''Return `pow_bin_edges` as a Param.'''
 
         # Power Bin Edges - hardcode to be in decibels
         # 101 bin edges => 100 bins
@@ -1316,6 +1343,7 @@ class RSLCHistogramParams(BaseParams):
 
 
     def _get_phs_bin_edges_param(self):
+        '''Return `phs_bin_edges` as a Param.'''
 
         # Phase bin edges - allow for either radians or degrees
         if self.phs_in_radians:
@@ -1354,12 +1382,9 @@ class RSLCHistogramParams(BaseParams):
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
-        '''
-        Parameters
-        ----------
-        runconfig_cm : ruamel.yaml.comments.CommentedMap
-            The base commented map to add the parameters to.
-        '''
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
         # Create a default instance of this class
         default = RSLCHistogramParams()
 
@@ -1384,7 +1409,8 @@ class RSLCHistogramParams(BaseParams):
 
     def write_params_to_h5(self, h5_file, bands=('LSAR')):
         '''
-        Populate h5_file HDF5 file this dataclass' processing parameters.
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
 
         This function will populate the following fields
         in `h5_file` for all bands in `bands`:
@@ -1445,6 +1471,40 @@ class RSLCHistogramParams(BaseParams):
 
 @dataclass
 class RSLCRootParams:
+    '''
+    Dataclass of all *Params objects to process QA for NISAR RSLC products.
+
+    `workflows` is the only required parameter. Based on the workflows set to
+    True in `workflows`, the other RSLCRootParams parameters will be set
+    per these rules:
+        a) If a *Params object is needed by any workflow, it will be
+           set to an instance of that *Params object.
+
+                i) If a *Params object is provided by the caller, the
+                corresponding attribute in RSLCRootParams will be set
+                to that.
+
+                i) If a *Params object is not provided, one will be 
+                instantiated using all default value, and the
+                corresponding attribute in RSLCRootParams will be set
+                to that.
+
+        b) If a *Params object is not needed by any workflow,
+           it will be set to `None`, regardless of the input.
+    
+    Parameters
+    ----------
+    workflows : WorkflowsParams
+        RSLC QA Workflows parameters
+    prodpath : ProductPathGroupParams, optional
+        Product Path Group parameters for RSLC QA
+    anc_files : DynamicAncillaryFileParams, optional
+        Dynamic Ancillary File Group parameters for RSLC Caltools
+    power_img : RSLCPowerImageParams
+        Power Image Group parameters for RSLC QA
+    histogram : RSLCHistogramParams
+        Histogram Group parameters for RSLC QA
+    '''
 
     workflows: WorkflowsParams
     prodpath: Optional[ProductPathGroupParams] = None
@@ -1525,7 +1585,7 @@ class RSLCRootParams:
 
     @staticmethod
     def dump_runconfig_template():
-        '''Outputs the runconfig template (with default values) to stdout.
+        '''Output the runconfig template (with default values) to stdout.
         '''
 
         # Build a ruamel yaml object that contains the runconfig structure
@@ -1547,12 +1607,17 @@ class RSLCRootParams:
 
 
     def save_params_to_stats_file(self, h5_file, bands=('LSAR')):
-        '''Save input parameters to stats.h5 file.
+        '''Update the provided HDF5 file handle with select attributes
+        (parameters) of this instance of RLSCRootParams.
 
         Parameters
         ----------
         h5_file : h5py.File
-            The output file to save QA metrics, etc. to
+            Handle to an h5 file where the parameter metadata
+            should be saved
+        bands : iterable of str, optional
+            Sequence of the band names. Ex: ('SSAR', 'LSAR')
+            Defaults to ('LSAR')
         '''
         for params_obj in fields(self):
             # If a workflow was not requested, its RootParams attribute
@@ -1563,6 +1628,20 @@ class RSLCRootParams:
 
 
 def parse_rslc_runconfig(runconfig_yaml):
+    '''
+    Parse a QA RSLC Runconfig yaml file into a RSLCRootParams object.
+    
+    Parameters
+    ----------
+    runconfig_yaml : str
+        Filename (with path) to an RSLC QA runconfig yaml file.
+    
+    Returns
+    -------
+    rslc_params : RSLCRootParams
+        RSLCRootParams object populated with runconfig values where provided,
+        and default values for missing runconfig parameters.
+    '''
     # parse runconfig into a dict structure
     parser = YAML(typ='safe')
     with open(runconfig_yaml, 'r') as f:

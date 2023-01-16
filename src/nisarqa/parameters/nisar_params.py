@@ -55,6 +55,7 @@ class Param:
 
 @dataclass
 class BaseParams(ABC):
+    '''Abstract Base Class for creating *Params dataclasses.'''
 
     @staticmethod
     @abstractmethod
@@ -82,10 +83,18 @@ class BaseParams(ABC):
     @staticmethod
     @abstractmethod
     def populate_runcfg(yaml_obj):
-        '''Abstract method to update the provided ruamel.yaml
-        object with this parameter class' attributes for use in the
-        runconfig.
-        
+        '''Update the provided ruamel.yaml object with select attributes
+        (parameters) of this instance of the dataclass for use in a
+        NISAR product QA runconfig file.
+
+        Only default values will be used.
+
+        Parameters
+        ----------
+        runconfig_cm : ruamel.yaml.comments.CommentedMap
+            The base commented map; will be updated with the attributes
+            from this dataclass that are in the QA runconfig file
+
         Notes
         -----
         Reference: https://stackoverflow.com/questions/56471040/add-a-comment-in-list-element-in-ruamel-yaml
@@ -94,20 +103,23 @@ class BaseParams(ABC):
 
     @abstractmethod
     def write_params_to_h5(self, h5_file, bands=('LSAR')):
-        '''Abstract method to update the provided HDF5 with this
-        parameter class' attributes.'''
+        '''Update the provided HDF5 file handle with select attributes
+        (parameters) of this instance of the dataclass.
+        '''
         pass
 
 
     def add_param_to_cm(self, params_cm, param_attr):
         '''
-        Add a single attribute of this dataclass to a group for the runconfig.
+        Add a Param attribute to a Commented Map.
+
+        This can be used to add a new parameter into a group for a runconfig.
 
         Parameters
         ----------
         params_cm : ruamel.yaml.comments.CommentedMap
             Commented Map for a parameter group in the runconfig.
-            Will be updated with the default value for the attribute.
+            Will be updated to include `param_attr`.
         param_attr : Param
             Param object that will be added to the `params_cm` Commented Map
         '''
@@ -119,9 +131,8 @@ class BaseParams(ABC):
         comment_indent = len(self.get_path_to_group_in_runconfig()) * 4
 
         # To have ruamel.yaml display list values as a list in the runconfig,
-        # use CommentedSequence
+        # use CommentedSeq
         # https://stackoverflow.com/questions/56937691/making-yaml-ruamel-yaml-always-dump-lists-inline
-
         if isinstance(param_attr.val, (list, tuple)):
             seq = CS()
             seq.fa.set_flow_style()
@@ -144,10 +155,10 @@ class BaseParams(ABC):
         '''
         Add a new group of parameters to a yaml Commented Map
         along the nested directory structure specified by 
-        get_path_to_group_in_runconfig().
+        `self.get_path_to_group_in_runconfig()`.
         
         In the process, this function will check that the nested structure
-        specified in get_path_to_group_in_runconfig()
+        specified in get_path_to_group_in_runconfig() exists.
         If not, the missing commented maps are created.
 
         Parameters
