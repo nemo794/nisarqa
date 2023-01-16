@@ -41,6 +41,10 @@ def verify_rslc(runconfig_file):
     rslc_params = nisarqa.parse_rslc_runconfig(runconfig_file)
     output_dir = rslc_params.prodpath.qa_output_dir.val
 
+    print("lala: ", rslc_params.histogram.pow_histogram_start)
+    rslc_params.histogram.pow_histogram_start = -60.0
+    print("lala: ", rslc_params.histogram.pow_histogram_start)
+
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.

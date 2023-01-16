@@ -90,14 +90,11 @@ class DynamicAncillaryFileParams(BaseParams):
 
     corner_reflector_file: Optional[Union[str, Param]] = None
 
-    def __post_init__(self):
-        self.corner_reflector_file = \
-            self.get_corner_reflector_file_param(self.corner_reflector_file)
 
-    def __set_item__(self, key, value):
+    def __setattr__(self, key, value):
         if key == 'corner_reflector_file':
-            self.corner_reflector_file = \
-                self.get_corner_reflector_file_param(value)
+            super().__setattr__(key, 
+                                self.get_corner_reflector_file_param(value))
         else:
             raise KeyError(f'{key}')
 
@@ -220,15 +217,12 @@ class ProductPathGroupParams(BaseParams):
     qa_input_file: Optional[Union[str, Param]] = None
     qa_output_dir: Optional[Union[str, Param]] = None
 
-    def __post_init__(self):
-        self.qa_input_file = self.get_qa_input_file_param(self.qa_input_file)
-        self.qa_output_dir = self.get_qa_output_dir_param(self.qa_output_dir)
 
-    def __set_item__(self, key, value):
+    def __setattr__(self, key, value):
         if key == 'qa_input_file':
-            self.qa_input_file = self.get_qa_input_file_param(value)
+            super().__setattr__(key, self.get_qa_input_file_param(value))
         elif key == 'qa_output_dir':
-            self.qa_output_dir = self.get_qa_output_dir_param(value)
+            super().__setattr__(key, self.get_qa_output_dir_param(value))
         else:
             raise KeyError(f'{key}')
 
@@ -431,38 +425,29 @@ class RSLCPowerImageParams(BaseParams):
     # Auto-generated attributes
     pow_units: Param = field(init=False)
 
-    def __post_init__(self):
-        self.linear_units = self._get_linear_units_param(self.linear_units)
-        self.pow_units = self._get_pow_units_param()
-        self.nlooks_freqa = self._get_nlooks_param(self.nlooks_freqa, 'A')
-        self.nlooks_freqb = self._get_nlooks_param(self.nlooks_freqb, 'B')
-        self.num_mpix = self._get_num_mpix_param(self.num_mpix)
-        self.middle_percentile = \
-            self._get_middle_percentile_param(self.middle_percentile)
-        self.gamma = self._get_gamma_param(self.gamma)
-        self.tile_shape = self._get_tile_shape_param(self.tile_shape)
 
-    def __set_item__(self, key, value):
+    def __setattr__(self, key, value):
         if key == 'linear_units':
-            self.linear_units = self._get_linear_units_param(value)
-            self.pow_units = self._get_pow_units_param(linear_units=value)
+            super().__setattr__(key, self._get_linear_units_param(value))
+            super().__setattr__('pow_units', self._get_pow_units_param())
         elif key == 'nlooks_freqa':
-            self.nlooks_freqa = self._get_nlooks_param(value, 'A')
+            super().__setattr__(key, self._get_nlooks_param(value, 'A'))
         elif key == 'nlooks_freqb':
-            self.nlooks_freqb = self._get_nlooks_param(value, 'B')
+            super().__setattr__(key, self._get_nlooks_param(value, 'B'))
         elif key == 'num_mpix':
-            self.num_mpix = self._get_num_mpix_param(value)
+            super().__setattr__(key, self._get_num_mpix_param(value))
         elif key == 'middle_percentile':
-            self.middle_percentile = self._get_middle_percentile_param(value)
+            super().__setattr__(key, self._get_middle_percentile_param(value))
         elif key == 'gamma':
-            self.gamma = self._get_gamma_param(value)
+            super().__setattr__(key, self._get_gamma_param(value))
         elif key == 'tile_shape':
-            self.tile_shape = self._get_tile_shape_param(value)
+            super().__setattr__(key, self._get_tile_shape_param(value))
         elif key == 'pow_units':
             raise KeyError(f'`pow_units` is only updated when setting '
                             '`linear_units` attribute')
         else:
             raise KeyError(f'{key}')
+
 
     def _get_nlooks_param(self, nlooks, freq):
         '''Return the number of looks for given frequency as a Param.
@@ -1032,49 +1017,42 @@ class RSLCHistogramParams(BaseParams):
     # Phase bin edges (generated based upon `phs_in_radians`)
     phs_bin_edges: Param = field(init=False)
 
-    def __post_init__(self):
-        self.decimation_ratio = \
-            self._get_decimation_ratio_param(self.decimation_ratio)
-        self.phs_in_radians = \
-            self._get_phs_in_radians_param(self.phs_in_radians)
-        self.pow_histogram_start = \
-            self._get_pow_histogram_start_param(self.pow_histogram_start)
-        self.pow_histogram_endpoint = \
-            self._get_pow_histogram_endpoint_param(self.pow_histogram_endpoint)
-        self.tile_shape = self._get_tile_shape_param(self.tile_shape)
-        self.pow_bin_edges = \
-            self._get_pow_bin_edges_param()
-        self.phs_bin_edges = \
-            self._get_phs_bin_edges_param()
 
-    def __set_item__(self, key, value):
+    def __setattr__(self, key, value):
         if key == 'decimation_ratio':
-            self.decimation_ratio = self._get_decimation_ratio_param(value)
-
-        elif key == 'phs_in_radians':
-            self.phs_in_radians = self._get_phs_in_radians_param(value)
-            self.phs_bin_edges = self._get_phs_bin_edges_param()
+            super().__setattr__(key, self._get_decimation_ratio_param(value))
 
         elif key == 'pow_histogram_start':
-            self.pow_histogram_start = \
-                self._get_pow_histogram_start_param(value)
-            # Update bin edges
-            self.pow_bin_edges = self._get_pow_bin_edges_param()
+            super().__setattr__(key,
+                                self._get_pow_histogram_start_param(value))
 
         elif key == 'pow_histogram_endpoint':
-            self.pow_histogram_endpoint = \
-                self._get_pow_histogram_endpoint_param(value)
-            # Update bin edges
-            self.pow_bin_edges = self._get_pow_bin_edges_param()
+            super().__setattr__(key,
+                                self._get_pow_histogram_endpoint_param(value))
+
+        elif key == 'phs_in_radians':
+            super().__setattr__(key, self._get_phs_in_radians_param(value))
+            super().__setattr__('phs_bin_edges',
+                                self._get_phs_bin_edges_param())
 
         elif key == 'tile_shape':
-            self.tile_shape = self._get_tile_shape_param(value)
+            super().__setattr__(key, self._get_tile_shape_param(value))
 
         elif key in ['pow_bin_edges', 'phs_bin_edges']:
             raise KeyError(f'`{key}` is only updated when setting '
                             'corresponding input parameters.')
         else:
             raise KeyError(f'{key}')
+
+        # once both histogram start point and end point have been instantiated
+        # and/or when one is modified update pow_bin_edges to account for
+        # the new value.
+        if (key in ['pow_histogram_start', 'pow_histogram_endpoint']) \
+            and isinstance(self.pow_histogram_start, Param) \
+                and isinstance(self.pow_histogram_endpoint, Param):
+            # Update bin edges
+            super().__setattr__('pow_bin_edges',
+                                self._get_pow_bin_edges_param())
 
 
     def _get_decimation_ratio_param(self, decimation_ratio):
