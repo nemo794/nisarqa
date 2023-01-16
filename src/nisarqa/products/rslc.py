@@ -41,10 +41,6 @@ def verify_rslc(runconfig_file):
     rslc_params = nisarqa.parse_rslc_runconfig(runconfig_file)
     output_dir = rslc_params.prodpath.qa_output_dir.val
 
-    print("lala: ", rslc_params.histogram.pow_histogram_start)
-    rslc_params.histogram.pow_histogram_start = -60.0
-    print("lala: ", rslc_params.histogram.pow_histogram_start)
-
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
@@ -137,8 +133,7 @@ def verify_rslc(runconfig_file):
             nisarqa.output_stub_files(output_dir=output_dir,
                                     stub_files='browse_kml')
 
-            with nisarqa.open_h5_file(input_file, mode='r') as in_file, \
-                nisarqa.open_h5_file(stats_file, mode='r+') as stats_h5, \
+            with nisarqa.open_h5_file(stats_file, mode='r+') as stats_h5, \
                 PdfPages(report_file) as report_pdf:
 
                 # Save product info to stats file
@@ -681,14 +676,17 @@ def _get_bands(h5_file):
 
     bands = {}
     for band in nisarqa.BANDS:
+        print("SAM 1")
         path = f'/science/{band}'
+        print("path: ", path)
         if path in h5_file:
             # self.logger.log_message(logging_base.LogFilterInfo, 'Found band %s' % band)
             bands[band] = h5_file[path]
+            print("SAM 2")
         else:
             # self.logger.log_message(logging_base.LogFilterInfo, '%s not present' % band)
             pass
-
+    print("SAM 3: ", bands)
     return bands
 
 

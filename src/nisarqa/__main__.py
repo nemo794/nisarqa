@@ -34,8 +34,20 @@ def main():
         nisarqa.rslc.verify_rslc(runconfig_file=args.runconfig_yaml)
     elif subcommand == 'gslc_qa':
         nisarqa.gslc.verify_gslc(runconfig_file=args.runconfig_yaml)
+    elif subcommand == 'gcov_qa':
+        nisarqa.gcov.verify_gcov(runconfig_file=args.runconfig_yaml)
+    elif subcommand == 'rifg_qa':
+        nisarqa.rifg.verify_rifg(runconfig_file=args.runconfig_yaml)
+    elif subcommand == 'runw_qa':
+        nisarqa.runw.verify_runw(runconfig_file=args.runconfig_yaml)
+    elif subcommand == 'gunw_qa':
+        nisarqa.gunw.verify_gunw(runconfig_file=args.runconfig_yaml)
+    elif subcommand == 'roff_qa':
+        nisarqa.roff.verify_roff(runconfig_file=args.runconfig_yaml)
+    elif subcommand == 'goff_qa':
+        nisarqa.goff.verify_goff(runconfig_file=args.runconfig_yaml)
     else:
-        raise Exception('Not implemented yet!)')
+        raise Exception(f'Unknown subcommand: {subcommand}')
 
 
 if __name__ == '__main__':

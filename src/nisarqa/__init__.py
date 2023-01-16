@@ -100,7 +100,8 @@ from .parameters.nisar_params import *
 from .parameters.qa_constants.globals import *
 from .parameters.qa_constants.stub_outputs import *
 from .parameters.rslc_params import *
-from .products import caltools, gslc, rslc  # keep in their own namespace
+from .products import (caltools, gcov, goff,  # keep in their own namespace
+                       gslc, gunw, rifg, roff, rslc, runw)
 from .utils.calc import *
 from .utils.generate_test_data import *
 from .utils.input_verification import *

@@ -1,6 +1,7 @@
 import os
 
 import h5py
+import nisarqa
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -181,26 +182,17 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
 
     # Save stats.h5 stub file
     if 'stats_h5' in stub_files:
-        # TODO use context manager
-        nisar_h5 = h5py.File(input_file, 'r')
-        stats_h5_file = h5py.File(os.path.join(output_dir, 'STATS.h5'), "w")
+        stats_file = os.path.join(output_dir, 'STATS.h5')
 
-        grp_path = os.path.join('/science/LSAR/identification')
+        with nisarqa.open_h5_file(input_file, mode='r') as in_file, \
+            nisarqa.open_h5_file(stats_file, mode='w') as stats_h5:
 
-        # Copy identification metadata from input file to stats.h5
-        nisar_h5.copy(nisar_h5[f'/science/LSAR/identification'],
-                      stats_h5_file, grp_path)
+            for band in nisarqa.BANDS:
+                grp_path = os.path.join(f'/science/{band}/identification')
 
-        # Save filename for this input NISAR product
-        grp = stats_h5_file.require_group(grp_path)
-        ds = grp.create_dataset('NISARProductFilename', 
-                                data=os.path.basename(nisar_h5.filename))
-        ds.attrs.create(name='description',
-                        data='Input NISAR product filename',
-                        dtype=f'<S{len("Input NISAR product filename")}')
-
-        nisar_h5.close()
-        stats_h5_file.close()
+                if grp_path in in_file:
+                    # Copy identification metadata from input file to stats.h5
+                    in_file.copy(in_file[grp_path], stats_h5, grp_path)
 
     # Save browse image stub file and pdf stub file
     # Create a roughly 2048x2048 pixels^2 RGB image
