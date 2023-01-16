@@ -1,17 +1,10 @@
 import os
-import time
-from dataclasses import dataclass, field, fields
-from typing import Iterable, Optional, Tuple, Union
+from dataclasses import dataclass
 
 import h5py
-# Switch backend to one that doesn't require DISPLAY to be set since we're
-# just plotting to file anyway. (Some compute notes do not allow X connections)
-# This needs to be set prior to opening any matplotlib objects.
-import matplotlib
 import nisarqa
 import numpy as np
 import numpy.typing as npt
-from cycler import cycler
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from PIL import Image
@@ -137,25 +130,22 @@ def verify_rslc(runconfig_file):
                 PdfPages(report_file) as report_pdf:
 
                 # Save product info to stats file
-                nisarqa.rslc.save_NISAR_freq_metadata_to_h5(
-                                stats_h5=stats_h5,
-                                path_to_group='/QA/data',
-                                pols=pols)
+                save_NISAR_freq_metadata_to_h5(stats_h5=stats_h5,
+                                               path_to_group='/QA/data',
+                                               pols=pols)
 
                 # Generate the RSLC Power Image
-                nisarqa.rslc.process_power_images(
-                                pols=pols,
-                                params=rslc_params.power_img,
-                                stats_h5=stats_h5,
-                                report_pdf=report_pdf,
-                                output_dir=output_dir)
+                process_power_images(pols=pols,
+                                     params=rslc_params.power_img,
+                                     stats_h5=stats_h5,
+                                     report_pdf=report_pdf,
+                                     output_dir=output_dir)
 
                 # Generate the RSLC Power and Phase Histograms
-                nisarqa.rslc.process_power_and_phase_histograms(
-                                pols=pols,
-                                params=rslc_params.histogram,
-                                stats_h5=stats_h5,
-                                report_pdf=report_pdf)
+                process_power_and_phase_histograms(pols=pols,
+                                                   params=rslc_params.histogram,
+                                                   stats_h5=stats_h5,
+                                                   report_pdf=report_pdf)
 
                 # Process Interferograms
 

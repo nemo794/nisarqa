@@ -1,8 +1,7 @@
-import numpy as np
-import itertools
 import warnings
 
 import nisarqa
+import numpy as np
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 

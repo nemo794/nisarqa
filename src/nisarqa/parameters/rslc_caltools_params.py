@@ -1,11 +1,10 @@
 import os
 import sys
 from dataclasses import dataclass, field, fields
-from typing import Any, ClassVar, Iterable, Optional, Tuple, Union
+from typing import Iterable, Optional, Tuple, Union
 
 import nisarqa
 import numpy as np
-import numpy.typing as npt
 from nisarqa import BaseParams, Param
 from ruamel.yaml import YAML
 from ruamel.yaml import CommentedMap as CM

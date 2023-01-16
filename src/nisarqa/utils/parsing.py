@@ -1,7 +1,6 @@
 import argparse
 
 import nisarqa
-from ruamel.yaml import YAML
 
 objects_to_skip = nisarqa.get_all(__name__)
 
