@@ -133,7 +133,7 @@ def create_dataset_in_h5group(h5_file,
     ds_name : str
         Name (key) for the Dataset in the `grp_path`
     ds_data : array_like or str
-        Data to be stored as a Dataset in `grp_path`
+        Data to be stored as a Dataset in `grp_path`.
     ds_description : str
         Description of `ds_data`; will be stored in a `description`
         attribute for the new Dataset

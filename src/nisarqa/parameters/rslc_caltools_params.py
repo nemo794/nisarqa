@@ -1,6 +1,5 @@
 import os
 import sys
-import warnings
 from dataclasses import dataclass, field, fields
 from typing import Any, ClassVar, Iterable, Optional, Tuple, Union
 
@@ -109,14 +108,13 @@ class DynamicAncillaryFileParams(BaseParams):
     def __setattr__(self, key, value):
         if key == 'corner_reflector_file':
             super().__setattr__(key, 
-                                self.get_corner_reflector_file_param(value))
+                                self._get_corner_reflector_file_param(value))
         else:
             raise KeyError(f'{key}')
 
 
-    def get_corner_reflector_file_param(self, corner_reflector_file):
-        '''Get Param for the `corner_reflector_file` attribute
-        based on the input type.'''
+    def _get_corner_reflector_file_param(self, corner_reflector_file):
+        '''Return `attr1` as a Param'''
 
         if isinstance(corner_reflector_file, Param):
             if not corner_reflector_file.name == 'corner_reflector_file':
@@ -144,7 +142,6 @@ class DynamicAncillaryFileParams(BaseParams):
             )
 
         if corner_reflector_file is None:
-            warnings.warn('`corner_reflector_file` not provided. Using default.')
             return default
 
         elif isinstance(corner_reflector_file, str):
@@ -277,7 +274,6 @@ class ProductPathGroupParams(BaseParams):
 
         if qa_input_file is None:
             # return the default Param
-            warnings.warn('`qa_input_file` not provided.')
             return default
 
         elif isinstance(qa_input_file, str):
@@ -527,7 +523,6 @@ class RSLCPowerImageParams(BaseParams):
 
         if nlooks is None:
             # return the default Param
-            warnings.warn(f'`nlooks_freq{freq.lower()}` not provided.')
             return default
 
         elif isinstance(nlooks, int):
@@ -594,7 +589,6 @@ class RSLCPowerImageParams(BaseParams):
 
         if linear_units is None:
             # return the default Param
-            warnings.warn('`linear_units` not provided.')
             return default
 
         elif isinstance(linear_units, bool):
@@ -649,7 +643,6 @@ class RSLCPowerImageParams(BaseParams):
 
         if num_mpix is None:
             # return the default Param
-            warnings.warn('`num_mpix` not provided.')
             return default
 
         elif isinstance(num_mpix, float):
@@ -708,7 +701,6 @@ class RSLCPowerImageParams(BaseParams):
 
         if middle_percentile is None:
             # return the default Param
-            warnings.warn('`middle_percentile` not provided. Using default.')
             return default
 
         elif isinstance(middle_percentile, float):
@@ -778,7 +770,6 @@ class RSLCPowerImageParams(BaseParams):
 
         if gamma is None:
             # return the default Param
-            warnings.warn('`gamma` not provided. Using default.')
             return default
 
         elif isinstance(gamma, float):
@@ -839,7 +830,6 @@ class RSLCPowerImageParams(BaseParams):
 
         if tile_shape is None:
             # return the default Param
-            warnings.warn('`tile_shape` not provided.')
             return default
 
         elif all(isinstance(e, int) for e in tile_shape):
@@ -1117,7 +1107,6 @@ class RSLCHistogramParams(BaseParams):
 
         if decimation_ratio is None:
             # return the default Param
-            warnings.warn('`decimation_ratio` not provided.')
             return default
 
         elif all(isinstance(e, int) for e in decimation_ratio):
@@ -1163,7 +1152,6 @@ class RSLCHistogramParams(BaseParams):
 
         if pow_histogram_start is None:
             # return the default Param
-            warnings.warn('`pow_histogram_start` not provided.')
             return default
 
         elif isinstance(pow_histogram_start, float):
@@ -1203,7 +1191,6 @@ class RSLCHistogramParams(BaseParams):
 
         if pow_histogram_endpoint is None:
             # return the default Param
-            warnings.warn('`pow_histogram_endpoint` not provided.')
             return default
 
         elif isinstance(pow_histogram_endpoint, float):
@@ -1241,7 +1228,6 @@ class RSLCHistogramParams(BaseParams):
 
         if phs_in_radians is None:
             # return the default Param
-            warnings.warn('`phs_in_radians` not provided.')
             return default
 
         elif isinstance(phs_in_radians, bool):
@@ -1299,7 +1285,6 @@ class RSLCHistogramParams(BaseParams):
 
         if tile_shape is None:
             # return the default Param
-            warnings.warn('`tile_shape` not provided.')
             return default
 
         elif all(isinstance(e, int) for e in tile_shape):
@@ -1468,6 +1453,421 @@ class RSLCHistogramParams(BaseParams):
                 ds_description=self.phs_bin_edges.short_descr)
 
 
+@dataclass
+class AbsCalParams(BaseParams):
+    '''
+    Parameters from the QA-CalTools Absolute Calibration Factor
+    runconfig group.
+
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
+          to fill in the additional Param attributes.
+        - If a Param type is provided, then the <attribute>.val must contain
+          a valid non-Param input for that attribute.
+        - If no value or `None` is provided, then the attribute will be 
+          set to its default Param value.
+
+    Parameters
+    ----------
+    attr1 : float, Param, optional
+        Placeholder Attribute 1.
+    '''
+
+    attr1: Optional[Union[float, Param]] = None
+
+
+    def __setattr__(self, key, value):
+        if key == 'attr1':
+            super().__setattr__(key, self._get_attr1_param(value))
+        else:
+            raise KeyError(f'{key}')
+
+
+    def _get_attr1_param(self, attr1):
+        '''Return `attr1` as a Param'''
+
+        if isinstance(attr1, Param):
+            if not attr1.name == 'attr1':
+                raise ValueError('attr1.name must be "attr1"')
+            if not isinstance(attr1.val, float):
+                raise ValueError(f'attr1.val must be a float: {attr1.val}')
+
+            return attr1
+
+        # Construct defaults for the new Param
+        default = \
+            Param(name='attr1',
+                  val=2.3,
+                  units='smoot',
+                  short_descr='Description of attr1 for stats.h5 file',
+                  long_descr= \
+            '''
+            Placeholder: Attribute 1 description for runconfig. Each new line
+            of text will be a separate line in the runconfig template.
+            `attr1` is a non-negative float value. Default: 2.3'''
+            )
+
+        if attr1 is None:
+            return default
+
+        elif isinstance(attr1, float):
+            if attr1 < 0.0:
+                raise ValueError('attr1 must be a non-negative value')
+            # update the default with the new value and return it
+            default.val = attr1
+            return default
+
+        else:
+            raise ValueError('`attr1` must be a float, Param, or None')
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ['runconfig','groups','processing',
+                    'qa','absolute_calibration_factor']
+
+    @staticmethod
+    def populate_runcfg(runconfig_cm):
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
+        # Create a default instance of this class
+        default = AbsCalParams()
+
+        # build new yaml params group for this dataclass
+        params_cm = CM()
+
+        # Add runconfig parameters
+        default.add_param_to_cm(params_cm=params_cm,
+                                param_attr=default.attr1)
+
+        # Add the new parameter group to the runconfig
+        default.add_param_group_to_runconfig(runconfig_cm, params_cm)
+
+
+    def write_params_to_h5(self, h5_file, bands=('LSAR')):
+        '''
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
+
+        This function will populate the following fields
+        in `h5_file` for all bands in `bands`:
+            /science/<band>/absoluteCalibrationFactor/processing/attr1
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            Handle to an h5 file where the parameter metadata
+            should be saved
+        bands : iterable of str, optional
+            Sequence of the band names. Ex: ('SSAR', 'LSAR')
+            Defaults to ('LSAR')
+        '''
+        for band in bands:
+            nisarqa.create_dataset_in_h5group(
+                h5_file=h5_file,
+                grp_path=f'/science/{band}/absoluteCalibrationFactor/processing',
+                ds_name='attr1',
+                ds_data=self.attr1.val,
+                ds_description=self.attr1.short_descr,
+                ds_units=self.attr1.units)
+
+
+@dataclass
+class NESZParams(BaseParams):
+    '''
+    Parameters from the QA-CalTools Noise Estimator (NESZ) runconfig group.
+
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
+          to fill in the additional Param attributes.
+        - If a Param type is provided, then the <attribute>.val must contain
+          a valid non-Param input for that attribute.
+        - If no value or `None` is provided, then the attribute will be 
+          set to its default Param value.
+
+    Parameters
+    ----------
+    attr1 : float, Param, optional
+        Placeholder Attribute 1.
+
+    Attributes
+    ----------
+    attr2 : bool, Param
+        Placeholder parameter; should be removed once the
+        actual parameters are provided.
+    '''
+
+    # Attributes for running the NESZ workflow
+    attr1: Optional[Union[float, Param]] = None
+
+    # Auto-generated attributes
+    attr2: Param = field(init=False)
+
+
+    def __setattr__(self, key, value):
+        if key == 'attr1':
+            super().__setattr__(key, self._get_attr1_param(value))
+
+            # Assume attr2 is auto-generated based upon attr1.
+            # Update it here.
+            super().__setattr__('attr2', self._get_attr2_param())
+        elif key == 'attr2':
+            raise KeyError(f'`{key}` is only updated when setting '
+                            'corresponding `attr1` input parameter.')
+        else:
+            raise KeyError(f'{key}')
+
+
+    def _get_attr1_param(self, attr1):
+        '''Return `attr1` as a Param'''
+
+        if isinstance(attr1, Param):
+            if not attr1.name == 'attr1':
+                raise ValueError('attr1.name must be "attr1"')
+            if not isinstance(attr1.val, float):
+                raise ValueError(f'attr1.val must be a float: {attr1.val}')
+
+            return attr1
+
+        # Construct defaults for the new Param
+        default = \
+            Param(name='attr1',
+                  val=11.3,
+                  units='parsecs',
+                  short_descr='score for Kessel Run ',
+                  long_descr='''
+            Placeholder: Attribute 1 description for runconfig. Each new line
+            of text will be a separate line in the runconfig template.
+            `attr1` is a non-negative float value. Default: 11.9'''
+            )
+
+        if attr1 is None:
+            return default
+
+        elif isinstance(attr1, float):
+            if attr1 < 0.0:
+                raise ValueError('attr1 must be a non-negative value')
+            # update the default with the new value and return it
+            default.val = attr1
+            return default
+
+        else:
+            raise ValueError('`attr1` must be a float, Param, or None')
+
+    def _get_attr2_param(self):
+        '''Return `attr2` as a Param.'''
+
+        # Here is where the dependency upon attr1 occurs:
+        if self.attr1.val < 12.0:
+            val = True
+        else:
+            val = False
+
+        template = Param(
+            name='attr2',
+            val=val,
+            units=self.attr1.units,
+            short_descr='True if it was a good run',
+            long_descr='''
+            Placeholder: Attribute 2 description for runconfig.
+            (attr2 is not in the runconfig, but it can be nice to have the
+            docstring-like description in a centralized location.)
+            `attr1` is a bool. Default: False'''
+            )
+
+        return template
+
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ['runconfig','groups','processing','qa','nesz']
+
+    @staticmethod
+    def populate_runcfg(runconfig_cm):
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
+        # Create a default instance of this class
+        default = NESZParams()
+
+        # build new yaml params group for this dataclass
+        params_cm = CM()
+
+        # Add runconfig parameters
+        # Note: `attr2` is not part of the runconfig, so do not add it.
+        default.add_param_to_cm(params_cm=params_cm,
+                                param_attr=default.attr1)
+
+        # Add the new parameter group to the runconfig
+        default.add_param_group_to_runconfig(runconfig_cm, params_cm)
+
+
+    def write_params_to_h5(self, h5_file, bands=('LSAR')):
+        '''
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
+
+        This function will populate the following fields
+        in `h5_file` for all bands in `bands`:
+            /science/<band>/NESZ/processing/attribute1
+            /science/<band>/NESZ/processing/attribute2
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            Handle to an h5 file where the parameter metadata
+            should be saved
+        bands : iterable of str, optional
+            Sequence of the band names. Ex: ('SSAR', 'LSAR')
+            Defaults to ('LSAR')
+        '''
+
+        # In this function, you get to decide which of the processing 
+        # parameters get to be saved to the STATS.h5 file. Not all
+        # parameters need to be stored.
+
+        for band in bands:
+            grp_path=f'/science/{band}/NESZ/processing'
+            
+            # Save attr1
+            nisarqa.create_dataset_in_h5group(
+                h5_file=h5_file,
+                grp_path=grp_path,
+                ds_name='attribute1',
+                ds_data=self.attr1.val,
+                ds_description=self.attr1.short_descr,
+                ds_units=self.attr1.units)
+
+            # Save attr2
+            nisarqa.create_dataset_in_h5group(
+                h5_file=h5_file,
+                grp_path=grp_path,
+                ds_name='attribute2',
+                ds_data=self.attr2.val,
+                ds_description=self.attr2.short_descr,
+                ds_units=self.attr2.units)
+
+
+@dataclass
+class PointTargetAnalyzerParams(BaseParams):
+    '''
+    Parameters from the QA-CalTools Point Target Analyzer runconfig group.
+
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
+          to fill in the additional Param attributes.
+        - If a Param type is provided, then the <attribute>.val must contain
+          a valid non-Param input for that attribute.
+        - If no value or `None` is provided, then the attribute will be 
+          set to its default Param value.
+
+    Parameters
+    ----------
+    attr1 : str, Param, optional
+        Placeholder Attribute 1.
+    '''
+
+    attr1: Optional[Union[str, Param]] = None
+
+
+    def __setattr__(self, key, value):
+        if key == 'attr1':
+            super().__setattr__(key, self._get_attr1_param(value))
+        else:
+            raise KeyError(f'{key}')
+
+
+    def _get_attr1_param(self, attr1):
+        '''Return `attr1` as a Param'''
+
+        if isinstance(attr1, Param):
+            if not attr1.name == 'attr1':
+                raise ValueError('attr1.name must be "attr1"')
+            if not isinstance(attr1.val, str):
+                raise ValueError(f'attr1.val must be a str: {attr1.val}')
+
+            return attr1
+
+        # Construct defaults for the new Param
+        default = \
+            Param(name='attr1',
+                  val=2300.5,
+                  units='beard-second',
+                  short_descr='amount of growth at end of November',
+                  long_descr= \
+            '''
+            Placeholder: Attribute 1 description for runconfig. Each new line
+            of text will be a separate line in the runconfig template.
+            `attr1` is a non-negative float value. Default: 2300.5'''
+            )
+
+        if attr1 is None:
+            return default
+
+        elif isinstance(attr1, float):
+            if attr1 < 0.0:
+                raise ValueError('attr1 must be a non-negative value')
+            # update the default with the new value and return it
+            default.val = attr1
+            return default
+
+        else:
+            raise ValueError('`attr1` must be a float, Param, or None')
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ['runconfig','groups','processing',
+                    'qa','point_target_analyzer']
+
+    @staticmethod
+    def populate_runcfg(runconfig_cm):
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
+        # Create a default instance of this class
+        default = PointTargetAnalyzerParams()
+
+        # build new yaml params group for this dataclass
+        params_cm = CM()
+
+        # Add runconfig parameters
+        default.add_param_to_cm(params_cm=params_cm,
+                                param_attr=default.attr1)
+
+        # Add the new parameter group to the runconfig
+        default.add_param_group_to_runconfig(runconfig_cm, params_cm)
+
+
+    def write_params_to_h5(self, h5_file, bands=('LSAR')):
+        '''
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
+
+        This function will populate the following fields
+        in `h5_file` for all bands in `bands`:
+            /science/<band>/absoluteCalibrationFactor/processing/attr1
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            Handle to an h5 file where the parameter metadata
+            should be saved
+        bands : iterable of str, optional
+            Sequence of the band names. Ex: ('SSAR', 'LSAR')
+            Defaults to ('LSAR')
+        '''
+        for band in bands:
+            nisarqa.create_dataset_in_h5group(
+                h5_file=h5_file,
+                grp_path=f'/science/{band}/pointTargetAnalyzer/processing',
+                ds_name='attr1',
+                ds_data=self.attr1.val,
+                ds_description=self.attr1.short_descr,
+                ds_units=self.attr1.units)
+
 
 @dataclass
 class RSLCRootParams:
@@ -1498,23 +1898,33 @@ class RSLCRootParams:
         RSLC QA Workflows parameters
     prodpath : ProductPathGroupParams, optional
         Product Path Group parameters for RSLC QA
-    anc_files : DynamicAncillaryFileParams, optional
-        Dynamic Ancillary File Group parameters for RSLC Caltools
     power_img : RSLCPowerImageParams
         Power Image Group parameters for RSLC QA
     histogram : RSLCHistogramParams
         Histogram Group parameters for RSLC QA
+    anc_files : DynamicAncillaryFileParams, optional
+        Dynamic Ancillary File Group parameters for RSLC QA-Caltools
+    abs_cal : AbsCalParams, optional
+        Absolute Calibration Factor group parameters for RSLC QA-Caltools
+    nesz : NESZParams, optional
+        NESZ group parameters for RSLC QA-Caltools
+    pta : PointTargetAnalyzerParams, optional
+        Point Target Analyzer group parameters for RSLC QA-Caltools
     '''
 
+    # Shared parameters
     workflows: WorkflowsParams
     prodpath: Optional[ProductPathGroupParams] = None
-    anc_files: Optional[DynamicAncillaryFileParams] = None
+
+    # QA parameters
     power_img: Optional[RSLCPowerImageParams] = None
     histogram: Optional[RSLCHistogramParams] = None
 
-    # abs_cal: Optional[AbsCalParams] = None
-    # nesz: Optional[NESZParams] = None
-    # pta: Optional[PointTargetAnalyzerParams] = None
+    # CalTools parameters
+    anc_files: Optional[DynamicAncillaryFileParams] = None
+    abs_cal: Optional[AbsCalParams] = None
+    nesz: Optional[NESZParams] = None
+    pta: Optional[PointTargetAnalyzerParams] = None
 
     def __post_init__(self):
 
@@ -1544,37 +1954,37 @@ class RSLCRootParams:
                     'requested qa_reports workflow')
 
         if self.workflows.absolute_calibration_factor:
+            if self.abs_cal is None or \
+                not isinstance(self.abs_cal, AbsCalParams):
+                raise ValueError('abs_cal parameter of type '
+                    'AbsCalParams is required to run the '
+                    'requested absolute_calibration_factor workflow')
+
             if self.anc_files is None or \
                 not isinstance(self.anc_files, DynamicAncillaryFileParams):
                 raise ValueError('anc_files parameter of type '
                     'DynamicAncillaryFileParams is required to run the '
                     'requested absolute_calibration_factor workflow')
 
-            # if self.abs_cal is None or \
-            #     not isinstance(self.abs_cal, AbsCalParams):
-            #     raise ValueError('abs_cal parameter of type '
-            #         'AbsCalParams is required to run the '
-            #         'requested absolute_calibration_factor workflow')
-
-        # if self.workflows.nesz:
-        #     if self.nesz is None or \
-        #         not isinstance(self.nesz, NESZParams):
-        #         raise ValueError('nesz parameter of type '
-        #             'NESZParams is required to run the '
-        #             'requested nesz workflow')
+        if self.workflows.nesz:
+            if self.nesz is None or \
+                not isinstance(self.nesz, NESZParams):
+                raise ValueError('nesz parameter of type '
+                    'NESZParams is required to run the '
+                    'requested nesz workflow')
 
         if self.workflows.point_target_analyzer:
+            if self.pta is None or \
+                not isinstance(self.pta, PointTargetAnalyzerParams):
+                raise ValueError('pta parameter of type '
+                    'PointTargetAnalyzerParams is required to run the '
+                    'requested point_target_analyzer workflow')
+
             if self.anc_files is None or \
                 not isinstance(self.anc_files, DynamicAncillaryFileParams):
                 raise ValueError('anc_files parameter of type '
                     'DynamicAncillaryFileParams is required to run the '
                     'requested point_target_analyzer workflow')
-
-            # if self.abs_cal is None or \
-            #     not isinstance(self.pta, PointTargetAnalyzerParams):
-            #     raise ValueError('pta parameter of type '
-            #         'PointTargetAnalyzerParams is required to run the '
-            #         'requested point_target_analyzer workflow')
 
         # Ensure all provided attributes are a subtype of BaseParams
         for attr_name in self.__annotations__:
@@ -1601,6 +2011,9 @@ class RSLCRootParams:
         WorkflowsParams.populate_runcfg(runconfig_cm)
         RSLCPowerImageParams.populate_runcfg(runconfig_cm)
         RSLCHistogramParams.populate_runcfg(runconfig_cm)
+        AbsCalParams.populate_runcfg(runconfig_cm)
+        NESZParams.populate_runcfg(runconfig_cm)
+        PointTargetAnalyzerParams.populate_runcfg(runconfig_cm)
 
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
@@ -1683,12 +2096,39 @@ def parse_rslc_runconfig(runconfig_yaml):
     else:
         histogram_params = None
 
+    # Construct AbsCalParams dataclass
+    if workflows_params.absolute_calibration_factor:
+        rncfg_path = AbsCalParams.get_path_to_group_in_runconfig()
+        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
+        abscal_params = AbsCalParams(**params_dict)
+    else:
+        abscal_params = None
 
+    # Construct NESZ dataclass
+    if workflows_params.nesz:
+        rncfg_path = NESZParams.get_path_to_group_in_runconfig()
+        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
+        nesz_params = NESZParams(**params_dict)
+    else:
+        nesz_params = None
+
+    # Construct PointTargetAnalyzerParams dataclass
+    if workflows_params.point_target_analyzer:
+        rncfg_path = PointTargetAnalyzerParams.get_path_to_group_in_runconfig()
+        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
+        pta_params = PointTargetAnalyzerParams(**params_dict)
+    else:
+        pta_params = None
+
+    # Construct RSLCRootParams
     rslc_params = RSLCRootParams(workflows=workflows_params,
                                  anc_files=dyn_anc_files,
                                  prodpath=product_path_params,
                                  power_img=pow_img_params,
-                                 histogram=histogram_params
+                                 histogram=histogram_params,
+                                 abs_cal=abscal_params,
+                                 nesz=nesz_params,
+                                 pta=pta_params
                                  )
 
     return rslc_params

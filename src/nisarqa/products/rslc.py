@@ -165,40 +165,35 @@ def verify_rslc(runconfig_file):
 
                 # Compute metrics for stats.h5
 
-        if rslc_params.workflows.absolute_calibration_factor:
-            msg = 'Generating Caltools Absolute Calibration Factor reports '\
-                f'for file {input_file}'
-            print(msg)
-            # logger.log_message(logging_base.LogFilterInfo, msg)
+    if rslc_params.workflows.absolute_calibration_factor:
+        msg = f'Running Absolute Calibration Factor CalTool: {input_file}'
+        print(msg)
+        # logger.log_message(logging_base.LogFilterInfo, msg)
 
-            # Run Absolute Calibration Factor tool
-            nisarqa.caltools.run_absolute_cal_factor(
-                in_file=input_file,
-                stats_h5=stats_file,
-                params=rslc_params.abs_cal)
+        # Run Absolute Calibration Factor tool
+        nisarqa.caltools.run_abscal_tool(params=rslc_params.abs_cal,
+                                         input_filename=input_file,
+                                         stats_filename=stats_file)
 
-        if rslc_params.workflows.nesz:
-            msg = f'Generating Caltools NESZ reports for file {input_file}'
-            print(msg)
-            # logger.log_message(logging_base.LogFilterInfo, msg)
+    if rslc_params.workflows.nesz:
+        msg = f'Running NESZ CalTool: {input_file}'
+        print(msg)
+        # logger.log_message(logging_base.LogFilterInfo, msg)
 
-            # Run NESZ tool
-            nisarqa.caltools.run_nesz(
-                in_file=input_file,
-                stats_h5=stats_file,
-                params=rslc_params.nesz_params)
+        # Run NESZ tool
+        nisarqa.caltools.run_nesz_tool(params=rslc_params.nesz,
+                                       input_filename=input_file,
+                                       stats_filename=stats_file)
 
-        if rslc_params.workflows.point_target_analyzer:
-            msg = 'Generating Caltools Point Target reports '\
-                f'for file {input_file}'
-            print(msg)
-            # logger.log_message(logging_base.LogFilterInfo, msg)
+    if rslc_params.workflows.point_target_analyzer:
+        msg = f'Running Point Target Analyzer CalTool: {input_file}'
+        print(msg)
+        # logger.log_message(logging_base.LogFilterInfo, msg)
 
-            # Run Point Analyzer tool
-            nisarqa.caltools.run_point_target_analyzer(
-                            input_file=input_file,
-                            stats_h5=stats_file,
-                            params=rslc_params.pta)
+        # Run Point Target Analyzer tool
+        nisarqa.caltools.run_pta_tool(params=rslc_params.pta,
+                                      input_filename=input_file,
+                                      stats_filename=stats_file)
 
     print('Successful completion. Check log file for validation warnings and errors.')
 

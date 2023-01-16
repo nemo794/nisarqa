@@ -99,7 +99,7 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 from .parameters.nisar_params import *
 from .parameters.qa_constants.globals import *
 from .parameters.qa_constants.stub_outputs import *
-from .parameters.rslc_params import *
+from .parameters.rslc_caltools_params import *
 from .products import (caltools, gcov, goff,  # keep in their own namespace
                        gslc, gunw, rifg, roff, rslc, runw)
 from .utils.calc import *
