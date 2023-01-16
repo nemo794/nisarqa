@@ -1013,7 +1013,7 @@ class RSLCRootParams:
                 assert issubclass(type(attr), BaseParams), \
                     f'{attr_name} attribute must be a subclass of BaseParams'
 
-
+    @staticmethod
     def dump_runconfig_template(self):
         '''Outputs the runconfig template (with default values) to stdout.
         '''
@@ -1026,10 +1026,10 @@ class RSLCRootParams:
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
-        self.anc_files.populate_runcfg(runconfig_cm)
-        self.prodpath.populate_runcfg(runconfig_cm)
-        self.workflows.populate_runcfg(runconfig_cm)
-        self.power_img.populate_runcfg(runconfig_cm)
+        DynamicAncillaryFileParams.populate_runcfg(runconfig_cm)
+        ProductPathGroupParams.populate_runcfg(runconfig_cm)
+        WorkflowsParams.populate_runcfg(runconfig_cm)
+        RSLCPowerImageParams.populate_runcfg(runconfig_cm)
 
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
@@ -1046,8 +1046,8 @@ class RSLCRootParams:
         for params_obj in fields(self):
             # If a workflow was not requested, its RootParams attribute
             # will be None, so there will be no params to add to the h5 file
-            if params_obj is not None:
-                po = getattr(self, params_obj.name)
+            po = getattr(self, params_obj.name)
+            if po is not None:
                 po.write_params_to_h5(h5_file, bands=bands)
 
 

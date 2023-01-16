@@ -12,16 +12,9 @@ import nisarqa
 
 def dumpconfig(product_type):
     if product_type == 'rslc':
-        root = nisarqa.RSLCRootParams(
-                workflows=nisarqa.WorkflowsParams(),
-                anc_files=nisarqa.DynamicAncillaryFileParams(),
-                prodpath=nisarqa.ProductPathGroupParams(),
-                power_img=nisarqa.RSLCPowerImageParams()
-                )
+        nisarqa.RSLCRootParams.dump_runconfig_template()
     else:
         raise Exception(f'{product_type} dumpconfig code not implemented yet.')
-
-    root.dump_runconfig_template()
 
     return True
 
@@ -35,12 +28,12 @@ def main():
 
     subcommand = args.command
 
-    if subcommand == 'rslc_qa':
+    if subcommand == 'dumpconfig':
+        dumpconfig(args.product_type)
+    elif subcommand == 'rslc_qa':
         nisarqa.rslc.verify_rslc(runconfig_file=args.runconfig_yaml)
     elif subcommand == 'gslc_qa':
         nisarqa.gslc.verify_gslc(runconfig_file=args.runconfig_yaml)
-    elif subcommand == 'dumpconfig':
-        dumpconfig(args.product_type)
     else:
         raise Exception('Not implemented yet!)')
 

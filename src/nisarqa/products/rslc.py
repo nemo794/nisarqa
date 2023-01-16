@@ -48,7 +48,7 @@ def verify_rslc(runconfig_file):
 
     # Create file paths for output files ()
     input_file = rslc_params.prodpath.qa_input_file.val
-    msg = f'Starting Quality Assurance for input file: {input_file}. ' \
+    msg = f'Starting Quality Assurance for input file: {input_file}' \
             f'\nOutputs to be generated:'
     if rslc_params.workflows.validate or rslc_params.workflows.qa_reports:
         summary_file = os.path.join(output_dir, 'SUMMARY.csv')
@@ -59,15 +59,15 @@ def verify_rslc(runconfig_file):
         rslc_params.workflows.nesz or \
         rslc_params.workflows.point_target_analyzer:
     
-        stats_filename = os.path.join(output_dir, 'STATS.h5')
-        msg += f'\n\tMetrics file: {stats_filename}'
+        stats_file = os.path.join(output_dir, 'STATS.h5')
+        msg += f'\n\tMetrics file: {stats_file}'
 
     if rslc_params.workflows.qa_reports:
-        report_filename = os.path.join(output_dir, 'REPORT.pdf')
+        report_file = os.path.join(output_dir, 'REPORT.pdf')
         browse_image = os.path.join(output_dir, 'BROWSE.png')
         browse_kml = os.path.join(output_dir, 'BROWSE.kml')
 
-        msg += f'\n\tReport file: {report_filename}' \
+        msg += f'\n\tReport file: {report_file}' \
                f'\n\tBrowse Image: {browse_image}' \
                f'\n\tBrowse Image Geolocation file: {browse_kml}'
     print(msg)
@@ -75,6 +75,10 @@ def verify_rslc(runconfig_file):
     # Parse the file's bands, frequencies, and polarizations.
     # Save data to STATS.h5
     with nisarqa.open_h5_file(input_file, mode='r') as in_file:
+
+        # Note: `pols` contains references to datasets in the open input file.
+        # All processing with `pols` must be done within this context manager,
+        # or the references will be closed and inaccessible.
         bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
 
         # If running these workflows, save the processing parameters and
@@ -87,114 +91,115 @@ def verify_rslc(runconfig_file):
             # This is the first time opening the STATS.h5 file for RSLC
             # workflow, so open in 'w' mode.
             # After this, always open STATS.h5 in 'r+' mode.
-            with nisarqa.open_h5_file(stats_filename, mode='w') as stats_file:
+            with nisarqa.open_h5_file(stats_file, mode='w') as stats_h5:
 
                 # Save the processing parameters to the stats.h5 file
                 # Note: If only the validate workflow is requested,
                 # this will do nothing.
-                rslc_params.save_params_to_stats_file(h5_file=stats_file,
+                rslc_params.save_params_to_stats_file(h5_file=stats_h5,
                                                       bands=bands)
 
                 # Copy the Product identification group to STATS.h5
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                         nisar_h5=in_file,
-                        stats_h5=stats_file)
+                        stats_h5=stats_h5)
 
-    # Run the requested workflows
-    if rslc_params.workflows.validate:
-        # TODO Validate file structure
-        # (After this, we can assume the file structure for all 
-        # subsequent accesses to it)
-        # NOTE: Refer to the original 'get_bands()' to check that in_file
-        # contains metadata, swaths, Identification groups, and that it 
-        # is SLC/RSLC compliant. These should trigger a fatal error!
-        # NOTE: Refer to the original get_freq_pol() for the verification 
-        # checks. This could trigger a fatal error!
+        # Run the requested workflows
+        if rslc_params.workflows.validate:
+            # TODO Validate file structure
+            # (After this, we can assume the file structure for all 
+            # subsequent accesses to it)
+            # NOTE: Refer to the original 'get_bands()' to check that in_file
+            # contains metadata, swaths, Identification groups, and that it 
+            # is SLC/RSLC compliant. These should trigger a fatal error!
+            # NOTE: Refer to the original get_freq_pol() for the verification 
+            # checks. This could trigger a fatal error!
 
-        # These reports will be saved to the SUMMARY.csv file.
-        # For now, output the stub file
-        nisarqa.output_stub_files(output_dir=output_dir,
-                                  stub_files='summary_csv')
-
-    if rslc_params.workflows.qa_reports:
-
-        # TODO qa_reports will add to the SUMMARY.csv file.
-        # For now, make sure that the stub file is output
-        if not os.path.isfile(summary_file):
+            # These reports will be saved to the SUMMARY.csv file.
+            # For now, output the stub file
             nisarqa.output_stub_files(output_dir=output_dir,
-                                      stub_files='summary_csv')
+                                    stub_files='summary_csv')
 
-        # TODO qa_reports will create the BROWSE.kml file.
-        # For now, make sure that the stub file is output
-        nisarqa.output_stub_files(output_dir=output_dir,
-                                  stub_files='browse_kml')
+        if rslc_params.workflows.qa_reports:
 
-        with nisarqa.open_h5_file(input_file, mode='r') as in_file, \
-             nisarqa.open_h5_file(stats_filename, mode='r+') as stats_file, \
-             PdfPages(report_filename) as report_file:
+            # TODO qa_reports will add to the SUMMARY.csv file.
+            # For now, make sure that the stub file is output
+            if not os.path.isfile(summary_file):
+                nisarqa.output_stub_files(output_dir=output_dir,
+                                        stub_files='summary_csv')
 
-            # Save product info to stats file
-            nisarqa.rslc.save_NISAR_freq_metadata_to_h5(
+            # TODO qa_reports will create the BROWSE.kml file.
+            # For now, make sure that the stub file is output
+            nisarqa.output_stub_files(output_dir=output_dir,
+                                    stub_files='browse_kml')
+
+            with nisarqa.open_h5_file(input_file, mode='r') as in_file, \
+                nisarqa.open_h5_file(stats_file, mode='r+') as stats_h5, \
+                PdfPages(report_file) as report_pdf:
+
+                # Save product info to stats file
+                nisarqa.rslc.save_NISAR_freq_metadata_to_h5(
+                                stats_h5=stats_h5,
+                                path_to_group='/QA/data',
+                                pols=pols)
+
+                # Generate the RSLC Power Image
+                nisarqa.rslc.process_power_images(
+                                pols=pols,
+                                params=rslc_params.power_img,
+                                stats_h5=stats_h5,
+                                report_pdf=report_pdf,
+                                output_dir=output_dir)
+
+                # Generate the RSLC Power and Phase Histograms
+                # nisarqa.rslc.process_power_and_phase_histograms(
+                #                 pols=pols,
+                #                 params=rslc_params.histograms,
+                #                 stats_h5=stats_h5,
+                #                 report_pdf=report_pdf)
+
+                # Process Interferograms
+
+                # Generate Spectra
+
+                # Check for invalid values
+
+                # Compute metrics for stats.h5
+
+        if rslc_params.workflows.absolute_calibration_factor:
+            msg = 'Generating Caltools Absolute Calibration Factor reports '\
+                f'for file {input_file}'
+            print(msg)
+            # logger.log_message(logging_base.LogFilterInfo, msg)
+
+            # Run Absolute Calibration Factor tool
+            nisarqa.caltools.run_absolute_cal_factor(
+                in_file=input_file,
+                stats_h5=stats_file,
+                params=rslc_params.abs_cal)
+
+        if rslc_params.workflows.nesz:
+            msg = f'Generating Caltools NESZ reports for file {input_file}'
+            print(msg)
+            # logger.log_message(logging_base.LogFilterInfo, msg)
+
+            # Run NESZ tool
+            nisarqa.caltools.run_nesz(
+                in_file=input_file,
+                stats_h5=stats_file,
+                params=rslc_params.nesz_params)
+
+        if rslc_params.workflows.point_target_analyzer:
+            msg = 'Generating Caltools Point Target reports '\
+                f'for file {input_file}'
+            print(msg)
+            # logger.log_message(logging_base.LogFilterInfo, msg)
+
+            # Run Point Analyzer tool
+            nisarqa.caltools.run_point_target_analyzer(
+                            input_file=input_file,
                             stats_h5=stats_file,
-                            path_to_group='/QA/data',
-                            pols=pols)
-
-            # Generate the RSLC Power Image
-            nisarqa.rslc.process_power_images(
-                            pols=pols,
-                            params=rslc_params.power_img,
-                            stats_h5=stats_file,
-                            report_pdf=report_file)
-
-            # Generate the RSLC Power and Phase Histograms
-            nisarqa.rslc.process_power_and_phase_histograms(
-                            pols=pols,
-                            params=rslc_params.histograms,
-                            stats_file=stats_file,
-                            report_file=report_file)
-
-            # Process Interferograms
-
-            # Generate Spectra
-
-            # Check for invalid values
-
-            # Compute metrics for stats.h5
-
-    if rslc_params.workflows.absolute_calibration_factor:
-        msg = 'Generating Caltools Absolute Calibration Factor reports '\
-              f'for file {input_file}'
-        print(msg)
-        # logger.log_message(logging_base.LogFilterInfo, msg)
-
-        # Run Absolute Calibration Factor tool
-        nisarqa.caltools.run_absolute_cal_factor(
-            in_file=input_file,
-            stats_file=stats_filename,
-            params=rslc_params.abs_cal)
-
-    if rslc_params.workflows.nesz:
-        msg = f'Generating Caltools NESZ reports for file {input_file}'
-        print(msg)
-        # logger.log_message(logging_base.LogFilterInfo, msg)
-
-        # Run NESZ tool
-        nisarqa.caltools.run_nesz(
-            in_file=input_file,
-            stats_file=stats_filename,
-            params=rslc_params.nesz_params)
-
-    if rslc_params.workflows.point_target_analyzer:
-        msg = 'Generating Caltools Point Target reports '\
-              f'for file {input_file}'
-        print(msg)
-        # logger.log_message(logging_base.LogFilterInfo, msg)
-
-        # Run Point Analyzer tool
-        nisarqa.caltools.run_point_target_analyzer(
-                        input_file=input_file,
-                        stats_h5=stats_filename,
-                        params=rslc_params.pta)
+                            params=rslc_params.pta)
 
     print('Successful completion. Check log file for validation warnings and errors.')
 
@@ -1171,7 +1176,7 @@ def _get_pols(h5_file, freqs):
     return pols
 
 
-def process_power_images(pols, params, stats_h5, report_pdf):
+def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
     '''
     Generate the RSLC Power Image plots for the `report_pdf` and
     corresponding browse image product.
@@ -1202,6 +1207,8 @@ def process_power_images(pols, params, stats_h5, report_pdf):
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
+    output_dir : str
+        Filepath to the output directory to save the browse image in
     '''
     # Process each image in the dataset
     for band in pols:
@@ -1209,10 +1216,12 @@ def process_power_images(pols, params, stats_h5, report_pdf):
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
-                process_single_power_image(img, params, stats_h5, report_pdf)
+                process_single_power_image(img, params, 
+                                           stats_h5, report_pdf, output_dir)
 
 
-def process_single_power_image(img, params, stats_h5, report_pdf):
+def process_single_power_image(img, params,
+                                stats_h5, report_pdf, output_dir='.'):
     '''
     Generate the RSLC Power Image plots for the `plots_pdf` and
     corresponding browse image products for a single RSLC image.
@@ -1239,6 +1248,8 @@ def process_single_power_image(img, params, stats_h5, report_pdf):
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
+    output_dir : str
+        Filepath to the output directory to save the browse image in
     '''
 
     nlooks_freqa_arg = params.nlooks_freqa.val
@@ -1251,7 +1262,7 @@ def process_single_power_image(img, params, stats_h5, report_pdf):
         nlooks = nisarqa.compute_square_pixel_nlooks(
                     img.data.shape,
                     sample_spacing=(img.az_spacing, img.range_spacing),
-                    num_mpix=params.num_mpix)
+                    num_mpix=params.num_mpix.val)
 
     elif img.freq == 'A':
         nlooks = nlooks_freqa_arg
@@ -1301,7 +1312,7 @@ def process_single_power_image(img, params, stats_h5, report_pdf):
                                 freq=img.freq,
                                 pol=img.pol,
                                 quantity='pow',
-                                browse_image_file=None)
+                                output_dir=output_dir)
 
     plot_to_grayscale_png(img_arr=out_img,
                           filepath=browse_img_file)
@@ -1311,7 +1322,7 @@ def process_single_power_image(img, params, stats_h5, report_pdf):
     if params.gamma.val is None:
         title = title % ''
     else:
-        title = title % fr', $\gamma$={params.gamma}'
+        title = title % fr', $\gamma$={params.gamma.val}'
 
     # Get Azimuth (y-axis) label
     az_title = f'Zero Doppler Time\n(seconds since {img.epoch})'
@@ -1339,7 +1350,7 @@ def process_single_power_image(img, params, stats_h5, report_pdf):
             internally by matplotlib.
             '''
             # Invert the power
-            val = np.power(x, 1 / params.gamma)
+            val = np.power(x, 1 / params.gamma.val)
 
             # Invert the normalization
             val = (val * (vmax - vmin)) + vmin
@@ -1455,7 +1466,7 @@ def get_browse_product_filename(
         freq,
         pol,
         quantity,
-        browse_image_file='.'):
+        output_dir='.'):
     '''
     Return the full filename (with path) for Browse Image Product.
 
@@ -1485,23 +1496,18 @@ def get_browse_product_filename(
         Name of the polarization for this browse image, e.g. 'HH'
     quantity : str
         The quantity that this browse image represents, e.g. 'pow' for power
-    browse_image_file : str
-        The filename (with path) for 
-        If `browse_image_file` is set to '.' (the default), then
-        no prefix will be appended.
+    output_dir : str
+        The output diretory for QA products
+        Defaults to '.'
 
-
-
-
+    Returns
+    -------
+    filename : str
+        Full filename with path for the Browse image.
     '''
     filename = f'{product_name.upper()}_{band}_{freq}_{pol}_{quantity}.png'
-    if browse_image_file is not '.':
-        if not browse_image_file.endswith('.png'):
-            raise ValueError(f'Input browse image filename must end in .png: {browse_image_file}')
 
-        filename = file.replace('.png', f'{browse_image_file}_{filename}.png')
-
-    filename = os.path.join(browse_image_dir, filename)
+    filename = os.path.join(output_dir, filename)
 
     return filename
 
