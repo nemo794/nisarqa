@@ -152,11 +152,11 @@ def verify_rslc(runconfig_file):
                                 output_dir=output_dir)
 
                 # Generate the RSLC Power and Phase Histograms
-                # nisarqa.rslc.process_power_and_phase_histograms(
-                #                 pols=pols,
-                #                 params=rslc_params.histograms,
-                #                 stats_h5=stats_h5,
-                #                 report_pdf=report_pdf)
+                nisarqa.rslc.process_power_and_phase_histograms(
+                                pols=pols,
+                                params=rslc_params.histogram,
+                                stats_h5=stats_h5,
+                                report_pdf=report_pdf)
 
                 # Process Interferograms
 
@@ -202,364 +202,6 @@ def verify_rslc(runconfig_file):
                             params=rslc_params.pta)
 
     print('Successful completion. Check log file for validation warnings and errors.')
-
-
-@dataclass
-class CoreQAParams:
-    '''
-    Data structure to hold the core parameters for the
-    QA code's output plots and statistics files that are
-    common to all NISAR products.
-
-    Parameters
-    ----------
-    plots_pdf : PdfPages
-        The output file to append the power image plot to
-    stats_h5 : h5py.File
-        The output file to save QA metrics, etc. to
-    bands : sequence of str
-        A sequence of the bands in the input file,
-        Examples: ['LSAR','SSAR'] or ('LSAR')
-    browse_image_file : str, optional
-        QA Browse image file name.
-        To account for when multiple browse images are generated, such as
-        when a NISAR product contains multiple polarizations, the QA code
-        will temporarily remove the `.png` ending and update browse_image_file
-        per this naming convention:
-            <prefix>_<product name>_BAND_F_PP_qqq.png
-                <prefix>        : `browse_image_prefix`, supplied from SDS
-                <product name>  : RSLC, GLSC, etc.
-                BAND            : LSAR or SSAR
-                F               : frequency A or B 
-                PP              : polarization
-                qqq             : pow (RSLC's browse images are of power images)
-        Defaults to './<product name>_BAND_F_PP_qqq.png' (current working directory)
-    tile_shape : tuple of ints, optional
-        Shape of each tile to be processed. If `tile_shape` is
-        larger than the shape of `arr`, or if the dimensions of `arr`
-        are not integer multiples of the dimensions of `tile_shape`,
-        then smaller tiles may be used.
-        -1 to use all rows / all columns (respectively).
-        Format: (num_rows, num_cols) 
-        Defaults to (1024, -1) to use all columns (i.e. full rows of data)
-        and leverage Python's row-major ordering.
-    '''
-
-    # Attributes that are common to all NISAR QA Products
-    stats_h5: h5py.File
-    plots_pdf: PdfPages
-    bands: Iterable[str]
-    browse_image_file: str = '.'
-    tile_shape: tuple = (1024,-1)
-
-    @classmethod
-    def from_parent(cls, core, **kwargs):
-        '''
-        Construct a child of CoreQAParams
-        from an existing instance of CoreQAParams.
-
-        Parameters
-        ----------
-        core : CoreQAParams
-            Instance of CoreQAParams whose attributes will
-            populate the new child class instance.
-            Note that a only shallow copy is performed when populating
-            the new instance; for parent attributes that contain
-            references, the child object will reference the same
-            same 
-        **kwargs : optional
-            Attributes specific to the child class of CoreQAParams.
-
-        Example
-        -------
-        >>> parent = CoreQAParams()
-        >>> @dataclass
-        ... class ChildParams(CoreQAParams):
-        ...     x: int
-        ... 
-        >>> y = ChildParams.from_parent(core=parent, x=2)
-        >>> print(y)
-        ChildParams(plots_pdf=<matplotlib.backends.backend_pdf.PdfPages object at 0x7fd04cab6050>,
-        stats_h5=<contextlib._GeneratorContextManager object at 0x7fd04cab6690>,
-        browse_image_file='.' tile_shape=(1024, -1), x=2)        
-        '''
-        if not isinstance(core, CoreQAParams):
-            raise ValueError('`core` input must be of type CoreQAParams.')
-
-        # Create shallow copy of the dataclass into a dict.
-        # (Using the asdict() method to create a deep copy throws a
-        # "TypeError: cannot serialize '_io.BufferedWriter' object" 
-        # exception when copying the field with the PdfPages object.)
-        core_dict = dict((field.name, getattr(core, field.name)) 
-                                            for field in fields(core))
-
-        return cls(**core_dict, **kwargs)
-
-
-@dataclass
-class RSLCPowerImageParams(CoreQAParams):
-    '''
-    Data structure to hold the parameters to generate the
-    RSLC Power Images.
-
-    Use the class method .from_parent() to construct
-    an instance from an existing CoreQAParams object.
-
-    Parameters
-    ----------
-    **core : CoreQAParams
-        All fields from the parent class CoreQAParams.
-    nlooks_freqa, nlooks_freqb : int or iterable of int
-        Number of looks along each axis of the input array 
-        for the specified frequency.
-    linear_units : bool
-        True to compute power in linear units, False for decibel units.
-        Defaults to True.
-    num_mpix : numeric
-        The approx. size (in megapixels) for the final multilooked image.
-        Defaults to 4.0 MPix.
-    middle_percentile : numeric
-        Defines the middle percentile range of the image array
-        that the colormap covers. Must be in the range [0, 100].
-        Defaults to 100.0.
-    gamma : float or None, optional
-        The gamma correction parameter.
-        Gamma will be applied as follows:
-            array_out = normalized_array ^ gamma
-        where normalized_array is a copy of the image with values
-        scaled to the range [0,1]. 
-        The image colorbar will be defined with respect to the input
-        image values prior to normalization and gamma correction.
-        Defaults to None (no normalization, no gamma correction)
-
-    Attributes
-    ----------
-    pow_units : str
-        Units of the power image.
-        If `linear_units` is True, this will be set to 'linear'.
-        If `linear_units` is False, this will be set to 'dB'.
-    '''
-
-    # Attributes for generating the Power Image(s)
-    nlooks_freqa: Union[int, Iterable[int]] = 1  # No apparent multilooking
-    nlooks_freqb: Union[int, Iterable[int]] = 1  # No apparent multilooking
-    linear_units: bool = True
-    num_mpix: float = 4.0
-    middle_percentile: float = 100.0
-    gamma: Optional[float] = None
-
-    # Auto-generated attributes
-    pow_units: str = field(init=False)
-
-    def __post_init__(self):
-        # Phase bin edges - allow for either radians or degrees
-        if self.linear_units:
-            self.pow_units = 'linear'
-        else:
-            self.pow_units = 'dB'
-
-    def save_processing_params_to_h5(self, path_to_group):
-        '''
-        Populate this instance's `stats_h5` HDF5 file 
-        with its processing parameters.
-
-        This function will populate the following fields
-        in `stats_h5` for all bands in self.bands:
-            /science/<band>/<path_to_group>/powerImageMiddlePercentile
-            /science/<band>/<path_to_group>/powerImageUnits
-            /science/<band>/<path_to_group>/powerImageGammaCorrection
-
-        Parameters
-        ----------
-        path_to_group : str
-            Internal path in `stats_h5` to the HDF5 group where
-            the processing parameters will be stored.
-        '''
-
-        for band in self.bands:
-            # Open the group in the file, creating it if it doesn’t exist.
-            grp_path = os.path.join('/science', band, path_to_group.lstrip('/'))
-            proc_grp = self.stats_h5.require_group(grp_path)
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=self.stats_h5,
-                grp_path=grp_path,
-                ds_name='powerImageMiddlePercentile',
-                ds_data=self.middle_percentile,
-                ds_units='unitless',
-                ds_description='Bin edges for the Power Histogram')
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=self.stats_h5,
-                grp_path=grp_path,
-                ds_name='powerImageUnits',
-                ds_data=self.pow_units,
-                ds_description='Units for the Power Image (browse image ' \
-                               'and graphical summary pdf)')
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=self.stats_h5,
-                grp_path=grp_path,
-                ds_name='powerImageGammaCorrection',
-                ds_data=self.gamma,
-                ds_units='unitless',
-                ds_description='Gamma value applied to the Power Image ' \
-                               '(browse image and graphical summary pdf)')
-
-
-@dataclass
-class RSLCHistogramParams(CoreQAParams):
-    '''
-    Data structure to hold the parameters to generate the
-    RSLC Power and Phase Histograms.
-
-    Use the class method .from_parent() to construct
-    an instance from an existing CoreQAParams object.
-
-    Parameters
-    ----------
-    **core : CoreQAParams
-        All fields from the parent class CoreQAParams.
-    decimation_ratio : pair of int
-        The step size to decimate the input array for computing
-        the power and phase histograms.
-        For example, (2,3) means every 2nd azimuth line and
-        every 3rd range line will be used to compute the histograms.
-        Defaults to (1,1), i.e. no decimation will occur.
-        Format: (<azimuth>, <range>)
-    phs_in_radians : bool
-        True to compute phase in radians units, False for degrees units.
-        Defaults to True.
-    pow_histogram_start : numeric, optional
-        The starting value for the range of the power histogram edges.
-        Defaults to -80. (units are dB)
-    pow_histogram_endpoint : numeric, optional
-        The endpoint value for the range of the power histogram edges.
-        Defaults to 20. (units are dB)
-    
-
-    Attributes
-    ----------
-    pow_bin_edges : numpy.ndarray
-        The bin edges (including endpoint) to use when computing
-        the power histograms. Will be set to 100 uniformly-spaced bins
-        in range [`pow_histogram_start`, `pow_histogram_endpoint`],
-        including endpoint.
-    pow_units : str
-        Units of the power histograms; this will be set to 'dB'.
-    phs_bin_edges : numpy.ndarray
-        The bin edges (including endpoint) to use when computing
-        the phase histograms.
-        If `phs_in_radians` is True, this will be set to 100 
-        uniformly-spaced bins in range [-pi,pi], including endpoint.
-        If `phs_in_radians` is False, this will be set to 100
-        uniformly-spaced bins in range [-180,180], including endpoint.
-    pow_units : str
-        Units of the phase histograms.
-        If `phs_in_radians` is True, this will be set to 'radians'.
-        If `phs_in_radians` is True, this will be set to 'degrees'.
-    '''
-
-    # Attributes for generating Power and Phase Histograms
-    # User-Provided attributes:
-    decimation_ratio: Tuple[int, int] = (1,1)  # no decimation
-    phs_in_radians: bool = True
-
-    pow_histogram_start: float = -80.0
-    pow_histogram_endpoint: float = 20.0
-
-    # Auto-generated attributes
-    # Power Bin Edges (generated based upon
-    # `pow_histogram_start` and `pow_histogram_endpoint`)
-    pow_bin_edges: np.ndarray = field(init=False)
-    pow_units: str = field(init=False)
-
-    # Phase bin edges (generated based upon `phs_in_radians`)
-    phs_bin_edges: np.ndarray = field(init=False)
-    phs_units: str = field(init=False)
-
-    def __post_init__(self):
-        # Power Bin Edges - hardcode to be in decibels
-        # 101 bin edges => 100 bins
-        self.pow_bin_edges = np.linspace(self.pow_histogram_start,
-                                         self.pow_histogram_endpoint,
-                                         num=101,
-                                         endpoint=True)
-        self.pow_units = 'dB'
-
-        # Phase bin edges - allow for either radians or degrees
-        if self.phs_in_radians:
-            self.phs_units = 'radians'
-            start = -np.pi
-            stop = np.pi
-        else:
-            self.phs_units = 'degrees'
-            start = -180
-            stop = 180
-
-        # 101 bin edges => 100 bins
-        self.phs_bin_edges = np.linspace(start, stop, num=101, endpoint=True)
-
-
-    def save_processing_params_to_h5(self, path_to_group):
-        '''
-        Populate this instance's `stats_h5` HDF5 file 
-        with its processing parameters.
-
-        This function will populate the following fields
-        in `stats_h5` for all bands in self.bands:
-            /science/<band>/<path_to_group>/histogramDecimationAz
-            /science/<band>/<path_to_group>/histogramDecimationRange
-            /science/<band>/<path_to_group>/histogramEdgesPower
-            /science/<band>/<path_to_group>/histogramEdgesPhase
-        
-        Parameters
-        ----------
-        path_to_group : str
-            Internal path in `stats_h5` to the HDF5 group where
-            the processing parameters will be stored.
-            Full path will be constructed in this format:
-                /science/<band>/<path_to_group>/<dataset>
-        '''
-
-        for band in self.bands:
-            # Open the group in the file, creating it if it doesn’t exist.
-            grp_path = os.path.join('/science', band, path_to_group.lstrip('/'))
-            proc_grp = self.stats_h5.require_group(grp_path)
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=self.stats_h5,
-                grp_path=grp_path,
-                ds_name='histogramEdgesPower',
-                ds_data=self.pow_bin_edges,
-                ds_units=self.pow_units,
-                ds_description='Bin edges for the Power Histogram')
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=self.stats_h5,
-                grp_path=grp_path,
-                ds_name='histogramEdgesPhase',
-                ds_data=self.phs_bin_edges,
-                ds_units=self.phs_units,
-                ds_description='Bin edges for the Phase Histogram')
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=self.stats_h5,
-                grp_path=grp_path,
-                ds_name='histogramDecimationAz',
-                ds_data=self.decimation_ratio[0],
-                ds_units='unitless',
-                ds_description='Azimuth decimation stride used to compute' \
-                               ' power and phase histograms')
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=self.stats_h5,
-                grp_path=grp_path,
-                ds_name='histogramDecimationRange',
-                ds_data=self.decimation_ratio[1],
-                ds_units='unitless',
-                ds_description='Range decimation stride used to compute power' \
-                               ' and phase histograms')
 
 
 def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5):
@@ -1694,14 +1336,15 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
     return vmin, vmax
 
 
-def process_power_and_phase_histograms(pols, params):
+def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
     '''
     Generate the RSLC Power Histograms and save their plots
     to the graphical summary .pdf file.
 
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians, 
-    configurable to be computed in degrees.
+    configurable to be computed in degrees by setting
+    `params.phs_in_radians` to False.
 
     Parameters
     ----------
@@ -1714,16 +1357,26 @@ def process_power_and_phase_histograms(pols, params):
     params : RSLCHistogramParams
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
     '''
 
     # Generate and store the histograms
     for band in pols:
         for freq in pols[band]:
-            generate_histogram_single_freq(pols[band][freq],
-                                            band, freq, params)
+            generate_histogram_single_freq(
+                pol=pols[band][freq],
+                band=band,
+                freq=freq,
+                params=params,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf)
 
 
-def generate_histogram_single_freq(pol, band, freq, params):
+def generate_histogram_single_freq(pol, band, freq, 
+                                    params, stats_h5, report_pdf):
     '''
     Generate the RSLC Power Histograms for a single frequency.
     
@@ -1752,6 +1405,10 @@ def generate_histogram_single_freq(pol, band, freq, params):
     params : RSLCHistogramParams
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
     '''
 
     print(f'Generating Histograms for Frequency {freq}...')
@@ -1771,21 +1428,23 @@ def generate_histogram_single_freq(pol, band, freq, params):
         pow_hist_density, phs_hist_density = \
                 nisarqa.compute_power_and_phase_histograms_by_tiling(
                             arr=pol_data.data,
-                            pow_bin_edges=params.pow_bin_edges,
-                            phs_bin_edges=params.phs_bin_edges,
-                            decimation_ratio=params.decimation_ratio,
-                            tile_shape=params.tile_shape,
+                            pow_bin_edges=params.pow_bin_edges.val,
+                            phs_bin_edges=params.phs_bin_edges.val,
+                            decimation_ratio=params.decimation_ratio.val,
+                            tile_shape=params.tile_shape.val,
                             density=True)
 
         # Save to stats.h5 file
         grp_path = f'/science/{band}/QA/data/frequency{freq}/{pol_name}/'
+        pow_units = params.pow_bin_edges.units
+        phs_units = params.phs_bin_edges.units
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,
             grp_path=grp_path,
             ds_name='powerHistogramDensity',
             ds_data=pow_hist_density,
-            ds_units=f'1/{params.pow_units}',
+            ds_units=f'1/{pow_units}',
             ds_description='Normalized density of the power histogram')
 
         nisarqa.create_dataset_in_h5group(
@@ -1793,18 +1452,18 @@ def generate_histogram_single_freq(pol, band, freq, params):
             grp_path=grp_path,
             ds_name='phaseHistogramDensity',
             ds_data=phs_hist_density,
-            ds_units=f'1/{params.phs_units}',
+            ds_units=f'1/{phs_units}',
             ds_description='Normalized density of the phase histogram')
 
         # Add these densities to the figures
         add_hist_to_axis(pow_ax,
                          counts=pow_hist_density, 
-                         edges=params.pow_bin_edges,
+                         edges=params.pow_bin_edges.val,
                          label=pol_name)
 
         add_hist_to_axis(phs_ax,
                          counts=phs_hist_density,
-                         edges=params.phs_bin_edges,
+                         edges=params.phs_bin_edges.val,
                          label=pol_name)
 
     # Label the Power Figure
@@ -1812,8 +1471,8 @@ def generate_histogram_single_freq(pol, band, freq, params):
     pow_ax.set_title(title)
 
     pow_ax.legend(loc='upper right')
-    pow_ax.set_xlabel(f'RSLC Power ({params.pow_units})')
-    pow_ax.set_ylabel(f'Density (1/{params.pow_units})')
+    pow_ax.set_xlabel(f'RSLC Power ({pow_units})')
+    pow_ax.set_ylabel(f'Density (1/{pow_units})')
 
     # Per ADT, let the top limit float for Power Spectra
     pow_ax.set_ylim(bottom=0.0)
@@ -1822,14 +1481,14 @@ def generate_histogram_single_freq(pol, band, freq, params):
     # Label the Phase Figure
     phs_ax.set_title(f'{band} Frequency {freq} Phase Histograms')
     phs_ax.legend(loc='upper right')
-    phs_ax.set_xlabel(f'RSLC Phase ({params.phs_units})')
-    phs_ax.set_ylabel(f'Density (1/{params.phs_units})')
+    phs_ax.set_xlabel(f'RSLC Phase ({phs_units})')
+    phs_ax.set_ylabel(f'Density (1/{phs_units})')
     phs_ax.set_ylim(bottom=0.0, top=0.5)
     phs_ax.grid()
 
     # Save complete plots to graphical summary pdf file
-    params.plots_pdf.savefig(pow_fig)
-    params.plots_pdf.savefig(phs_fig)
+    report_pdf.savefig(pow_fig)
+    report_pdf.savefig(phs_fig)
 
     # Close all figures
     plt.close(pow_fig)
