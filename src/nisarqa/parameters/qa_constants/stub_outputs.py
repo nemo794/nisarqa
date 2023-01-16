@@ -1,6 +1,5 @@
 import os
 
-import h5py
 import nisarqa
 import numpy as np
 from matplotlib import pyplot as plt
