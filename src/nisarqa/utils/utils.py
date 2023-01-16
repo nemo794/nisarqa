@@ -1,8 +1,8 @@
-import h5py
 from contextlib import contextmanager
-import numpy as np
 
+import h5py
 import nisarqa
+import numpy as np
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -115,7 +115,8 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
     return mask_ok
 
 
-def create_dataset_in_h5group(grp,
+def create_dataset_in_h5group(h5_file,
+                              grp_path,
                               ds_name,
                               ds_data,
                               ds_description,
@@ -125,12 +126,14 @@ def create_dataset_in_h5group(grp,
 
     Parameters
     ----------
-    grp : h5py.Group
-        h5py Group to add the dataset to, with corresponding attributes
+    h5_file : h5py.File
+        HDF5 File handle to save this dataset to
+    grp_path : str
+        Path to h5py Group to add the dataset and attributes to
     ds_name : str
-        Name (key) for the Dataset in the `grp`
+        Name (key) for the Dataset in the `grp_path`
     ds_data : array_like or str
-        Data to be stored as a Dataset in `grp`
+        Data to be stored as a Dataset in `grp_path`
     ds_description : str
         Description of `ds_data`; will be stored in a `description`
         attribute for the new Dataset
@@ -148,6 +151,8 @@ def create_dataset_in_h5group(grp,
         Defaults to None (no units attribute will be created)
     '''
 
+    grp = h5_file.require_group(grp_path)
+
     ds = grp.create_dataset(ds_name, data=ds_data)
 
     if ds_units is not None:
@@ -156,6 +161,33 @@ def create_dataset_in_h5group(grp,
 
     ds.attrs.create(name='description', data=ds_description, 
                         dtype=f'<S{len(ds_description)}')
+
+
+def multi_line_string_iter(multiline_str):
+    '''
+    Iterator for a multi-line string.
+    
+    Strips leading and trailing whitespace, and returns one line at a time.
+
+    Parameters
+    ----------
+    multiline_str : str
+        The string to be iterated over
+
+    Yields
+    ------
+    line : str
+        The next line in `multiline_str`, with the leading and trailing
+        whitespace stripped.
+    '''
+    return iter([x.strip() for x in multiline_str.splitlines()])
+
+
+def get_nested_element_in_dict(source_dict, path_to_element):
+    element = source_dict
+    for nested_dict in path_to_element:
+        element = element[nested_dict]
+    return element
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

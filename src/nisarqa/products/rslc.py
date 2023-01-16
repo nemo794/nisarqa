@@ -1,21 +1,202 @@
-from dataclasses import dataclass, field, fields
-import h5py
 import os
 import time
+from dataclasses import dataclass, field, fields
+from typing import Iterable, Optional, Tuple, Union
 
-from typing import Union, Iterable, Tuple, Optional
+import h5py
+# Switch backend to one that doesn't require DISPLAY to be set since we're
+# just plotting to file anyway. (Some compute notes do not allow X connections)
+# This needs to be set prior to opening any matplotlib objects.
+import matplotlib
+import nisarqa
 import numpy as np
 import numpy.typing as npt
+from cycler import cycler
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from cycler import cycler
 from PIL import Image
-
-import nisarqa
 
 # List of objects from the import statements that
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
+
+def verify_rslc(runconfig_file):
+    '''
+    Verify an RSLC product based on the input file, parameters, etc.
+    specified in the input runconfig file.
+
+    This is the main function for running the entire QA workflow. It will
+    run based on the options supplied in the input runconfig file.
+    The input runconfig file must follow the standard RSLC QA runconfig
+    format. Run the command line command `nisar_qa dumpconfig rslc`
+    for an example template with default parameters (where available).
+
+    Parameters
+    ----------
+    runconfig_file : str
+        Full filename for an existing RSLC QA runconfig file
+    '''
+
+    # Parse the runconfig file
+    rslc_params = nisarqa.parse_rslc_runconfig(runconfig_file)
+    output_dir = rslc_params.prodpath.qa_output_dir.val
+
+    # Start logger
+    # TODO get logger from Brian's code and implement here
+    # For now, output the stub log file.
+    nisarqa.output_stub_files(output_dir=output_dir, stub_files='log_txt')
+
+    # Create file paths for output files ()
+    input_file = rslc_params.prodpath.qa_input_file.val
+    msg = f'Starting Quality Assurance for input file: {input_file}. ' \
+            f'\nOutputs to be generated:'
+    if rslc_params.workflows.validate or rslc_params.workflows.qa_reports:
+        summary_file = os.path.join(output_dir, 'SUMMARY.csv')
+        msg += f'\n\tSummary file: {summary_file}'
+
+    if rslc_params.workflows.qa_reports or \
+        rslc_params.workflows.absolute_calibration_factor or \
+        rslc_params.workflows.nesz or \
+        rslc_params.workflows.point_target_analyzer:
+    
+        stats_filename = os.path.join(output_dir, 'STATS.h5')
+        msg += f'\n\tMetrics file: {stats_filename}'
+
+    if rslc_params.workflows.qa_reports:
+        report_filename = os.path.join(output_dir, 'REPORT.pdf')
+        browse_image = os.path.join(output_dir, 'BROWSE.png')
+        browse_kml = os.path.join(output_dir, 'BROWSE.kml')
+
+        msg += f'\n\tReport file: {report_filename}' \
+               f'\n\tBrowse Image: {browse_image}' \
+               f'\n\tBrowse Image Geolocation file: {browse_kml}'
+    print(msg)
+
+    # Parse the file's bands, frequencies, and polarizations.
+    # Save data to STATS.h5
+    with nisarqa.open_h5_file(input_file, mode='r') as in_file:
+        bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
+
+        # If running these workflows, save the processing parameters and
+        # identification group to STATS.h5
+        if rslc_params.workflows.qa_reports or \
+            rslc_params.workflows.absolute_calibration_factor or \
+            rslc_params.workflows.nesz or \
+            rslc_params.workflows.point_target_analyzer:
+
+            # This is the first time opening the STATS.h5 file for RSLC
+            # workflow, so open in 'w' mode.
+            # After this, always open STATS.h5 in 'r+' mode.
+            with nisarqa.open_h5_file(stats_filename, mode='w') as stats_file:
+
+                # Save the processing parameters to the stats.h5 file
+                # Note: If only the validate workflow is requested,
+                # this will do nothing.
+                rslc_params.save_params_to_stats_file(h5_file=stats_file,
+                                                      bands=bands)
+
+                # Copy the Product identification group to STATS.h5
+                nisarqa.rslc.save_NISAR_identification_group_to_h5(
+                        nisar_h5=in_file,
+                        stats_h5=stats_file)
+
+    # Run the requested workflows
+    if rslc_params.workflows.validate:
+        # TODO Validate file structure
+        # (After this, we can assume the file structure for all 
+        # subsequent accesses to it)
+        # NOTE: Refer to the original 'get_bands()' to check that in_file
+        # contains metadata, swaths, Identification groups, and that it 
+        # is SLC/RSLC compliant. These should trigger a fatal error!
+        # NOTE: Refer to the original get_freq_pol() for the verification 
+        # checks. This could trigger a fatal error!
+
+        # These reports will be saved to the SUMMARY.csv file.
+        # For now, output the stub file
+        nisarqa.output_stub_files(output_dir=output_dir,
+                                  stub_files='summary_csv')
+
+    if rslc_params.workflows.qa_reports:
+
+        # TODO qa_reports will add to the SUMMARY.csv file.
+        # For now, make sure that the stub file is output
+        if not os.path.isfile(summary_file):
+            nisarqa.output_stub_files(output_dir=output_dir,
+                                      stub_files='summary_csv')
+
+        # TODO qa_reports will create the BROWSE.kml file.
+        # For now, make sure that the stub file is output
+        nisarqa.output_stub_files(output_dir=output_dir,
+                                  stub_files='browse_kml')
+
+        with nisarqa.open_h5_file(input_file, mode='r') as in_file, \
+             nisarqa.open_h5_file(stats_filename, mode='r+') as stats_file, \
+             PdfPages(report_filename) as report_file:
+
+            # Save product info to stats file
+            nisarqa.rslc.save_NISAR_freq_metadata_to_h5(
+                            stats_h5=stats_file,
+                            path_to_group='/QA/data',
+                            pols=pols)
+
+            # Generate the RSLC Power Image
+            nisarqa.rslc.process_power_images(
+                            pols=pols,
+                            params=rslc_params.power_img,
+                            stats_h5=stats_file,
+                            report_pdf=report_file)
+
+            # Generate the RSLC Power and Phase Histograms
+            nisarqa.rslc.process_power_and_phase_histograms(
+                            pols=pols,
+                            params=rslc_params.histograms,
+                            stats_file=stats_file,
+                            report_file=report_file)
+
+            # Process Interferograms
+
+            # Generate Spectra
+
+            # Check for invalid values
+
+            # Compute metrics for stats.h5
+
+    if rslc_params.workflows.absolute_calibration_factor:
+        msg = 'Generating Caltools Absolute Calibration Factor reports '\
+              f'for file {input_file}'
+        print(msg)
+        # logger.log_message(logging_base.LogFilterInfo, msg)
+
+        # Run Absolute Calibration Factor tool
+        nisarqa.caltools.run_absolute_cal_factor(
+            in_file=input_file,
+            stats_file=stats_filename,
+            params=rslc_params.abs_cal)
+
+    if rslc_params.workflows.nesz:
+        msg = f'Generating Caltools NESZ reports for file {input_file}'
+        print(msg)
+        # logger.log_message(logging_base.LogFilterInfo, msg)
+
+        # Run NESZ tool
+        nisarqa.caltools.run_nesz(
+            in_file=input_file,
+            stats_file=stats_filename,
+            params=rslc_params.nesz_params)
+
+    if rslc_params.workflows.point_target_analyzer:
+        msg = 'Generating Caltools Point Target reports '\
+              f'for file {input_file}'
+        print(msg)
+        # logger.log_message(logging_base.LogFilterInfo, msg)
+
+        # Run Point Analyzer tool
+        nisarqa.caltools.run_point_target_analyzer(
+                        input_file=input_file,
+                        stats_h5=stats_filename,
+                        params=rslc_params.pta)
+
+    print('Successful completion. Check log file for validation warnings and errors.')
 
 
 @dataclass
@@ -195,22 +376,30 @@ class RSLCPowerImageParams(CoreQAParams):
             grp_path = os.path.join('/science', band, path_to_group.lstrip('/'))
             proc_grp = self.stats_h5.require_group(grp_path)
 
-            nisarqa.create_dataset_in_h5group(grp=proc_grp,
-                                            ds_name='powerImageMiddlePercentile',
-                                            ds_data=self.middle_percentile,
-                                            ds_units='unitless',
-                                            ds_description='Bin edges for the Power Histogram')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=self.stats_h5,
+                grp_path=grp_path,
+                ds_name='powerImageMiddlePercentile',
+                ds_data=self.middle_percentile,
+                ds_units='unitless',
+                ds_description='Bin edges for the Power Histogram')
 
-            nisarqa.create_dataset_in_h5group(grp=proc_grp,
-                                            ds_name='powerImageUnits',
-                                            ds_data=self.pow_units,
-                                            ds_description='Units for the Power Image (browse image and graphical summary pdf)')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=self.stats_h5,
+                grp_path=grp_path,
+                ds_name='powerImageUnits',
+                ds_data=self.pow_units,
+                ds_description='Units for the Power Image (browse image ' \
+                               'and graphical summary pdf)')
 
-            nisarqa.create_dataset_in_h5group(grp=proc_grp,
-                                              ds_name='powerImageGammaCorrection',
-                                              ds_data=self.gamma,
-                                              ds_units='unitless',
-                                              ds_description='Gamma value applied to the Power Image (browse image and graphical summary pdf)')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=self.stats_h5,
+                grp_path=grp_path,
+                ds_name='powerImageGammaCorrection',
+                ds_data=self.gamma,
+                ds_units='unitless',
+                ds_description='Gamma value applied to the Power Image ' \
+                               '(browse image and graphical summary pdf)')
 
 
 @dataclass
@@ -333,45 +522,50 @@ class RSLCHistogramParams(CoreQAParams):
             grp_path = os.path.join('/science', band, path_to_group.lstrip('/'))
             proc_grp = self.stats_h5.require_group(grp_path)
 
-            nisarqa.create_dataset_in_h5group(grp=proc_grp,
-                                            ds_name='histogramEdgesPower',
-                                            ds_data=self.pow_bin_edges,
-                                            ds_units=self.pow_units,
-                                            ds_description='Bin edges for the Power Histogram')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=self.stats_h5,
+                grp_path=grp_path,
+                ds_name='histogramEdgesPower',
+                ds_data=self.pow_bin_edges,
+                ds_units=self.pow_units,
+                ds_description='Bin edges for the Power Histogram')
 
-            nisarqa.create_dataset_in_h5group(grp=proc_grp,
-                                            ds_name='histogramEdgesPhase',
-                                            ds_data=self.phs_bin_edges,
-                                            ds_units=self.phs_units,
-                                            ds_description='Bin edges for the Phase Histogram')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=self.stats_h5,
+                grp_path=grp_path,
+                ds_name='histogramEdgesPhase',
+                ds_data=self.phs_bin_edges,
+                ds_units=self.phs_units,
+                ds_description='Bin edges for the Phase Histogram')
 
-            nisarqa.create_dataset_in_h5group(grp=proc_grp,
-                                            ds_name='histogramDecimationAz',
-                                            ds_data=self.decimation_ratio[0],
-                                            ds_units='unitless',
-                                            ds_description='Azimuth decimation stride used to compute power and phase histograms')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=self.stats_h5,
+                grp_path=grp_path,
+                ds_name='histogramDecimationAz',
+                ds_data=self.decimation_ratio[0],
+                ds_units='unitless',
+                ds_description='Azimuth decimation stride used to compute' \
+                               ' power and phase histograms')
 
-            nisarqa.create_dataset_in_h5group(grp=proc_grp,
-                                            ds_name='histogramDecimationRange',
-                                            ds_data=self.decimation_ratio[1],
-                                            ds_units='unitless',
-                                            ds_description='Range decimation stride used to compute power and phase histograms')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=self.stats_h5,
+                grp_path=grp_path,
+                ds_name='histogramDecimationRange',
+                ds_data=self.decimation_ratio[1],
+                ds_units='unitless',
+                ds_description='Range decimation stride used to compute power' \
+                               ' and phase histograms')
 
 
-def save_NISAR_identification_group_to_h5(nisar_h5,
-                                          stats_h5,
-                                          path_to_group):
+def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5):
     '''
-    Populate the `stats_h5` HDF5 file with metadata.
+    Copy the identification group from the input NISAR file
+    to the STATS.h5 file.
 
-    This function will populate the following fields
-    in `stats_h5`, for each band in `nisar_h5`:
-        /science/<band>/<path_to_group>/*
-        /science/<band>/<path_to_group>/NISARProductFilename
-
-    /science/<band>/<path_to_group>/* will be populated
-    with all recursively-available items in the `nisar_h5` group
-    '/science/<band>/identification'
+    For each band in `nisar_h5`, this function will recursively copy
+    all available items in the `nisar_h5` group
+    '/science/<band>/identification' to the group 
+    '/science/<band>/identification/*' in `stats_h5`.
 
     Parameters
     ----------
@@ -380,26 +574,20 @@ def save_NISAR_identification_group_to_h5(nisar_h5,
     stats_h5 : h5py.File
         Handle to an h5 file where the identification metadata
         should be saved
-    path_to_group : str
-        Internal path in `stats_h5` to the HDF5 group where
-        the identification parameters will be stored.
-        That this will be appended to the root '/science'
-        Example: if `path_to_group` is 'LSAR/identification', then the
-        final group will be '/science/LSAR/identification'
     '''
 
     for band in nisar_h5['/science']:
-        grp_path = os.path.join('/science/', band, path_to_group.lstrip('/'))
+        grp_path = os.path.join('/science', band, 'identification')
 
-        # Copy identification metadata from input file to stats.h5
-        nisar_h5.copy(nisar_h5[f'/science/{band}/identification'], stats_h5, grp_path)
-
-        # Save filename for this input NISAR product
-        grp = stats_h5.require_group(grp_path)
-        nisarqa.create_dataset_in_h5group(grp=grp,
-                                            ds_name='NISARProductFilename',
-                                            ds_data=os.path.basename(nisar_h5.filename),
-                                            ds_description='Input NISAR product filename')
+        if 'identification' in stats_h5[os.path.join('/science', band)]:
+            # If the identification group already exists, copy each
+            # dataset, etc. individually
+            for item in nisar_h5[grp_path]:
+                item_path = os.path.join(grp_path, item)
+                nisar_h5.copy(nisar_h5[item_path], stats_h5, item_path)
+        else:
+            # Copy entire identification metadata from input file to stats.h5
+            nisar_h5.copy(nisar_h5[grp_path], stats_h5, grp_path)
 
 
 def save_NISAR_freq_metadata_to_h5(stats_h5,
@@ -440,11 +628,13 @@ def save_NISAR_freq_metadata_to_h5(stats_h5,
                 listOfPols.append(pol)
             grp_path = os.path.join('/science/', band, path_to_group.lstrip('/'), 
                                         f'frequency{freq}')
-            grp = stats_h5.require_group(grp_path)
-            nisarqa.create_dataset_in_h5group(grp=grp,
-                                              ds_name='listOfPolarizations',
-                                              ds_data=listOfPols,
-                                              ds_description=f'Polarizations for Frequency {freq} discovered in input NISAR product by QA code')
+            nisarqa.create_dataset_in_h5group(
+                h5_file=stats_h5,
+                grp_path=grp_path,
+                ds_name='listOfPolarizations',
+                ds_data=listOfPols,
+                ds_description=f'Polarizations for Frequency {freq} ' \
+                    'discovered in input NISAR product by QA code')
 
 
 class ComplexFloat16Decoder(object):
@@ -981,10 +1171,10 @@ def _get_pols(h5_file, freqs):
     return pols
 
 
-def process_power_images(pols, params):
+def process_power_images(pols, params, stats_h5, report_pdf):
     '''
-    Generate the RSLC Power Image plots for the `plots_pdf` and
-    corresponding browse image products.
+    Generate the RSLC Power Image plots for the `report_pdf` and
+    corresponding browse image product.
 
     The browse image products will follow this naming convention:
         <prefix>_<product name>_BAND_F_PP_qqq
@@ -1008,6 +1198,10 @@ def process_power_images(pols, params):
     params : RSLCPowerImageParams
         A dataclass containing the parameters for processing
         and outputting the power image(s).
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
     '''
     # Process each image in the dataset
     for band in pols:
@@ -1015,10 +1209,10 @@ def process_power_images(pols, params):
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
-                process_single_power_image(img, params)
+                process_single_power_image(img, params, stats_h5, report_pdf)
 
 
-def process_single_power_image(img, params):
+def process_single_power_image(img, params, stats_h5, report_pdf):
     '''
     Generate the RSLC Power Image plots for the `plots_pdf` and
     corresponding browse image products for a single RSLC image.
@@ -1041,10 +1235,14 @@ def process_single_power_image(img, params):
     params : RSLCPowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
     '''
 
-    nlooks_freqa_arg = params.nlooks_freqa
-    nlooks_freqb_arg = params.nlooks_freqb
+    nlooks_freqa_arg = params.nlooks_freqa.val
+    nlooks_freqb_arg = params.nlooks_freqb.val
 
     # Get the window size for multilooking
     if (img.freq == 'A' and nlooks_freqa_arg is None) or \
@@ -1060,7 +1258,8 @@ def process_single_power_image(img, params):
     elif img.freq == 'B':
         nlooks = nlooks_freqb_arg
     else:
-        raise ValueError(f'freqency is {freq}, but only `A` or `B` are valid options.')
+        raise ValueError(f'freqency is {img.freq}, but only `A` or `B` '
+                          'are valid options.')
 
     print(f'\nMultilooking Image {img.name} with shape: {img.data.shape}')
     print('sceneCenterAlongTrackSpacing: ', img.az_spacing)
@@ -1068,37 +1267,32 @@ def process_single_power_image(img, params):
     print('Beginning Multilooking with nlooks window shape: ', nlooks)
 
     # Multilook
-    print('tile_shape: ', params.tile_shape)
-    start_time = time.time()
     out_img = nisarqa.compute_multilooked_power_by_tiling(
                                             arr=img.data,
                                             nlooks=nlooks,
-                                            tile_shape=params.tile_shape)
-    end_time = time.time()-start_time
-    print('time to multilook image (sec): ', end_time)
-    print('time to multilook image (min): ', end_time/60.)
+                                            tile_shape=params.tile_shape.val)
 
-    print(f'Multilooking Complete. Multilooked shape: {out_img.shape}')
-    print(f'Multilooked size: {out_img.size} Mpix.')
+    print(f'Multilooking Complete. Multilooked image shape: {out_img.shape}')
 
     # Apply image correction to the multilooked array
 
     # Step 1: Clip the image array's outliers
-    out_img = clip_array(out_img, middle_percentile=params.middle_percentile)
+    out_img = clip_array(out_img, 
+                         middle_percentile=params.middle_percentile.val)
 
     # Step 2: Convert from linear units to dB
-    if not params.linear_units:
+    if not params.linear_units.val:
         out_img = nisarqa.pow2db(out_img)
 
     # Step 3: Apply gamma correction
-    if params.gamma is not None:
+    if params.gamma.val is not None:
         # Get the vmin and vmax prior to applying gamma correction.
         # These will later be used for setting the colorbar's
         # tick mark values.
         vmin = np.min(out_img)
         vmax = np.max(out_img)
 
-        out_img = apply_gamma_correction(out_img, gamma=params.gamma)
+        out_img = apply_gamma_correction(out_img, gamma=params.gamma.val)
 
     # Plot and Save Power Image as Browse Image Product
     browse_img_file = get_browse_product_filename(
@@ -1107,14 +1301,14 @@ def process_single_power_image(img, params):
                                 freq=img.freq,
                                 pol=img.pol,
                                 quantity='pow',
-                                browse_image_file=params.browse_image_file)
+                                browse_image_file=None)
 
     plot_to_grayscale_png(img_arr=out_img,
                           filepath=browse_img_file)
 
     # Plot and Save Power Image to graphical summary pdf
-    title = f'RSLC Multilooked Power ({params.pow_units}%s)\n{img.name}'
-    if params.gamma is None:
+    title = f'RSLC Multilooked Power ({params.pow_units.val}%s)\n{img.name}'
+    if params.gamma.val is None:
         title = title % ''
     else:
         title = title % fr', $\gamma$={params.gamma}'
@@ -1132,7 +1326,7 @@ def process_single_power_image(img, params):
     # and produce the colorbar labels with values that match
     # the underlying, pre-gamma corrected data.
     # See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
-    if params.gamma is not None:
+    if params.gamma.val is not None:
         def inverse_gamma_correction(x, pos):
             '''
             FuncFormatter to invert the gamma correction values
@@ -1165,7 +1359,7 @@ def process_single_power_image(img, params):
              colorbar_formatter=colorbar_formatter,
              ylabel=az_title,
              xlabel=rng_title,
-             plots_pdf=params.plots_pdf
+             plots_pdf=report_pdf
              )
 
 
@@ -1578,19 +1772,23 @@ def generate_histogram_single_freq(pol, band, freq, params):
                             density=True)
 
         # Save to stats.h5 file
-        pol_grp = params.stats_h5.create_group(f'/science/{band}/QA/data/frequency{freq}/{pol_name}/')
+        grp_path = f'/science/{band}/QA/data/frequency{freq}/{pol_name}/'
 
-        nisarqa.create_dataset_in_h5group(grp=pol_grp,
-                                          ds_name='powerHistogramDensity',
-                                          ds_data=pow_hist_density,
-                                          ds_units=f'1/{params.pow_units}',
-                                          ds_description='Normalized density of the power histogram')
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name='powerHistogramDensity',
+            ds_data=pow_hist_density,
+            ds_units=f'1/{params.pow_units}',
+            ds_description='Normalized density of the power histogram')
 
-        nisarqa.create_dataset_in_h5group(grp=pol_grp,
-                                          ds_name='phaseHistogramDensity',
-                                          ds_data=phs_hist_density,
-                                          ds_units=f'1/{params.phs_units}',
-                                          ds_description='Normalized density of the phase histogram')
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name='phaseHistogramDensity',
+            ds_data=phs_hist_density,
+            ds_units=f'1/{params.phs_units}',
+            ds_description='Normalized density of the phase histogram')
 
         # Add these densities to the figures
         add_hist_to_axis(pow_ax,

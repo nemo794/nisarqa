@@ -4,11 +4,10 @@
 # ALL RIGHTS RESERVED. United States Government Sponsorship acknowledged.
 # This software may be subject to U.S. export control laws and regulations.
 
-import os
 import glob
-from setuptools import setup
-from setuptools import find_packages
-from setuptools import Command
+import os
+
+from setuptools import Command, find_packages, setup
 
 
 class CleanCommand(Command):
@@ -23,7 +22,7 @@ class CleanCommand(Command):
         os.system('rm -vrf .scratch_dir ./build ./dist ./*.pyc ./*.tgz ./*.egg-info ./src/*.egg-info')
 
 setup(
-    name = 'QA',
+    name = 'nisarqa',
     maintainer = 'NISAR ADT Team',
     maintainer_email = 'samantha.c.niemoeller@jpl.nasa.gov',
     description = 'NISAR ADT Quality Assurance',
@@ -32,15 +31,19 @@ setup(
     license = 'Copyright by the California Institute of Technology.'
                 'All rights reserved',
     url = 'http://nisar.jpl.nasa.gov',
-    version = 'V2.0',
+    version = '2.0',
 
     # Gather all packages located under `src`.
     # (A package is a directory containing an __init__.py file.)
     package_dir={ '' : 'src'},
     packages=find_packages(),
+
     test_suite = 'tests',
 
-    scripts=glob.glob(os.path.join('bin', 'verify_*.py')),
+    entry_points = { 
+        "console_scripts" :
+            ["nisarqa = nisarqa.__main__:main"]
+        },
 
     data_files=[( 'product_specs',
                    glob.glob(os.path.join('src', 'parameters', 'product_specs', '*.xml' )))],
@@ -49,7 +52,12 @@ setup(
                       'numpy',
                       'h5py',
                       'pytest',
-                      'pillow'
+                      'pillow',
+                      'ruamel.yaml',
+                      'yamale',
+                      'cycler',
+                      'matplotlib',
+                      'scipy'
                       ],
     cmdclass={
         'clean': CleanCommand,

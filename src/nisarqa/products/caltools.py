@@ -1,8 +1,8 @@
+import os
 from dataclasses import dataclass, field, fields
 from typing import Iterable
-import os
-import h5py
 
+import h5py
 import nisarqa
 
 # List of objects from the import statements that
@@ -104,6 +104,8 @@ class AbsCalParams(CoreCalToolsParams):
 
     # Auto-generated attributes
     attr2: str = field(init=False)
+    tool_path: str = field(init=False,
+                           default=f'/science/%s/absoluteCalibrationFactor')
 
     def __post_init__(self):
         # Use this section to auto-generate any new 
@@ -112,6 +114,33 @@ class AbsCalParams(CoreCalToolsParams):
             self.attr2 = 'Big Value!'
         else:
             self.attr2 = 'Smaller Value'
+
+        self.param_dict['AbsCalParams'] = {}
+        name = 'corner_reflector_filename'
+        self.param_dict['AbsCalParams'][name] = \
+            nisarqa.Param(
+                name=name,
+                value=getattr(self, name),
+                description='TODO Source file for corner reflector locations',
+                units=None,
+                default=self.corner_reflector_filename.default,
+                path_in_runconfig=f'runconfig.groups.dynamic_ancillary_file_group',
+                stats_h5_dataset_path=f'{self.tool_path}/processing'
+            )
+
+        name = 'attr1'
+        self.param_dict['AbsCalParams'][name] = \
+            nisarqa.Param(
+                name=name,
+                value=self.corner_reflector_filename,
+                description='TODO Source file for corner reflector locations',
+                units=None,
+                default=self.attr1.default,
+                path_in_runconfig=f'runconfig.groups.dynamic_ancillary_file_group',
+                stats_h5_dataset_path=f'{self.tool_path}/processing'
+            )
+
+
 
     def save_processing_params_to_h5(self, path_to_group):
         '''

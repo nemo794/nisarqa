@@ -1,4 +1,6 @@
-import inspect, sys
+import inspect
+import sys
+
 
 def get_all(name, objects_to_skip=None, skip_private=True):
     '''Return a list of all functions and classes in a module
@@ -88,12 +90,17 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 # import constants and utilities into the global namespace
 # These will be accessed by all products. Note that each
 # function name will need to be unique across the submodules.
-
 # WARNING: If adding a new module to this list,
 # make sure to set the `__all__` attribute
 # within that new module.
-# A helper function with example can be found above.
+# A helper function to set `__all__` (with example) can be found above.
+# Note: Keep each NISAR product in a unique namespace, due to a higher
+# potential for overlapping function names
+from .parameters.nisar_params import *
 from .parameters.qa_constants.globals import *
+from .parameters.qa_constants.stub_outputs import *
+from .parameters.rslc_params import *
+from .products import caltools, gslc, rslc  # keep in their own namespace
 from .utils.calc import *
 from .utils.generate_test_data import *
 from .utils.input_verification import *
@@ -101,8 +108,3 @@ from .utils.multilook import *
 from .utils.parsing import *
 from .utils.tiling import *
 from .utils.utils import *
-
-# Keep each product in a unique namespace, due to a higher
-# potential for overlapping function names
-from .products import rslc
-from .products import caltools
