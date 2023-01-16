@@ -808,16 +808,7 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
     Generate the RSLC Power Image plots for the `report_pdf` and
     corresponding browse image product.
 
-    The browse image products will follow this naming convention:
-        <prefix>_<product name>_BAND_F_PP_qqq
-            <prefix>        : `browse_image_prefix`, supplied from SDS
-            <product name>  : RSLC, GLSC, etc.
-            BAND            : LSAR or SSAR
-            F               : frequency A or B 
-            PP              : polarization
-            qqq             : pow (because this function is for power images)
-
-    TODO - double check the file naming convention
+    The browse image will be named `BROWSE.png` and saved to `output_dir`.
 
     Parameters
     ----------
@@ -838,31 +829,41 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
         Filepath to the output directory to save the browse image in
     '''
     # Process each image in the dataset
+
+    flag_save_as_browse = True
+
     for band in pols:
         for freq in pols[band]:
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
-                process_single_power_image(img, params, 
-                                           stats_h5, report_pdf, output_dir)
+                process_single_power_image(
+                        img=img,
+                        params=params,
+                        flag_save_as_browse=flag_save_as_browse,
+                        stats_h5=stats_h5,
+                        report_pdf=report_pdf,
+                        output_dir=output_dir)
+                
+                # Only save the first available image as BROWSE.png
+                # TODO - when updating the browse image to be RGB, 
+                # update the selection process to select images in a
+                # pre-determined order.
+                # "First-Available" is not acceptable in the long term.
+                flag_save_as_browse = False
 
 
-def process_single_power_image(img, params,
-                                stats_h5, report_pdf, output_dir='.'):
+def process_single_power_image(img,
+                               params,
+                               stats_h5,
+                               report_pdf,
+                               output_dir='.',
+                               flag_save_as_browse=True):
     '''
     Generate the RSLC Power Image plots for the `plots_pdf` and
     corresponding browse image products for a single RSLC image.
 
-    The browse image products will follow this naming convention:
-        <prefix>_<product name>_BAND_F_PP_qqq
-            <prefix>        : `browse_image_prefix`, supplied from SDS
-            <product name>  : RSLC, GLSC, etc.
-            BAND            : LSAR or SSAR
-            F               : frequency A or B 
-            PP              : polarization
-            qqq             : pow (because this function is for power images)
-
-    TODO - double check the file naming convention
+    The browse image will be named `BROWSE.png` and saved to `output_dir`.
 
     Parameters
     ----------
@@ -877,6 +878,8 @@ def process_single_power_image(img, params,
         The output pdf file to append the power image plot to
     output_dir : str
         Filepath to the output directory to save the browse image in
+    flag_save_as_browse : bool, optional
+        True to save this image as a png in `output_dir` as 'BROWSE.png'
     '''
 
     nlooks_freqa_arg = params.nlooks_freqa.val
@@ -933,16 +936,11 @@ def process_single_power_image(img, params,
         out_img = apply_gamma_correction(out_img, gamma=params.gamma.val)
 
     # Plot and Save Power Image as Browse Image Product
-    browse_img_file = get_browse_product_filename(
-                                product_name='RSLC',
-                                band=img.band,
-                                freq=img.freq,
-                                pol=img.pol,
-                                quantity='pow',
-                                output_dir=output_dir)
+    if flag_save_as_browse:
+        browse_img_file = os.path.join(output_dir, 'BROWSE.png')
 
-    plot_to_grayscale_png(img_arr=out_img,
-                          filepath=browse_img_file)
+        plot_to_grayscale_png(img_arr=out_img,
+                            filepath=browse_img_file)
 
     # Plot and Save Power Image to graphical summary pdf
     title = f'RSLC Multilooked Power ({params.pow_units.val}%s)\n{img.name}'
@@ -1085,58 +1083,6 @@ def plot_to_grayscale_png(img_arr, filepath):
     # (Pyplot only saves png's as RGB, even if cmap=plt.cm.gray)
     im = Image.fromarray(img_arr)
     im.save(filepath)  # default = 72 dpi
-
-
-def get_browse_product_filename(
-        product_name,
-        band,
-        freq,
-        pol,
-        quantity,
-        output_dir='.'):
-    '''
-    Return the full filename (with path) for Browse Image Product.
-
-    The browse image products should follow this naming convention,
-    (Convention modified from Phil Callahan's slides on 11 Aug 2022.)
-        <browse_image_file>_<product name>_BAND_F_PP[PP]_qqq.png
-            <browse_image_file>       : generic browse image filename, supplied by SDS
-            <product name>             : RSLC, GLSC, etc.
-            BAND                       : LSAR or SSAR
-            F                          : frequency A or B 
-            PP                         : polarization, e.g. 'HH' or 'HV'.
-                                         [PP] additional polarization for GCOV 
-            qqq                        : quantity: mag, phs, coh, cov, rof, aof, cnc, iph 
-                                        (see product list)
-
-    TODO - double check the file naming convention
-
-    Parameters
-    ----------
-    product_name : str
-        Name of the type of NISAR product, e.g. 'RSLC'
-    band : str
-        Name of the band for this browse image, e.g. 'LSAR'
-    freq : str
-        Name of the frequency for this browse image, e.g. 'A'
-    pol : str
-        Name of the polarization for this browse image, e.g. 'HH'
-    quantity : str
-        The quantity that this browse image represents, e.g. 'pow' for power
-    output_dir : str
-        The output diretory for QA products
-        Defaults to '.'
-
-    Returns
-    -------
-    filename : str
-        Full filename with path for the Browse image.
-    '''
-    filename = f'{product_name.upper()}_{band}_{freq}_{pol}_{quantity}.png'
-
-    filename = os.path.join(output_dir, filename)
-
-    return filename
 
 
 def plot2pdf(img_arr,
