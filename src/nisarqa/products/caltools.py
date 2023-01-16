@@ -1,23 +1,22 @@
-import os
-from dataclasses import dataclass, field, fields
-from typing import Iterable
-
-import h5py
 import nisarqa
 
 # List of objects from the import statements that
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
 
-def run_abscal_tool(params, input_filename, stats_filename):
+def run_abscal_tool(abscal_params, dyn_anc_params, 
+                    input_filename, stats_filename):
     '''
     Run the Absolute Calibration Factor workflow.
 
     Parameters
     ----------
-    params : AbsCalParams
+    abscal_params : AbsCalParams
         A dataclass containing the parameters for processing
         and outputting the Absolute Calibration Factor workflow.
+    dyn_anc_params : DynamicAncillaryFileParams
+        A dataclass containing the parameters for the dynamic
+        ancillary files.
     input_filename : str
         Filename (with path) for input NISAR Product
     stats_filename : str
@@ -25,6 +24,10 @@ def run_abscal_tool(params, input_filename, stats_filename):
         outputs from the CalTool should be stored.
     '''
     # TODO: implement this CalTool workflow
+
+    # Check that the *Params were properly received
+    assert isinstance(abscal_params, nisarqa.AbsCalParams)
+    assert isinstance(dyn_anc_params, nisarqa.DynamicAncillaryFileParams)
 
     # Get list of bands from the input file.
     # QA must be able to handle both LSAR and SSAR.
@@ -51,7 +54,7 @@ def run_abscal_tool(params, input_filename, stats_filename):
                     ds_name='abscalResult',
                     ds_data=result,
                     ds_description='TODO Description for abscalResult',
-                    ds_units=params.attr1.units  # use the same units as attr1
+                    ds_units=abscal_params.attr1.units
             )
 
 
@@ -101,15 +104,19 @@ def run_nesz_tool(params, input_filename, stats_filename):
             )
 
 
-def run_pta_tool(params, input_filename, stats_filename):
+def run_pta_tool(pta_params, dyn_anc_params,
+                    input_filename, stats_filename):
     '''
     Run the Point Targer Analyzer workflow.
 
     Parameters
     ----------
-    params : PointTargetAnalyzerParams
+    pta_params : PointTargetAnalyzerParams
         A dataclass containing the parameters for processing
         and outputting the Point Target Analyzer workflow.
+    dyn_anc_params : DynamicAncillaryFileParams
+        A dataclass containing the parameters for the dynamic
+        ancillary files.
     input_filename : str
         Filename (with path) for input NISAR Product
     stats_filename : str
@@ -117,6 +124,10 @@ def run_pta_tool(params, input_filename, stats_filename):
         outputs from the CalTool should be stored.
     '''
     # TODO: implement this CalTool workflow
+
+    # Check that the *Params were properly received
+    assert isinstance(pta_params, nisarqa.PointTargetAnalyzerParams)
+    assert isinstance(dyn_anc_params, nisarqa.DynamicAncillaryFileParams)
 
     # Get list of bands from the input file.
     # QA must be able to handle both LSAR and SSAR.
@@ -138,7 +149,7 @@ def run_pta_tool(params, input_filename, stats_filename):
             # Step 2: store the data
             grp_path = f'/science/{band}/pointTargetAnalyzer/data'
             nisarqa.create_dataset_in_h5group(
-                    h5_file = stats_h5,
+                    h5_file=stats_h5,
                     grp_path=grp_path,
                     ds_name='pointTargetAnalyzerResult',
                     ds_data=result,

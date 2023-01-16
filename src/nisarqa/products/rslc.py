@@ -171,7 +171,8 @@ def verify_rslc(runconfig_file):
         # logger.log_message(logging_base.LogFilterInfo, msg)
 
         # Run Absolute Calibration Factor tool
-        nisarqa.caltools.run_abscal_tool(params=rslc_params.abs_cal,
+        nisarqa.caltools.run_abscal_tool(abscal_params=rslc_params.abs_cal,
+                                         dyn_anc_params=rslc_params.anc_files,
                                          input_filename=input_file,
                                          stats_filename=stats_file)
 
@@ -191,7 +192,8 @@ def verify_rslc(runconfig_file):
         # logger.log_message(logging_base.LogFilterInfo, msg)
 
         # Run Point Target Analyzer tool
-        nisarqa.caltools.run_pta_tool(params=rslc_params.pta,
+        nisarqa.caltools.run_pta_tool(pta_params=rslc_params.pta,
+                                      dyn_anc_params=rslc_params.anc_files,
                                       input_filename=input_file,
                                       stats_filename=stats_file)
 
