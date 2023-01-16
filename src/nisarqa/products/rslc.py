@@ -563,7 +563,7 @@ class RSLCRasterQA(RSLCRaster):
             slc_type = 'SLC'
         else:
             # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
-            raise DatasetNotFoundError
+            raise nisarqa.DatasetNotFoundError
 
         # Hardcoded paths to various groups in the NISAR RSLC h5 file.
         # These paths are determined by the RSLC .xml product spec
