@@ -676,17 +676,13 @@ def _get_bands(h5_file):
 
     bands = {}
     for band in nisarqa.BANDS:
-        print("SAM 1")
         path = f'/science/{band}'
-        print("path: ", path)
         if path in h5_file:
             # self.logger.log_message(logging_base.LogFilterInfo, 'Found band %s' % band)
             bands[band] = h5_file[path]
-            print("SAM 2")
         else:
             # self.logger.log_message(logging_base.LogFilterInfo, '%s not present' % band)
             pass
-    print("SAM 3: ", bands)
     return bands
 
 
