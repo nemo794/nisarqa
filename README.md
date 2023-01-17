@@ -1,9 +1,28 @@
 # QualityAssurance
 Quality Assurance software for NISAR
+
+For the upcoming [NISAR mission](https://nisar.jpl.nasa.gov/),
+eight types of L1/L2 data products will be generated.
+This Quality Assurance (QA) software is designed to look at the data products
+produced one at a time. For each product, the QA code can:
+- Verify the metadata matches the product spec
+- Generate metrics, a pdf report, and a summary describing the quality of the product
+- Run CalTools processes on RSLC products
+- Produce a browse image png for that product
+
 # Minimum PreRequisites:
 
-Python 3.7
-TODO
+Python 3.9
+argparse
+numpy
+matplotlib
+scipy
+h5py
+pillow
+ruamel.yaml
+yamale
+cycler
+
 
 # Operating Instructions:
 
@@ -22,62 +41,96 @@ For develop mode, run:
 python setup.py develop
 ```
 
-##
-verify_rslc.py --quality
-               --input <path to RSLC files you want to validate>
+To test installation, try:
+`nisarqa --version`
+`nisarqa -h`
+`nisarqa dumpconfig -h`
 
-Specifying the '--quality' flag instructs the code to produce the graphical <fpdf> and statistical <fhdf> output files.
+## Running the QA Code
 
-The code only works on NISAR sample RSLC files.  Other file formats are not supported at this time.
+Run the QA code from the command line using a runconfig.yaml file.
+Because the QA code is uniquely written for each product type, each product
+type has a unique subcommand.
+See `nisarqa -h` and e.g. `nisarqa rslc_qa -h` for usage.
+
+Example commands to process QA:
+`nisarqa rslc_qa <rslc_runconfig.yaml>`
+`nisarqa gslc_qa <gslc_runconfig.yaml>`
+
+## Runconfig Template w/ default parameters
+Because the QA code is uniquely written for each product type, each product
+also has a unique runconfig yaml file template and default settings.
+The runconfig is where a user specifies the filepath to the input NISAR product,
+which workflows to run, what units to use for a given metric, and so forth.
+To get a product's example runconfig file that has been populated with
+the default parameters, use the `dumpconfig` subcommand.
+See `nisarqa dumpconfig -h` for usage.
+
+Example commands to process QA:
+`nisarqa dumpconfig rslc`
+`nisarqa dumpconfig gcov`
+
+- NOTE: dumpconfig has only been implemented for RSLC at this time.
+
+
+## Expected Outputs
+
+For each NISAR product, if all workflows are requested via the `workflows`
+parameter in the runconfig, the QA code will generate six output files
+and store them in the directory specified by `qa_output_dir` in the runconfig:
+
+1) `BROWSE.png` - RGB browse image for the input NISAR product
+2) `BROWSE.kml` - geolocation information for `BROWSE.png`
+3) `REPORT.pdf` - human-readible graphical summary pdf containing histograms,
+                  low-res images of the input datasets, etc.
+4) `STATS.h5` - statistical summary HDF5 file containing computed quality
+                metrics, the datasets used to generate the plots in 
+                `REPORT.pdf`, the QA processing parameters, etc.
+5) `SUMMARY.csv` - a high-level PASS/FAIL check summary
+6) `LOG.txt` - textual listing of errors encountered during QA processing
+
+These file names are hardcoded; they are not currently configurable via the
+runconfig.
+
 
 ## Test RSLC Data
+Here are paths on Aurora to various test data sets.
+These path will need to be copied into the `qa_input_file` parameter in
+the runconfig.
 
 TODO: Update this section (see original QA Code README), and remove the hardlinks.
 
 Multi-Freq, Multi-Pol.
 Data Size: Medium-Large
-`verify_rslc.py --quality --input /home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5`
+`/home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5`
 
 Real Data that has been manipulated to be like NISAR data
 Data Size: Small
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP037370690/output_rslc/rslc.h5`
+`/home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP037370690/output_rslc/rslc.h5`
 
 Real Data that has been manipulated to be like NISAR data
 Data Size: Large, but could complete in original QA Code
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP271200680/output_rslc/rslc.h5`
+`/home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP271200680/output_rslc/rslc.h5`
 
 DIST1 - Simulated data to look like an actual image
 Data Size: Small
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_DIST1/output_rslc/rslc.h5`
+`/home/niemoell/dat/qa_test_data_04182022/rslc_DIST1/output_rslc/rslc.h5`
 
 DIST2 - Simulated data to look like an actual image
 Data Size: Medium
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_DIST2/output_rslc/rslc.h5`
+`/home/niemoell/dat/qa_test_data_04182022/rslc_DIST2/output_rslc/rslc.h5`
 
 REE1 - Simulated data to look like an actual image
 Data Size: Small
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_REE1/output_rslc/rslc.h5`
+`/home/niemoell/dat/qa_test_data_04182022/rslc_REE1/output_rslc/rslc.h5`
 
 REE2 - Simulated data to look like an actual image
 Data Size: Large, could not complete in original QA Code
-`verify_rslc.py --quality --input /home/niemoell/dat/qa_test_data_04182022/rslc_REE2/output_rslc/rslc.h5`
+`/home/niemoell/dat/qa_test_data_04182022/rslc_REE2/output_rslc/rslc.h5`
 
 Rosamond - Multi-Freq, Multi-Pol. Modified UAVSAR data.
 Data Size: Small
-`verify_rslc.py --quality --input /scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
+`/scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
 
 Hawaii (Big Island)
-`verify_rslc.py --quality --input /home/niemoell/dat/UAVSAR_RSLC_testdata_09222022/BigIsl_32905_10003_012_100106_L090_CX_143_02.h5`
-
-
-# Outputs
-
-This software generates three types of outputs:  
-
-qa.log = textual listing of errors encountered
-
-qa.h5 = statistical summary of file in HDF5 format
-
-qa.pdf = graphical summary of file
-  
-For example, 'rslc.h5', 'rslc.pdf' and 'rslc.log' are the statistical, graphical and error logs for the RSLC file.  Likewise, 'gcov.h5', 'gcov.pdf' and 'gcov.log' are the outputs for the GCOV file and the hdf, pdf and log files for the GSLC are called 'gslc.h5', 'gslc.pdf' and 'gslc.log' respectively. 
+`/home/niemoell/dat/UAVSAR_RSLC_testdata_09222022/BigIsl_32905_10003_012_100106_L090_CX_143_02.h5`
