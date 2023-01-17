@@ -40,7 +40,7 @@ def verify_rslc(runconfig_file):
     nisarqa.output_stub_files(output_dir=output_dir, stub_files='log_txt')
 
     # Create file paths for output files ()
-    input_file = rslc_params.prodpath.qa_input_file.val
+    input_file = rslc_params.input_f.qa_input_file.val
     msg = f'Starting Quality Assurance for input file: {input_file}' \
             f'\nOutputs to be generated:'
     if rslc_params.workflows.validate or rslc_params.workflows.qa_reports:

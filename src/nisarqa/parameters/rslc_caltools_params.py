@@ -82,6 +82,116 @@ class WorkflowsParams(BaseParams):
 
 
 @dataclass
+class InputFileGroupParams(BaseParams):
+    '''
+    Parameters from the Inpu File Group runconfig group.
+
+    Note that however data values are passed into this dataclass, they will
+    always be processed into, stored, and accessible as Param instances.
+        - If a non-Param type is provided, then default values will be used
+          to fill in the additional Param attributes.
+        - If a Param type is provided, then the <attribute>.val must contain
+          a valid non-Param input for that attribute.
+        - If no value or `None` is provided, then the attribute will be 
+          set to its default Param value.
+
+    Parameters
+    ----------
+    qa_input_file : str, Param, optional
+        The input NISAR product file name (with path).
+    '''
+
+    qa_input_file: Optional[Union[str, Param]] = None
+
+
+    def __setattr__(self, key, value):
+        if key == 'qa_input_file':
+            super().__setattr__(key, self.get_qa_input_file_param(value))
+        else:
+            raise KeyError(f'{key}')
+
+
+    def get_qa_input_file_param(self, qa_input_file):
+        '''Return `qa_input_file` as a Param'''
+
+        if isinstance(qa_input_file, Param):
+            if not qa_input_file.name == 'qa_input_file':
+                raise ValueError('qa_input_file.name must be "qa_input_file"')
+            if not os.path.isfile(qa_input_file.val):
+                raise ValueError('qa_input_file.val does not reference'
+                                f' a valid file: {qa_input_file}')
+            if not qa_input_file.val.endswith('.h5'):
+                raise ValueError('qa_input_file.val does not reference'
+                                f' an .h5 file: {qa_input_file}')
+
+            return qa_input_file
+
+        # Construct defaults for the new Param
+        default = Param(name='qa_input_file',
+                        val=None,
+                        units=None,
+                        short_descr='Input NISAR Product filename',
+                        long_descr= \
+                        '''
+                        Filename of the input file for QA.
+                        (This is the same as the output HDF5 from the SAS.)'''
+                        )
+
+        if qa_input_file is None:
+            # return the default Param
+            return default
+
+        elif isinstance(qa_input_file, str):
+            if not os.path.isfile(qa_input_file):
+                raise ValueError(
+                    f'`qa_input_file` is not a valid file: {qa_input_file}')
+            if not qa_input_file.endswith('.h5'):
+                raise ValueError(
+                    f'`qa_input_file` must end with .h5: {qa_input_file}')
+            
+            # update the default with the new value and return it
+            default.val = qa_input_file
+            return default
+
+        else:
+            raise ValueError('`qa_input_file` must be a str, Param, or None')
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ['runconfig','groups','input_file_group']
+
+    @staticmethod
+    def populate_runcfg(runconfig_cm):
+        # Docstring taken from the populate_runcfg() @abstractmethod 
+        # in the parent dataclass.
+
+        # Create a default instance of this class
+        default = InputFileGroupParams()
+
+        # build new yaml params group for this dataclass
+        params_cm = CM()
+
+        # Add runconfig parameters
+        default.add_param_to_cm(params_cm=params_cm,
+                                param_attr=default.qa_input_file)
+
+        # Add the new parameter group to the runconfig
+        default.add_param_group_to_runconfig(runconfig_cm, params_cm)
+
+
+    def write_params_to_h5(self, h5_file=None, bands=None):
+        '''
+        Populate h5_file HDF5 file with select processing parameters
+        of this instance of the dataclass.
+
+        No params will be added for this dataclass. Input parameters
+        are included to conform to the API, but will be ignored.
+        '''
+        # this dataclass has no params to save to h5 file
+        pass
+
+
+@dataclass
 class DynamicAncillaryFileParams(BaseParams):
     '''
     The parameters from the QA Dynamic Ancillary File runconfig group.
@@ -226,69 +336,19 @@ class ProductPathGroupParams(BaseParams):
 
     Parameters
     ----------
-    qa_input_file : str, Param, optional
-        The input NISAR product file name (with path).
     qa_output_dir : str, Param, optional
         Filepath to the output directory to store NISAR QA output files.
     '''
 
-    qa_input_file: Optional[Union[str, Param]] = None
     qa_output_dir: Optional[Union[str, Param]] = None
 
 
     def __setattr__(self, key, value):
-        if key == 'qa_input_file':
-            super().__setattr__(key, self.get_qa_input_file_param(value))
-        elif key == 'qa_output_dir':
+        if key == 'qa_output_dir':
             super().__setattr__(key, self.get_qa_output_dir_param(value))
         else:
             raise KeyError(f'{key}')
 
-
-    def get_qa_input_file_param(self, qa_input_file):
-        '''Return `qa_input_file` as a Param'''
-
-        if isinstance(qa_input_file, Param):
-            if not qa_input_file.name == 'qa_input_file':
-                raise ValueError('qa_input_file.name must be "qa_input_file"')
-            if not os.path.isfile(qa_input_file.val):
-                raise ValueError('qa_input_file.val does not reference'
-                                f' a valid file: {qa_input_file}')
-            if not qa_input_file.val.endswith('.h5'):
-                raise ValueError('qa_input_file.val does not reference'
-                                f' an .h5 file: {qa_input_file}')
-
-            return qa_input_file
-
-        # Construct defaults for the new Param
-        default = Param(name='qa_input_file',
-                        val=None,
-                        units=None,
-                        short_descr='Input NISAR Product filename',
-                        long_descr= \
-                        '''
-                        Filename of the input file for QA.
-                        (This is the same as the output HDF5 from the SAS.)'''
-                        )
-
-        if qa_input_file is None:
-            # return the default Param
-            return default
-
-        elif isinstance(qa_input_file, str):
-            if not os.path.isfile(qa_input_file):
-                raise ValueError(
-                    f'`qa_input_file` is not a valid file: {qa_input_file}')
-            if not qa_input_file.endswith('.h5'):
-                raise ValueError(
-                    f'`qa_input_file` must end with .h5: {qa_input_file}')
-            
-            # update the default with the new value and return it
-            default.val = qa_input_file
-            return default
-
-        else:
-            raise ValueError('`qa_input_file` must be a str, Param, or None')
 
     def get_qa_output_dir_param(self, qa_output_dir):
         '''Return `qa_output_dir` as a Param.'''
@@ -354,9 +414,6 @@ class ProductPathGroupParams(BaseParams):
         params_cm = CM()
 
         # Add runconfig parameters
-        default.add_param_to_cm(params_cm=params_cm,
-                                param_attr=default.qa_input_file)
-
         default.add_param_to_cm(params_cm=params_cm,
                                 param_attr=default.qa_output_dir)
 
@@ -1895,6 +1952,8 @@ class RSLCRootParams:
     ----------
     workflows : WorkflowsParams
         RSLC QA Workflows parameters
+    input_f : InputFileGroupParams, optional
+        Input File Group parameters for RSLC QA
     prodpath : ProductPathGroupParams, optional
         Product Path Group parameters for RSLC QA
     power_img : RSLCPowerImageParams
@@ -1913,6 +1972,7 @@ class RSLCRootParams:
 
     # Shared parameters
     workflows: WorkflowsParams
+    input_f: Optional[InputFileGroupParams] = None
     prodpath: Optional[ProductPathGroupParams] = None
 
     # QA parameters
@@ -1934,54 +1994,64 @@ class RSLCRootParams:
         # prodpath is only optional in the case of doing a dumpconfig
         if any([getattr(self.workflows, field.name) \
                             for field in fields(self.workflows)]):
+            if not isinstance(self.prodpath, InputFileGroupParams):
+                raise ValueError('`input_f` parameter of type '
+                    'InputFileGroupParams is required to run any of the '
+                    'QA workflows.')
+
+        # If any of the workflows requested, then prodpath must be an
+        # instance of ProductPathGroupParams.
+        # prodpath is only optional in the case of doing a dumpconfig
+        if any([getattr(self.workflows, field.name) \
+                            for field in fields(self.workflows)]):
             if not isinstance(self.prodpath, ProductPathGroupParams):
-                raise ValueError('prodpath parameter of type '
+                raise ValueError('`prodpath` parameter of type '
                     'ProductPathGroupParams is required to run any of the '
                     'QA workflows.')
 
         if self.workflows.qa_reports:
             if self.power_img is None or \
                 not isinstance(self.power_img, RSLCPowerImageParams):
-                raise ValueError('power_img parameter of type '
+                raise ValueError('`power_img` parameter of type '
                     'RSLCPowerImageParams is required to run the '
                     'requested qa_reports workflow')
 
             if self.histogram is None or \
                 not isinstance(self.histogram, RSLCHistogramParams):
-                raise ValueError('histogram parameter of type '
+                raise ValueError('`histogram` parameter of type '
                     'RSLCHistogramParams is required to run the '
                     'requested qa_reports workflow')
 
         if self.workflows.absolute_calibration_factor:
             if self.abs_cal is None or \
                 not isinstance(self.abs_cal, AbsCalParams):
-                raise ValueError('abs_cal parameter of type '
+                raise ValueError('`abs_cal` parameter of type '
                     'AbsCalParams is required to run the '
                     'requested absolute_calibration_factor workflow')
 
             if self.anc_files is None or \
                 not isinstance(self.anc_files, DynamicAncillaryFileParams):
-                raise ValueError('anc_files parameter of type '
+                raise ValueError('`anc_files` parameter of type '
                     'DynamicAncillaryFileParams is required to run the '
                     'requested absolute_calibration_factor workflow')
 
         if self.workflows.nesz:
             if self.nesz is None or \
                 not isinstance(self.nesz, NESZParams):
-                raise ValueError('nesz parameter of type '
+                raise ValueError('`nesz` parameter of type '
                     'NESZParams is required to run the '
                     'requested nesz workflow')
 
         if self.workflows.point_target_analyzer:
             if self.pta is None or \
                 not isinstance(self.pta, PointTargetAnalyzerParams):
-                raise ValueError('pta parameter of type '
+                raise ValueError('`pta` parameter of type '
                     'PointTargetAnalyzerParams is required to run the '
                     'requested point_target_analyzer workflow')
 
             if self.anc_files is None or \
                 not isinstance(self.anc_files, DynamicAncillaryFileParams):
-                raise ValueError('anc_files parameter of type '
+                raise ValueError('`anc_files` parameter of type '
                     'DynamicAncillaryFileParams is required to run the '
                     'requested point_target_analyzer workflow')
 
@@ -2005,6 +2075,7 @@ class RSLCRootParams:
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
+        InputFileGroupParams.populate_runcfg(runconfig_cm)
         DynamicAncillaryFileParams.populate_runcfg(runconfig_cm)
         ProductPathGroupParams.populate_runcfg(runconfig_cm)
         WorkflowsParams.populate_runcfg(runconfig_cm)
@@ -2064,6 +2135,11 @@ def parse_rslc_runconfig(runconfig_yaml):
     params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
     workflows_params = WorkflowsParams(**params_dict)
 
+    # Construct InputFileGroupParams dataclass (required for all workflows)
+    rncfg_path = InputFileGroupParams.get_path_to_group_in_runconfig()
+    params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
+    input_file_params = InputFileGroupParams(**params_dict)
+
     # Construct DynamicAncillaryFileParams dataclass
     # Only two of the CalVal workflows use the dynamic_ancillary_file_group
     if workflows_params.absolute_calibration_factor or \
@@ -2121,6 +2197,7 @@ def parse_rslc_runconfig(runconfig_yaml):
 
     # Construct RSLCRootParams
     rslc_params = RSLCRootParams(workflows=workflows_params,
+                                 input_file=input_file_params,
                                  anc_files=dyn_anc_files,
                                  prodpath=product_path_params,
                                  power_img=pow_img_params,
