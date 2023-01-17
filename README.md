@@ -11,7 +11,7 @@ produced one at a time. For each product, the QA code can:
 - Produce a browse image png for that product
 
 # Minimum PreRequisites:
-
+```
 Python 3.9
 argparse
 numpy
@@ -22,7 +22,7 @@ pillow
 ruamel.yaml
 yamale
 cycler
-
+```
 
 # Operating Instructions:
 
@@ -42,9 +42,11 @@ python setup.py develop
 ```
 
 To test installation, try:
-`nisarqa --version`
-`nisarqa -h`
-`nisarqa dumpconfig -h`
+```
+nisarqa --version
+nisarqa -h
+nisarqa dumpconfig -h
+```
 
 ## Running the QA Code
 
@@ -54,8 +56,10 @@ type has a unique subcommand.
 See `nisarqa -h` and e.g. `nisarqa rslc_qa -h` for usage.
 
 Example commands to process QA:
-`nisarqa rslc_qa <rslc_runconfig.yaml>`
-`nisarqa gslc_qa <gslc_runconfig.yaml>`
+```
+nisarqa rslc_qa <rslc_runconfig.yaml>
+nisarqa gslc_qa <gslc_runconfig.yaml>
+```
 
 ## Runconfig Template w/ default parameters
 Because the QA code is uniquely written for each product type, each product
@@ -67,10 +71,12 @@ the default parameters, use the `dumpconfig` subcommand.
 See `nisarqa dumpconfig -h` for usage.
 
 Example commands to process QA:
-`nisarqa dumpconfig rslc`
-`nisarqa dumpconfig gcov`
+```
+nisarqa dumpconfig rslc
+nisarqa dumpconfig gcov
+```
 
-- NOTE: dumpconfig has only been implemented for RSLC at this time.
+- NOTE: `dumpconfig` has only been implemented for RSLC at this time.
 
 
 ## Expected Outputs
@@ -89,7 +95,7 @@ and store them in the directory specified by `qa_output_dir` in the runconfig:
 5) `SUMMARY.csv` - a high-level PASS/FAIL check summary
 6) `LOG.txt` - textual listing of errors encountered during QA processing
 
-These file names are hardcoded; they are not currently configurable via the
+These file names are hardcoded; they are not configurable via the
 runconfig.
 
 
