@@ -51,8 +51,10 @@ nisarqa dumpconfig -h
 ## Running the QA Code
 
 Run the QA code from the command line using a runconfig.yaml file.
+
 Because the QA code is uniquely written for each product type, each product
 type has a unique subcommand.
+
 See `nisarqa -h` and e.g. `nisarqa rslc_qa -h` for usage.
 
 Example commands to process QA:
@@ -64,10 +66,13 @@ nisarqa gslc_qa <gslc_runconfig.yaml>
 ## Runconfig Template w/ default parameters
 Because the QA code is uniquely written for each product type, each product
 also has a unique runconfig yaml file template and default settings.
+
 The runconfig is where a user specifies the filepath to the input NISAR product,
 which workflows to run, what units to use for a given metric, and so forth.
+
 To get a product's example runconfig file that has been populated with
 the default parameters, use the `dumpconfig` subcommand.
+
 See `nisarqa dumpconfig -h` for usage.
 
 Example commands to process QA:
@@ -87,7 +92,7 @@ and store them in the directory specified by `qa_output_dir` in the runconfig:
 
 1) `BROWSE.png` - RGB browse image for the input NISAR product
 2) `BROWSE.kml` - geolocation information for `BROWSE.png`
-3) `REPORT.pdf` - human-readible graphical summary pdf containing histograms,
+3) `REPORT.pdf` - graphical summary pdf containing histograms,
                   low-res images of the input datasets, etc.
 4) `STATS.h5` - statistical summary HDF5 file containing computed quality
                 metrics, the datasets used to generate the plots in 
