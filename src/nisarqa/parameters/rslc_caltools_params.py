@@ -11,7 +11,7 @@ from ruamel.yaml import CommentedMap as CM
 
 objects_to_skip = nisarqa.get_all(__name__)
 
-@dataclass
+@dataclass(frozen=True)
 class WorkflowsParams(BaseParams):
     '''
     The parameters specifying which RSLC-Caltools QA workflows should be run.
@@ -42,7 +42,7 @@ class WorkflowsParams(BaseParams):
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','processing','qa', 'workflows']
+        return ['runconfig','groups','qa','workflows']
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
@@ -81,80 +81,76 @@ class WorkflowsParams(BaseParams):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class InputFileGroupParams(BaseParams):
     '''
     Parameters from the Inpu File Group runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
+
 
     Parameters
     ----------
-    qa_input_file : str, Param, optional
+    qa_input_file : str, optional
         The input NISAR product file name (with path).
     '''
 
-    qa_input_file: Optional[Union[str, Param]] = None
+    # Set attributes to Param type for correct downstream type checking
+    qa_input_file: Param
 
+    # For `qa_input_file`, set default to None.
+    # In practise, if a user tries to do QA without providing an input file,
+    # the QA code will throw an error that it cannot open the file.
+    # But, setting it to `None` will create a default-only Param
+    # for use in runconfig generation, etc.
+    def __init__(self, qa_input_file: Optional[str] = None):
 
-    def __setattr__(self, key, value):
-        if key == 'qa_input_file':
-            super().__setattr__(key, self.get_qa_input_file_param(value))
-        else:
-            raise KeyError(f'{key}')
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'qa_input_file', 
+                            self._get_qa_input_file_param(qa_input_file))
 
-
-    def get_qa_input_file_param(self, qa_input_file):
+    def _get_qa_input_file_param(self, qa_input_file):
         '''Return `qa_input_file` as a Param'''
 
-        if isinstance(qa_input_file, Param):
-            if not qa_input_file.name == 'qa_input_file':
-                raise ValueError('qa_input_file.name must be "qa_input_file"')
-            if not os.path.isfile(qa_input_file.val):
-                raise ValueError('qa_input_file.val does not reference'
-                                f' a valid file: {qa_input_file}')
-            if not qa_input_file.val.endswith('.h5'):
-                raise ValueError('qa_input_file.val does not reference'
-                                f' an .h5 file: {qa_input_file}')
+        if not qa_input_file is None and not isinstance(qa_input_file, str):
+            raise TypeError('`qa_input_file` must be a str or None')
 
-            return qa_input_file
+        if isinstance(qa_input_file, str):
+            if not os.path.isfile(qa_input_file):
+                raise TypeError(
+                    f'`qa_input_file` is not a valid file: {qa_input_file}')
+
+            if not qa_input_file.endswith('.h5'):
+                raise TypeError(
+                    f'`qa_input_file` must end with .h5: {qa_input_file}')
 
         # Construct defaults for the new Param
-        default = Param(name='qa_input_file',
-                        val=None,
+        out_param = Param(name='qa_input_file',
+                        val=qa_input_file,
                         units=None,
                         short_descr='Input NISAR Product filename',
-                        long_descr= \
-                        '''
-                        Filename of the input file for QA.
-                        (This is the same as the output HDF5 from the SAS.)'''
-                        )
+                        long_descr='''
+                Filename of the input file for QA.
+                REQUIRED for QA. NOT REQUIRED if only running Product SAS.
+                If Product SAS and QA SAS are run back-to-back,
+                this field should be identical to `sas_output_file`.
+                Otherwise, this field should contain the filename of the single
+                NISAR product for QA to process.'''
+                )
 
-        if qa_input_file is None:
-            # return the default Param
-            return default
-
-        elif isinstance(qa_input_file, str):
-            if not os.path.isfile(qa_input_file):
-                raise ValueError(
-                    f'`qa_input_file` is not a valid file: {qa_input_file}')
-            if not qa_input_file.endswith('.h5'):
-                raise ValueError(
-                    f'`qa_input_file` must end with .h5: {qa_input_file}')
-            
-            # update the default with the new value and return it
-            default.val = qa_input_file
-            return default
-
-        else:
-            raise ValueError('`qa_input_file` must be a str, Param, or None')
+        return out_param
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -191,80 +187,72 @@ class InputFileGroupParams(BaseParams):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class DynamicAncillaryFileParams(BaseParams):
     '''
     The parameters from the QA Dynamic Ancillary File runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
-    corner_reflector_file : str, Param, optional
+    corner_reflector_file : str, optional
         The input corner reflector file's file name (with path).
     '''
 
-    corner_reflector_file: Optional[Union[str, Param]] = None
+    # Set attributes to Param type for correct downstream type checking
+    corner_reflector_file: Param
 
+    # For `corner_reflector_file`, set default to None.
+    # In practise, if a user tries to do QA without providing an input file,
+    # the QA code will throw an error that it cannot open the file.
+    # But, setting it to `None` will create a default-only Param
+    # for use in runconfig generation, etc.
+    def __init__(self, corner_reflector_file: Optional[str] = None):
 
-    def __setattr__(self, key, value):
-        if key == 'corner_reflector_file':
-            super().__setattr__(key, 
-                                self._get_corner_reflector_file_param(value))
-        else:
-            raise KeyError(f'{key}')
-
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'corner_reflector_file',
+            self._get_corner_reflector_file_param(corner_reflector_file))
 
     def _get_corner_reflector_file_param(self, corner_reflector_file):
         '''Return `attr1` as a Param'''
 
-        if isinstance(corner_reflector_file, Param):
-            if not corner_reflector_file.name == 'corner_reflector_file':
-                raise ValueError('corner_reflector_file.name must be "corner_reflector_file"')
-            if not os.path.isfile(corner_reflector_file.val):
-                raise ValueError('corner_reflector_file.val does not reference'
-                                f' a valid file: {corner_reflector_file.val}')
-            if not corner_reflector_file.val.endswith('.h5'):
-                raise ValueError('corner_reflector_file.val does not reference'
-                                f' an .h5 file: {corner_reflector_file.val}')
+        if not corner_reflector_file == None and \
+            not isinstance(corner_reflector_file, str):
+            raise TypeError('`corner_reflector_file` must be a str or None')
 
-            return corner_reflector_file
+        if isinstance(corner_reflector_file, str):
+            if not os.path.isfile(corner_reflector_file):
+                raise TypeError(
+                    '`corner_reflector_file` is not a valid file: '
+                    f'{corner_reflector_file}')
 
         # Construct defaults for the new Param
-        default = \
+        out_param = \
             Param(name='corner_reflector_file',
-                  val=None,
+                  val=corner_reflector_file,
                   units=None,
                   short_descr='Source file for corner reflector locations',
-                  long_descr= \
-            '''
+                  long_descr='''
             Locations of the corner reflectors in the input product.
             Only required if `absolute_calibration_factor` or
             `point_target_analyzer` runconfig params are set to True for QA.'''
             )
 
-        if corner_reflector_file is None:
-            return default
+        return out_param
 
-        elif isinstance(corner_reflector_file, str):
-            if not os.path.isfile(corner_reflector_file):
-                raise ValueError('`corner_reflector_file` is not a valid '
-                                 f'file: {corner_reflector_file}')
-            
-            # update the default with the new value
-            default.val = corner_reflector_file
-            return default
-
-        else:
-            raise ValueError('`corner_reflector_file` must be a str, Param, '
-                             'or None')
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -320,83 +308,65 @@ class DynamicAncillaryFileParams(BaseParams):
                 ds_units=self.corner_reflector_file.units)
 
 
-@dataclass
+@dataclass(frozen=True)
 class ProductPathGroupParams(BaseParams):
     '''
     Parameters from the Product Path Group runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
-    qa_output_dir : str, Param, optional
+    qa_output_dir : str, optional
         Filepath to the output directory to store NISAR QA output files.
+        Defaults to './qa'
     '''
 
-    qa_output_dir: Optional[Union[str, Param]] = None
+    # Set attributes to Param type for correct downstream type checking
+    qa_output_dir: Param
 
+    def __init__(self, qa_output_dir: Optional[str] = './qa'):
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'qa_output_dir',
+                            self._get_qa_output_dir_param(qa_output_dir))
 
-    def __setattr__(self, key, value):
-        if key == 'qa_output_dir':
-            super().__setattr__(key, self.get_qa_output_dir_param(value))
-        else:
-            raise KeyError(f'{key}')
-
-
-    def get_qa_output_dir_param(self, qa_output_dir):
+    def _get_qa_output_dir_param(self, qa_output_dir):
         '''Return `qa_output_dir` as a Param.'''
 
-        if isinstance(qa_output_dir, Param):
-            # validate input type
-            if not isinstance(qa_output_dir.val, str):
-                raise ValueError('qa_output_dir.val '
-                            f'must be a string: {qa_output_dir.val}')
+        # validate input type
+        if not isinstance(qa_output_dir, str):
+            raise TypeError('qa_output_dir '
+                        f'must be a string: {qa_output_dir}')
 
-            # If this directory does not exist, make it.
-            if not os.path.isdir(qa_output_dir.val):
-                print(f'Creating QA output directory: {qa_output_dir.val}')
-                os.makedirs(qa_output_dir.val, exist_ok=True)
-
-            return qa_output_dir
-
-        # Construct defaults for the new Param
-        default = Param(name='qa_output_dir',
-                        val='.',
+        # Construct the new Param with metadata
+        out_param = Param(name='qa_output_dir',
+                        val=qa_output_dir,
                         units=None,
                         short_descr='Directory to store NISAR QA output files',
-                        long_descr= \
-                            '''
+                        long_descr='''
                             Output directory to store all QA output files.
-                            Defaults to current working directory'''
+                            Defaults to ./qa'''
                         )
 
-        if qa_output_dir is None:
-            return default
+        # If this directory does not exist, make it.
+        if not os.path.isdir(out_param.val):
+            print(f'Creating QA output directory: {out_param.val}')
+            os.makedirs(out_param.val, exist_ok=True)
 
-        elif isinstance(qa_output_dir, str):
-            # validate input type
-            if not isinstance(qa_output_dir, str):
-                raise ValueError('qa_output_dir parameter '
-                                 f'must be a string: {qa_output_dir}')
+        return out_param
 
-            # If this directory does not exist, make it.
-            if not os.path.isdir(qa_output_dir):
-                print(f'Creating QA output directory: {qa_output_dir}')
-                os.makedirs(qa_output_dir, exist_ok=True)
-
-            # update the default with the new value and return it
-            default.val = qa_output_dir
-            return default
-
-        else:
-            raise ValueError('qa_output_dir must be a str, Param, or None')
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -433,38 +403,43 @@ class ProductPathGroupParams(BaseParams):
         pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class RSLCPowerImageParams(BaseParams):
     '''
     Parameters to generate RSLC Power Images; this corresponds to the
     `qa_reports: power_image` runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
-    linear_units : bool, Param, optional
+    linear_units : bool, optional
         True to compute power in linear units, False for decibel units.
         Defaults to True.
-    nlooks_freqa, nlooks_freqb : int, iterable of int, Param, None, optional
+    nlooks_freqa, nlooks_freqb : int, iterable of int, None, optional
         Number of looks along each axis of the input array 
         for the specified frequency. If None, then nlooks will be computed
         on-the-fly based on `num_mpix`.
-    num_mpix : float, Param, None, optional
+    num_mpix : float, optional
         The approx. size (in megapixels) for the final multilooked image.
         Superseded by nlooks_freq* parameters. Defaults to 4.0 MPix.
-    middle_percentile : float, Param, None, optional
+    middle_percentile : float, optional
         Defines the middle percentile range of the image array
         that the colormap covers. Must be in the range [0.0, 100.0].
         Defaults to 100.0.
-    gamma : float, Param, None, optional
+    gamma : float, None, optional
         The gamma correction parameter.
         Gamma will be applied as follows:
             array_out = normalized_array ^ gamma
@@ -473,7 +448,7 @@ class RSLCPowerImageParams(BaseParams):
         The image colorbar will be defined with respect to the input
         image values prior to normalization and gamma correction.
         Defaults to None (no normalization, no gamma correction)
-    tile_shape : iterable of int, Param, optional
+    tile_shape : iterable of int, optional
         Preferred tile shape for processing images by batches.
         Actual tile shape used during processing might
         be smaller due to shape of image.
@@ -484,48 +459,56 @@ class RSLCPowerImageParams(BaseParams):
 
     Attributes
     ----------
-    pow_units : str
-        Units of the power image.
+    pow_units : Param
+        Units of the power image. The `val` attribute of this Param
+        will be of type `str`, accessible via `pow_units.val`
         If `linear_units` is True, this will be set to 'linear'.
         If `linear_units` is False, this will be set to 'dB'.
     '''
 
-    # Attributes for generating the Power Image(s)
-    # (default values will be set during post_init)
-    linear_units: Optional[Union[bool, Param]] = None
-    nlooks_freqa: Optional[Union[int, Iterable[int], Param]] = None
-    nlooks_freqb: Optional[Union[int, Iterable[int], Param]] = None
-    num_mpix: Optional[Union[float, Param]] = None
-    middle_percentile: Optional[Union[float, Param]] = None
-    gamma: Optional[Union[float, Param]] = None
-    tile_shape: Optional[Union[Iterable[int], Param]] = None
+    # Set attributes to Param type for correct downstream type checking
+    linear_units: Param
+    nlooks_freqa: Param
+    nlooks_freqb: Param
+    num_mpix: Param
+    middle_percentile: Param
+    gamma: Param
+    tile_shape: Param
 
     # Auto-generated attributes
     pow_units: Param = field(init=False)
 
+    def __init__(self,
+                 linear_units: Optional[bool] = True,
+                 nlooks_freqa: Optional[Union[int, Iterable[int]]] = None,
+                 nlooks_freqb: Optional[Union[int, Iterable[int]]] = None,
+                 num_mpix: Optional[float] = 4.0,
+                 middle_percentile: Optional[float] = 100.0,
+                 gamma: Optional[float] = None,
+                 tile_shape: Optional[Iterable[int]] = (1024,1024)
+                 ):
 
-    def __setattr__(self, key, value):
-        if key == 'linear_units':
-            super().__setattr__(key, self._get_linear_units_param(value))
-            super().__setattr__('pow_units', self._get_pow_units_param())
-        elif key == 'nlooks_freqa':
-            super().__setattr__(key, self._get_nlooks_param(value, 'A'))
-        elif key == 'nlooks_freqb':
-            super().__setattr__(key, self._get_nlooks_param(value, 'B'))
-        elif key == 'num_mpix':
-            super().__setattr__(key, self._get_num_mpix_param(value))
-        elif key == 'middle_percentile':
-            super().__setattr__(key, self._get_middle_percentile_param(value))
-        elif key == 'gamma':
-            super().__setattr__(key, self._get_gamma_param(value))
-        elif key == 'tile_shape':
-            super().__setattr__(key, self._get_tile_shape_param(value))
-        elif key == 'pow_units':
-            raise KeyError(f'`pow_units` is only updated when setting '
-                            '`linear_units` attribute')
-        else:
-            raise KeyError(f'{key}')
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'linear_units',
+                            self._get_linear_units_param(linear_units))
 
+        object.__setattr__(self, 'nlooks_freqa',
+                            self._get_nlooks_param(nlooks_freqa, 'A'))
+
+        object.__setattr__(self, 'nlooks_freqb',
+                            self._get_nlooks_param(nlooks_freqb, 'B'))
+
+        object.__setattr__(self, 'num_mpix', self._get_num_mpix_param(num_mpix))
+
+        object.__setattr__(self, 'middle_percentile', 
+                        self._get_middle_percentile_param(middle_percentile))
+
+        object.__setattr__(self, 'gamma', self._get_gamma_param(gamma))
+
+        object.__setattr__(self, 'tile_shape', 
+                            self._get_tile_shape_param(tile_shape))
+
+        object.__setattr__(self, 'pow_units', self._get_pow_units_param())
 
     def _get_nlooks_param(self, nlooks, freq):
         '''Return the number of looks for given frequency as a Param.
@@ -545,29 +528,32 @@ class RSLCPowerImageParams(BaseParams):
             `nlooks` for frequency `freq` as a Param object.
         '''
 
-        if isinstance(nlooks, Param):
-            if not nlooks.name == f'nlooks_freq{freq.lower()}':
-                raise ValueError(f'nlooks_freq{freq.lower()}.name must be '
-                                 f'"nlooks_freq{freq.lower()}"')
-            if not isinstance(nlooks.val, int) or \
-                (all(isinstance(e, int) for e in nlooks.val) and \
-                    len(nlooks.val) == 2):
-                raise ValueError(f'nlooks_freq{freq.lower()}.val must be '
-                                'an int, sequence of two integers, '
-                                f'or None: {nlooks.val}')
+        if isinstance(nlooks, int):
+            if nlooks <= 0:
+                raise TypeError(
+                    f'nlooks_freq{freq.lower()} must be a positive '
+                    'int or sequence of two positive ints: {nlooks}')
 
-            return nlooks
+        elif isinstance(nlooks, (list, tuple)):
+            if all(isinstance(e, int) for e in nlooks):
+                if any((e <= 0) for e in nlooks) or not len(nlooks) == 2:
+                    raise TypeError(
+                        f'nlooks_freq{freq.lower()} must be a positive '
+                        'int or sequence of two positive ints: {nlooks}')
+        elif nlooks is None:
+            pass
+        else:
+            raise TypeError('`nlooks` must be of type int, iterable of int, '
+                            f'or None: {nlooks}')
 
-        # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name=f'nlooks_freq{freq.lower()}',
-            val=None,
+            val=nlooks,
             units='unitless',
             short_descr='Number of looks along each axis of the '
                         f' Frequency {freq.upper()} image arrays'
                         ' for multilooking the power image.',
-            long_descr= \
-                f'''
+            long_descr=f'''
                 Number of looks along each axis of the Frequency {freq.upper()}
                 image arrays for multilooking the power image.
                 Format: [<num_rows>, <num_cols>]
@@ -577,243 +563,100 @@ class RSLCPowerImageParams(BaseParams):
                 browse image.'''
             )
 
-        if nlooks is None:
-            # return the default Param
-            return default
-
-        elif isinstance(nlooks, int):
-            if nlooks <= 0:
-                raise ValueError(
-                    f'nlooks_freq{freq.lower()} must be a positive '
-                    'int or sequence of two positive ints: {nlooks}')
-            
-            # update the default with the new value and return it
-            default.val = nlooks
-            return default
-            
-        elif all(isinstance(e, int) for e in nlooks):
-            if any((e <= 0) for e in nlooks) or not len(nlooks) == 2:
-                raise ValueError(
-                    f'nlooks_freq{freq.lower()} must be a positive '
-                    'int or sequence of two positive ints: {nlooks}')
-            
-            # update the default with the new value and return it
-            default.val = nlooks
-            return default
-
-        else:
-            raise ValueError(
-                f'nlooks_freq{freq.lower()} must be a str, Param, or None')
+        return out_param
 
 
     def _get_linear_units_param(self, linear_units):
-        '''Return `linear_units` as a Param.
-        
-        Parameters
-        ----------
-        linear_units : bool
-            True to compute power in linear units, False for decibel units.
-            Defaults to True.
-        
-        Returns
-        -------
-        linear_units_param : Param
-            `linear_units` as a Param object.
-        '''
+        '''Return `linear_units` as a Param.'''
 
-        if isinstance(linear_units, Param):
-            if not linear_units.name == 'linear_units':
-                raise ValueError('linear_units.name must be `linear_units`')
-            if not isinstance(linear_units.val, bool):
-                raise ValueError(f'linear_units.val must be bool '
-                                f'or None: {linear_units.val}')
-
-            return linear_units
+        if not isinstance(linear_units, bool):
+            raise TypeError(f'linear_units must be a bool: {linear_units}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='linear_units',
-            val=True,
+            val=linear_units,
             units=None,
             short_descr='True to compute power in linear units for power image',
-            long_descr= \
-                '''True to compute power in linear units when generating 
+            long_descr='''
+                True to compute power in linear units when generating 
                 the power image for the browse images and graphical
                 summary PDF. False for decibel units.
                 Defaults to True.'''
             )
 
-        if linear_units is None:
-            # return the default Param
-            return default
+        return out_param
 
-        elif isinstance(linear_units, bool):
-            # update the default with the new value and return it
-            default.val = linear_units
-            return default
-
-        else:
-            raise ValueError(
-                f'linear_units must be a bool or None')
 
     def _get_num_mpix_param(self, num_mpix):
-        '''Return `num_mpix` as a Param.
-        
-        Parameters
-        ----------
-        num_mpix : float
-            The approx. size (in megapixels) for the final
-            multilooked browse image(s). Defaults to 4.0 MPix.
+        '''Return `num_mpix` as a Param.'''
 
-        Returns
-        -------
-        num_mpix_param : Param
-            `num_mpix` as a Param object.
-        '''
+        if not isinstance(num_mpix, float):
+            raise TypeError(f'num_mpix must be a float: {num_mpix}')
 
-        if isinstance(num_mpix, Param):
-            if not num_mpix.name == 'num_mpix':
-                raise ValueError('num_mpix.name must be `num_mpix`')
-            if not isinstance(num_mpix.val, bool):
-                raise ValueError(f'num_mpix.val must be bool '
-                                f'or None: {num_mpix.val}')
-            if num_mpix.val <= 0.0:
-                raise ValueError('num_mpix.val must be a positive value')
-
-            return num_mpix
+        if num_mpix <= 0.0:
+            raise TypeError(f'`num_mpix` must be a positive value: {num_mpix}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='num_mpix',
-            val=4.0,
+            val=num_mpix,
             units='megapixels',
             short_descr='Approx. size (in megapixels) for the multilooked '
                         'power image(s)',
-            long_descr= \
-                '''
+            long_descr='''
                 The approx. size (in megapixels) for the final
                 multilooked browse image(s). Defaults to 4.0 MPix.
                 If `nlooks_freq*` parameter(s) is not None, nlooks
                 values will take precedence.'''
             )
-
-        if num_mpix is None:
-            # return the default Param
-            return default
-
-        elif isinstance(num_mpix, float):
-            if num_mpix <= 0.0:
-                raise ValueError('num_mpix must be a positive value')
-            # update the default with the new value and return it
-            default.val = num_mpix
-            return default
-
-        else:
-            raise ValueError(
-                f'num_mpix must be a float, Param, or None')
+        
+        return out_param
 
 
     def _get_middle_percentile_param(self, middle_percentile):
-        '''Return `middle_percentile` as a Param.
-        
-        Parameters
-        ----------
-        middle_percentile : float
-            Defines the middle percentile range of the image array
-            that the colormap covers. Must be in the range [0.0, 100.0].
-            Defaults to 100.0.
+        '''Return `middle_percentile` as a Param.'''
 
-        Returns
-        -------
-        middle_percentile_param : Param
-            `middle_percentile` as a Param object.
-        '''
+        if not isinstance(middle_percentile, float):
+            raise TypeError(
+                f'`middle_percentile` must be a float: {middle_percentile}')
 
-        if isinstance(middle_percentile, Param):
-            if not middle_percentile.name == 'middle_percentile':
-                raise ValueError(
-                    'middle_percentile.name must be `middle_percentile`')
-            if not isinstance(middle_percentile.val, float):
-                raise ValueError(f'middle_percentile.val must be float '
-                                f'or None: {middle_percentile.val}')
-            if middle_percentile.val < 0.0 or middle_percentile.val > 100.0:
-                raise ValueError('middle_percentile.val is '
-                    f'{middle_percentile.val}, must be in range [0.0, 100.0]')
-
-            return middle_percentile
+        if middle_percentile < 0.0 or middle_percentile > 100.0:
+            raise TypeError('middle_percentile is '
+                f'{middle_percentile}, must be in range [0.0, 100.0]')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='middle_percentile',
-            val=100.0,
+            val=middle_percentile,
             units='unitless',
             short_descr='Middle percentile range of the image array '
                         'that the colormap covers',
-            long_descr= \
-                '''
+            long_descr='''
                 Defines the middle percentile range of the image array
                 that the colormap covers. Must be in the range [0.0, 100.0].
                 Defaults to 100.0.'''            )
 
-        if middle_percentile is None:
-            # return the default Param
-            return default
-
-        elif isinstance(middle_percentile, float):
-            if middle_percentile < 0.0 or middle_percentile > 100.0:
-                raise ValueError('middle_percentile is '
-                    f'{middle_percentile}, must be in range [0.0, 100.0]')
-            # update the default with the new value and return it
-            default.val = middle_percentile
-            return default
-
-        else:
-            raise ValueError(
-                f'middle_percentile must be a float, Param, or None')
+        return out_param
 
 
     def _get_gamma_param(self, gamma):
-        '''Return `gamma` as a Param.
-        
-        Parameters
-        ----------
-        gamma : float or None, optional
-            The gamma correction parameter.
-            Gamma will be applied as follows:
-                array_out = normalized_array ^ gamma
-            where normalized_array is a copy of the image with values
-            scaled to the range [0,1]. 
-            The image colorbar will be defined with respect to the input
-            image values prior to normalization and gamma correction.
-            Defaults to None (no normalization, no gamma correction)
+        '''Return `gamma` as a Param.'''
 
-        Returns
-        -------
-        gamma_param : Param
-            `gamma` as a Param object.
-        '''
+        if not gamma == None and not isinstance(gamma, float):
+            raise TypeError('`gamma` must be a float or None: {gamma}')
 
-        if isinstance(gamma, Param):
-            if not gamma.name == 'gamma':
-                raise ValueError(
-                    'gamma.name must be `gamma`')
-            if not isinstance(gamma.val, float):
-                raise ValueError(f'gamma.val must be float '
-                                f'or None: {gamma.val}')
-            if gamma.val < 0.0:
-                raise ValueError('gamma.val is '
-                    f'{gamma.val}, must be a non-negative value')
-
-            return gamma
+        if isinstance(gamma, float):
+            if gamma < 0.0:
+                raise TypeError(f'gamma must be a non-negative value: {gamma}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='gamma',
-            val=None,
+            val=gamma,
             units='unitless',
             short_descr='Gamma correction applied to power image',
-            long_descr= \
-                '''
+            long_descr='''
                 The gamma correction parameter.
                 Gamma will be applied as follows:
                     array_out = normalized_array ^ gamma
@@ -824,91 +667,62 @@ class RSLCPowerImageParams(BaseParams):
                 Defaults to None (no normalization, no gamma correction)'''
             )
 
-        if gamma is None:
-            # return the default Param
-            return default
-
-        elif isinstance(gamma, float):
-            if gamma < 0.0:
-                raise ValueError('gamma is '
-                    f'{gamma}, must be a non-negative value')
-            # update the default with the new value and return it
-            default.val = gamma
-            return default
-
-        else:
-            raise ValueError(
-                f'gamma must be a float, Param, or None')
+        return out_param
 
 
     def _get_tile_shape_param(self, tile_shape):
         '''Return `tile_shape` as a Param.
         
         TODO - this is duplicate code to other Params dataclasses. Fix.
-        
-        Parameters
-        ----------
-        tile_shape : iterable of int, Param, None
-            Preferred tile shape for processing power images by batches.
-     
-        Returns
-        -------
-        tile_shape_param : Param
-            `tile_shape` as a Param object.
         '''
 
-        if isinstance(tile_shape, Param):
-            if not tile_shape.name == 'tile_shape':
-                raise ValueError('tile_shape.name must be "tile_shape".')
-            if not (all((isinstance(e, int) and e > 0) for e in tile_shape.val) \
-                    or not len(tile_shape.val) == 2) :
-                raise ValueError('tile_shape.val must be a sequence '
-                                 f'of two positive integers: {tile_shape.val}')
+        if not isinstance(tile_shape, (list, tuple)):
+            raise TypeError('`tile_shape` must be a list or tuple: '
+                                f'{tile_shape}')
 
-            return tile_shape
+        if not len(tile_shape) == 2:
+            raise TypeError('`tile_shape` must have a length'
+                                f'of two: {tile_shape}')
+
+        if not all(isinstance(e, int) for e in tile_shape):
+            raise TypeError('`tile_shape` must contain only '
+                                f'integers: {tile_shape}')
+
+        if any(e <= 0 for e in tile_shape):
+            raise TypeError('`tile_shape` must contain only '
+                                f'positive values: {tile_shape}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='tile_shape',
-            val=[1024, 1024],
+            val=tile_shape,
             units='unitless',
             short_descr='Preferred tile shape for processing images by batches.',
-            long_descr= \
-                '''
+            long_descr='''
                 Preferred tile shape for processing images by batches.
                 Actual tile shape used during processing might
                 be smaller due to shape of image.
-                Format: [num_rows, num_cols]
+                Format: [<num_rows>, <num_cols>]
                 -1 to indicate all rows / all columns (respectively).
                 Defaults to [1024, 1024] to use all columns 
                 (i.e. full rows of data).'''
             )
 
-        if tile_shape is None:
-            # return the default Param
-            return default
-
-        elif all(isinstance(e, int) for e in tile_shape):
-            if not len(tile_shape) == 2 or \
-                any(e <= 0 for e in tile_shape):
-                raise ValueError('tile_shape must be a sequence '
-                                 f'of two positive integers: {tile_shape}')
-            
-            # update the default with the new value and return it
-            default.val = tile_shape
-            return default
-
-        else:
-            raise ValueError('`tile_shape` must be a sequence of two ints, '
-                             f'a Param, or None: {tile_shape}')
+        return out_param
 
 
     def _get_pow_units_param(self):
         '''Return `pow_units` as a Param.'''
 
+        # Phase bin edges - allow for either radians or degrees
+        if self.linear_units.val:
+            val='linear'
+        else:
+            val='dB'
+
         template = Param(
                 name='pow_units',
-                val='TBD',
+                val=val,
                 units=None,
                 short_descr='Units for the power image',
                 long_descr='''
@@ -916,17 +730,12 @@ class RSLCPowerImageParams(BaseParams):
                     If `linear_units` is True, this will be set to 'linear'.
                     If `linear_units` is False, this will be set to 'dB'.'''
                 )
-        # Phase bin edges - allow for either radians or degrees
-        if self.linear_units.val:
-            template.val='linear'
-        else:
-            template.val='dB'
 
         return template
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','processing','qa','qa_reports','power_image']
+        return ['runconfig','groups','qa','qa_reports','power_image']
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
@@ -1014,43 +823,48 @@ class RSLCPowerImageParams(BaseParams):
                 ds_description=self.gamma.short_descr)
 
 
-@dataclass
+@dataclass(frozen=True)
 class RSLCHistogramParams(BaseParams):
     '''
     Parameters to generate the RSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
-    decimation_ratio : pair of int, Param, optional
+    decimation_ratio : pair of int, optional
         The step size to decimate the input array for computing
         the power and phase histograms.
         For example, (2,3) means every 2nd azimuth line and
         every 3rd range line will be used to compute the histograms.
         Defaults to (1,1), i.e. no decimation will occur.
         Format: (<azimuth>, <range>)
-    pow_histogram_start : numeric, Param, optional
+    pow_histogram_start : numeric, optional
         The starting value (in dB) for the range of the power histogram edges.
         Defaults to -80. If `pow_histogram_start` is updated, then 
         `pow_bin_edges` will be updated to match.
-    pow_histogram_endpoint : numeric, Param, optional
+    pow_histogram_endpoint : numeric, optional
         The endpoint value (in dB) for the range of the power histogram edges.
         Defaults to 20. If `pow_histogram_endpoint` is updated, then 
         `pow_bin_edges` will be updated to match.
-    phs_in_radians : bool, Param, optional
+    phs_in_radians : bool, optional
         True to compute phase in radians units, False for degrees units.
         Defaults to True. If `phs_in_radians` is updated, then 
         `phs_bin_edges` will be updated to match.
-    tile_shape : iterable of int, Param, optional
+    tile_shape : iterable of int, optional
         Preferred tile shape for processing images by batches.
         Actual tile shape used during processing might
         be smaller due to shape of image.
@@ -1061,27 +875,29 @@ class RSLCHistogramParams(BaseParams):
 
     Attributes
     ----------
-    pow_bin_edges : numpy.ndarray, Param
+    pow_bin_edges : Param
         The bin edges (including endpoint) to use when computing
         the power histograms. Will be set to 100 uniformly-spaced bins
         in range [`pow_histogram_start`, `pow_histogram_endpoint`],
         including endpoint. (units are dB)
-    phs_bin_edges : numpy.ndarray, Param
+        This will be stored as a numpy.ndarray in `pow_bin_edges.val`
+    phs_bin_edges : Param
         The bin edges (including endpoint) to use when computing
         the phase histograms.
+        This will be stored as a numpy.ndarray in `phs_bin_edges.val`
         If `phs_in_radians` is True, this will be set to 100 
         uniformly-spaced bins in range [-pi,pi], including endpoint.
         If `phs_in_radians` is False, this will be set to 100
         uniformly-spaced bins in range [-180,180], including endpoint.
     '''
 
-    # Attributes for generating Power and Phase Histograms
+    # Set attributes to Param type for correct downstream type checking
     # User-Provided attributes:
-    decimation_ratio: Optional[Union[Tuple[int, int], Param]] = None
-    pow_histogram_start: Optional[Union[float, Param]] = None
-    pow_histogram_endpoint: Optional[Union[float, Param]] = None
-    phs_in_radians: Optional[Union[bool, Param]] = None
-    tile_shape: Optional[Union[Iterable[int], Param]] = None
+    decimation_ratio: Param
+    pow_histogram_start: Param
+    pow_histogram_endpoint: Param
+    phs_in_radians: Param
+    tile_shape: Param
 
     # Auto-generated attributes
     # Power Bin Edges (generated based upon
@@ -1091,68 +907,64 @@ class RSLCHistogramParams(BaseParams):
     # Phase bin edges (generated based upon `phs_in_radians`)
     phs_bin_edges: Param = field(init=False)
 
+    def __init__(self,
+                decimation_ratio: Optional[Tuple[int, int]] = (1,1),
+                pow_histogram_start: Optional[float] = -80.0,
+                pow_histogram_endpoint: Optional[float] = 20.0,
+                phs_in_radians: Optional[bool] = True,
+                tile_shape: Optional[Iterable[int]] = (1024,1024)
+                ):
 
-    def __setattr__(self, key, value):
-        if key == 'decimation_ratio':
-            super().__setattr__(key, self._get_decimation_ratio_param(value))
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'decimation_ratio',
+                self._get_decimation_ratio_param(decimation_ratio))
 
-        elif key == 'pow_histogram_start':
-            super().__setattr__(key,
-                                self._get_pow_histogram_start_param(value))
+        object.__setattr__(self, 'pow_histogram_start',
+                self._get_pow_histogram_start_param(pow_histogram_start))
 
-        elif key == 'pow_histogram_endpoint':
-            super().__setattr__(key,
-                                self._get_pow_histogram_endpoint_param(value))
+        object.__setattr__(self, 'pow_histogram_endpoint',
+                self._get_pow_histogram_endpoint_param(pow_histogram_endpoint))
 
-        elif key == 'phs_in_radians':
-            super().__setattr__(key, self._get_phs_in_radians_param(value))
-            super().__setattr__('phs_bin_edges',
-                                self._get_phs_bin_edges_param())
+        object.__setattr__(self, 'phs_in_radians',
+                self._get_phs_in_radians_param(phs_in_radians))
 
-        elif key == 'tile_shape':
-            super().__setattr__(key, self._get_tile_shape_param(value))
+        object.__setattr__(self, 'tile_shape',
+                self._get_tile_shape_param(tile_shape))
 
-        elif key in ['pow_bin_edges', 'phs_bin_edges']:
-            raise KeyError(f'`{key}` is only updated when setting '
-                            'corresponding input parameters.')
-        else:
-            raise KeyError(f'{key}')
+        object.__setattr__(self, 'pow_bin_edges',
+                self._get_pow_bin_edges_param())
 
-        # once both histogram start point and end point have been instantiated
-        # and/or when one is modified update pow_bin_edges to account for
-        # the new value.
-        if (key in ['pow_histogram_start', 'pow_histogram_endpoint']) \
-            and isinstance(self.pow_histogram_start, Param) \
-                and isinstance(self.pow_histogram_endpoint, Param):
-            # Update bin edges
-            super().__setattr__('pow_bin_edges',
-                                self._get_pow_bin_edges_param())
+        object.__setattr__(self, 'phs_bin_edges',
+                self._get_phs_bin_edges_param())
 
 
     def _get_decimation_ratio_param(self, decimation_ratio):
         '''Return `decimation_ratio` as a Param.'''
 
-        if isinstance(decimation_ratio, Param):
-            if not decimation_ratio.name == 'decimation_ratio':
-                raise ValueError(
-                    'decimation_ratio.name must be "decimation_ratio".')
-            if not (all((isinstance(e, int) and e > 0) for e in decimation_ratio.val) \
-                    or not len(decimation_ratio.val) == 2) :
-                raise ValueError(
-                    'decimation_ratio.val must be a sequence '
-                    f'of two positive integers: {decimation_ratio.val}')
+        if not isinstance(decimation_ratio, (list, tuple)):
+            raise TypeError('`decimation_ratio` must be a list or tuple '
+                            f'{decimation_ratio}')
 
-            return decimation_ratio
+        if not len(decimation_ratio) == 2:
+            raise TypeError('`decimation_ratio` must have a length of '
+                            f'two: {decimation_ratio}')
+
+        if not all(isinstance(e, int) for e in decimation_ratio):
+            raise TypeError('`decimation_ratio` must contain only '
+                            f'integers: {decimation_ratio}')
+
+        if any(e <= 0 for e in decimation_ratio):
+            raise TypeError('`decimation_ratio` must contain only positive'
+                            f'values: {decimation_ratio}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='decimation_ratio',
-            val=[1, 1],
+            val=decimation_ratio,
             units='unitless',
             short_descr='Decimation ratio for processing power and phase '
                         'histograms.',
-            long_descr= \
-                '''
+            long_descr='''
                 The step size to decimate the input array for computing
                 the power and phase histograms.
                 For example, [2,3] means every 2nd azimuth line and
@@ -1161,201 +973,113 @@ class RSLCHistogramParams(BaseParams):
                 Format: [<azimuth>, <range>]'''
             )
 
-        if decimation_ratio is None:
-            # return the default Param
-            return default
-
-        elif all(isinstance(e, int) for e in decimation_ratio):
-            if not len(decimation_ratio) == 2 or \
-                any(e <= 0 for e in decimation_ratio):
-                raise ValueError('decimation_ratio must be a sequence '
-                                f'of two positive integers: {decimation_ratio}')
-            
-            # update the default with the new value and return it
-            default.val = decimation_ratio
-            return default
-
-        else:
-            raise ValueError('`decimation_ratio` must be a sequence of two '
-                             f'ints, a Param, or None: {decimation_ratio}')
+        return out_param
 
 
     def _get_pow_histogram_start_param(self, pow_histogram_start):
         '''Return `pow_histogram_start` as a Param.'''
 
-        if isinstance(pow_histogram_start, Param):
-            if not pow_histogram_start.name == 'pow_histogram_start':
-                raise ValueError(
-                    'pow_histogram_start.name must be `pow_histogram_start`')
-            if not isinstance(pow_histogram_start.val, float):
-                raise ValueError(f'pow_histogram_start.val must be float: '
-                                f'{pow_histogram_start.val}')
-
-            return pow_histogram_start
+        if not isinstance(pow_histogram_start, float):
+            raise TypeError(f'pow_histogram_start must be float: '
+                            f'{pow_histogram_start}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='pow_histogram_start',
-            val=-80.0,
+            val=pow_histogram_start,
             units='dB',
             short_descr='Starting value for the range of the '
                         'power histogram edges.',
-            long_descr= \
-                '''
+            long_descr='''
                 Starting value (in dB) for the range of the power
                 histogram edges. Defaults to -80.0.'''
             )
+        
+        return out_param
 
-        if pow_histogram_start is None:
-            # return the default Param
-            return default
-
-        elif isinstance(pow_histogram_start, float):
-            # update the default with the new value and return it
-            default.val = pow_histogram_start
-            return default
-
-        else:
-            raise ValueError(
-                f'pow_histogram_start must be a float, Param, or None')
 
     def _get_pow_histogram_endpoint_param(self, pow_histogram_endpoint):
         '''Return `pow_histogram_endpoint` as a Param.'''
 
-        if isinstance(pow_histogram_endpoint, Param):
-            if not pow_histogram_endpoint.name == 'pow_histogram_endpoint':
-                raise ValueError('pow_histogram_endpoint.name must be '
-                                 '`pow_histogram_endpoint`')
-            if not isinstance(pow_histogram_endpoint.val, float):
-                raise ValueError(f'pow_histogram_endpoint.val must be float: '
-                                f'{pow_histogram_endpoint.val}')
-
-            return pow_histogram_endpoint
+        if not isinstance(pow_histogram_endpoint, float):
+            raise TypeError(f'pow_histogram_endpoint must be float: '
+                            f'{pow_histogram_endpoint}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='pow_histogram_endpoint',
-            val=20.0,
+            val=pow_histogram_endpoint,
             units='dB',
             short_descr='Endpoint value for the range of the '
                         'power histogram edges.',
-            long_descr= \
-                '''
+            long_descr='''
                 Endpoint value (in dB) for the range of the power
                 histogram edges. Defaults to 20.0.'''
             )
-
-        if pow_histogram_endpoint is None:
-            # return the default Param
-            return default
-
-        elif isinstance(pow_histogram_endpoint, float):
-            # update the default with the new value and return it
-            default.val = pow_histogram_endpoint
-            return default
-
-        else:
-            raise ValueError(
-                f'pow_histogram_endpoint must be a float, Param, or None')
+        
+        return out_param
 
 
     def _get_phs_in_radians_param(self, phs_in_radians):
         '''Return `phs_in_radians` as a Param.'''
 
-        if isinstance(phs_in_radians, Param):
-            if not phs_in_radians.name == 'phs_in_radians':
-                raise ValueError('phs_in_radians.name must be `phs_in_radians`')
-            if not isinstance(phs_in_radians.val, bool):
-                raise ValueError('phs_in_radians.val must be bool: '
-                                 f'{phs_in_radians.val}')
-
-            return phs_in_radians
+        if not isinstance(phs_in_radians, bool):
+            raise TypeError('phs_in_radians must be bool: '
+                                f'{phs_in_radians}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='phs_in_radians',
-            val=True,
+            val=phs_in_radians,
             units=None,
             short_descr='True to compute phase in radians units, False for degrees units',
-            long_descr= \
-                '''True to compute phase in radians units, False for 
+            long_descr='''
+                True to compute phase in radians units, False for 
                 degrees units. Defaults to True.'''
             )
 
-        if phs_in_radians is None:
-            # return the default Param
-            return default
-
-        elif isinstance(phs_in_radians, bool):
-            # update the default with the new value and return it
-            default.val = phs_in_radians
-            return default
-
-        else:
-            raise ValueError(
-                f'phs_in_radians must be a bool or None')
+        return out_param
 
 
     def _get_tile_shape_param(self, tile_shape):
         '''Return `tile_shape` as a Param.
 
         TODO - this is duplicate code to other Params dataclasses. Fix.
-        
-        Parameters
-        ----------
-        tile_shape : iterable of int, Param, None
-            Preferred tile shape for processing power images by batches.
-     
-        Returns
-        -------
-        tile_shape_param : Param
-            `tile_shape` as a Param object.
         '''
 
-        if isinstance(tile_shape, Param):
-            if not tile_shape.name == 'tile_shape':
-                raise ValueError('tile_shape.name must be "tile_shape".')
-            if not (all((isinstance(e, int) and e > 0) for e in tile_shape.val) \
-                    or not len(tile_shape.val) == 2) :
-                raise ValueError('tile_shape.val must be a sequence '
-                                 f'of two positive integers: {tile_shape.val}')
+        if not isinstance(tile_shape, (list, tuple)):
+            raise TypeError('`tile_shape` must be a list or tuple: '
+                                f'{tile_shape}')
 
-            return tile_shape
+        if not len(tile_shape) == 2:
+            raise TypeError('`tile_shape` must have a length'
+                                f'of two: {tile_shape}')
+
+        if not all(isinstance(e, int) for e in tile_shape):
+            raise TypeError('`tile_shape` must contain only '
+                                f'integers: {tile_shape}')
+
+        if any(e <= 0 for e in tile_shape):
+            raise TypeError('`tile_shape` must contain only '
+                                f'positive values: {tile_shape}')
 
         # Construct defaults for the new Param
-        default = Param(\
+        out_param = Param(
             name='tile_shape',
-            val=[1024, 1024],
+            val=tile_shape,
             units='unitless',
             short_descr='Preferred tile shape for processing images by batches.',
-            long_descr= \
-                '''
+            long_descr='''
                 Preferred tile shape for processing images by batches.
                 Actual tile shape used during processing might
                 be smaller due to shape of image.
-                Format: [num_rows, num_cols]
+                Format: [<num_rows>, <num_cols>]
                 -1 to indicate all rows / all columns (respectively).
                 Defaults to [1024, 1024] to use all columns 
                 (i.e. full rows of data).'''
             )
 
-        if tile_shape is None:
-            # return the default Param
-            return default
-
-        elif all(isinstance(e, int) for e in tile_shape):
-            if not len(tile_shape) == 2 or \
-                any(e <= 0 for e in tile_shape):
-                raise ValueError('tile_shape must be a sequence '
-                                 f'of two positive integers: {tile_shape}')
-            
-            # update the default with the new value and return it
-            default.val = tile_shape
-            return default
-
-        else:
-            raise ValueError('`tile_shape` must be a sequence of two ints, '
-                             f'a Param, or None: {tile_shape}')
+        return out_param
 
 
     def _get_pow_bin_edges_param(self):
@@ -1368,7 +1092,7 @@ class RSLCHistogramParams(BaseParams):
                                 num=101,
                                 endpoint=True)
 
-        template = Param(
+        out_param = Param(
             name='pow_bin_edges',
             val=bin_edges,
             units='dB',
@@ -1380,7 +1104,7 @@ class RSLCHistogramParams(BaseParams):
                 including endpoint. (units are dB)'''
             )
 
-        return template
+        return out_param
 
 
     def _get_phs_bin_edges_param(self):
@@ -1399,7 +1123,7 @@ class RSLCHistogramParams(BaseParams):
         # 101 bin edges => 100 bins
         bin_edges = np.linspace(start, stop, num=101, endpoint=True)
 
-        template = Param(
+        out_param = Param(
             name='phs_bin_edges',
             val=bin_edges,
             units=phs_units,
@@ -1413,12 +1137,12 @@ class RSLCHistogramParams(BaseParams):
             uniformly-spaced bins in range [-180,180], including endpoint.'''
             )
 
-        return template
+        return out_param
 
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','processing','qa','qa_reports','histogram']
+        return ['runconfig','groups','qa','qa_reports','histogram']
 
 
     @staticmethod
@@ -1509,78 +1233,64 @@ class RSLCHistogramParams(BaseParams):
                 ds_description=self.phs_bin_edges.short_descr)
 
 
-@dataclass
+@dataclass(frozen=True)
 class AbsCalParams(BaseParams):
     '''
     Parameters from the QA-CalTools Absolute Calibration Factor
     runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
-    attr1 : float, Param, optional
+    attr1 : float, optional
         Placeholder Attribute 1.
     '''
 
-    attr1: Optional[Union[float, Param]] = None
+    attr1: Param
 
+    def __init__(self, attr1: Optional[float] = 2.3):
 
-    def __setattr__(self, key, value):
-        if key == 'attr1':
-            super().__setattr__(key, self._get_attr1_param(value))
-        else:
-            raise KeyError(f'{key}')
-
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'attr1', self._get_attr1_param(attr1))
 
     def _get_attr1_param(self, attr1):
         '''Return `attr1` as a Param'''
 
-        if isinstance(attr1, Param):
-            if not attr1.name == 'attr1':
-                raise ValueError('attr1.name must be "attr1"')
-            if not isinstance(attr1.val, float):
-                raise ValueError(f'attr1.val must be a float: {attr1.val}')
+        if not isinstance(attr1, float):
+            raise TypeError(f'attr1 must be a float: {attr1}')
 
-            return attr1
+        if attr1 < 0.0:
+            raise TypeError(f'attr1 must be a non-negative value: {attr1}')
 
         # Construct defaults for the new Param
-        default = \
-            Param(name='attr1',
-                  val=2.3,
-                  units='smoot',
-                  short_descr='Description of attr1 for stats.h5 file',
-                  long_descr= \
-            '''
+        out_param = Param(name='attr1',
+                        val=attr1,
+                        units='smoot',
+                        short_descr='Description of attr1 for stats.h5 file',
+                        long_descr='''
             Placeholder: Attribute 1 description for runconfig. Each new line
             of text will be a separate line in the runconfig template.
             `attr1` is a non-negative float value. Default: 2.3'''
             )
 
-        if attr1 is None:
-            return default
-
-        elif isinstance(attr1, float):
-            if attr1 < 0.0:
-                raise ValueError('attr1 must be a non-negative value')
-            # update the default with the new value and return it
-            default.val = attr1
-            return default
-
-        else:
-            raise ValueError('`attr1` must be a float, Param, or None')
+        return out_param
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','processing',
-                    'qa','absolute_calibration_factor']
+        return ['runconfig','groups','qa','absolute_calibration_factor']
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
@@ -1629,88 +1339,68 @@ class AbsCalParams(BaseParams):
                 ds_units=self.attr1.units)
 
 
-@dataclass
+@dataclass(frozen=True)
 class NESZParams(BaseParams):
     '''
     Parameters from the QA-CalTools Noise Estimator (NESZ) runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
-    attr1 : float, Param, optional
+    attr1 : float, optional
         Placeholder Attribute 1.
 
     Attributes
     ----------
-    attr2 : bool, Param
-        Placeholder parameter; should be removed once the
-        actual parameters are provided.
+    attr2 : Param
+        Placeholder parameter of type bool.
     '''
 
     # Attributes for running the NESZ workflow
-    attr1: Optional[Union[float, Param]] = None
+    attr1: Param
 
     # Auto-generated attributes
     attr2: Param = field(init=False)
 
-
-    def __setattr__(self, key, value):
-        if key == 'attr1':
-            super().__setattr__(key, self._get_attr1_param(value))
-
-            # Assume attr2 is auto-generated based upon attr1.
-            # Update it here.
-            super().__setattr__('attr2', self._get_attr2_param())
-        elif key == 'attr2':
-            raise KeyError(f'`{key}` is only updated when setting '
-                            'corresponding `attr1` input parameter.')
-        else:
-            raise KeyError(f'{key}')
-
+    def __init__(self, attr1: Optional[float] = 11.3):
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'attr1', self._get_attr1_param(attr1))
+        object.__setattr__(self, 'attr2', self._get_attr2_param())
 
     def _get_attr1_param(self, attr1):
         '''Return `attr1` as a Param'''
 
-        if isinstance(attr1, Param):
-            if not attr1.name == 'attr1':
-                raise ValueError('attr1.name must be "attr1"')
-            if not isinstance(attr1.val, float):
-                raise ValueError(f'attr1.val must be a float: {attr1.val}')
+        if not isinstance(attr1, float):
+            raise TypeError(f'attr1 must be a float: {attr1}')
 
-            return attr1
+        if attr1 < 0.0:
+            raise TypeError('attr1 must be a non-negative value')
 
-        # Construct defaults for the new Param
-        default = \
-            Param(name='attr1',
-                  val=11.3,
-                  units='parsecs',
-                  short_descr='score for Kessel Run ',
-                  long_descr='''
+        out_param = Param(name='attr1',
+                        val=attr1,
+                        units='parsecs',
+                        short_descr='score for Kessel Run',
+                        long_descr='''
             Placeholder: Attribute 1 description for runconfig. Each new line
             of text will be a separate line in the runconfig template.
             `attr1` is a non-negative float value. Default: 11.9'''
             )
 
-        if attr1 is None:
-            return default
+        return out_param
 
-        elif isinstance(attr1, float):
-            if attr1 < 0.0:
-                raise ValueError('attr1 must be a non-negative value')
-            # update the default with the new value and return it
-            default.val = attr1
-            return default
-
-        else:
-            raise ValueError('`attr1` must be a float, Param, or None')
 
     def _get_attr2_param(self):
         '''Return `attr2` as a Param.'''
@@ -1738,7 +1428,7 @@ class NESZParams(BaseParams):
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','processing','qa','nesz']
+        return ['runconfig','groups','qa','nesz']
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
@@ -1752,7 +1442,8 @@ class NESZParams(BaseParams):
         params_cm = CM()
 
         # Add runconfig parameters
-        # Note: `attr2` is not part of the runconfig, so do not add it.
+        # Note: only add `attr1` to the runconfig.
+        # `attr2` is not part of the runconfig, so do not add it.
         default.add_param_to_cm(params_cm=params_cm,
                                 param_attr=default.attr1)
 
@@ -1806,77 +1497,62 @@ class NESZParams(BaseParams):
                 ds_units=self.attr2.units)
 
 
-@dataclass
+@dataclass(frozen=True)
 class PointTargetAnalyzerParams(BaseParams):
     '''
     Parameters from the QA-CalTools Point Target Analyzer runconfig group.
 
-    Note that however data values are passed into this dataclass, they will
-    always be processed into, stored, and accessible as Param instances.
-        - If a non-Param type is provided, then default values will be used
-          to fill in the additional Param attributes.
-        - If a Param type is provided, then the <attribute>.val must contain
-          a valid non-Param input for that attribute.
-        - If no value or `None` is provided, then the attribute will be 
-          set to its default Param value.
+    Arguments should be passed into this dataclass' parameters with 
+    types such as `str` or `int`. During initialization, these arguments
+    are processed into, stored as, and later accessible by the calling
+    function as attributes with the type Param. The attributes will have
+    the same name as the corresponding parameter, but will be of 
+    type Param instead of type e.g. `str`.
+    
+    The original argument is accessible via the `val` attribute 
+    of the new Param class; the additional Param attributes
+    will be populated with default metadata by this dataclass.
+
+    If no value or `None` is provided as an argument, then the
+    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
-    attr1 : str, Param, optional
+    attr1 : str, optional
         Placeholder Attribute 1.
     '''
 
-    attr1: Optional[Union[str, Param]] = None
+    attr1: Param
 
-
-    def __setattr__(self, key, value):
-        if key == 'attr1':
-            super().__setattr__(key, self._get_attr1_param(value))
-        else:
-            raise KeyError(f'{key}')
-
+    def __init__(self, attr1: Optional[float] = 2300.5):
+       # For frozen dataclasses, set attributes via the superclass.
+        object.__setattr__(self, 'attr1', self._get_attr1_param(attr1))
 
     def _get_attr1_param(self, attr1):
         '''Return `attr1` as a Param'''
 
-        if isinstance(attr1, Param):
-            if not attr1.name == 'attr1':
-                raise ValueError('attr1.name must be "attr1"')
-            if not isinstance(attr1.val, str):
-                raise ValueError(f'attr1.val must be a str: {attr1.val}')
+        if not isinstance(attr1, float):
+            raise TypeError(f'attr1 must be a float: {attr1}')
 
-            return attr1
+        if attr1 < 0.0:
+            raise TypeError(f'attr1 must be a non-negative value: {attr1}')
 
         # Construct defaults for the new Param
-        default = \
-            Param(name='attr1',
-                  val=2300.5,
-                  units='beard-second',
-                  short_descr='amount of growth at end of November',
-                  long_descr= \
-            '''
+        out_param = Param(name='attr1',
+                        val=attr1,
+                        units='beard-second',
+                        short_descr='amount of growth at end of November',
+                        long_descr='''
             Placeholder: Attribute 1 description for runconfig. Each new line
             of text will be a separate line in the runconfig template.
             `attr1` is a non-negative float value. Default: 2300.5'''
             )
 
-        if attr1 is None:
-            return default
-
-        elif isinstance(attr1, float):
-            if attr1 < 0.0:
-                raise ValueError('attr1 must be a non-negative value')
-            # update the default with the new value and return it
-            default.val = attr1
-            return default
-
-        else:
-            raise ValueError('`attr1` must be a float, Param, or None')
+        return out_param
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','processing',
-                    'qa','point_target_analyzer']
+        return ['runconfig','groups','qa','point_target_analyzer']
 
     @staticmethod
     def populate_runcfg(runconfig_cm):
@@ -1994,8 +1670,8 @@ class RSLCRootParams:
         # prodpath is only optional in the case of doing a dumpconfig
         if any([getattr(self.workflows, field.name) \
                             for field in fields(self.workflows)]):
-            if not isinstance(self.prodpath, InputFileGroupParams):
-                raise ValueError('`input_f` parameter of type '
+            if not isinstance(self.input_f, InputFileGroupParams):
+                raise TypeError('`input_f` parameter of type '
                     'InputFileGroupParams is required to run any of the '
                     'QA workflows.')
 
@@ -2005,53 +1681,53 @@ class RSLCRootParams:
         if any([getattr(self.workflows, field.name) \
                             for field in fields(self.workflows)]):
             if not isinstance(self.prodpath, ProductPathGroupParams):
-                raise ValueError('`prodpath` parameter of type '
+                raise TypeError('`prodpath` parameter of type '
                     'ProductPathGroupParams is required to run any of the '
                     'QA workflows.')
 
         if self.workflows.qa_reports:
             if self.power_img is None or \
                 not isinstance(self.power_img, RSLCPowerImageParams):
-                raise ValueError('`power_img` parameter of type '
+                raise TypeError('`power_img` parameter of type '
                     'RSLCPowerImageParams is required to run the '
                     'requested qa_reports workflow')
 
             if self.histogram is None or \
                 not isinstance(self.histogram, RSLCHistogramParams):
-                raise ValueError('`histogram` parameter of type '
+                raise TypeError('`histogram` parameter of type '
                     'RSLCHistogramParams is required to run the '
                     'requested qa_reports workflow')
 
         if self.workflows.absolute_calibration_factor:
             if self.abs_cal is None or \
                 not isinstance(self.abs_cal, AbsCalParams):
-                raise ValueError('`abs_cal` parameter of type '
+                raise TypeError('`abs_cal` parameter of type '
                     'AbsCalParams is required to run the '
                     'requested absolute_calibration_factor workflow')
 
             if self.anc_files is None or \
                 not isinstance(self.anc_files, DynamicAncillaryFileParams):
-                raise ValueError('`anc_files` parameter of type '
+                raise TypeError('`anc_files` parameter of type '
                     'DynamicAncillaryFileParams is required to run the '
                     'requested absolute_calibration_factor workflow')
 
         if self.workflows.nesz:
             if self.nesz is None or \
                 not isinstance(self.nesz, NESZParams):
-                raise ValueError('`nesz` parameter of type '
+                raise TypeError('`nesz` parameter of type '
                     'NESZParams is required to run the '
                     'requested nesz workflow')
 
         if self.workflows.point_target_analyzer:
             if self.pta is None or \
                 not isinstance(self.pta, PointTargetAnalyzerParams):
-                raise ValueError('`pta` parameter of type '
+                raise TypeError('`pta` parameter of type '
                     'PointTargetAnalyzerParams is required to run the '
                     'requested point_target_analyzer workflow')
 
             if self.anc_files is None or \
                 not isinstance(self.anc_files, DynamicAncillaryFileParams):
-                raise ValueError('`anc_files` parameter of type '
+                raise TypeError('`anc_files` parameter of type '
                     'DynamicAncillaryFileParams is required to run the '
                     'requested point_target_analyzer workflow')
 
@@ -2138,7 +1814,8 @@ def parse_rslc_runconfig(runconfig_yaml):
     # Construct InputFileGroupParams dataclass (required for all workflows)
     rncfg_path = InputFileGroupParams.get_path_to_group_in_runconfig()
     params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-    input_file_params = InputFileGroupParams(**params_dict)
+    input_file_params = InputFileGroupParams(
+                        qa_input_file=params_dict['qa_input_file'])
 
     # Construct DynamicAncillaryFileParams dataclass
     # Only two of the CalVal workflows use the dynamic_ancillary_file_group
@@ -2146,14 +1823,17 @@ def parse_rslc_runconfig(runconfig_yaml):
         workflows_params.point_target_analyzer:
         rncfg_path = DynamicAncillaryFileParams.get_path_to_group_in_runconfig()
         params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-        dyn_anc_files = DynamicAncillaryFileParams(**params_dict)
+        dyn_anc_files = DynamicAncillaryFileParams(
+                        corner_reflector_file=params_dict['corner_reflector_file'])
     else:
         dyn_anc_files = None
 
     # Construct ProductPathGroupParams dataclass (required for all workflows)
     rncfg_path = ProductPathGroupParams.get_path_to_group_in_runconfig()
     params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-    product_path_params = ProductPathGroupParams(**params_dict)
+    product_path_params = ProductPathGroupParams(
+                                qa_output_dir=params_dict['qa_output_dir']
+    )
 
     # Construct RSLCPowerImageParams dataclass
     if workflows_params.qa_reports:
@@ -2197,7 +1877,7 @@ def parse_rslc_runconfig(runconfig_yaml):
 
     # Construct RSLCRootParams
     rslc_params = RSLCRootParams(workflows=workflows_params,
-                                 input_file=input_file_params,
+                                 input_f=input_file_params,
                                  anc_files=dyn_anc_files,
                                  prodpath=product_path_params,
                                  power_img=pow_img_params,

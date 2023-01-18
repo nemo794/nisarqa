@@ -53,7 +53,7 @@ class Param:
             self.long_descr = self.short_descr
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseParams(ABC):
     '''Abstract Base Class for creating *Params dataclasses.'''
 

@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import h5py
 import nisarqa
@@ -33,6 +33,31 @@ def verify_rslc(runconfig_file):
     # Parse the runconfig file
     rslc_params = nisarqa.parse_rslc_runconfig(runconfig_file)
     output_dir = rslc_params.prodpath.qa_output_dir.val
+
+    print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
+    for params_obj in fields(rslc_params):
+        if params_obj.name == 'input_f':
+            grp_name = 'input_file_group'
+        elif params_obj.name == 'prodpath':
+            grp_name = 'product_path_group'
+        elif params_obj.name == 'anc_files':
+            grp_name = 'dynamic_ancillary_file_group'
+        elif params_obj.name == 'power_img':
+            grp_name = 'power_image'
+        elif params_obj.name == 'abs_cal':
+            grp_name = 'absolute_calibration_factor'
+        elif params_obj.name == 'pta':
+            grp_name = 'point_target_analyzer'
+        else:
+            grp_name = params_obj.name
+        print(f'  Runconfig group: {grp_name}')
+        po = getattr(rslc_params, params_obj.name)
+        for param in fields(po):
+            po2 = getattr(po, param.name)
+            if isinstance(po2, bool):
+                print(f'    {param.name}: {po2}')
+            else:
+                print(f'    {param.name}: {po2.val}')
 
     # Start logger
     # TODO get logger from Brian's code and implement here
