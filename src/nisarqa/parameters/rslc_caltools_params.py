@@ -119,9 +119,9 @@ class InputFileGroupParams(BaseParams):
 
        # For frozen dataclasses, set attributes via the superclass.
         object.__setattr__(self, 'qa_input_file', 
-                            self._get_qa_input_file_param(qa_input_file))
+                            self._qa_input_file_2_param(qa_input_file))
 
-    def _get_qa_input_file_param(self, qa_input_file):
+    def _qa_input_file_2_param(self, qa_input_file):
         '''Return `qa_input_file` as a Param'''
 
         if not qa_input_file is None and not isinstance(qa_input_file, str):
@@ -137,7 +137,7 @@ class InputFileGroupParams(BaseParams):
                     f'`qa_input_file` must end with .h5: {qa_input_file}')
 
         # Construct defaults for the new Param
-        out_param = Param(name='qa_input_file',
+        out = Param(name='qa_input_file',
                         val=qa_input_file,
                         units=None,
                         short_descr='Input NISAR Product filename',
@@ -150,7 +150,7 @@ class InputFileGroupParams(BaseParams):
                 NISAR product for QA to process.'''
                 )
 
-        return out_param
+        return out
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -224,9 +224,9 @@ class DynamicAncillaryFileParams(BaseParams):
 
        # For frozen dataclasses, set attributes via the superclass.
         object.__setattr__(self, 'corner_reflector_file',
-            self._get_corner_reflector_file_param(corner_reflector_file))
+            self._corner_reflector_file_2_param(corner_reflector_file))
 
-    def _get_corner_reflector_file_param(self, corner_reflector_file):
+    def _corner_reflector_file_2_param(self, corner_reflector_file):
         '''Return `attr1` as a Param'''
 
         if not corner_reflector_file == None and \
@@ -240,7 +240,7 @@ class DynamicAncillaryFileParams(BaseParams):
                     f'{corner_reflector_file}')
 
         # Construct defaults for the new Param
-        out_param = \
+        out = \
             Param(name='corner_reflector_file',
                   val=corner_reflector_file,
                   units=None,
@@ -251,7 +251,7 @@ class DynamicAncillaryFileParams(BaseParams):
             `point_target_analyzer` runconfig params are set to True for QA.'''
             )
 
-        return out_param
+        return out
 
 
     @staticmethod
@@ -340,9 +340,9 @@ class ProductPathGroupParams(BaseParams):
     def __init__(self, qa_output_dir: Optional[str] = './qa'):
        # For frozen dataclasses, set attributes via the superclass.
         object.__setattr__(self, 'qa_output_dir',
-                            self._get_qa_output_dir_param(qa_output_dir))
+                            self._qa_output_dir_2_param(qa_output_dir))
 
-    def _get_qa_output_dir_param(self, qa_output_dir):
+    def _qa_output_dir_2_param(self, qa_output_dir):
         '''Return `qa_output_dir` as a Param.'''
 
         # validate input type
@@ -351,7 +351,7 @@ class ProductPathGroupParams(BaseParams):
                         f'must be a string: {qa_output_dir}')
 
         # Construct the new Param with metadata
-        out_param = Param(name='qa_output_dir',
+        out = Param(name='qa_output_dir',
                         val=qa_output_dir,
                         units=None,
                         short_descr='Directory to store NISAR QA output files',
@@ -361,11 +361,11 @@ class ProductPathGroupParams(BaseParams):
                         )
 
         # If this directory does not exist, make it.
-        if not os.path.isdir(out_param.val):
-            print(f'Creating QA output directory: {out_param.val}')
-            os.makedirs(out_param.val, exist_ok=True)
+        if not os.path.isdir(out.val):
+            print(f'Creating QA output directory: {out.val}')
+            os.makedirs(out.val, exist_ok=True)
 
-        return out_param
+        return out
 
 
     @staticmethod
@@ -490,27 +490,27 @@ class RSLCPowerImageParams(BaseParams):
 
        # For frozen dataclasses, set attributes via the superclass.
         object.__setattr__(self, 'linear_units',
-                            self._get_linear_units_param(linear_units))
+                            self._linear_units_2_param(linear_units))
 
         object.__setattr__(self, 'nlooks_freqa',
-                            self._get_nlooks_param(nlooks_freqa, 'A'))
+                            self._nlooks_2_param(nlooks_freqa, 'A'))
 
         object.__setattr__(self, 'nlooks_freqb',
-                            self._get_nlooks_param(nlooks_freqb, 'B'))
+                            self._nlooks_2_param(nlooks_freqb, 'B'))
 
-        object.__setattr__(self, 'num_mpix', self._get_num_mpix_param(num_mpix))
+        object.__setattr__(self, 'num_mpix', self._num_mpix_2_param(num_mpix))
 
         object.__setattr__(self, 'middle_percentile', 
-                        self._get_middle_percentile_param(middle_percentile))
+                        self._middle_percentile_2_param(middle_percentile))
 
-        object.__setattr__(self, 'gamma', self._get_gamma_param(gamma))
+        object.__setattr__(self, 'gamma', self._gamma_2_param(gamma))
 
         object.__setattr__(self, 'tile_shape', 
-                            self._get_tile_shape_param(tile_shape))
+                            self._tile_shape_2_param(tile_shape))
 
-        object.__setattr__(self, 'pow_units', self._get_pow_units_param())
+        object.__setattr__(self, 'pow_units', self._pow_units_2_param())
 
-    def _get_nlooks_param(self, nlooks, freq):
+    def _nlooks_2_param(self, nlooks, freq):
         '''Return the number of looks for given frequency as a Param.
         
         Parameters
@@ -546,7 +546,7 @@ class RSLCPowerImageParams(BaseParams):
             raise TypeError('`nlooks` must be of type int, iterable of int, '
                             f'or None: {nlooks}')
 
-        out_param = Param(
+        out = Param(
             name=f'nlooks_freq{freq.lower()}',
             val=nlooks,
             units='unitless',
@@ -563,17 +563,17 @@ class RSLCPowerImageParams(BaseParams):
                 browse image.'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_linear_units_param(self, linear_units):
+    def _linear_units_2_param(self, linear_units):
         '''Return `linear_units` as a Param.'''
 
         if not isinstance(linear_units, bool):
             raise TypeError(f'linear_units must be a bool: {linear_units}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='linear_units',
             val=linear_units,
             units=None,
@@ -585,10 +585,10 @@ class RSLCPowerImageParams(BaseParams):
                 Defaults to True.'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_num_mpix_param(self, num_mpix):
+    def _num_mpix_2_param(self, num_mpix):
         '''Return `num_mpix` as a Param.'''
 
         if not isinstance(num_mpix, float):
@@ -598,7 +598,7 @@ class RSLCPowerImageParams(BaseParams):
             raise TypeError(f'`num_mpix` must be a positive value: {num_mpix}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='num_mpix',
             val=num_mpix,
             units='megapixels',
@@ -611,10 +611,10 @@ class RSLCPowerImageParams(BaseParams):
                 values will take precedence.'''
             )
         
-        return out_param
+        return out
 
 
-    def _get_middle_percentile_param(self, middle_percentile):
+    def _middle_percentile_2_param(self, middle_percentile):
         '''Return `middle_percentile` as a Param.'''
 
         if not isinstance(middle_percentile, float):
@@ -626,7 +626,7 @@ class RSLCPowerImageParams(BaseParams):
                 f'{middle_percentile}, must be in range [0.0, 100.0]')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='middle_percentile',
             val=middle_percentile,
             units='unitless',
@@ -637,10 +637,10 @@ class RSLCPowerImageParams(BaseParams):
                 that the colormap covers. Must be in the range [0.0, 100.0].
                 Defaults to 100.0.'''            )
 
-        return out_param
+        return out
 
 
-    def _get_gamma_param(self, gamma):
+    def _gamma_2_param(self, gamma):
         '''Return `gamma` as a Param.'''
 
         if not gamma == None and not isinstance(gamma, float):
@@ -651,7 +651,7 @@ class RSLCPowerImageParams(BaseParams):
                 raise TypeError(f'gamma must be a non-negative value: {gamma}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='gamma',
             val=gamma,
             units='unitless',
@@ -667,10 +667,10 @@ class RSLCPowerImageParams(BaseParams):
                 Defaults to None (no normalization, no gamma correction)'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_tile_shape_param(self, tile_shape):
+    def _tile_shape_2_param(self, tile_shape):
         '''Return `tile_shape` as a Param.
         
         TODO - this is duplicate code to other Params dataclasses. Fix.
@@ -693,7 +693,7 @@ class RSLCPowerImageParams(BaseParams):
                                 f'positive values: {tile_shape}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='tile_shape',
             val=tile_shape,
             units='unitless',
@@ -708,10 +708,10 @@ class RSLCPowerImageParams(BaseParams):
                 (i.e. full rows of data).'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_pow_units_param(self):
+    def _pow_units_2_param(self):
         '''Return `pow_units` as a Param.'''
 
         # Phase bin edges - allow for either radians or degrees
@@ -917,28 +917,28 @@ class RSLCHistogramParams(BaseParams):
 
        # For frozen dataclasses, set attributes via the superclass.
         object.__setattr__(self, 'decimation_ratio',
-                self._get_decimation_ratio_param(decimation_ratio))
+                self._decimation_ratio_2_param(decimation_ratio))
 
         object.__setattr__(self, 'pow_histogram_start',
-                self._get_pow_histogram_start_param(pow_histogram_start))
+                self._pow_histogram_start_2_param(pow_histogram_start))
 
         object.__setattr__(self, 'pow_histogram_endpoint',
-                self._get_pow_histogram_endpoint_param(pow_histogram_endpoint))
+                self._pow_histogram_endpoint_2_param(pow_histogram_endpoint))
 
         object.__setattr__(self, 'phs_in_radians',
-                self._get_phs_in_radians_param(phs_in_radians))
+                self._phs_in_radians_2_param(phs_in_radians))
 
         object.__setattr__(self, 'tile_shape',
-                self._get_tile_shape_param(tile_shape))
+                self._tile_shape_2_param(tile_shape))
 
         object.__setattr__(self, 'pow_bin_edges',
-                self._get_pow_bin_edges_param())
+                self._pow_bin_edges_2_param())
 
         object.__setattr__(self, 'phs_bin_edges',
-                self._get_phs_bin_edges_param())
+                self._phs_bin_edges_2_param())
 
 
-    def _get_decimation_ratio_param(self, decimation_ratio):
+    def _decimation_ratio_2_param(self, decimation_ratio):
         '''Return `decimation_ratio` as a Param.'''
 
         if not isinstance(decimation_ratio, (list, tuple)):
@@ -958,7 +958,7 @@ class RSLCHistogramParams(BaseParams):
                             f'values: {decimation_ratio}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='decimation_ratio',
             val=decimation_ratio,
             units='unitless',
@@ -973,10 +973,10 @@ class RSLCHistogramParams(BaseParams):
                 Format: [<azimuth>, <range>]'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_pow_histogram_start_param(self, pow_histogram_start):
+    def _pow_histogram_start_2_param(self, pow_histogram_start):
         '''Return `pow_histogram_start` as a Param.'''
 
         if not isinstance(pow_histogram_start, float):
@@ -984,7 +984,7 @@ class RSLCHistogramParams(BaseParams):
                             f'{pow_histogram_start}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='pow_histogram_start',
             val=pow_histogram_start,
             units='dB',
@@ -995,10 +995,10 @@ class RSLCHistogramParams(BaseParams):
                 histogram edges. Defaults to -80.0.'''
             )
         
-        return out_param
+        return out
 
 
-    def _get_pow_histogram_endpoint_param(self, pow_histogram_endpoint):
+    def _pow_histogram_endpoint_2_param(self, pow_histogram_endpoint):
         '''Return `pow_histogram_endpoint` as a Param.'''
 
         if not isinstance(pow_histogram_endpoint, float):
@@ -1006,7 +1006,7 @@ class RSLCHistogramParams(BaseParams):
                             f'{pow_histogram_endpoint}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='pow_histogram_endpoint',
             val=pow_histogram_endpoint,
             units='dB',
@@ -1017,10 +1017,10 @@ class RSLCHistogramParams(BaseParams):
                 histogram edges. Defaults to 20.0.'''
             )
         
-        return out_param
+        return out
 
 
-    def _get_phs_in_radians_param(self, phs_in_radians):
+    def _phs_in_radians_2_param(self, phs_in_radians):
         '''Return `phs_in_radians` as a Param.'''
 
         if not isinstance(phs_in_radians, bool):
@@ -1028,7 +1028,7 @@ class RSLCHistogramParams(BaseParams):
                                 f'{phs_in_radians}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='phs_in_radians',
             val=phs_in_radians,
             units=None,
@@ -1038,10 +1038,10 @@ class RSLCHistogramParams(BaseParams):
                 degrees units. Defaults to True.'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_tile_shape_param(self, tile_shape):
+    def _tile_shape_2_param(self, tile_shape):
         '''Return `tile_shape` as a Param.
 
         TODO - this is duplicate code to other Params dataclasses. Fix.
@@ -1064,7 +1064,7 @@ class RSLCHistogramParams(BaseParams):
                                 f'positive values: {tile_shape}')
 
         # Construct defaults for the new Param
-        out_param = Param(
+        out = Param(
             name='tile_shape',
             val=tile_shape,
             units='unitless',
@@ -1079,10 +1079,10 @@ class RSLCHistogramParams(BaseParams):
                 (i.e. full rows of data).'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_pow_bin_edges_param(self):
+    def _pow_bin_edges_2_param(self):
         '''Return `pow_bin_edges` as a Param.'''
 
         # Power Bin Edges - hardcode to be in decibels
@@ -1092,7 +1092,7 @@ class RSLCHistogramParams(BaseParams):
                                 num=101,
                                 endpoint=True)
 
-        out_param = Param(
+        out = Param(
             name='pow_bin_edges',
             val=bin_edges,
             units='dB',
@@ -1104,10 +1104,10 @@ class RSLCHistogramParams(BaseParams):
                 including endpoint. (units are dB)'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_phs_bin_edges_param(self):
+    def _phs_bin_edges_2_param(self):
         '''Return `phs_bin_edges` as a Param.'''
 
         # Phase bin edges - allow for either radians or degrees
@@ -1123,7 +1123,7 @@ class RSLCHistogramParams(BaseParams):
         # 101 bin edges => 100 bins
         bin_edges = np.linspace(start, stop, num=101, endpoint=True)
 
-        out_param = Param(
+        out = Param(
             name='phs_bin_edges',
             val=bin_edges,
             units=phs_units,
@@ -1137,7 +1137,7 @@ class RSLCHistogramParams(BaseParams):
             uniformly-spaced bins in range [-180,180], including endpoint.'''
             )
 
-        return out_param
+        return out
 
 
     @staticmethod
@@ -1264,9 +1264,9 @@ class AbsCalParams(BaseParams):
     def __init__(self, attr1: Optional[float] = 2.3):
 
        # For frozen dataclasses, set attributes via the superclass.
-        object.__setattr__(self, 'attr1', self._get_attr1_param(attr1))
+        object.__setattr__(self, 'attr1', self._attr1_2_param(attr1))
 
-    def _get_attr1_param(self, attr1):
+    def _attr1_2_param(self, attr1):
         '''Return `attr1` as a Param'''
 
         if not isinstance(attr1, float):
@@ -1276,7 +1276,7 @@ class AbsCalParams(BaseParams):
             raise TypeError(f'attr1 must be a non-negative value: {attr1}')
 
         # Construct defaults for the new Param
-        out_param = Param(name='attr1',
+        out = Param(name='attr1',
                         val=attr1,
                         units='smoot',
                         short_descr='Description of attr1 for stats.h5 file',
@@ -1286,7 +1286,7 @@ class AbsCalParams(BaseParams):
             `attr1` is a non-negative float value. Default: 2.3'''
             )
 
-        return out_param
+        return out
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -1377,10 +1377,10 @@ class NESZParams(BaseParams):
 
     def __init__(self, attr1: Optional[float] = 11.3):
        # For frozen dataclasses, set attributes via the superclass.
-        object.__setattr__(self, 'attr1', self._get_attr1_param(attr1))
-        object.__setattr__(self, 'attr2', self._get_attr2_param())
+        object.__setattr__(self, 'attr1', self._attr1_2_param(attr1))
+        object.__setattr__(self, 'attr2', self._attr2_2_param())
 
-    def _get_attr1_param(self, attr1):
+    def _attr1_2_param(self, attr1):
         '''Return `attr1` as a Param'''
 
         if not isinstance(attr1, float):
@@ -1389,7 +1389,7 @@ class NESZParams(BaseParams):
         if attr1 < 0.0:
             raise TypeError('attr1 must be a non-negative value')
 
-        out_param = Param(name='attr1',
+        out = Param(name='attr1',
                         val=attr1,
                         units='parsecs',
                         short_descr='score for Kessel Run',
@@ -1399,10 +1399,10 @@ class NESZParams(BaseParams):
             `attr1` is a non-negative float value. Default: 11.9'''
             )
 
-        return out_param
+        return out
 
 
-    def _get_attr2_param(self):
+    def _attr2_2_param(self):
         '''Return `attr2` as a Param.'''
 
         # Here is where the dependency upon attr1 occurs:
@@ -1526,9 +1526,9 @@ class PointTargetAnalyzerParams(BaseParams):
 
     def __init__(self, attr1: Optional[float] = 2300.5):
        # For frozen dataclasses, set attributes via the superclass.
-        object.__setattr__(self, 'attr1', self._get_attr1_param(attr1))
+        object.__setattr__(self, 'attr1', self._attr1_2_param(attr1))
 
-    def _get_attr1_param(self, attr1):
+    def _attr1_2_param(self, attr1):
         '''Return `attr1` as a Param'''
 
         if not isinstance(attr1, float):
@@ -1538,7 +1538,7 @@ class PointTargetAnalyzerParams(BaseParams):
             raise TypeError(f'attr1 must be a non-negative value: {attr1}')
 
         # Construct defaults for the new Param
-        out_param = Param(name='attr1',
+        out = Param(name='attr1',
                         val=attr1,
                         units='beard-second',
                         short_descr='amount of growth at end of November',
@@ -1548,7 +1548,7 @@ class PointTargetAnalyzerParams(BaseParams):
             `attr1` is a non-negative float value. Default: 2300.5'''
             )
 
-        return out_param
+        return out
 
     @staticmethod
     def get_path_to_group_in_runconfig():
