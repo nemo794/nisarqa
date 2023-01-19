@@ -20,26 +20,26 @@ class WorkflowsParams(BaseParams):
     Parameters
     ----------
     validate : bool, optional
-        True to run the validate workflow. Default: True
+        True to run the validate workflow. Default: False
     qa_reports : bool, optional
-        True to run the QA Reports workflow. Default: True
+        True to run the QA Reports workflow. Default: False
     absolute_calibration_factor : bool, optional
         True to run the Absolute Calibration Factor (AbsCal) workflow.
-        Default: True
+        Default: False
     nesz : bool, optional
-        True to run the Noise Estimator (NESZ) workflow. Default: True
+        True to run the Noise Estimator (NESZ) workflow. Default: False
     point_target_analyzer : bool, optional
-        True to run the Point Target Analyzer (PTA) workflow. Default: True
+        True to run the Point Target Analyzer (PTA) workflow. Default: False
     '''
 
     # None of the attributes in this class will be saved to the 
     # stats.h5 file, so they can be type bool (not required for them
     # to be of type Param)
-    validate: bool = True
-    qa_reports: bool = True
-    absolute_calibration_factor: bool = True
-    nesz: bool = True
-    point_target_analyzer: bool = True
+    validate: bool = False
+    qa_reports: bool = False
+    absolute_calibration_factor: bool = False
+    nesz: bool = False
+    point_target_analyzer: bool = False
 
     @staticmethod
     def get_path_to_group_in_runconfig():

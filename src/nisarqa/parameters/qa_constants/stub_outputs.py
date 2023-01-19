@@ -291,8 +291,8 @@ def get_workflows(user_rncfg,
                   rncfg_path=('runconfig','groups','qa','workflows')):
     '''Parse workflows group from the given runconfig path.'''
 
-    validate = True
-    qa_reports = True
+    validate = False
+    qa_reports = False
     try:
         params_dict = nisarqa.get_nested_element_in_dict(
                                 user_rncfg, rncfg_path)
