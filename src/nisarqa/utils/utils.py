@@ -184,6 +184,32 @@ def multi_line_string_iter(multiline_str):
 
 
 def get_nested_element_in_dict(source_dict, path_to_element):
+    '''
+    Returns the value of the last key in the `path_to_element`.
+
+    Parameters
+    ----------
+    source_dict : dict
+        Nested dictionary to be parsed
+    path_to_element : sequence
+        Sequence which define a nested path in `source_dict` to
+        the desired value.
+    
+    Returns
+    -------
+    element : Any
+        The value of the final key in the `path_to_element` sequence
+
+    Example
+    -------
+    >>> src = {'a' : 'dog', 'b' : {'cat':'lulu', 'toy':'mouse'}}
+    >>> path = ['b']
+    >>> get_nested_element_in_dict(src, path)
+    {'cat': 'lulu', 'toy': 'mouse'}
+    >>> path = ['b', 'toy']
+    >>> get_nested_element_in_dict(src, path)
+    'mouse'
+    '''
     element = source_dict
     for nested_dict in path_to_element:
         element = element[nested_dict]

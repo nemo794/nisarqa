@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 from dataclasses import dataclass, field, fields
 from typing import Iterable, Optional, Tuple, Union
 
@@ -438,7 +439,7 @@ class RSLCPowerImageParams(BaseParams):
     middle_percentile : float, optional
         Defines the middle percentile range of the image array
         that the colormap covers. Must be in the range [0.0, 100.0].
-        Defaults to 100.0.
+        Defaults to 95.0.
     gamma : float, None, optional
         The gamma correction parameter.
         Gamma will be applied as follows:
@@ -483,7 +484,7 @@ class RSLCPowerImageParams(BaseParams):
                  nlooks_freqa: Optional[Union[int, Iterable[int]]] = None,
                  nlooks_freqb: Optional[Union[int, Iterable[int]]] = None,
                  num_mpix: Optional[float] = 4.0,
-                 middle_percentile: Optional[float] = 100.0,
+                 middle_percentile: Optional[float] = 95.0,
                  gamma: Optional[float] = None,
                  tile_shape: Optional[Iterable[int]] = (1024,1024)
                  ):
@@ -635,7 +636,7 @@ class RSLCPowerImageParams(BaseParams):
             long_descr='''
                 Defines the middle percentile range of the image array
                 that the colormap covers. Must be in the range [0.0, 100.0].
-                Defaults to 100.0.'''            )
+                Defaults to 95.0.'''            )
 
         return out
 
@@ -850,7 +851,7 @@ class RSLCHistogramParams(BaseParams):
         the power and phase histograms.
         For example, (2,3) means every 2nd azimuth line and
         every 3rd range line will be used to compute the histograms.
-        Defaults to (1,1), i.e. no decimation will occur.
+        Defaults to (10,10).
         Format: (<azimuth>, <range>)
     pow_histogram_start : numeric, optional
         The starting value (in dB) for the range of the power histogram edges.
@@ -908,7 +909,7 @@ class RSLCHistogramParams(BaseParams):
     phs_bin_edges: Param = field(init=False)
 
     def __init__(self,
-                decimation_ratio: Optional[Tuple[int, int]] = (1,1),
+                decimation_ratio: Optional[Tuple[int, int]] = (10,10),
                 pow_histogram_start: Optional[float] = -80.0,
                 pow_histogram_endpoint: Optional[float] = 20.0,
                 phs_in_radians: Optional[bool] = True,
@@ -969,7 +970,7 @@ class RSLCHistogramParams(BaseParams):
                 the power and phase histograms.
                 For example, [2,3] means every 2nd azimuth line and
                 every 3rd range line will be used to compute the histograms.
-                Defaults to [1,1], i.e. no decimation will occur.
+                Defaults to [10,10].
                 Format: [<azimuth>, <range>]'''
             )
 
@@ -1804,74 +1805,137 @@ def parse_rslc_runconfig(runconfig_yaml):
     # parse runconfig into a dict structure
     parser = YAML(typ='safe')
     with open(runconfig_yaml, 'r') as f:
-        user_runconfig = parser.load(f)
+        user_rncfg = parser.load(f)
 
-    # Construct WorkflowsParams dataclass (required for all workflows)
+    # Construct WorkflowsParams dataclass
     rncfg_path = WorkflowsParams.get_path_to_group_in_runconfig()
-    params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-    workflows_params = WorkflowsParams(**params_dict)
+    try:
+        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
+    except KeyError:
+        # if group does not exist in runconfig, use defaults
+        workflows_params = WorkflowsParams()
+    else:
+        workflows_params = WorkflowsParams(**params_dict)
 
     # Construct InputFileGroupParams dataclass (required for all workflows)
     rncfg_path = InputFileGroupParams.get_path_to_group_in_runconfig()
-    params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-    input_file_params = InputFileGroupParams(
+    try:
+        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
+                                                            rncfg_path)
+    except KeyError:
+        raise KeyError('`input_file_group` is a required runconfig group')
+
+    try:
+        input_file_params = InputFileGroupParams(
                         qa_input_file=params_dict['qa_input_file'])
+    except KeyError:
+        raise KeyError('`qa_input_file` is a required parameter for QA')
 
     # Construct DynamicAncillaryFileParams dataclass
     # Only two of the CalVal workflows use the dynamic_ancillary_file_group
     if workflows_params.absolute_calibration_factor or \
         workflows_params.point_target_analyzer:
+
         rncfg_path = DynamicAncillaryFileParams.get_path_to_group_in_runconfig()
-        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-        dyn_anc_files = DynamicAncillaryFileParams(
-                        corner_reflector_file=params_dict['corner_reflector_file'])
+        try:
+            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
+                                                                rncfg_path)
+        except KeyError:
+            raise KeyError('`dynamic_ancillary_file_group` is a required '
+                           'runconfig group to run Absolute Calibration Factor'
+                           ' or Point Target Analyzer workflows.')
+        try:
+            dyn_anc_files = DynamicAncillaryFileParams(
+                    corner_reflector_file=params_dict['corner_reflector_file'])
+        except KeyError:
+            raise KeyError('`corner_reflector_file` is a required runconfig '
+                           'parameter for Absolute Calibration Factor '
+                           'or Point Target Analyzer workflows')
     else:
         dyn_anc_files = None
 
-    # Construct ProductPathGroupParams dataclass (required for all workflows)
+    # Construct ProductPathGroupParams dataclass
     rncfg_path = ProductPathGroupParams.get_path_to_group_in_runconfig()
-    params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-    product_path_params = ProductPathGroupParams(
-                                qa_output_dir=params_dict['qa_output_dir']
-    )
+    try:
+        params_dict = nisarqa.get_nested_element_in_dict(
+                                user_rncfg, rncfg_path)
+    except KeyError:
+        # group not found in runconfig. Use defaults.
+        warnings.warn('`product_path_group` not found in runconfig. '
+                      'Using default output directory.')
+        product_path_params = ProductPathGroupParams()
+    else:
+        try:
+            product_path_params = ProductPathGroupParams(
+                                    qa_output_dir=params_dict['qa_output_dir'])
+        except KeyError:
+            # parameter not found in runconfig. Use defaults.
+            warnings.warn('`qa_output_dir` not found in runconfig. '
+                        'Using default output directory.')
+            product_path_params = ProductPathGroupParams()
 
     # Construct RSLCPowerImageParams dataclass
     if workflows_params.qa_reports:
         rncfg_path = RSLCPowerImageParams.get_path_to_group_in_runconfig()
-        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-        pow_img_params = RSLCPowerImageParams(**params_dict)
+        try:
+            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
+                                                                rncfg_path)
+        except KeyError:
+            pow_img_params = RSLCPowerImageParams()
+        else:
+            pow_img_params = RSLCPowerImageParams(**params_dict)
     else:
         pow_img_params = None
 
     # Construct RSLCHistogramParams dataclass
     if workflows_params.qa_reports:
         rncfg_path = RSLCHistogramParams.get_path_to_group_in_runconfig()
-        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-        histogram_params = RSLCHistogramParams(**params_dict)
+        try:
+            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
+                                                                rncfg_path)
+        except KeyError:
+            histogram_params = RSLCHistogramParams()
+        else:
+            histogram_params = RSLCHistogramParams(**params_dict)
     else:
         histogram_params = None
 
     # Construct AbsCalParams dataclass
     if workflows_params.absolute_calibration_factor:
         rncfg_path = AbsCalParams.get_path_to_group_in_runconfig()
-        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-        abscal_params = AbsCalParams(**params_dict)
+        try:
+            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
+                                                                rncfg_path)
+        except KeyError:
+            abscal_params = AbsCalParams()
+        else:
+            abscal_params = AbsCalParams(**params_dict)
     else:
         abscal_params = None
 
     # Construct NESZ dataclass
     if workflows_params.nesz:
         rncfg_path = NESZParams.get_path_to_group_in_runconfig()
-        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-        nesz_params = NESZParams(**params_dict)
+        try:
+            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
+                                                                rncfg_path)
+        except KeyError:
+            nesz_params = NESZParams()
+        else:
+            nesz_params = NESZParams(**params_dict)
     else:
         nesz_params = None
 
     # Construct PointTargetAnalyzerParams dataclass
     if workflows_params.point_target_analyzer:
         rncfg_path = PointTargetAnalyzerParams.get_path_to_group_in_runconfig()
-        params_dict = nisarqa.get_nested_element_in_dict(user_runconfig, rncfg_path)
-        pta_params = PointTargetAnalyzerParams(**params_dict)
+        try:
+            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
+                                                                rncfg_path)
+        except KeyError:
+            pta_params = PointTargetAnalyzerParams()
+        else:
+            pta_params = PointTargetAnalyzerParams(**params_dict)
     else:
         pta_params = None
 

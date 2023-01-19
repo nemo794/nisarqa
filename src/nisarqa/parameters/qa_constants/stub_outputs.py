@@ -1,10 +1,14 @@
 import os
+import warnings
 
 import nisarqa
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from PIL import Image
+from ruamel.yaml import YAML
+
+objects_to_skip = nisarqa.get_all(name=__name__)
 
 LOG_TXT = '''PLACEHOLDER FILE ONLY -- NOT ACTUAL LOG OUTPUTS
 2022-05-02 18:51:40,466, INFO, QA, misc, 100000 '/projects/QualityAssurance/verify_rslc.py':73, "N/A: Successfully parsed XML file /projects/QualityAssurance/xml/nisar_L1_RSLC.xml"
@@ -239,5 +243,152 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
             # Close the figure
             plt.close(fig)
 
-# Manually create the __all__ attribute.
-__all__ = ['output_stub_files']
+
+def get_input_file(user_rncfg, in_file_param='qa_input_file'):
+    '''Parse input file name from the given runconfig.'''
+
+    rncfg_path=('runconfig','groups','input_file_group')
+    try:
+        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
+                                                            rncfg_path)
+    except KeyError:
+        raise KeyError('`input_file_group` is a required runconfig group')
+    try:
+        input_file = params_dict[in_file_param]
+    except KeyError:
+        raise KeyError(f'`{in_file_param}` '
+                        'is a required parameter for QA')
+    
+    return input_file
+
+
+def get_output_dir(user_rncfg):
+    '''Parse output directory from the given runconfig.'''
+
+    rncfg_path=('runconfig','groups','product_path_group')
+    output_dir = './qa'
+
+    try:
+        params_dict = nisarqa.get_nested_element_in_dict(
+                                user_rncfg, rncfg_path)
+    except KeyError:
+        # group not found in runconfig. Use defaults.
+        warnings.warn('`product_path_group` not found in runconfig. '
+                      'Using default output directory.')
+    else:
+        try:
+            output_dir = params_dict['qa_output_dir']
+
+        except KeyError:
+            # parameter not found in runconfig. Use defaults.
+            warnings.warn('`qa_output_dir` not found in runconfig. '
+                        'Using default output directory.')
+
+    return output_dir
+
+
+def get_workflows(user_rncfg,
+                  rncfg_path=('runconfig','groups','qa','workflows')):
+    '''Parse workflows group from the given runconfig path.'''
+
+    validate = True
+    qa_reports = True
+    try:
+        params_dict = nisarqa.get_nested_element_in_dict(
+                                user_rncfg, rncfg_path)
+    except KeyError:
+        # group not found in runconfig. Use defaults.
+        warnings.warn('`workflows` not found in runconfig. '
+                      'Using defaults.')
+    else:
+        try:
+            validate = params_dict['validate']
+        except KeyError:
+            # parameter not found in runconfig. Use default.
+            warnings.warn('`validate` not found in runconfig. '
+                        'Using default `validate` setting.')
+        try:
+            qa_reports = params_dict['qa_reports']
+        except KeyError:
+            # parameter not found in runconfig. Use default.
+            warnings.warn('`qa_reports` not found in runconfig. '
+                        'Using default `qa_reports` setting.')
+
+    return validate, qa_reports
+
+
+def verify_gslc_gcov_stub(runconfig_file):
+    '''
+    Parse the runconfig and generate stub outputs for GSLC or GCOV products.
+    
+    GSLC and GCOV stub outputs are identical, so there is no need for a
+    parameter that specifies which product type it is.
+
+    Parameters
+    ----------
+    runconfig_file : str
+        Full filename for an existing QA runconfig file for this NISAR product
+    '''
+
+    # parse runconfig yaml
+    parser = YAML(typ='safe')
+    with open(runconfig_file, 'r') as f:
+        user_rncfg = parser.load(f)
+
+    input_file = get_input_file(user_rncfg)
+    output_dir = get_output_dir(user_rncfg)
+    validate, qa_reports = get_workflows(user_rncfg)
+
+    if qa_reports:
+        output_stub_files(output_dir, 
+                          stub_files='all',
+                          input_file=input_file)
+    elif validate:
+        output_stub_files(output_dir, 
+                          stub_files=['summary_csv','log_txt'],
+                          input_file=input_file)
+
+
+def verify_insar(runconfig_file, product):
+    '''
+    Parse the runconfig and generate stub outputs for InSAR products.
+
+    Parameters
+    ----------
+    runconfig_file : str
+        Full filename for an existing QA runconfig file for this NISAR product
+    product : str
+        InSAR product name
+        Options: 'rifg','runw','gunw','roff','goff'
+    '''
+
+    assert product in ('rifg','runw','gunw','roff','goff')
+
+    # parse runconfig yaml
+    parser = YAML(typ='safe')
+    with open(runconfig_file, 'r') as f:
+        user_rncfg = parser.load(f)
+
+    in_file_param = f'qa_{product}_input_file'
+    wkflw_path = ('runconfig','groups','qa', product,'workflows')
+
+    input_file = get_input_file(user_rncfg, in_file_param=in_file_param)
+    output_dir = get_output_dir(user_rncfg)
+
+    # add subdirectory for the insar product to store its outputs
+    output_dir = os.path.join(output_dir, product)
+
+    validate, qa_reports = get_workflows(user_rncfg,rncfg_path=wkflw_path)
+
+    if qa_reports:
+        # output stub files
+        output_stub_files(output_dir, 
+                          stub_files='all',
+                          input_file=input_file)
+    elif validate:
+        output_stub_files(output_dir, 
+                          stub_files=['summary_csv','log_txt'],
+                          input_file=input_file)
+
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

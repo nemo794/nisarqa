@@ -37,20 +37,26 @@ def verify_rslc(runconfig_file):
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
     for params_obj in fields(rslc_params):
         if params_obj.name == 'input_f':
-            grp_name = 'input_file_group'
+            grp_name = 'Input File Group'
         elif params_obj.name == 'prodpath':
-            grp_name = 'product_path_group'
+            grp_name = 'Product Path Group'
         elif params_obj.name == 'anc_files':
-            grp_name = 'dynamic_ancillary_file_group'
+            grp_name = 'Dynamic Ancillary File'
+        elif params_obj.name == 'workflows':
+            grp_name = 'Workflows'
         elif params_obj.name == 'power_img':
-            grp_name = 'power_image'
+            grp_name = 'Power Image'
+        elif params_obj.name == 'histogram':
+            grp_name = 'Histogram'
         elif params_obj.name == 'abs_cal':
-            grp_name = 'absolute_calibration_factor'
+            grp_name = 'Absolute Calibration'
+        elif params_obj.name == 'nesz':
+            grp_name = 'NESZ'
         elif params_obj.name == 'pta':
-            grp_name = 'point_target_analyzer'
+            grp_name = 'Point Target Analyzer'
         else:
             grp_name = params_obj.name
-        print(f'  Runconfig group: {grp_name}')
+        print(f'  {grp_name} Parameters:')
         po = getattr(rslc_params, params_obj.name)
         for param in fields(po):
             po2 = getattr(po, param.name)

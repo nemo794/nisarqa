@@ -1,5 +1,4 @@
 import nisarqa
-from ruamel.yaml import YAML
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -23,19 +22,8 @@ def verify_gslc(runconfig_file):
     runconfig_file : str
         Full filename for an existing QA runconfig file for this NISAR product
     '''
-    # parse runconfig yaml
-    parser = YAML(typ='safe')
-    with open(runconfig_file, 'r') as f:
-        user_runconfig = parser.load(f)
 
-    # get NISAR product input filename
-    input_file = user_runconfig['runconfig']['groups']['product_path_group']['qa_input_file']
-
-    # get NISAR product output directory
-    output_dir = user_runconfig['runconfig']['groups']['product_path_group']['qa_output_dir']
-
-    # output stub files
-    nisarqa.output_stub_files(output_dir, stub_files='all', input_file=input_file)
+    nisarqa.verify_gslc_gcov_stub(runconfig_file)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
