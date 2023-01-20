@@ -12,7 +12,7 @@ produced one at a time. For each product, the QA code can:
 
 # Minimum PreRequisites:
 ```
-Python 3.9
+Python 3.7
 argparse
 numpy
 matplotlib
