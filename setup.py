@@ -36,7 +36,7 @@ setup(
     # Gather all packages located under `src`.
     # (A package is a directory containing an __init__.py file.)
     package_dir={ '' : 'src'},
-    packages=find_packages(),
+    packages=find_packages(where='src'),
 
     test_suite = 'tests',
 
