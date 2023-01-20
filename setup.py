@@ -48,7 +48,7 @@ setup(
     data_files=[( 'product_specs',
                    glob.glob(os.path.join('src', 'parameters', 'product_specs', '*.xml' )))],
     
-    install_requires=['argparse', 
+    install_requires=['setuptools', 
                       'numpy',
                       'h5py',
                       'pytest',
