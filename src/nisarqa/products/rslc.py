@@ -58,12 +58,13 @@ def verify_rslc(runconfig_file):
             grp_name = params_obj.name
         print(f'  {grp_name} Parameters:')
         po = getattr(rslc_params, params_obj.name)
-        for param in fields(po):
-            po2 = getattr(po, param.name)
-            if isinstance(po2, bool):
-                print(f'    {param.name}: {po2}')
-            else:
-                print(f'    {param.name}: {po2.val}')
+        if po is not None:
+            for param in fields(po):
+                po2 = getattr(po, param.name)
+                if isinstance(po2, bool):
+                    print(f'    {param.name}: {po2}')
+                else:
+                    print(f'    {param.name}: {po2.val}')
 
     # Start logger
     # TODO get logger from Brian's code and implement here

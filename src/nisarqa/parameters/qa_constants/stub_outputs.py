@@ -251,13 +251,13 @@ def get_input_file(user_rncfg, in_file_param='qa_input_file'):
     try:
         params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
                                                             rncfg_path)
-    except KeyError:
-        raise KeyError('`input_file_group` is a required runconfig group')
+    except KeyError as e:
+        raise KeyError('`input_file_group` is a required runconfig group') from e
     try:
         input_file = params_dict[in_file_param]
-    except KeyError:
+    except KeyError as e:
         raise KeyError(f'`{in_file_param}` '
-                        'is a required parameter for QA')
+                        'is a required parameter for QA') from e
     
     return input_file
 

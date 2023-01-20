@@ -1822,14 +1822,14 @@ def parse_rslc_runconfig(runconfig_yaml):
     try:
         params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
                                                             rncfg_path)
-    except KeyError:
-        raise KeyError('`input_file_group` is a required runconfig group')
+    except KeyError as e:
+        raise KeyError('`input_file_group` is a required runconfig group') from e
 
     try:
         input_file_params = InputFileGroupParams(
                         qa_input_file=params_dict['qa_input_file'])
-    except KeyError:
-        raise KeyError('`qa_input_file` is a required parameter for QA')
+    except KeyError as e:
+        raise KeyError('`qa_input_file` is a required parameter for QA') from e
 
     # Construct DynamicAncillaryFileParams dataclass
     # Only two of the CalVal workflows use the dynamic_ancillary_file_group
@@ -1840,17 +1840,17 @@ def parse_rslc_runconfig(runconfig_yaml):
         try:
             params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
                                                                 rncfg_path)
-        except KeyError:
+        except KeyError as e:
             raise KeyError('`dynamic_ancillary_file_group` is a required '
                            'runconfig group to run Absolute Calibration Factor'
-                           ' or Point Target Analyzer workflows.')
+                           ' or Point Target Analyzer workflows.') from e
         try:
             dyn_anc_files = DynamicAncillaryFileParams(
                     corner_reflector_file=params_dict['corner_reflector_file'])
-        except KeyError:
+        except KeyError as e:
             raise KeyError('`corner_reflector_file` is a required runconfig '
                            'parameter for Absolute Calibration Factor '
-                           'or Point Target Analyzer workflows')
+                           'or Point Target Analyzer workflows') from e
     else:
         dyn_anc_files = None
 
