@@ -1376,7 +1376,7 @@ class NESZParams(BaseParams):
     # Auto-generated attributes
     attr2: Param = field(init=False)
 
-    def __init__(self, attr1: Optional[float] = 11.3):
+    def __init__(self, attr1: Optional[float] = 11.9):
        # For frozen dataclasses, set attributes via the superclass.
         object.__setattr__(self, 'attr1', self._attr1_2_param(attr1))
         object.__setattr__(self, 'attr2', self._attr2_2_param())
@@ -1393,7 +1393,7 @@ class NESZParams(BaseParams):
         out = Param(name='attr1',
                         val=attr1,
                         units='parsecs',
-                        short_descr='score for Kessel Run',
+                        short_descr='score for run',
                         long_descr='''
             Placeholder: Attribute 1 description for runconfig. Each new line
             of text will be a separate line in the runconfig template.
@@ -1416,7 +1416,7 @@ class NESZParams(BaseParams):
             name='attr2',
             val=val,
             units=self.attr1.units,
-            short_descr='True if it was a good run',
+            short_descr='True if run was nominal',
             long_descr='''
             Placeholder: Attribute 2 description for runconfig.
             (attr2 is not in the runconfig, but it can be nice to have the
@@ -1902,40 +1902,63 @@ def parse_rslc_runconfig(runconfig_yaml):
 
     # Construct AbsCalParams dataclass
     if workflows_params.absolute_calibration_factor:
-        rncfg_path = AbsCalParams.get_path_to_group_in_runconfig()
-        try:
-            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
-                                                                rncfg_path)
-        except KeyError:
-            abscal_params = AbsCalParams()
-        else:
-            abscal_params = AbsCalParams(**params_dict)
+        # TODO: This code is commented out for R3.2. Once CalTools and its
+        # runconfig parameters are integrated into QA SAS, then uncomment
+        # this section.
+
+        # rncfg_path = AbsCalParams.get_path_to_group_in_runconfig()
+        # try:
+        #     params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
+        #                                                         rncfg_path)
+        # except KeyError:
+        #     abscal_params = AbsCalParams()
+        # else:
+        #     abscal_params = AbsCalParams(**params_dict)
+
+        # For R3.2 only, always use the default parameters
+        abscal_params = AbsCalParams()
     else:
         abscal_params = None
 
     # Construct NESZ dataclass
     if workflows_params.nesz:
-        rncfg_path = NESZParams.get_path_to_group_in_runconfig()
-        try:
-            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
-                                                                rncfg_path)
-        except KeyError:
-            nesz_params = NESZParams()
-        else:
-            nesz_params = NESZParams(**params_dict)
+        # TODO: This code is commented out for R3.2. Once CalTools and its
+        # runconfig parameters are integrated into QA SAS, then uncomment
+        # this section.
+
+        # rncfg_path = NESZParams.get_path_to_group_in_runconfig()
+        # try:
+        #     params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
+        #                                                         rncfg_path)
+        # except KeyError:
+        #     nesz_params = NESZParams()
+        # else:
+        #     nesz_params = NESZParams(**params_dict)
+    
+        # For R3.2 only, always use the default parameters
+        nesz_params = NESZParams()
+
     else:
         nesz_params = None
 
     # Construct PointTargetAnalyzerParams dataclass
     if workflows_params.point_target_analyzer:
-        rncfg_path = PointTargetAnalyzerParams.get_path_to_group_in_runconfig()
-        try:
-            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
-                                                                rncfg_path)
-        except KeyError:
-            pta_params = PointTargetAnalyzerParams()
-        else:
-            pta_params = PointTargetAnalyzerParams(**params_dict)
+        # TODO: This code is commented out for R3.2. Once CalTools and its
+        # runconfig parameters are integrated into QA SAS, then uncomment
+        # this section.
+
+        # rncfg_path = PointTargetAnalyzerParams.get_path_to_group_in_runconfig()
+        # try:
+        #     params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
+        #                                                         rncfg_path)
+        # except KeyError:
+        #     pta_params = PointTargetAnalyzerParams()
+        # else:
+        #     pta_params = PointTargetAnalyzerParams(**params_dict)
+
+        # For R3.2 only, always use the default parameters
+        pta_params = PointTargetAnalyzerParams()
+
     else:
         pta_params = None
 
