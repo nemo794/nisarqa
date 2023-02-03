@@ -21,7 +21,7 @@ def verify_rslc(runconfig_file):
     This is the main function for running the entire QA workflow. It will
     run based on the options supplied in the input runconfig file.
     The input runconfig file must follow the standard RSLC QA runconfig
-    format. Run the command line command `nisar_qa dumpconfig rslc`
+    format. Run the command line command 'nisar_qa dumpconfig rslc'
     for an example template with default parameters (where available).
 
     Parameters
@@ -35,28 +35,23 @@ def verify_rslc(runconfig_file):
     output_dir = rslc_params.prodpath.qa_output_dir.val
 
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
+
+    rslc_params_names = {
+        'input_f': 'Input File Group',
+        'prodpath': 'Product Path Group',
+        'anc_files': 'Dynamic Ancillary File',
+        'workflows': 'Workflows',
+        'power_img': 'Power Image',
+        'histogram': 'Histogram',
+        'abs_cal': 'Absolute Calibration Factor',
+        'nesz': 'NESZ',
+        'pta': 'Point Target Analyzer'
+        }
+
     for params_obj in fields(rslc_params):
-        if params_obj.name == 'input_f':
-            grp_name = 'Input File Group'
-        elif params_obj.name == 'prodpath':
-            grp_name = 'Product Path Group'
-        elif params_obj.name == 'anc_files':
-            grp_name = 'Dynamic Ancillary File'
-        elif params_obj.name == 'workflows':
-            grp_name = 'Workflows'
-        elif params_obj.name == 'power_img':
-            grp_name = 'Power Image'
-        elif params_obj.name == 'histogram':
-            grp_name = 'Histogram'
-        elif params_obj.name == 'abs_cal':
-            grp_name = 'Absolute Calibration'
-        elif params_obj.name == 'nesz':
-            grp_name = 'NESZ'
-        elif params_obj.name == 'pta':
-            grp_name = 'Point Target Analyzer'
-        else:
-            grp_name = params_obj.name
+        grp_name = rslc_params_names[params_obj.name]
         print(f'  {grp_name} Parameters:')
+
         po = getattr(rslc_params, params_obj.name)
         if po is not None:
             for param in fields(po):
@@ -162,7 +157,7 @@ def verify_rslc(runconfig_file):
                 PdfPages(report_file) as report_pdf:
 
                 # Save product info to stats file
-                save_NISAR_freq_metadata_to_h5(stats_h5=stats_h5,
+                save_nisar_freq_metadata_to_h5(stats_h5=stats_h5,
                                                path_to_group='/QA/data',
                                                pols=pols)
 
@@ -242,28 +237,32 @@ def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5):
     '''
 
     for band in nisar_h5['/science']:
-        grp_path = os.path.join('/science', band, 'identification')
+        grp_path = f'/science/{band}/identification'
 
-        if 'identification' in stats_h5[os.path.join('/science', band)]:
+        if 'identification' in stats_h5[f'/science/{band}']:
             # If the identification group already exists, copy each
             # dataset, etc. individually
             for item in nisar_h5[grp_path]:
-                item_path = os.path.join(grp_path, item)
+                item_path = f'{grp_path}/{item}'
                 nisar_h5.copy(nisar_h5[item_path], stats_h5, item_path)
         else:
             # Copy entire identification metadata from input file to stats.h5
             nisar_h5.copy(nisar_h5[grp_path], stats_h5, grp_path)
 
 
-def save_NISAR_freq_metadata_to_h5(stats_h5,
+def save_nisar_freq_metadata_to_h5(stats_h5,
                                    path_to_group,
                                    pols):
     '''
-    Populate the `stats_h5` HDF5 file with metadata.
+    Populate the `stats_h5` HDF5 file with a list of each available
+    frequency's polarizations.
 
-    This function will populate the following fields
-    in `stats_h5`, for the available frequencies:
+    If `pols` contains values for Frequency A, then this dataset will
+    be created in `stats_h5`:
         /science/<band>/<path_to_group>/frequencyA/listOfPolarizations
+    
+    If `pols` contains values for Frequency B, then this dataset will
+    be created in `stats_h5`:
         /science/<band>/<path_to_group>/frequencyB/listOfPolarizations
 
     Parameters
@@ -288,16 +287,14 @@ def save_NISAR_freq_metadata_to_h5(stats_h5,
     # Populate data group's metadata
     for band in pols:
         for freq in pols[band]:
-            listOfPols = []
-            for pol in pols[band][freq]:
-                listOfPols.append(pol)
-            grp_path = os.path.join('/science/', band, path_to_group.lstrip('/'), 
-                                        f'frequency{freq}')
+            list_of_pols = list(pols[band][freq])
+            grp_path = \
+                f'/science/{band}/{path_to_group.lstrip("/")}/frequency{freq}'
             nisarqa.create_dataset_in_h5group(
                 h5_file=stats_h5,
                 grp_path=grp_path,
                 ds_name='listOfPolarizations',
-                ds_data=listOfPols,
+                ds_data=list_of_pols,
                 ds_description=f'Polarizations for Frequency {freq} ' \
                     'discovered in input NISAR product by QA code')
 
@@ -384,7 +381,7 @@ class RSLCRaster:
     Notes
     -----
     If data is an HDF5 dataset, suggest initializing using
-    the class method `from_h5dataset(..)`.
+    the class method from_h5dataset(..).
     '''
 
     # Raster data
@@ -453,7 +450,7 @@ class RSLCRasterQA(RSLCRaster):
     Notes
     -----
     If data is an HDF5 dataset, suggest initializing using
-    the class method `from_h5dataset(..)`.
+    the class method from_h5dataset(..).
     '''
 
     # Attributes of the input array
@@ -552,7 +549,7 @@ class RSLCRasterQA(RSLCRaster):
         h5_file : h5py.File
             File handle to a valid NISAR RSLC hdf5 file.
             Polarization images must be located in the h5 file in the path: 
-            /science/<band>/RSLC/swaths/freqency<freq>/<pol>
+            /science/<band>/RSLC/swaths/frequency<freq>/<pol>
             or they will not be found. This is the file structure
             as determined from the NISAR Product Spec.
         band : str
@@ -576,7 +573,7 @@ class RSLCRasterQA(RSLCRaster):
             # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
             # Once the test datasets have been updated to 'RSLC', then remove this
             # warning, and raise a fatal error.
-            print('WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.')
+            print('WARNING!! This product uses the deprecated "SLC" group. Update to "RSLC".')
 
             slc_type = 'SLC'
         else:
@@ -715,7 +712,7 @@ def _get_freqs(h5_file, bands):
     h5_file : h5py.File
         File handle to a valid NISAR RSLC hdf5 file.
         Frequencies must be located in the h5 file in the path: 
-        /science/<band>/RSLC/swaths/freqency<freq>
+        /science/<band>/RSLC/swaths/frequency<freq>
         or they will not be found.
     bands : list_like
         An iterable of the bands in `h5_file`.
@@ -777,7 +774,7 @@ def _get_pols(h5_file, freqs):
     h5_file : h5py.File
         File handle to a valid NISAR RSLC hdf5 file.
         frequencies must be located in the h5 file in the path: 
-        /science/<band>/RSLC/swaths/freqency<freq>/<pol>
+        /science/<band>/RSLC/swaths/frequency<freq>/<pol>
         or they will not be found.
     freqs : nested dict of h5py Groups
         Dict of the h5py Groups for each freq in `h5_file`,
@@ -862,6 +859,12 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
     '''
     # Process each image in the dataset
 
+
+    # For R3.2, only save the first available image as BROWSE.png
+    # TODO - when updating the browse image to be RGBA, 
+    # update the selection process to select images in a
+    # pre-determined order.
+    # "First-Available" is not acceptable in the long term.
     flag_save_as_browse = True
 
     for band in pols:
@@ -877,11 +880,6 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
                         report_pdf=report_pdf,
                         output_dir=output_dir)
                 
-                # Only save the first available image as BROWSE.png
-                # TODO - when updating the browse image to be RGB, 
-                # update the selection process to select images in a
-                # pre-determined order.
-                # "First-Available" is not acceptable in the long term.
                 flag_save_as_browse = False
 
 
@@ -931,7 +929,7 @@ def process_single_power_image(img,
     elif img.freq == 'B':
         nlooks = nlooks_freqb_arg
     else:
-        raise ValueError(f'freqency is {img.freq}, but only `A` or `B` '
+        raise ValueError(f'frequency is "{img.freq}", but only "A" or "B" '
                           'are valid options.')
 
     print(f'\nMultilooking Image {img.name} with shape: {img.data.shape}')
@@ -1003,7 +1001,7 @@ def process_single_power_image(img,
 
             FuncFormatter functions must take two arguments: 
             `x` for the tick value and `pos` for the tick position,
-            and must return a `str`. The `pos` argument is used
+            and must return a str. The `pos` argument is used
             internally by matplotlib.
             '''
             # Invert the power
@@ -1344,8 +1342,8 @@ def generate_histogram_single_freq(pol, band, freq,
     Generate the RSLC Power Histograms for a single frequency.
     
     The histograms' plots will be appended to the graphical
-    summary file `params.plots_pdf`, and their data will be
-    stored in the statistics .h5 file `params.stats_h5`.
+    summary file `report_pdf`, and their data will be
+    stored in the statistics .h5 file `stats_h5`.
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians, 
     configurable to be computed in degrees.

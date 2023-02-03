@@ -101,11 +101,6 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
         not approximately equal to zero.
         False for entries that have a nan or inf in either the real
         or imaginary component, or a zero in both real and imag components.
-
-    See Also
-    --------
-    numpy.isfinite : Can be used to compute `finite_entries`
-    utils.compute_non_zero_mask : Can be used to compute `non_zero`
     '''
 
     finite_mask = np.isfinite(arr)
@@ -137,7 +132,7 @@ def create_dataset_in_h5group(h5_file,
     ds_description : str
         Description of `ds_data`; will be stored in a `description`
         attribute for the new Dataset
-    ds_units : str, optional
+    ds_units : str or None, optional
         Units of `ds_data`; will be stored in a `units` attribute
         for the new Dataset.
         For NISAR datasets, use this convention:
@@ -180,7 +175,7 @@ def multi_line_string_iter(multiline_str):
         The next line in `multiline_str`, with the leading and trailing
         whitespace stripped.
     '''
-    return iter([x.strip() for x in multiline_str.splitlines()])
+    return (x.strip() for x in multiline_str.splitlines())
 
 
 def get_nested_element_in_dict(source_dict, path_to_element):

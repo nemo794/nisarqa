@@ -128,7 +128,7 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
     ----------
     output_dir : str
         Filepath for the output directory to place output stub files
-    file_type : str, List of str, optional
+    stub_files : str, List of str, optional
         Which file(s) to save into the output directory. Options:
             'browse_png'
             'browse_kml'
@@ -142,7 +142,7 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
         output. To save a subset of the available stub files, provide them
         as a list of strings.
         Ex: 'all', 'browse_png', or ['summary_csv', 'log_txt'] are valid inputs
-    input_file : str, optional
+    input_file : str or None, optional
         The input NISAR product HDF5 file. Only required/used for saving
         the stub stats_h5 file.
 
@@ -191,7 +191,7 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
             nisarqa.open_h5_file(stats_file, mode='w') as stats_h5:
 
             for band in nisarqa.BANDS:
-                grp_path = os.path.join(f'/science/{band}/identification')
+                grp_path = f'/science/{band}/identification'
 
                 if grp_path in in_file:
                     # Copy identification metadata from input file to stats.h5
@@ -200,7 +200,7 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
     # Save browse image stub file and pdf stub file
     # Create a roughly 2048x2048 pixels^2 RGB image
     # (ASF allows for in-exact dimensions, so let's test that.)
-    # (The current plan is for all NISAR products to generate RGB browse images)
+    # (Current plan is for all NISAR products to generate RGBA browse images)
     imarray = np.random.randint(low=0, high=256, 
                                 size=(1800,2000,4), dtype=np.uint8)
 
@@ -245,7 +245,21 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
 
 
 def get_input_file(user_rncfg, in_file_param='qa_input_file'):
-    '''Parse input file name from the given runconfig.'''
+    '''
+    Parse input file name from the given runconfig.
+    
+    Parameters
+    ----------
+    user_rncfg : dict
+        The user runconfig file, parsed into a Python dictionary.
+    in_file_param : str
+        The name of the runconfig parameter designating the input file.
+
+    Returns
+    -------
+    input_file : str
+        The argument value of the `in_file_param` in `user_rncfg`. 
+    '''
 
     rncfg_path=('runconfig','groups','input_file_group')
     try:
@@ -263,7 +277,19 @@ def get_input_file(user_rncfg, in_file_param='qa_input_file'):
 
 
 def get_output_dir(user_rncfg):
-    '''Parse output directory from the given runconfig.'''
+    '''Parse output directory from the given runconfig.
+
+    Parameters
+    ----------
+    user_rncfg : dict
+        The user runconfig file, parsed into a Python dictionary.
+
+    Returns
+    -------
+    output_dir : str
+        The argument value of the `product_path_group > qa_output_dir` parameter
+        in `user_rncfg`. If a value is not found, will default to './qa'
+    '''
 
     rncfg_path=('runconfig','groups','product_path_group')
     output_dir = './qa'
@@ -289,7 +315,26 @@ def get_output_dir(user_rncfg):
 
 def get_workflows(user_rncfg,
                   rncfg_path=('runconfig','groups','qa','workflows')):
-    '''Parse workflows group from the given runconfig path.'''
+    '''
+    Parse workflows group from the given runconfig path.
+
+    Parameters
+    ----------
+    user_rncfg : dict
+        The user runconfig file, parsed into a Python dictionary.
+    rncfg_path : sequence of str
+        The nested path in the runconfig to a specific `workflows` group.
+        Example for RSLC runconfig: ('runconfig','groups','qa','workflows')
+
+    Returns
+    -------
+    validate : bool
+        The argument value of the `workflows > validate` parameter
+        in `user_rncfg`.
+    qa_reports : bool
+        The argument value of the `workflows > qa_reports` parameter
+        in `user_rncfg`.
+    '''
 
     validate = False
     qa_reports = False

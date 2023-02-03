@@ -792,7 +792,7 @@ class RSLCPowerImageParams(BaseParams):
 
         for band in bands:
             # Open the group in the file, creating it if it doesn’t exist.
-            grp_path = os.path.join('/science', band, 'QA', 'processing')
+            grp_path = f'/science/{band}/QA/processing'
 
             nisarqa.create_dataset_in_h5group(
                 h5_file=h5_file,
@@ -1197,7 +1197,7 @@ class RSLCHistogramParams(BaseParams):
 
         for band in bands:
             # Open the group in the file, creating it if it doesn’t exist.
-            grp_path = os.path.join('/science', band, 'QA', 'processing')
+            grp_path = f'/science/{band}/QA/processing'
 
             nisarqa.create_dataset_in_h5group(
                 h5_file=h5_file,

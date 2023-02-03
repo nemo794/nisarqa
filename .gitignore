@@ -5,5 +5,5 @@ __pycache__
 *.txt
 *.log
 *.DS_Store
-*.vscode/
+.vscode/
 *.png

@@ -13,7 +13,7 @@ produced one at a time. For each product, the QA code can:
 # Minimum PreRequisites:
 ```
 Python 3.7
-argparse
+setuptools
 numpy
 matplotlib
 scipy
@@ -105,7 +105,7 @@ runconfig.
 
 
 ## Test RSLC Data
-Here are paths on Aurora to various test data sets.
+Here are paths on nisar-adt-dev-3 to various test data sets.
 These path will need to be copied into the `qa_input_file` parameter in
 the runconfig.
 

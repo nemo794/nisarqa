@@ -335,7 +335,7 @@ def compute_power_and_phase_histograms_by_tiling(arr,
                               col_stride=decimation_ratio[1])
 
     # Initialize accumulator arrays
-    # Use dtype pf `int` to avoid floating point errors
+    # Use dtype of int to avoid floating point errors
     # (The '- 1' is because the final entry in the *_bin_edges array
     # is the endpoint, which is not considered a bin itself.)
     pow_hist_counts = np.zeros((len(pow_bin_edges) - 1,), dtype=int)

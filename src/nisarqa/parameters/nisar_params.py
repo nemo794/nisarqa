@@ -6,6 +6,7 @@ import nisarqa
 from ruamel.yaml import CommentedMap as CM
 from ruamel.yaml import CommentedSeq as CS
 
+objects_to_skip = nisarqa.get_all(name=__name__)
 
 @dataclass
 class Param:
@@ -195,3 +196,5 @@ class BaseParams(ABC):
 
         # For readability, add a newline before the new params_cm group
         parent_cm.yaml_set_comment_before_after_key(path[-1], before='\n')
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)
