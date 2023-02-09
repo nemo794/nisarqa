@@ -52,7 +52,7 @@ def verify_rslc(runconfig_file):
 
     for params_obj in fields(rslc_params):
         grp_name = rslc_params_names[params_obj.name]
-        print(f'  {grp_name} Parameters:')
+        print(f'  {grp_name} Input Parameters:')
 
         po = getattr(rslc_params, params_obj.name)
         if po is not None:
@@ -1859,7 +1859,7 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians, 
     configurable to be computed in degrees by setting
-    `params.phs_in_radians` to False.
+    `params.phs_in_radians.val` to False.
 
     Parameters
     ----------

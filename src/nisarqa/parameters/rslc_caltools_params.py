@@ -757,9 +757,13 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
         # Validate input
         val = gamma_attr.val
 
-        if (isinstance(val, float) and val < 0.0) or (val is not None):
-            raise TypeError('`gamma_attr.val` must be a non-negative float '
-                            f'or None: {val}')
+        if isinstance(val, float):
+            if (val < 0.0):
+                raise ValueError('If `gamma_attr.val` is a float, it must be'
+                                f' non-negative: {val}')
+        elif val is not None:
+            raise TypeError('`gamma_attr.val` must be a float or None. '
+                            f'Value: {val}, Type: {type(val)}')
 
         # Set attribute
         self._gamma = gamma_attr
@@ -1123,6 +1127,12 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         if not all(isinstance(e, float) for e in val):
             raise TypeError('`pow_histogram_bin_edges_range_attr.val` must'
                             f' contain only float: {val}')
+
+        if val[0] >= val[1]:
+            raise ValueError(
+                '`pow_histogram_bin_edges_range_attr.val` has format '
+                f'[<starting value>, <endpoint>]; <starting value> '
+                f'must be less than <ending value>: {val}')
 
         # Set attributes
         self._pow_histogram_bin_edges_range = pow_histogram_bin_edges_range_attr
