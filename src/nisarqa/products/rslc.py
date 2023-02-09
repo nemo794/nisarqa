@@ -164,6 +164,7 @@ def verify_rslc(runconfig_file):
                                                pols=pols)
 
                 # Generate the RSLC Power Image
+                # Note: the `nlooks*` parameters might be updated. TODO comment better.
                 process_power_images(pols=pols,
                                      params=rslc_params.power_img,
                                      stats_h5=stats_h5,
@@ -1165,6 +1166,25 @@ def get_multilooked_power_image(img,
         raise ValueError(f'frequency is "{img.freq}", but only "A" or "B" '
                           'are valid options.')
 
+    # Save the final nlooks to the HDF5 dataset
+    grp_path = params.path_to_processing_group_in_stats_h5 % img.band
+    dataset_name = f'powerImageNlooksFreq{img.freq.upper()}'
+    if dataset_name in stats_h5[grp_path]:
+        # Sanity Check: Ensure that the nlooks values are the same
+        # for each polarization in this frequency.
+        assert(list(nlooks) == list(stats_h5[grp_path][dataset_name][...])), f'Band {img.band} Freq {img.freq} - Computed'
+    else:
+        # Create the nlooks dataset
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name=dataset_name,
+            ds_data=nlooks,
+            ds_units='unitless',
+            ds_description='Number of looks along [<azimuth>,<range>] axes of the '
+                        f'Frequency {img.freq.upper()} image arrays '
+                        'for multilooking the power image.')
+
     print(f'\nMultilooking Image {img.name} with shape: {img.data.shape}')
     print('sceneCenterAlongTrackSpacing: ', img.az_spacing)
     print('sceneCenterGroundRangeSpacing: ', img.range_spacing)
@@ -1932,8 +1952,8 @@ def generate_histogram_single_freq(pol, band, freq,
 
         # Save to stats.h5 file
         grp_path = f'/science/{band}/QA/data/frequency{freq}/{pol_name}/'
-        pow_units = params.pow_bin_edges.units
-        phs_units = params.phs_bin_edges.units
+        pow_units = params.pow_bin_edges.hdf5_attrs.units
+        phs_units = params.phs_bin_edges.hdf5_attrs.units
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,

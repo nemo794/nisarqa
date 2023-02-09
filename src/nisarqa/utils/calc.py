@@ -1,5 +1,5 @@
-import numpy as np
 import nisarqa
+import numpy as np
 
 objects_to_skip = nisarqa.get_all(__name__)
 

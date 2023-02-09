@@ -26,8 +26,8 @@ def run_abscal_tool(abscal_params, dyn_anc_params,
     # TODO: implement this CalTool workflow
 
     # Check that the *Params were properly received
-    assert isinstance(abscal_params, nisarqa.AbsCalParams)
-    assert isinstance(dyn_anc_params, nisarqa.DynamicAncillaryFileParams)
+    assert isinstance(abscal_params, nisarqa.AbsCalParamGroup)
+    assert isinstance(dyn_anc_params, nisarqa.DynamicAncillaryFileParamGroup)
 
     # Get list of bands from the input file.
     # QA must be able to handle both LSAR and SSAR.
@@ -54,7 +54,7 @@ def run_abscal_tool(abscal_params, dyn_anc_params,
                     ds_name='abscalResult',
                     ds_data=result,
                     ds_description='TODO Description for abscalResult',
-                    ds_units=abscal_params.attr1.units
+                    ds_units=abscal_params.attr1.hdf5_attrs.units
             )
 
 
@@ -126,8 +126,8 @@ def run_pta_tool(pta_params, dyn_anc_params,
     # TODO: implement this CalTool workflow
 
     # Check that the *Params were properly received
-    assert isinstance(pta_params, nisarqa.PointTargetAnalyzerParams)
-    assert isinstance(dyn_anc_params, nisarqa.DynamicAncillaryFileParams)
+    assert isinstance(pta_params, nisarqa.PointTargetAnalyzerParamGroup)
+    assert isinstance(dyn_anc_params, nisarqa.DynamicAncillaryFileParamGroup)
 
     # Get list of bands from the input file.
     # QA must be able to handle both LSAR and SSAR.
