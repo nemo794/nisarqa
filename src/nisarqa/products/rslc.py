@@ -1391,6 +1391,7 @@ def generate_histogram_single_freq(pol, band, freq,
                             arr=pol_data.data,
                             pow_bin_edges=params.pow_bin_edges.val,
                             phs_bin_edges=params.phs_bin_edges.val,
+                            phs_in_radians=params.phs_in_radians.val,
                             decimation_ratio=params.decimation_ratio.val,
                             tile_shape=params.tile_shape.val,
                             density=True)
@@ -1444,7 +1445,10 @@ def generate_histogram_single_freq(pol, band, freq,
     phs_ax.legend(loc='upper right')
     phs_ax.set_xlabel(f'RSLC Phase ({phs_units})')
     phs_ax.set_ylabel(f'Density (1/{phs_units})')
-    phs_ax.set_ylim(bottom=0.0, top=0.5)
+    if params.phs_in_radians.val:
+        phs_ax.set_ylim(bottom=0.0, top=0.5)
+    else:
+        phs_ax.set_ylim(bottom=0.0, top=0.01)
     phs_ax.grid()
 
     # Save complete plots to graphical summary pdf file

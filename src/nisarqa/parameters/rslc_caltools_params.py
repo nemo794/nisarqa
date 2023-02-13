@@ -1112,7 +1112,7 @@ class RSLCHistogramParams(BaseParams):
         '''Return `phs_bin_edges` as a Param.'''
 
         # Phase bin edges - allow for either radians or degrees
-        if self.phs_in_radians:
+        if self.phs_in_radians.val:
             phs_units = 'radians'
             start = -np.pi
             stop = np.pi
