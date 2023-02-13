@@ -301,7 +301,8 @@ class YamlParamGroup(ABC):
         pass
 
 
-    def get_default_arg_for_yaml(self, attr_name: str):
+    @classmethod
+    def get_default_arg_for_yaml(cls, attr_name: str):
         '''
         Get this class' default argument for its attribute `attr_name`
         
@@ -319,7 +320,7 @@ class YamlParamGroup(ABC):
         '''
 
         # Get the default argument for the given parameter.
-        signature = inspect.signature(self.__init__)
+        signature = inspect.signature(cls.__init__)
         default_arg = signature.parameters[attr_name].default
         
         # If there is no default value, then assign it to an instance of RequiredParamClass()
@@ -359,7 +360,7 @@ class YamlParamGroup(ABC):
         # appears as a blank in the output runconfig yaml file.
         required_params = {}
         for field in fields(cls):
-            if isinstance(default.get_default_arg_for_yaml(field.name), 
+            if isinstance(cls.get_default_arg_for_yaml(attr_name=field.name), 
                           RequiredParam):
                 required_params[field.name] = ''
 

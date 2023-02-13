@@ -83,7 +83,7 @@ def parse_cli_args():
 
 def dumpconfig(product_type):
     if product_type == 'rslc':
-        nisarqa.RSLCRootParams.dump_runconfig_template()
+        nisarqa.RSLCRootParamGroup.dump_runconfig_template()
     else:
         raise NotImplementedError(
             f'{product_type} dumpconfig code not implemented yet.')
