@@ -841,6 +841,15 @@ def _layer_selection_for_browse(pols):
     Blue: first co-pol of the list [HH, VV]
 
     For the Blue channel and dual pol, there’s a chance that we want to take the “co-pol difference”. This is still under evaluation.
+
+    Parameters
+    ----------
+    pols : nested dict of RSLCRasterQA
+        Nested dict of RSLCRasterQA objects, where each object represents
+        a polarization dataset in `h5_file`.
+        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
+                                       in a RSLCRasterQA object
     '''
     
     layers_for_browse = {}
@@ -871,9 +880,9 @@ def _layer_selection_for_browse(pols):
     if n_pols == 1:
         # single-pol
         layers_for_browse['pols_to_keep'] = available_pols[0]
-    elif len(available_pols) in (2,4):
+
+    elif n_pols in (2,4):
         # dual-pol or quad-pol
-        layers_for_browse['colors'] = 'rgba'
 
         # HH has priority over VV
         if 'HH' in available_pols and 'HV' in available_pols:
@@ -881,9 +890,11 @@ def _layer_selection_for_browse(pols):
             if n_pols == 4:
                 # quad pol
                 layers_for_browse['pols_to_keep'].append('VV')
+
         elif 'VV' in available_pols and 'VH' in available_pols:
             # If there is only 'VV', then this granule must be dual-pol
             layers_for_browse['pols_to_keep'] = ['VV', 'VH']
+
         else:
             raise ValueError('For dual-pol and quad-pol, polarizations must have'
                             f'same transmission polarization: {available_pols}')
@@ -1226,7 +1237,12 @@ def save_rslc_browse_img(pol_imgs, params, filepath):
             if len(browse_pols) == 2:  # dual-pol
                 blue = pol_imgs['HH']
             else:  # quad-pol
+                # TODO FIX ME - Provide options!!
                 blue = pol_imgs['VV']
+                # if params.pow_in_linear.val:
+                #     blue = pol_imgs['HH'] / pol_imgs['VV']
+                # else:
+                #     blue = pol_imgs['HH'] - pol_imgs['VV']
         else:
             # dual-pol only, veritical transmit
             red = pol_imgs['VV']
@@ -1272,6 +1288,10 @@ def plot_to_rgba_png(red, green, blue, alpha, params, filepath):
     img_arr[:,:,0] = red
     img_arr[:,:,1] = green
     img_arr[:,:,2] = blue
+
+    # img_arr[:,:,0] = clip_array(red, middle_percentile=params.middle_percentile.val)
+    # img_arr[:,:,1] = clip_array(green, middle_percentile=params.middle_percentile.val)
+    # img_arr[:,:,2] = clip_array(blue, middle_percentile=params.middle_percentile.val)
 
     # Apply image correction to the multilooked array
 
