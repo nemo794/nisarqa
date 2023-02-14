@@ -832,6 +832,69 @@ def _get_pols(h5_file, freqs):
     return pols
 
 
+def _layer_selection_for_browse(pols):
+    '''
+    Channel selection. If there’s only one band, the output will be black/white. Otherwise, generate an RGB color composition:
+
+    Red: first available co-pol of the list [HH, VV]
+    Green: first cross-pol of the list [HV, VH]
+    Blue: first co-pol of the list [HH, VV]
+
+    For the Blue channel and dual pol, there’s a chance that we want to take the “co-pol difference”. This is still under evaluation.
+    '''
+    
+    layers_for_browse = {}
+    # Determine which band to use. LSAR has priority over SSAR.
+    bands = list(pols)
+    if 'LSAR' in bands:
+        band = 'LSAR'
+    elif 'SSAR' in bands:
+        band = 'SSAR'
+    else:
+        raise ValueError(f'Only "LSAR" and "SSAR" bands are supported: {band}')
+    layers_for_browse['band'] = band
+
+    # Get the frequency. A has priority over B.
+    if 'A' in pols[band]:
+        freq_to_use = 'A'
+    elif 'B' in pols[band]:
+        freq_to_use = 'B'
+    else:
+        raise ValueError(f'`pols` must contain Frequency A or Frequency B: {pols}')
+    layers_for_browse['freq'] = freq_to_use
+
+    # Get the available polarizations
+    available_pols = list(pols[band][freq_to_use])
+
+    channels = {}
+    n_pols = len(available_pols)
+    if n_pols == 1:
+        # single-pol
+        layers_for_browse['pols_to_keep'] = available_pols[0]
+    elif len(available_pols) in (2,4):
+        # dual-pol or quad-pol
+        layers_for_browse['colors'] = 'rgba'
+
+        # HH has priority over VV
+        if 'HH' in available_pols and 'HV' in available_pols:
+            layers_for_browse['pols_to_keep'] = ['HH', 'HV']
+            if n_pols == 4:
+                # quad pol
+                layers_for_browse['pols_to_keep'].append('VV')
+        elif 'VV' in available_pols and 'VH' in available_pols:
+            # If there is only 'VV', then this granule must be dual-pol
+            layers_for_browse['pols_to_keep'] = ['VV', 'VH']
+        else:
+            raise ValueError('For dual-pol and quad-pol, polarizations must have'
+                            f'same transmission polarization: {available_pols}')
+
+    else:
+        raise ValueError('Only single-, dual-, and quad-pol modes supported. '
+                        f'Polarizations for Freq{freq_to_use}: {available_pols}')
+
+    return layers_for_browse
+
+
 def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
     '''
     Generate the RSLC Power Image plots for the `report_pdf` and
@@ -857,43 +920,50 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
     output_dir : str
         Filepath to the output directory to save the browse image in
     '''
+
+    # Select which layers will be needed for the browse image.
+    # Multilooking takes a long time, but each multilooked polarization image
+    # should be less than ~4 MB given the current requirements for NISAR,
+    # so it's ok to store the needed, multilooked Power Images in memory.
+    layers_for_browse = _layer_selection_for_browse(pols)
+    pol_imgs = {}
+
     # Process each image in the dataset
-
-
-    # For R3.2, only save the first available image as BROWSE.png
-    # TODO - when updating the browse image to be RGBA, 
-    # update the selection process to select images in a
-    # pre-determined order.
-    # "First-Available" is not acceptable in the long term.
-    flag_save_as_browse = True
 
     for band in pols:
         for freq in pols[band]:
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
-                process_single_power_image(
-                        img=img,
-                        params=params,
-                        flag_save_as_browse=flag_save_as_browse,
-                        stats_h5=stats_h5,
-                        report_pdf=report_pdf,
-                        output_dir=output_dir)
-                
-                flag_save_as_browse = False
+                multilooked_img = get_multilooked_power_image(
+                                            img=img,
+                                            params=params,
+                                            stats_h5=stats_h5)
+
+                save_single_power_image_to_pdf(img_arr=multilooked_img,
+                                            img=img,
+                                            params=params,
+                                            report_pdf=report_pdf)
+
+                # If this power image is needed to construct the browse image...
+                if band == layers_for_browse['band'] and \
+                    freq == layers_for_browse['freq'] and \
+                        pol in layers_for_browse['pols_to_keep']:
+                    
+                    # ...keep the multilooked image
+                    pol_imgs[pol] = multilooked_img
+
+    # Construct the browse image
+    browse_img_file = os.path.join(output_dir, 'BROWSE.png')
+    save_rslc_browse_img(pol_imgs=pol_imgs, params=params, filepath=browse_img_file)
 
 
-def process_single_power_image(img,
-                               params,
-                               stats_h5,
-                               report_pdf,
-                               output_dir='.',
-                               flag_save_as_browse=True):
+def get_multilooked_power_image(img,
+                                params,
+                                stats_h5):
     '''
-    Generate the RSLC Power Image plots for the `plots_pdf` and
-    corresponding browse image products for a single RSLC image.
-
-    The browse image will be named `BROWSE.png` and saved to `output_dir`.
+    Generate the multilooked RSLC Power Image array for a single RSLC
+    polarization image.
 
     Parameters
     ----------
@@ -904,12 +974,11 @@ def process_single_power_image(img,
         and outputting the power image(s).
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
-    report_pdf : PdfPages
-        The output pdf file to append the power image plot to
-    output_dir : str
-        Filepath to the output directory to save the browse image in
-    flag_save_as_browse : bool, optional
-        True to save this image as a png in `output_dir` as 'BROWSE.png'
+
+    Returns
+    -------
+    out_img : numpy.ndarray
+        The multilooked Power Image
     '''
 
     nlooks_freqa_arg = params.nlooks_freqa.val
@@ -945,32 +1014,46 @@ def process_single_power_image(img,
 
     print(f'Multilooking Complete. Multilooked image shape: {out_img.shape}')
 
+    return out_img
+
+
+def save_single_power_image_to_pdf(img_arr, img, params, report_pdf):
+    '''
+    Annotate and save a RSLC Power Image to `report_pdf`.
+
+    Parameters
+    ----------
+    img_arr : numpy.ndarray
+        RSLC 2D image array to be saved. This has typically been multilooked
+        to the correct size.
+    img : RSLCRasterQA
+        The RSLCRasterQA object that corresponds to `img`. The metadata
+        from this will be used for annotating the image plot.
+    params : RSLCPowerImageParams
+        A structure containing the parameters for processing
+        and outputting the power image(s).
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
+    '''
+
     # Apply image correction to the multilooked array
 
     # Step 1: Clip the image array's outliers
-    out_img = clip_array(out_img, 
-                         middle_percentile=params.middle_percentile.val)
+    img_arr = clip_array(img_arr, middle_percentile=params.middle_percentile.val)
 
     # Step 2: Convert from linear units to dB
     if not params.linear_units.val:
-        out_img = nisarqa.pow2db(out_img)
+        img_arr = nisarqa.pow2db(img_arr)
 
     # Step 3: Apply gamma correction
     if params.gamma.val is not None:
         # Get the vmin and vmax prior to applying gamma correction.
         # These will later be used for setting the colorbar's
         # tick mark values.
-        vmin = np.min(out_img)
-        vmax = np.max(out_img)
+        vmin = np.min(img_arr)
+        vmax = np.max(img_arr)
 
-        out_img = apply_gamma_correction(out_img, gamma=params.gamma.val)
-
-    # Plot and Save Power Image as Browse Image Product
-    if flag_save_as_browse:
-        browse_img_file = os.path.join(output_dir, 'BROWSE.png')
-
-        plot_to_grayscale_png(img_arr=out_img,
-                            filepath=browse_img_file)
+        img_arr = apply_gamma_correction(img_arr, gamma=params.gamma.val)
 
     # Plot and Save Power Image to graphical summary pdf
     title = f'RSLC Multilooked Power ({params.pow_units.val}%s)\n{img.name}'
@@ -1016,9 +1099,8 @@ def process_single_power_image(img,
         
     else:
         colorbar_formatter = None
-        
 
-    plot2pdf(img_arr=out_img,
+    plot2pdf(img_arr=img_arr,
              title=title,
              ylim=[img.az_start, img.az_stop],
              xlim=[rng_start_km, rng_stop_km],
@@ -1113,6 +1195,115 @@ def plot_to_grayscale_png(img_arr, filepath):
     # (Pyplot only saves png's as RGB, even if cmap=plt.cm.gray)
     im = Image.fromarray(img_arr)
     im.save(filepath)  # default = 72 dpi
+
+
+def save_rslc_browse_img(pol_imgs, params, filepath):
+    '''
+    Process and save a RSLC Power Image to a browse PNG.
+
+    Parameters
+    ----------
+    pol_imgs : dict of numpy.ndarray
+        Dictionary of identically-shaped 2D array(s) that will be mapped
+        to specific channels for the browse PNG.
+        If there are multiple image arrays, they must have identical shape.
+    params : RSLCPowerImageParams
+        A structure containing the parameters for processing
+        and outputting the power image(s).
+    filepath : str
+        Full filepath for where to save the browse image PNG.
+    '''
+
+    browse_pols = list(pol_imgs)
+
+    if len(browse_pols) == 1:
+        plot_to_grayscale_png(img_arr=pol_imgs[browse_pols[0]],
+                              filepath=filepath)
+    else:
+        if 'HH' in pol_imgs:
+            red = pol_imgs['HH']
+            green = pol_imgs['HV']
+            if len(browse_pols) == 2:  # dual-pol
+                blue = pol_imgs['HH']
+            else:  # quad-pol
+                blue = pol_imgs['VV']
+        else:
+            # dual-pol only, veritical transmit
+            red = pol_imgs['VV']
+            green = pol_imgs['VH']
+            blue = pol_imgs['VV']
+
+        # Make all pixels opaque by setting the alpha channel to 255
+        alpha = np.ones((np.shape(red)[0], np.shape(red)[1]), dtype=np.uint8) * 255
+
+        # Make nan pixels transparent by setting alpha to 0
+        alpha[~np.isfinite(red) | ~np.isfinite(green) | ~np.isfinite(blue)] = 0
+
+        plot_to_rgba_png(red=red,
+                         green=green,
+                         blue=blue,
+                         alpha=alpha,
+                         params=params,
+                         filepath=filepath)
+
+
+def plot_to_rgba_png(red, green, blue, alpha, params, filepath):
+    '''
+    Image correct and save a RSLC Power Image to a browse PNG.
+
+    Parameters
+    ----------
+    red, green, blue, alpha : numpy.ndarray
+        2D arrays that will be mapped to the red, green, blue, and alpha
+        channels (respectively) for the PNG. These four arrays must have
+        identical shape.
+    params : RSLCPowerImageParams
+        A structure containing the parameters for processing
+        and outputting the power image(s).
+    filepath : str
+        Full filepath for where to save the browse image PNG.
+    '''
+
+    # Create RGB array
+    # TODO - check handling of nan, inf, etc values??
+
+    img_arr = np.zeros((np.shape(red)[0], np.shape(red)[1], 3))
+
+    img_arr[:,:,0] = red
+    img_arr[:,:,1] = green
+    img_arr[:,:,2] = blue
+
+    # Apply image correction to the multilooked array
+
+    # Step 1: Clip the image array's outliers
+    img_arr = clip_array(img_arr, middle_percentile=params.middle_percentile.val)
+
+    # Step 2: Convert from linear units to dB
+    if not params.linear_units.val:
+        img_arr = nisarqa.pow2db(img_arr)
+
+    # Step 3: Apply gamma correction
+    if params.gamma.val is not None:
+        # Get the vmin and vmax prior to applying gamma correction.
+        # These will later be used for setting the colorbar's
+        # tick mark values.
+        vmin = np.min(img_arr)
+        vmax = np.max(img_arr)
+
+        img_arr = apply_gamma_correction(img_arr, gamma=params.gamma.val)
+
+    # Normalize array to range [0,1], then scale to 0-255 for unsigned int8
+    img_arr = nisarqa.normalize(img_arr)
+    img_arr = np.uint8(img_arr * 255)
+
+    rgba_arr = np.zeros((np.shape(img_arr)[0], np.shape(img_arr)[1],4), dtype=np.uint8)
+    rgba_arr[:,:,0:3] = img_arr
+
+    # Set the alpha channel. (This did not need to be image corrected.)
+    rgba_arr[:,:,3] = alpha.astype(np.uint8)
+
+    im = Image.fromarray(rgba_arr)
+    im.save(filepath)  # default = 72 dpi    
 
 
 def plot2pdf(img_arr,
