@@ -414,26 +414,32 @@ def verify_insar(runconfig_file, product):
     with open(runconfig_file, 'r') as f:
         user_rncfg = parser.load(f)
 
-    in_file_param = f'qa_{product}_input_file'
+    # Step 1: Get workflows flags for the requested product
     wkflw_path = ('runconfig','groups','qa', product,'workflows')
+    validate, qa_reports = get_workflows(user_rncfg,rncfg_path=wkflw_path)
 
+    # Step 2: If any workflows flags are true, run QA
+    if not (validate or qa_reports):
+        # Early exit if no workflows are requested
+        return
+
+    # Step 3: "Run QA"
+    in_file_param = f'qa_{product}_input_file'
     input_file = get_input_file(user_rncfg, in_file_param=in_file_param)
     output_dir = get_output_dir(user_rncfg)
 
     # add subdirectory for the insar product to store its outputs
     output_dir = os.path.join(output_dir, product)
 
-    validate, qa_reports = get_workflows(user_rncfg,rncfg_path=wkflw_path)
-
     if qa_reports:
         # output stub files
         output_stub_files(output_dir, 
-                          stub_files='all',
-                          input_file=input_file)
+                        stub_files='all',
+                        input_file=input_file)
     elif validate:
         output_stub_files(output_dir, 
-                          stub_files=['summary_csv','log_txt'],
-                          input_file=input_file)
+                        stub_files=['summary_csv','log_txt'],
+                        input_file=input_file)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -354,14 +354,16 @@ class YamlParamGroup(ABC):
 
         # ruamel.yaml requires an argument value to create each parameter.
         # But, the *ParamGroup dataclasses do not have default values
-        # for their required parameters. So, find these required parameters
-        # and assign an empty string to be their "default" for the sake of
-        # generating the default runconfig template file; the empty string
-        # appears as a blank in the output runconfig yaml file.
+        # for their required parameters. So, find these required parameters,
+        # and then override their property setter to skip the input
+        # verification and assign an empty string to be their default
+        # value for the sake of generating the default runconfig template
+        # file; the empty string appears as a blank in the output runconfig
+        # yaml file.
         required_params = {}
         for field in fields(cls):
-            if isinstance(cls.get_default_arg_for_yaml(attr_name=field.name), 
-                          RequiredParam):
+            def_val = cls.get_default_arg_for_yaml(attr_name=field.name)
+            if isinstance(def_val, RequiredParam):
                 required_params[field.name] = ''
 
         # Unpack any required params when creating the default class instance.
@@ -369,6 +371,52 @@ class YamlParamGroup(ABC):
         # and an instance of the class with all default values will still be
         # created.)
         default = cls(**required_params)
+
+        '''
+        if required_params:  # if `required_params` is not empty
+            # Override just the property setters in the base class;
+            # keep all other defaults, descriptions, etc.
+            def get_dict_attr(obj, attr):
+                for obj in [obj] + obj.__class__.mro():
+                    if attr in obj.__dict__:
+                        return obj.__dict__[attr]
+                raise AttributeError
+            print("LALA: ", cls)
+
+            class OverrideCls(cls):
+
+                # class property(fget=None, fset=None, fdel=None, doc=None)
+
+                def __init__(self):
+                    for param in required_params:
+                        
+                        wrapped_param = getattr(cls, f'_{param}_2_param')('')
+
+
+                        # @cls.qa_input_file.setter
+                        # def qa_input_file(self, attr):
+                        #     cls._qa_input_file = attr
+
+                    #     # object.__setattr__(cls, f'_{param}', required_params[param])
+
+                    #     x_property = get_dict_attr(self, param)
+                    #     print("x_property: ", x_property)
+                    #     # setattr(self, param, property(lambda sub_self: super(type(sub_self), sub_self).qa_input_file))
+                    #     # new_param = cls._qa_input_file_2_param('')
+                    #     # raise Exception('x_property: ', x_property)
+                    #     x_setter = getattr(x_property, 'setter')
+                    #     print("x_setter: ", x_setter)
+                    #     setattr(OverrideCls, param,
+                    #                   x_setter(lambda sub_self, val: 
+                    #                             super(type(sub_self), 
+                    #                             type(sub_self)).qa_input_file.fset(sub_self, val)))
+                    # print(required_params)
+                    super().__init__(self, **required_params)
+
+            default = OverrideCls()
+        else:
+            default = cls()
+        '''
 
         # build yaml params group
         params_cm = CM()

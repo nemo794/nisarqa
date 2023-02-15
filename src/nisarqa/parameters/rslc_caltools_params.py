@@ -222,6 +222,16 @@ class InputFileGroupParamGroup(YamlParamGroup):
     # Set attributes to Param type for correct downstream type checking
     qa_input_file: YamlParam[str]
 
+    # qa_input_file: str  # Remove all "*Param" classes.
+    # qa_input_file_yaml_attrs: ClassVar[YamlAttrs]  # keep *Attrs classes. Need
+    # qa_input_file_hdf5_attrs: ClassVar[HDF5Attrs]  # keep *Attrs classes. Need
+
+    # OR!!! is there a way to have each attribute be a "Field", where at runtime
+    # the value gets returned, but the other attributes are accessible via the
+    # "dot" methods? similar to dataclass' field.default, field.name, etc?
+    # See: Scott's pydantic implementation in pydantic.
+    # Can the existing Dataclass machinery be taken advantage of?
+
     # `qa_input_file` is required.
     def __init__(self, qa_input_file: str):
         self.qa_input_file = self._qa_input_file_2_param(qa_input_file)
