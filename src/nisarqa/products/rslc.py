@@ -61,7 +61,7 @@ def verify_rslc(runconfig_file):
                 if isinstance(po2, bool):
                     print(f'    {param.name}: {po2}')
                 else:
-                    print(f'    {param.name}: {po2.val}')
+                    print(f'    {param.name}: {po2}')
 
     # Start logger
     # TODO get logger from Brian's code and implement here

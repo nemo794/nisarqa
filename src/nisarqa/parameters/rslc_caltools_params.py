@@ -33,70 +33,88 @@ class WorkflowsParamGroup(YamlParamGroup):
         True to run the Point Target Analyzer (PTA) workflow. Default: False
     '''
 
-    validate: YamlParam[bool] = True
-    qa_reports: YamlParam[bool] = True
-    absolute_calibration_factor: YamlParam[bool] = True
-    nesz: YamlParam[bool] = True
-    point_target_analyzer: YamlParam[bool] = True
+    # default value for all workflows
+    def_val: ClassVar[bool] = False
 
-    def __init__(
-        self, 
-        validate: bool = False,
-        qa_reports: bool = False,
-        absolute_calibration_factor: bool = False,
-        nesz: bool = False,
-        point_target_analyzer: bool = False, 
-        ):
+    # Generic description for all workflows
+    descr: ClassVar[str] = f'Flag to run `%s` workflow. Default: `{def_val}`'
 
-        # validate and initialize all attributes.
-        self.validate = self._arg_2_param(attr_name='validate',
-                                          arg_val=validate)
+    # Dataclass fields
+    name = 'validate', 
+    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
+    validate: bool = field(init=False, default=def_val,
+                             metadata={'yaml_attrs': yaml_attrs})
+ 
+    name = 'qa_reports'
+    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
+    qa_reports: bool = field(init=False, default=def_val,
+                             metadata={'yaml_attrs': yaml_attrs})
 
-        self.qa_reports = self._arg_2_param(attr_name='qa_reports',
-                                            arg_val=qa_reports)
+    name = 'absolute_calibration_factor', 
+    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
+    absolute_calibration_factor: bool = field(init=False, default=def_val,
+                             metadata={'yaml_attrs': yaml_attrs})
 
-        self.absolute_calibration_factor = \
-            self._arg_2_param(attr_name='absolute_calibration_factor', 
-                              arg_val=absolute_calibration_factor)
+    name = 'nesz', 
+    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
+    nesz: bool = field(init=False, default=def_val,
+                             metadata={'yaml_attrs': yaml_attrs})
 
-        self.nesz = self._arg_2_param(attr_name='nesz', arg_val=nesz)
-        
-        self.point_target_analyzer = \
-            self._arg_2_param(attr_name='point_target_analyzer', 
-                              arg_val=point_target_analyzer)
+    name = 'point_target_analyzer', 
+    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
+    point_target_analyzer: bool = field(init=False,
+                            default=def_val,
+                            metadata={'yaml_attrs': yaml_attrs})
+
+    # def __init__(
+    #     self, 
+    #     validate: bool,
+    #     qa_reports: bool,
+    #     absolute_calibration_factor: bool,
+    #     nesz: bool,
+    #     point_target_analyzer: bool, 
+    #     ):
+
+    #     # validate and initialize all attributes.
+    #     self.validate = validate
+    #     self.qa_reports = qa_reports
+    #     self.absolute_calibration_factor = absolute_calibration_factor
+    #     self.nesz = nesz
+    #     self.point_target_analyzer = point_target_analyzer
+
 
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ['runconfig','groups','qa','workflows']
 
-    def _arg_2_param(self, attr_name, arg_val):
-        '''
-        Wrap the argument value into a YamlParam instance.
+    # def _arg_2_param(self, attr_name, arg_val):
+    #     '''
+    #     Wrap the argument value into a YamlParam instance.
 
-        The returned YamlParam instance will use pre-set information
-        as documentation for the input `arg_val`.
+    #     The returned YamlParam instance will use pre-set information
+    #     as documentation for the input `arg_val`.
 
-        Parameters
-        ----------
-        attr_name : str
-            The name of the attribute of WorkflowsParamGroup that `yaml_param`
-            will be assigned to.
-        arg_val : Any
-            Input argument value. Will be assigned to `val` attribute
-            of `yaml_param`.
+    #     Parameters
+    #     ----------
+    #     attr_name : str
+    #         The name of the attribute of WorkflowsParamGroup that `yaml_param`
+    #         will be assigned to.
+    #     arg_val : Any
+    #         Input argument value. Will be assigned to `val` attribute
+    #         of `yaml_param`.
 
-        Returns
-        -------
-        yaml_param : YamlParam
-            `arg_val` wrapped in a YamlParam.
-        '''
-        # Wrap in a Param.
-        def_val = self.get_default_arg_for_yaml(attr_name)
-        attrs = YamlAttrs(name=attr_name,
-                          descr=f'Flag to run `{attr_name}` workflow. '
-                                f'Default: `{def_val}`'
-                          )
-        return YamlParam(val=arg_val, yaml_attrs=attrs)
+    #     Returns
+    #     -------
+    #     yaml_param : YamlParam
+    #         `arg_val` wrapped in a YamlParam.
+    #     '''
+    #     # Wrap in a Param.
+    #     def_val = self.get_default_arg_for_yaml(attr_name)
+    #     attrs = YamlAttrs(name=attr_name,
+    #                       descr=f'Flag to run `{attr_name}` workflow. '
+    #                             f'Default: `{def_val}`'
+    #                       )
+    #     return YamlParam(val=arg_val, yaml_attrs=attrs)
 
 
     @staticmethod
@@ -107,22 +125,16 @@ class WorkflowsParamGroup(YamlParamGroup):
 
         Parameters
         ----------
-        attr : YamlParam
-            YamlParam instance for the input argument.
-            `attr.val` must be of type bool.
+        attr : bool
+            Argument value for `attr_name`.
         attr_name : str
             The name of the attribute of WorkflowsParamGroup for `attr`
         '''
 
-        # Validate the validate_attr
-        if not isinstance(attr, YamlParam):
-            raise TypeError(f'`{attr_name}` must be of type YamlParam. '
+        # Validate the attr.val
+        if not isinstance(attr, bool):
+            raise TypeError(f'`{attr_name}` must be of type bool. '
                             f'It is {type(attr)}')
-
-        # Validate the validate_attr.val
-        if not isinstance(attr.val, bool):
-            raise TypeError(f'`{attr_name}.val` must be of type bool. '
-                            f'It is {type(attr.val)}')
 
     # def _validate_2_param(self, validate):
     #     # Wrap in a Param.
@@ -134,51 +146,51 @@ class WorkflowsParamGroup(YamlParamGroup):
     #     return YamlParam(val=validate, yaml_attrs=attrs)
     
     @property
-    def validate(self) -> YamlParam[bool]:
+    def validate(self) -> bool:
         return self._validate
     
     @validate.setter
-    def validate(self, validate_attr: YamlParam[bool]):
+    def validate(self, val: bool):
         # Validate input
-        self._validate_arg(validate_attr, 'validate')
+        self._validate_arg(val, 'validate')
         # Set attribute
-        self._validate = validate_attr
+        self._validate = val
 
 
     @property
-    def qa_reports(self) -> YamlParam[bool]:
+    def qa_reports(self) -> bool:
         return self._qa_reports
     
     @qa_reports.setter
-    def qa_reports(self, qa_reports_attr: YamlParam[bool]):
+    def qa_reports(self, val: bool):
         # Validate input
-        self._validate_arg(qa_reports_attr, 'qa_reports')
+        self._validate_arg(val, 'qa_reports')
         # Set attribute
-        self._qa_reports = qa_reports_attr
+        self._qa_reports = val
 
 
     @property
-    def abs_cal(self) -> YamlParam[bool]:
+    def abs_cal(self) -> bool:
         return self._abs_cal
     
     @abs_cal.setter
-    def abs_cal(self, abs_cal_attr: YamlParam[bool]):
+    def abs_cal(self, val: bool):
         # Validate input
-        self._validate_arg(abs_cal_attr, 'abs_cal')
+        self._validate_arg(val, 'abs_cal')
         # Set attribute
-        self._abs_cal = abs_cal_attr
+        self._abs_cal = val
 
 
     @property
-    def nesz(self) -> YamlParam[bool]:
+    def nesz(self) -> bool:
         return self._nesz
     
     @nesz.setter
-    def nesz(self, nesz_attr: YamlParam[bool]):
+    def nesz(self, val: bool):
         # Validate input
-        self._validate_arg(nesz_attr, 'nesz')
+        self._validate_arg(val, 'nesz')
         # Set attribute
-        self._nesz = nesz_attr
+        self._nesz = val
 
 
     @property
@@ -219,59 +231,39 @@ class InputFileGroupParamGroup(YamlParamGroup):
         The input NISAR product file name (with path).
     '''
 
-    # Set attributes to Param type for correct downstream type checking
-    qa_input_file: YamlParam[str]
-
-    # qa_input_file: str  # Remove all "*Param" classes.
-    # qa_input_file_yaml_attrs: ClassVar[YamlAttrs]  # keep *Attrs classes. Need
-    # qa_input_file_hdf5_attrs: ClassVar[HDF5Attrs]  # keep *Attrs classes. Need
-
-    # OR!!! is there a way to have each attribute be a "Field", where at runtime
-    # the value gets returned, but the other attributes are accessible via the
-    # "dot" methods? similar to dataclass' field.default, field.name, etc?
-    # See: Scott's pydantic implementation in pydantic.
-    # Can the existing Dataclass machinery be taken advantage of?
+    yaml_attrs: ClassVar[YamlAttrs] = YamlAttrs(
+        name='qa_input_file',
+        descr='''
+        Filename of the input file for QA.
+        REQUIRED for QA. NOT REQUIRED if only running Product SAS.
+        If Product SAS and QA SAS are run back-to-back,
+        this field should be identical to `sas_output_file`.
+        Otherwise, this field should contain the filename of the single
+        NISAR product for QA to process.'''
+        )
 
     # `qa_input_file` is required.
+    qa_input_file: str = field(metadata={'yaml_attrs': yaml_attrs})
+
     def __init__(self, qa_input_file: str):
-        self.qa_input_file = self._qa_input_file_2_param(qa_input_file)
+        self.qa_input_file = qa_input_file
 
 
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ['runconfig','groups','input_file_group']
 
-
-    def _qa_input_file_2_param(self, qa_input_file):
-        '''Return `qa_input_file` as a Param'''
-
-        # Construct attributes for the new Param
-        attrs = YamlAttrs(
-            name='qa_input_file',
-            descr='''
-            Filename of the input file for QA.
-            REQUIRED for QA. NOT REQUIRED if only running Product SAS.
-            If Product SAS and QA SAS are run back-to-back,
-            this field should be identical to `sas_output_file`.
-            Otherwise, this field should contain the filename of the single
-            NISAR product for QA to process.'''
-            )
-
-        return YamlParam(qa_input_file, attrs)
-
-
     @property
-    def qa_input_file(self) -> YamlParam[str]:
+    def qa_input_file(self) -> str:
         return self._qa_input_file
     
     @qa_input_file.setter
-    def qa_input_file(self, qa_input_file_attr: YamlParam[str]):
+    def qa_input_file(self, qa_input_file: str):
         # Validate input
-        val = qa_input_file_attr.val
-        nisarqa.validate_is_file(val, 'qa_input_file_attr.val', '.h5')
+        nisarqa.validate_is_file(qa_input_file, 'qa_input_file', '.h5')
 
         # Set attribute
-        self._qa_input_file = qa_input_file_attr
+        self._qa_input_file = qa_input_file
 
 
 @dataclass
