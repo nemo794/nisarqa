@@ -745,7 +745,7 @@ def _get_freqs(h5_file, bands):
             # warning, and raise a fatal error.
             elif path.replace('RSLC', 'SLC') in h5_file:
                 freqs[band][freq] = h5_file[path.replace('RSLC', 'SLC')]
-                print('WARNING!! This product uses the deprecated `SLC` group. Update to `RSLC`.')
+                print('WARNING!! This product uses the deprecated "SLC" group. Update to "RSLC".')
             else:
                 # self.logger.log_message(logging_base.LogFilterInfo, '%s not present' % band)
                 pass
@@ -834,14 +834,15 @@ def _get_pols(h5_file, freqs):
 
 def _layer_selection_for_browse(pols):
     '''
-    Channel selection. If there’s only one band, the output will be black/white. Otherwise, generate an RGB color composition:
+    Assign the polarization layers in the input file to grayscale or
+    RGBA channels for the Browse Image.
 
-    Red: first available co-pol of the list [HH, VV]
-    Green: first cross-pol of the list [HV, VH]
-    Blue: first co-pol of the list [HH, VV]
+    See `Notes` for details on the possible NISAR modes and assigned channels
+    for LSAR band.
+    SSAR is currently only minimally supported, so only the first polarization
+    found should be used to create a grayscale image.
 
-    For the Blue channel and dual pol, there’s a chance that we want to take the “co-pol difference”. This is still under evaluation.
-
+    
     Parameters
     ----------
     pols : nested dict of RSLCRasterQA
@@ -850,58 +851,150 @@ def _layer_selection_for_browse(pols):
         Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
                                        in a RSLCRasterQA object
+
+    Returns
+    -------
+    layers_for_browse : dict
+        A dictionary containing the channel assignments. Its structure is:
+
+        layers_for_browse['band']  : str
+                                        Either 'LSAR' or 'SSAR'
+        layers_for_browse['A']     : list of str, optional
+                                        List of the Freq A polarizations
+                                        required to create the browse image.
+                                        A subset of ['HH','HV','VV','RH', 'LH']
+        layers_for_browse['B']     : list of str, optional
+                                        List of the Freq B polarizations
+                                        required to create the browse image.
+                                        A subset of ['HH','VV']
+
+    Notes
+    -----
+    Possible modes for L-Band, as of Feb 2023:
+        Single Pol      SP HH:      20+5, 40+5, 77
+        Single Pol      SP VV:      5, 40
+
+        Dual Pol        DP HH/HV:   77, 40+5, 20+5
+        Dual Pol        DP VV/VH:   5, 77, 20+5, 40+5
+        Quasi Quad Pol  QQ:         20+20, 20+5, 40+5, 5+5
+
+        Quad Pol        QP:         20+5, 40+5
+
+        Quasi Dual Pol  QD HH/VV:   5+5
+        Compact Pol     CP RH/RV:   20+20           # an experimental mode
+
+    Single Pol (SP) Assignment:
+        - Freq A CoPol
+        else:
+        - Freq B CoPol
+    DP and QQ Assignment:
+        - Freq A: Red=HH, Green=HV, Blue=HH
+    QP Assignment:
+        - Freq A: Red=HH, Green=HV, Blue=VV
+    QD Assignment:
+        - Freq A: Red=HH, Blue=HH
+        - Freq B: Green=VV
+    CP Assignment:
+        - Freq A: Red=RH, Blue=RH (or LH?)
+        - Freq B: Green=RV (or LV?)
     '''
-    
+
     layers_for_browse = {}
     # Determine which band to use. LSAR has priority over SSAR.
+
     bands = list(pols)
     if 'LSAR' in bands:
-        band = 'LSAR'
+        layers_for_browse['band'] = 'LSAR'
     elif 'SSAR' in bands:
-        band = 'SSAR'
+        layers_for_browse['band'] = 'SSAR'
     else:
         raise ValueError(f'Only "LSAR" and "SSAR" bands are supported: {band}')
-    layers_for_browse['band'] = band
+
+    band = bands[0]
+
+    # Check that the correct frequencies are available
+    if not set(pols[band].keys()).issubset({'A', 'B'}):
+        raise ValueError(f'`pols["{band}"]` must contain only "A" '
+                         f'and/or "B": {pols.keys()}')
+
+    # SSAR is not fully supported by QA, so just make a simple grayscale
+    if band == 'SSAR':
+        if 'A' in pols[band]:
+            freq = 'A'
+        else:
+            freq = 'B'
+
+        # Prioritize Co-Pol
+        if 'HH' in pols[band][freq]:
+            layers_for_browse[freq] = ['HH']
+        elif 'VV' in pols[band][freq]:
+            layers_for_browse[freq] = ['VV']
+        else:
+            # Take the first available Cross-Pol
+            layers_for_browse[freq] = [pols[band][freq][0]]
+
+        return layers_for_browse
+
+
+    # The input file contains LSAR data. Will need to make
+    # grayscale/RGB channel assignments
 
     # Get the frequency. A has priority over B.
     if 'A' in pols[band]:
-        freq_to_use = 'A'
-    elif 'B' in pols[band]:
-        freq_to_use = 'B'
+        freq = 'A'
     else:
-        raise ValueError(f'`pols` must contain Frequency A or Frequency B: {pols}')
-    layers_for_browse['freq'] = freq_to_use
+        freq = 'B'
 
     # Get the available polarizations
-    available_pols = list(pols[band][freq_to_use])
-
-    channels = {}
+    available_pols = list(pols[band][freq])
     n_pols = len(available_pols)
-    if n_pols == 1:
-        # single-pol
-        layers_for_browse['pols_to_keep'] = available_pols[0]
 
-    elif n_pols in (2,4):
-        # dual-pol or quad-pol
+    if freq == 'B':
+        # This means only Freq B has data; this only occurs in Single Pol case.
+        if n_pols > 1:
+            raise ValueError('When only Freq B is present, then only '
+                    f'single-pol mode supported. Freq{freq}: {available_pols}')
 
-        # HH has priority over VV
-        if 'HH' in available_pols and 'HV' in available_pols:
-            layers_for_browse['pols_to_keep'] = ['HH', 'HV']
-            if n_pols == 4:
-                # quad pol
-                layers_for_browse['pols_to_keep'].append('VV')
+        layers_for_browse['B'] = available_pols
 
-        elif 'VV' in available_pols and 'VH' in available_pols:
-            # If there is only 'VV', then this granule must be dual-pol
-            layers_for_browse['pols_to_keep'] = ['VV', 'VH']
+    else:  # freq A exists
+        if n_pols == 1:
 
-        else:
-            raise ValueError('For dual-pol and quad-pol, polarizations must have'
-                            f'same transmission polarization: {available_pols}')
+            if ('B' in pols[band]) and \
+                (available_pols == list(pols[band]['B'])):
 
-    else:
-        raise ValueError('Only single-, dual-, and quad-pol modes supported. '
-                        f'Polarizations for Freq{freq_to_use}: {available_pols}')
+                # A's polarization image is identical to B's pol image,
+                # which only occurs for Quasi Dual Pol
+                layers_for_browse['A'] = available_pols
+                layers_for_browse['B'] = available_pols
+
+            else:
+                # Single Pol
+                layers_for_browse['A'] = available_pols
+
+        elif n_pols in (2,4):
+            # dual-pol, quad-pol, or Quasi-Quad pol
+
+            # HH has priority over VV
+            if 'HH' in available_pols and 'HV' in available_pols:
+                layers_for_browse['A'] = ['HH', 'HV']
+                if n_pols == 4:
+                    # quad pol
+                    layers_for_browse['A'].append('VV')
+
+            elif 'VV' in available_pols and 'VH' in available_pols:
+                # If there is only 'VV', then this granule must be dual-pol
+                layers_for_browse['A'] = ['VV', 'VH']
+            
+            else:
+                raise ValueError('For dual-pol, quad-pol, and quasi-quad, '
+                                 'polarizations must have the same Tx '
+                                 f'polarization: {available_pols}')
+
+    # Sanity Check
+    if ('A' not in layers_for_browse) and ('B' not in layers_for_browse):
+        raise ValueError('Current Mode (configuration) of the NISAR input file'
+                         ' not supported for browse image.')
 
     return layers_for_browse
 
@@ -943,6 +1036,8 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
 
     for band in pols:
         for freq in pols[band]:
+            if freq == 'B':
+                continue
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
@@ -958,11 +1053,12 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
 
                 # If this power image is needed to construct the browse image...
                 if band == layers_for_browse['band'] and \
-                    freq == layers_for_browse['freq'] and \
-                        pol in layers_for_browse['pols_to_keep']:
+                    freq in layers_for_browse and \
+                        pol in layers_for_browse[freq]:
                     
                     # ...keep the multilooked image
                     pol_imgs[pol] = multilooked_img
+
 
     # Construct the browse image
     browse_img_file = os.path.join(output_dir, 'BROWSE.png')
@@ -1230,37 +1326,51 @@ def save_rslc_browse_img(pol_imgs, params, filepath):
     if len(browse_pols) == 1:
         plot_to_grayscale_png(img_arr=pol_imgs[browse_pols[0]],
                               filepath=filepath)
-    else:
-        if 'HH' in pol_imgs:
+        return
+
+    # Else, there are multiple polarizations, so create RGBA browse image.
+
+    if len(browse_pols) == 3:
+        # Quad Pol
+        red = pol_imgs['HH']
+        green = pol_imgs['HV']
+        blue = pol_imgs['VV']
+
+    elif len(browse_pols) == 2:
+        if 'HH' in browse_pols:
             red = pol_imgs['HH']
-            green = pol_imgs['HV']
-            if len(browse_pols) == 2:  # dual-pol
-                blue = pol_imgs['HH']
-            else:  # quad-pol
-                # TODO FIX ME - Provide options!!
-                blue = pol_imgs['VV']
-                # if params.pow_in_linear.val:
-                #     blue = pol_imgs['HH'] / pol_imgs['VV']
-                # else:
-                #     blue = pol_imgs['HH'] - pol_imgs['VV']
-        else:
-            # dual-pol only, veritical transmit
+            blue = pol_imgs['HH']
+
+            # Green is the "other" polarization from the list of 2 polarizations
+            # (This "other" will either be 'HV' or 'VV', depending on whether
+            # the input file was dual pol, quasi-quad, or quasi-dual pole mode)
+            browse_pols.remove('HH')
+            green = pol_imgs[browse_pols[0]]
+
+        elif 'VV' in browse_pols:
             red = pol_imgs['VV']
             green = pol_imgs['VH']
             blue = pol_imgs['VV']
 
-        # Make all pixels opaque by setting the alpha channel to 255
-        alpha = np.ones((np.shape(red)[0], np.shape(red)[1]), dtype=np.uint8) * 255
+    else:
+        # dual-pol only, veritical transmit
+        red = pol_imgs['VV']
+        green = pol_imgs['VH']
+        blue = pol_imgs['VV']
 
-        # Make nan pixels transparent by setting alpha to 0
-        alpha[~np.isfinite(red) | ~np.isfinite(green) | ~np.isfinite(blue)] = 0
 
-        plot_to_rgba_png(red=red,
-                         green=green,
-                         blue=blue,
-                         alpha=alpha,
-                         params=params,
-                         filepath=filepath)
+    # Make all pixels opaque by setting the alpha channel to 255
+    alpha = np.ones((np.shape(red)[0], np.shape(red)[1]), dtype=np.uint8) * 255
+
+    # Make nan pixels transparent by setting alpha to 0
+    alpha[~np.isfinite(red) | ~np.isfinite(green) | ~np.isfinite(blue)] = 0
+
+    plot_to_rgba_png(red=red,
+                        green=green,
+                        blue=blue,
+                        alpha=alpha,
+                        params=params,
+                        filepath=filepath)
 
 
 def plot_to_rgba_png(red, green, blue, alpha, params, filepath):
@@ -1283,37 +1393,53 @@ def plot_to_rgba_png(red, green, blue, alpha, params, filepath):
     # Create RGB array
     # TODO - check handling of nan, inf, etc values??
 
-    img_arr = np.zeros((np.shape(red)[0], np.shape(red)[1], 3))
+    # Step 1 - clip the input arrays individually
+    middle = True
+    if middle:  # Middle 95%
+        red = clip_array(red, middle_percentile=params.middle_percentile.val)
+        green = clip_array(green, middle_percentile=params.middle_percentile.val)
+        blue = clip_array(blue, middle_percentile=params.middle_percentile.val)
 
+    else:
+        # 0-95%
+        v_range = [0.0, 0.95]
+        vmin, vmax = np.quantile(red, v_range)
+        red = np.clip(red, a_min=vmin, a_max=vmax)
+
+        vmin, vmax = np.quantile(green, v_range)
+        green = np.clip(green, a_min=vmin, a_max=vmax)
+        
+        vmin, vmax = np.quantile(blue, v_range)
+        blue = np.clip(blue, a_min=vmin, a_max=vmax)
+
+    # Step 2: Convert from linear units to dB
+    if not params.linear_units.val:
+        red = nisarqa.pow2db(red)
+        green = nisarqa.pow2db(green)
+        blue = nisarqa.pow2db(blue)
+
+    # Step 3: Apply gamma correction
+    if params.gamma.val is not None:
+        # After apply_gamma_correction(), each array will be normalized
+        # to range [0,1]. Because of this normalization, keep each
+        # color band independent.
+        red = apply_gamma_correction(red, gamma=params.gamma.val)
+        green = apply_gamma_correction(green, gamma=params.gamma.val)
+        blue = apply_gamma_correction(blue, gamma=params.gamma.val)
+    else:
+        # Normalize array to range [0,1]
+        red = nisarqa.normalize(red)
+        green = nisarqa.normalize(green)
+        blue = nisarqa.normalize(blue)
+
+    # Concatonate
+    img_arr = np.zeros((np.shape(red)[0], np.shape(red)[1], 3))
     img_arr[:,:,0] = red
     img_arr[:,:,1] = green
     img_arr[:,:,2] = blue
 
-    # img_arr[:,:,0] = clip_array(red, middle_percentile=params.middle_percentile.val)
-    # img_arr[:,:,1] = clip_array(green, middle_percentile=params.middle_percentile.val)
-    # img_arr[:,:,2] = clip_array(blue, middle_percentile=params.middle_percentile.val)
 
-    # Apply image correction to the multilooked array
-
-    # Step 1: Clip the image array's outliers
-    img_arr = clip_array(img_arr, middle_percentile=params.middle_percentile.val)
-
-    # Step 2: Convert from linear units to dB
-    if not params.linear_units.val:
-        img_arr = nisarqa.pow2db(img_arr)
-
-    # Step 3: Apply gamma correction
-    if params.gamma.val is not None:
-        # Get the vmin and vmax prior to applying gamma correction.
-        # These will later be used for setting the colorbar's
-        # tick mark values.
-        vmin = np.min(img_arr)
-        vmax = np.max(img_arr)
-
-        img_arr = apply_gamma_correction(img_arr, gamma=params.gamma.val)
-
-    # Normalize array to range [0,1], then scale to 0-255 for unsigned int8
-    img_arr = nisarqa.normalize(img_arr)
+    # After normalization to range [0,1], scale to 0-255 for unsigned int8
     img_arr = np.uint8(img_arr * 255)
 
     rgba_arr = np.zeros((np.shape(img_arr)[0], np.shape(img_arr)[1],4), dtype=np.uint8)
