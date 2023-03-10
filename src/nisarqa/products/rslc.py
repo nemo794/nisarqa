@@ -166,7 +166,7 @@ def verify_rslc(runconfig_file):
                                      params=rslc_params.power_img,
                                      stats_h5=stats_h5,
                                      report_pdf=report_pdf,
-                                     output_dir=output_dir)
+                                     browse_filename=browse_image)
 
                 # Generate the RSLC Power and Phase Histograms
                 process_power_and_phase_histograms(pols=pols,
@@ -917,13 +917,14 @@ def _layer_selection_for_browse(pols):
         raise ValueError(f'`pols["{band}"]` must contain only "A" '
                          f'and/or "B": {pols.keys()}')
 
+    # Get the frequency. A has priority over B.
+    if 'A' in pols[band]:
+        freq = 'A'
+    else:
+        freq = 'B'
+
     # SSAR is not fully supported by QA, so just make a simple grayscale
     if band == 'SSAR':
-        if 'A' in pols[band]:
-            freq = 'A'
-        else:
-            freq = 'B'
-
         # Prioritize Co-Pol
         if 'HH' in pols[band][freq]:
             layers_for_browse[freq] = ['HH']
@@ -938,12 +939,6 @@ def _layer_selection_for_browse(pols):
 
     # The input file contains LSAR data. Will need to make
     # grayscale/RGB channel assignments
-
-    # Get the frequency. A has priority over B.
-    if 'A' in pols[band]:
-        freq = 'A'
-    else:
-        freq = 'B'
 
     # Get the available polarizations
     available_pols = list(pols[band][freq])
@@ -999,12 +994,11 @@ def _layer_selection_for_browse(pols):
     return layers_for_browse
 
 
-def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
+def process_power_images(pols, params, stats_h5, report_pdf,
+                         browse_filename='./BROWSE.png'):
     '''
     Generate the RSLC Power Image plots for the `report_pdf` and
     corresponding browse image product.
-
-    The browse image will be named `BROWSE.png` and saved to `output_dir`.
 
     Parameters
     ----------
@@ -1021,8 +1015,9 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
-    output_dir : str
-        Filepath to the output directory to save the browse image in
+    browse_filename : str, optional
+        Filename (with path) for the browse image PNG.
+        Defaults to './BROWSE.png'
     '''
 
     # Select which layers will be needed for the browse image.
@@ -1030,7 +1025,7 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
     # should be less than ~4 MB given the current requirements for NISAR,
     # so it's ok to store the needed, multilooked Power Images in memory.
     layers_for_browse = _layer_selection_for_browse(pols)
-    pol_imgs = {}
+    browse_pol_imgs = {}
 
     # Process each image in the dataset
 
@@ -1046,7 +1041,8 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
                                             params=params,
                                             stats_h5=stats_h5)
 
-                save_single_power_image_to_pdf(img_arr=multilooked_img,
+                corrected_img = save_single_power_image_to_pdf(
+                                            img_arr=multilooked_img,
                                             img=img,
                                             params=params,
                                             report_pdf=report_pdf)
@@ -1056,13 +1052,27 @@ def process_power_images(pols, params, stats_h5, report_pdf, output_dir):
                     freq in layers_for_browse and \
                         pol in layers_for_browse[freq]:
                     
-                    # ...keep the multilooked image
-                    pol_imgs[pol] = multilooked_img
+                    # ...keep the multilooked, color-corrected image
 
+                    if not params.linear_units.val:
+                        # Browse image must be linear (not dB).
+                        # Redo color correction, but without dB correction.
+                        corrected_img = clip_array(
+                                            multilooked_img,
+                                            middle_percentile= \
+                                                params.middle_percentile.val)
+                        
+                        if params.gamma.val is not None:
+                            corrected_img = apply_gamma_correction(
+                                            corrected_img,
+                                            gamma=params.gamma.val)
+
+                    browse_pol_imgs[pol] = corrected_img
 
     # Construct the browse image
-    browse_img_file = os.path.join(output_dir, 'BROWSE.png')
-    save_rslc_browse_img(pol_imgs=pol_imgs, params=params, filepath=browse_img_file)
+    _save_rslc_browse_img(pol_imgs=browse_pol_imgs, 
+                          params=params, 
+                          filepath=browse_filename)
 
 
 def get_multilooked_power_image(img,
@@ -1141,6 +1151,13 @@ def save_single_power_image_to_pdf(img_arr, img, params, report_pdf):
         and outputting the power image(s).
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
+
+    Returns
+    -------
+    out_img : numpy.ndarray
+        2D image array that was saved to the PDF. If any image correction
+        was specified via `params` and applied to `img_arr`, this returned
+        array will include that image correction.
     '''
 
     # Apply image correction to the multilooked array
@@ -1216,6 +1233,8 @@ def save_single_power_image_to_pdf(img_arr, img, params, report_pdf):
              xlabel=rng_title,
              plots_pdf=report_pdf
              )
+    
+    return img_arr
 
 
 def clip_array(arr, middle_percentile=100.0):
@@ -1277,10 +1296,15 @@ def apply_gamma_correction(img_arr, gamma):
     return out_img
 
 
-def plot_to_grayscale_png(img_arr, filepath):
+def plot_to_grayscale_png(img_arr, filepath, valid_arr=None):
     '''
-    Save the image array to a grayscale (1 channel)
-    browse image png.
+    Save the image array to a 1-channel grayscale browse image png.
+
+    Browse image pixels values will be scaled from 0-254. The pixel value
+    of 255 is reserved to denote transparent pixels.
+    If `valid_arr` is not provided or is `None`, then output png will
+    not have transparency. If `valid_arr` is provided, output png
+    will have transparency. 
 
     Parameters
     ----------
@@ -1288,168 +1312,264 @@ def plot_to_grayscale_png(img_arr, filepath):
         2D Image to plot
     filepath : str
         Full filepath the browse image product.
+    valid_arr : Boolean_like array_like, optional
+        2D array of same shape as `img_arr`.
+        Valid pixels should be denoted with a `1` or `True`, indicating that
+        these pixels will be opaque and appear in the output .png image.
+        Invalid pixels should be denoted with a `0` or `False`, indicating
+        that these pixels should appear as transparent in the output .png.
+        Defaults to `None`, meaning no transparency will be applied.
+
+    Notes
+    -----
+    This function does not add a full alpha channel to the output png.
+    It instead uses "cheap transparency" (palette-based transparency)
+    to keep file size smaller.
+    See: http://www.libpng.org/pub/png/book/chapter08.html#png.ch08.div.5.4
     '''
 
     # Only use 2D arrays
     if len(np.shape(img_arr)) != 2:
-        raise ValueError('Input array must be 2D.')
+        raise ValueError('Input image array must be 2D.')
 
-    # Normalize array to range [0,1], then scale to 0-255 for unsigned int8
-    img_arr = nisarqa.normalize(img_arr)
-    img_arr = np.uint8(img_arr * 255)
+    if valid_arr is not None:
+        if np.shape(valid_arr) != np.shape(img_arr):
+            raise ValueError('Input valid pixels array has shape'
+                             f' {np.shape(valid_arr)}, but it must'
+                             ' match the input image array shape which is'
+                             f' {np.shape(img_arr)}')
 
-    # Save as grayscale (1-channel) image using PIL.Image
+    img_arr, transparency_val = \
+        _prep_arr_for_png_with_transparency(img_arr, valid_arr)
+
+    # Save as grayscale image using PIL.Image. 'L' is grayscale mode.
     # (Pyplot only saves png's as RGB, even if cmap=plt.cm.gray)
-    im = Image.fromarray(img_arr)
-    im.save(filepath)  # default = 72 dpi
+    im = Image.fromarray(img_arr, mode='L')
+    im.save(filepath, transparency=transparency_val)  # default = 72 dpi
 
 
-def save_rslc_browse_img(pol_imgs, params, filepath):
+def _save_rslc_browse_img(pol_imgs, params, filepath):
     '''
     Process and save a RSLC Power Image to a browse PNG.
+
+    Output browse image will be keep the same pixel dimensions as the
+    input polarization image(s). Non-finite values will be made transparent.
+
+    Color Channels will be assigned as follows:
+
+        If pol_imgs.keys() contains only one image, then:
+            gray = <that image>
+        If pol_imgs.keys() is ['HH','HV','VV'], then:
+            red = 'HH'
+            green = 'HV'
+            blue = 'VV'
+        If pol_imgs.keys() is ['HH','HV'], then:
+            red = 'HH'
+            green = 'HV'
+            blue = 'HH'
+        If pol_imgs.keys() is ['HH','VV'], then:
+            red = 'HH'
+            green = 'VV'
+            blue = 'HH'
+        If pol_imgs.keys() is ['VV','VH'], then:
+            red = 'VV'
+            green = 'VH'
+            blue = 'VV'
+        Otherwise, one image in `pol_imgs` will be output as grayscale.
 
     Parameters
     ----------
     pol_imgs : dict of numpy.ndarray
-        Dictionary of identically-shaped 2D array(s) that will be mapped
-        to specific channels for the browse PNG.
+        Dictionary of 2D array(s) that will be mapped to specific color
+        channel(s) for the output browse PNG.
         If there are multiple image arrays, they must have identical shape.
+        Format of dictionary:
+            pol_imgs[<polarization>] : <2D numpy.ndarray image>, where
+                <polarization> must be a subset of: 'HH', 'HV', 'VV', 'VH'
+        Example:
+            pol_imgs['HH'] : <2D numpy.ndarray image>
+            pol_imgs['VV'] : <2D numpy.ndarray image>
     params : RSLCPowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
     filepath : str
         Full filepath for where to save the browse image PNG.
+
+    Notes
+    -----
+    If there are multiple input images, they must be thoughtfully prepared and
+    standardized to each other prior to being passed into this function. This
+    function directly combines the images into the same browse image.
+    For example, trying to combine a Freq A 20 MHz image
+    and a Freq B 5 MHz image into the same output browse image might not go
+    well, unless the image arrays were properly prepared and coordinated
+    in advance.
     '''
 
-    browse_pols = list(pol_imgs)
+    # Create the valid pixels mask. True for valid pixels. False for invalid.
+    # If a pixel is invalid in any polarization image, it should be invalid
+    # for all images. Otherwise, only e.g. one channel might have a missing
+    # pixel, which would cause the final image to have have "flecks"
+    valid_arr = np.full(np.shape(set(pol_imgs).pop()), True, dtype=bool)
+    print(valid_arr)
+    for img in pol_imgs.values():
+        valid_arr &= np.isfinite(img)
 
-    if len(browse_pols) == 1:
-        plot_to_grayscale_png(img_arr=pol_imgs[browse_pols[0]],
-                              filepath=filepath)
-        return
+    set_of_pol_imgs = set(pol_imgs)
 
-    # Else, there are multiple polarizations, so create RGBA browse image.
-
-    if len(browse_pols) == 3:
+    if set_of_pol_imgs == {'HH','HV','VV'}:
         # Quad Pol
         red = pol_imgs['HH']
         green = pol_imgs['HV']
         blue = pol_imgs['VV']
-
-    elif len(browse_pols) == 2:
-        if 'HH' in browse_pols:
-            red = pol_imgs['HH']
-            blue = pol_imgs['HH']
-
-            # Green is the "other" polarization from the list of 2 polarizations
-            # (This "other" will either be 'HV' or 'VV', depending on whether
-            # the input file was dual pol, quasi-quad, or quasi-dual pole mode)
-            browse_pols.remove('HH')
-            green = pol_imgs[browse_pols[0]]
-
-        elif 'VV' in browse_pols:
-            red = pol_imgs['VV']
-            green = pol_imgs['VH']
-            blue = pol_imgs['VV']
-
-    else:
-        # dual-pol only, veritical transmit
+    elif set_of_pol_imgs == {'HH','HV'}:
+        # dual pol horizontal transmit, or quasi-quad
+        red = pol_imgs['HH']
+        green = pol_imgs['HV']
+        blue = pol_imgs['HH']
+    elif set_of_pol_imgs == {'HH','VV'}:
+        # quasi-dual mode
+        red = pol_imgs['HH']
+        green = pol_imgs['VV']
+        blue = pol_imgs['HH']
+    elif set_of_pol_imgs == {'VV','VH'}:
+        # dual-pol only, vertical transmit
         red = pol_imgs['VV']
         green = pol_imgs['VH']
         blue = pol_imgs['VV']
+    else:
+        # If we get into this "else" statement, then
+        # either there is only one image provided (e.g. single pol),
+        # or the images provided are not one of the expected cases.
+        # Either way, WLOG plot one of the image(s) in `pol_imgs`.
+        plot_to_grayscale_png(img_arr=set(pol_imgs).pop(),
+                              filepath=filepath,
+                              transparency_arr=valid_arr)
+
+        # This `else` is a catch-all clause. Return early, so that 
+        # we do not try to plot to RGB
+        return
+
+    plot_to_rgb_png(red=red,
+                    green=green,
+                    blue=blue,
+                    filepath=filepath,
+                    valid_arr=valid_arr)
 
 
-    # Make all pixels opaque by setting the alpha channel to 255
-    alpha = np.ones((np.shape(red)[0], np.shape(red)[1]), dtype=np.uint8) * 255
-
-    # Make nan pixels transparent by setting alpha to 0
-    alpha[~np.isfinite(red) | ~np.isfinite(green) | ~np.isfinite(blue)] = 0
-
-    plot_to_rgba_png(red=red,
-                        green=green,
-                        blue=blue,
-                        alpha=alpha,
-                        params=params,
-                        filepath=filepath)
-
-
-def plot_to_rgba_png(red, green, blue, alpha, params, filepath):
+def plot_to_rgb_png(red, green, blue, filepath, valid_arr):
     '''
     Image correct and save a RSLC Power Image to a browse PNG.
 
     Parameters
     ----------
-    red, green, blue, alpha : numpy.ndarray
-        2D arrays that will be mapped to the red, green, blue, and alpha
+    red, green, blue : numpy.ndarray
+        2D arrays that will be mapped to the red, green, and blue
         channels (respectively) for the PNG. These four arrays must have
         identical shape.
-    params : RSLCPowerImageParams
-        A structure containing the parameters for processing
-        and outputting the power image(s).
     filepath : str
         Full filepath for where to save the browse image PNG.
+    valid_arr : Boolean_like array_like, optional
+        2D array of same shape as `img_arr`.
+        Valid pixels should be denoted with a `1` or `True`, indicating that
+        these pixels will be opaque and appear in the output .png image.
+        Invalid pixels should be denoted with a `0` or `False`, indicating
+        that these pixels should appear as transparent in the output .png.
+        Defaults to no transparency applied.
+
+    Notes
+    -----
+    This function does not add a full alpha channel to the output png.
+    It instead uses "cheap transparency" (palette-based transparency)
+    to keep file size smaller.
+    See: http://www.libpng.org/pub/png/book/chapter08.html#png.ch08.div.5.4
     '''
 
-    # Create RGB array
-    # TODO - check handling of nan, inf, etc values??
+    # Only use 2D arrays
+    for arr in (red, green, blue):
+        if len(np.shape(arr)) != 2:
+            raise ValueError('Input image array must be 2D.')
 
-    # Step 1 - clip the input arrays individually
-    middle = True
-    if middle:  # Middle 95%
-        red = clip_array(red, middle_percentile=params.middle_percentile.val)
-        green = clip_array(green, middle_percentile=params.middle_percentile.val)
-        blue = clip_array(blue, middle_percentile=params.middle_percentile.val)
+    if valid_arr is not None:
+        if np.shape(valid_arr) != np.shape(red):  # WLOG use red layer
+            raise ValueError('Input valid pixels array has shape'
+                             f' {np.shape(valid_arr)}, but it must'
+                             ' match the input image array shape which is'
+                             f' {np.shape(red)}')
+
+    # Concatenate into RGB array
+    rgb_arr = np.zeros((np.shape(red)[0], np.shape(red)[1], 3))
+
+    # transparency_val will be the same from all calls to this function;
+    # only need to capture it once.
+    rgb_arr[:,:,0], transparency_val = \
+                        _prep_arr_for_png_with_transparency(red, valid_arr)
+    rgb_arr[:,:,1] = _prep_arr_for_png_with_transparency(green, valid_arr)
+    rgb_arr[:,:,2] = _prep_arr_for_png_with_transparency(blue, valid_arr)
+
+    if valid_arr is not None:
+        # make a tuple with length 3, where each entry denotes the transparent
+        # value for R, G, and B channels (respectively)
+        transparency_val = ((transparency_val, ) * 3)
+
+    im = Image.fromarray(rgb_arr, mode='RGB')
+    im.save(filepath, transparency=transparency_val)  # default = 72 dpi    
+
+
+def _prep_arr_for_png_with_transparency(img_arr, valid_arr):
+    '''
+    Prepare a 2D image array for use in a uint8 PNG.
+    
+    Normalizes a scales the array values to 0-254. If `valid_arr` is provided,
+    will set each invalid pixel to 255.
+
+    Parameters
+    ----------
+    img_arr : array_like
+        2D Image to plot
+    valid_arr : Boolean_like array_like, optional
+        2D array of same shape as `img_arr`.
+        Valid pixels should be denoted with a `1` or `True`.
+        Invalid pixels should be denoted with a `0` or `False`.
+        All invalid pixels will be set to 255 in the output array.
+        Defaults to None, meaning all pixels are valid.
+    
+    Returns
+    -------
+    out : array_like
+        Copy of the input image array that has been prepared for use in
+        a PNG file.
+        Input image array values were normalized to [0,1] and then
+        scaled to [0,254]. If a `valid_arr` was provided, invalid
+        pixels are set to 255.
+    transparency_value : int or None
+        If `valid_arr` was not provided, then `None` will be returned.
+        If `valid_arr` was provided, then the number denoting invalid
+        pixels (255) will be returned.
+    '''
+
+    # Normalize to range [0,1]. If the array is already normalized,
+    # this should have no impact.
+    out = nisarqa.normalize(img_arr)
+
+    # After normalization to range [0,1], scale to 0-254 for unsigned int8
+    # The value 255 will be (possibly) later used as the transparency value.
+    out = np.uint8(out * 254)
+
+    if valid_arr is None:
+        transparency_value = None
 
     else:
-        # 0-95%
-        v_range = [0.0, 0.95]
-        vmin, vmax = np.quantile(red, v_range)
-        red = np.clip(red, a_min=vmin, a_max=vmax)
 
-        vmin, vmax = np.quantile(green, v_range)
-        green = np.clip(green, a_min=vmin, a_max=vmax)
-        
-        vmin, vmax = np.quantile(blue, v_range)
-        blue = np.clip(blue, a_min=vmin, a_max=vmax)
+        # Update transparency value so that the "alpha" is added to the image
+        transparency_value = 255
 
-    # Step 2: Convert from linear units to dB
-    if not params.linear_units.val:
-        red = nisarqa.pow2db(red)
-        green = nisarqa.pow2db(green)
-        blue = nisarqa.pow2db(blue)
+        # Denote invalid pixels with 255, so that they output as transparent
+        out = np.where(out, valid_arr.astype(bool),
+                            out, transparency_value)
+    
+    return out, transparency_value
 
-    # Step 3: Apply gamma correction
-    if params.gamma.val is not None:
-        # After apply_gamma_correction(), each array will be normalized
-        # to range [0,1]. Because of this normalization, keep each
-        # color band independent.
-        red = apply_gamma_correction(red, gamma=params.gamma.val)
-        green = apply_gamma_correction(green, gamma=params.gamma.val)
-        blue = apply_gamma_correction(blue, gamma=params.gamma.val)
-    else:
-        # Normalize array to range [0,1]
-        red = nisarqa.normalize(red)
-        green = nisarqa.normalize(green)
-        blue = nisarqa.normalize(blue)
-
-    # Concatonate
-    img_arr = np.zeros((np.shape(red)[0], np.shape(red)[1], 3))
-    img_arr[:,:,0] = red
-    img_arr[:,:,1] = green
-    img_arr[:,:,2] = blue
-
-
-    # After normalization to range [0,1], scale to 0-255 for unsigned int8
-    img_arr = np.uint8(img_arr * 255)
-
-    rgba_arr = np.zeros((np.shape(img_arr)[0], np.shape(img_arr)[1],4), dtype=np.uint8)
-    rgba_arr[:,:,0:3] = img_arr
-
-    # Set the alpha channel. (This did not need to be image corrected.)
-    rgba_arr[:,:,3] = alpha.astype(np.uint8)
-
-    im = Image.fromarray(rgba_arr)
-    im.save(filepath)  # default = 72 dpi    
 
 
 def plot2pdf(img_arr,
