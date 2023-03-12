@@ -1,7 +1,8 @@
 import warnings
 
-import nisarqa
 import numpy as np
+
+import nisarqa
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -114,12 +115,14 @@ def validate_nlooks(nlooks, arr):
             break
 
 
-def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
+def compute_square_pixel_nlooks(img_shape,
+                                sample_spacing,
+                                longest_side_max=2048):
     '''
     Computes the nlooks values required to achieve approx. square pixels
     in a multilooked image.
 
-    `nlooks` values will be rounded to the nearest odd value to maintain
+    Computed `nlooks` values will be odd values to maintain
     the same coordinate grid as the array that will be multilooked.
     Using an even-valued 'look' would cause the multilooked image's 
     coordinates to be shifted a half-pixel from the source image's coordinates.
@@ -127,8 +130,8 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
     Parameters
     ----------
     img_shape : pair of int
-        the M x N dimensions of the source array to be multilooked
-        Format: (M, N)
+        The M x N dimensions of the source array to be multilooked.
+        Format: (M, N)  <==>  (<az dim>, <range dim>)
     sample_spacing : pair of float
         The Y direction sample spacing and X direction sample spacing
         of the source array.
@@ -136,84 +139,112 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
         and X direction corresponds to range.
         Only the magnitude (absolute value) of the sample spacing is used.
         Format: (dy, dx)
-    num_mpix : scalar
-        The approx. size (in megapixels) for the final multilooked image.
-        Defaults to 4.0 MPix.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked image.
+        Defaults to 2048.
 
     Returns
     -------
     nlooks : pair of int
-        The nlooks values for Y direction and X direction.
-        Format: (ky, kx)
+        The nlooks values for azimuth and range. To 
+        Format: (ka, kr)
 
     Notes
     -----
+    The function assumes that the source image for `img_shape` will
+    be truncated for multilooking so that its dimensions are integer
+    multiples of `nlooks`. If instead the user intends to pad the source
+    image array with zeros prior to multilooking, then the user should
+    update `img_shape` so that the longer dimension (in ground distance)
+    is increased to be an integer multiple of `longest_side_max`, with the
+    shorter dimension increased proportionally.
+
     Derivation for the formulas:
 
     Assumptions and Variable Definitions:
     Source Image has:
-        - dimensions M x N
-            - M : (int) # Y rows
-            - N : (int) # X columns
-        - sample spacing dX and dY
-            - dY : (float) distance between samples in Y direction
-            - dX : (float) distance between samples in X direction
+        - dimensions M X N
+            - M : (int) # azimuth lines
+            - N : (int) # range lines
+        - sample spacing da and dr
+            - da : (int) distance between samples in azimuth direction
+            - dr : (int) distance between samples in range direction
     Output Multilooked Image has:
         - Same units as Source Image (e.g. sample spacing is in meters for both)
-        - dimensions M_1 x N_1
-            - M_1 : (int) # Y rows
-            - N_1 : (int) # X columns
-        - sample spacing dX_1 and dY_1
-            - dy_1 : (float) distance between samples in Y direction
-            - dx_1 : (float) distance between samples in X direction
+        - dimensions M_1 X N_1
+            - M_1 : (int) # azimuth lines
+            - N_1 : (int) # range lines
+        - sample spacing da_1 and dr_1
+            - da_1 : (int) distance between samples in azimuth direction
+            - dr_1 : (int) distance between samples in range direction
     Number of Looks:
-        - These will be Real numbers during the computation, but then
-          rounded to the nearest odd integer for final output.
-        - ky : number of looks in the Y direction
-        - kx : number of looks in the X direction
-
+        - ka : number of looks in the azimuth direction for multilooking
+        - kr : number of looks in the range direction for multilooking
+           
     Problem Setup:
-    (1) dy * ky = dy_1                # Y sample spacing is scaled by nlooks
-    (2) dx * kx = dx_1                # X sample spacing is scaled by nlooks
-    (3) M / ky = M_1                  # num Y rows is scaled by nlooks
-    (4) N / kx = N_1                  # num X columns is scaled by nlooks
-    (5) num_Pix = `num_mpix` * 1e6    # convert Megapixels to pixels
-    (6) M_1 * N_1 = num_Pix           # output Multilooked image is `num_mpix` MPix
-    (7) dx_1 = dy_1                   # output Multilooked image should have square pixels
-
+    (1) da * ka = da_1                # az sample spacing is scaled by nlooks
+    (2) dr * kr = dr_1                # range sample spacing is scaled by nlooks
+    (3) M / kr = M_1                  # num az lines is scaled by nlooks
+    (4) N / ka = N_1                  # num range lines is scaled by nlooks
+    (5) dr_1 = da_1                   # output Multilooked image should have square pixels
+    (6) grd_rng_dist = M * dr         # ground range distance in e.g. meters
+    (7) grd_az_dist = N * da          # ground azimuth distance in e.g. meters
+    
     Derivation:
-    (8) kx * dx = ky * dy                       # from (7), (1), (2)
-    (9) kx = (ky * dy) / dx                     # rearrange (8)
-    (10) (M / ky) * (N / kx) = num_Pix          # from (6), (3), (4)
-    (11) (M / ky) * ((N * dx) / (ky * dy)) =    # from (10), (9) -- substitute kX
-                            num_Pix
-    (12) ky**2 = (M * N * dx) / (dy * num_Pix)  # rearrange (11)
+    (8) WLOG, let grd_az_dist > grd_rng_dist    # Determine via a conditional
+    (9) ka = N // longest_side_max              # By definitions
+    (10) kr * dr = ka * da                      # from (5), (1), (2)
+    (11) kr = (ka * da) / dr                    # from (10), (9)
 
-    Formula (12) can give the Real-valued ky. This can be used with (8)
-    to compute kx.
-
-    Because it is convenient for nlooks to be odd integer values,
-    by computing ky and kx as Real values instead of integer values,
-    rounding to the nearest odd-valued integers is easily computed.
+    `longest_side_max` provides an upper limit on the length of the
+    longest side of the final multilooked image. So, during 
+    computation of ka and kr, they will be rounded to the nearest
+    odd integer greater than the exact Real solution for ka and kr.
+    Rounding up will ensure that we do not exceed `longest_side_max`.
+    Rounding to odd values will maintain the same coordinate grid
+    as the source image array during multilooking.
     '''
 
+    for input in (img_shape[0], img_shape[1], longest_side_max):
+        if (not isinstance(input, int)) or (input < 1):
+            raise TypeError(f'`Input is type {type(input)} '
+                            f'but must be a positive int: {input}')
+
     # Variables
-    M = img_shape[0]
-    N = img_shape[1]
+    M = img_shape[0]  # azimuth dimension
+    N = img_shape[1]  # range dimension
+    da = np.abs(sample_spacing[0])  # azimuth
+    dr = np.abs(sample_spacing[1])  # range
 
-    dy = np.abs(sample_spacing[0])
-    dx = np.abs(sample_spacing[1])
-    num_Pix = num_mpix * 1e6
+    if M * dr >= N * da:
+        # Range ground distance is longer
+        kr = M / longest_side_max
 
-    # Formula (12) -- see docstring
-    ky_sqrd = (M * N * dx) / (dy * num_Pix)
+        # Adjust kr to be an odd integer before computing ka. This will
+        # keep the final multilooked pixels closer to being square pixels
+        # in ground-distance measurements.
+        kr = nisarqa.next_greater_odd_int(kr)
 
-    # Get Real-Valued ky and kx
-    ky = np.sqrt(ky_sqrd)
-    kx = (ky * dy) / dx  # Formula (9)
+        ka = (kr * dr) / da  # Formula (8)
+        ka = nisarqa.next_greater_odd_int(ka)
 
-    kx = nisarqa.nearest_odd_int(kx)
-    ky = nisarqa.nearest_odd_int(ky)
+        # TODO - Geoff - for computing kr based on ka, does this (above) order of
+        # computing and coverting kr and ka to next_greater_odd_int make sense?
+        # Or should we first stay in Real numbers to compute both, and then
+        # afterwards convert both to next_greater_odd_int?
+
+    else:
+        # Azimuth ground distance is longer
+        ka = N / longest_side_max
+        ka = nisarqa.next_greater_odd_int(ka)
+
+        kr = (ka * da) / dr  # Formula (8)
+        kr = nisarqa.next_greater_odd_int(kr)
+
+    # Sanity Check
+    assert N // ka <= longest_side_max
+    assert M // kr <= longest_side_max
 
     return (ky, kx)
 

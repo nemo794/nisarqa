@@ -197,10 +197,11 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     nlooks_freqa, nlooks_freqb : iterable of int, None, optional
         Number of looks along each axis of the input array 
         for the specified frequency. If None, then nlooks will be computed
-        on-the-fly based on `num_mpix`.
-    num_mpix : float, optional
-        The approx. size (in megapixels) for the final multilooked image.
-        Superseded by nlooks_freq* parameters. Defaults to 4.0 MPix.
+        on-the-fly based on `longest_side_max`.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image.
+        Superseded by nlooks_freq* parameters. Defaults to 2048 pixels.
     middle_percentile : float, optional
         Defines the middle percentile range of the image array
         that the colormap covers. Must be in the range [0.0, 100.0].
@@ -266,16 +267,17 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             descr=_nlooks_descr_template % 'B'
         )})
 
-    num_mpix: int = field(
-        default=4.0,
+    longest_side_max: int = field(
+        default=2048,
         metadata={
         'yaml_attrs' : YamlAttrs(
-            name='num_mpix',
-            descr='''Approx. size (in megapixels) for the final
-                multilooked browse image(s). When `nlooks_freq*` parameter(s)
-                is not None, those nlooks values will take precedence.'''
+            name='longest_side_max',
+            descr='''The maximum number of pixels allowed for the longest side
+                of the final 2D multilooked browse image. Defaults to 2048.
+                If `nlooks_freq*` parameter(s) is not None, nlooks
+                values will take precedence.'''
         )})
-
+    
     middle_percentile: float = field(
         default=90.0,
         metadata={
@@ -358,11 +360,13 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         self._validate_nlooks(self.nlooks_freqa, 'A')
         self._validate_nlooks(self.nlooks_freqa, 'B')
 
-        # validate num_mpix
-        if not isinstance(self.num_mpix, float):
-            raise TypeError(f'`num_mpix` must be a float: {self.num_mpix}')
-        if self.num_mpix <= 0.0:
-            raise ValueError(f'`num_mpix` must be > 0.0: {self.num_mpix}')
+        # validate longest_side_max
+        if not isinstance(self.longest_side_max, int):
+            raise TypeError(
+                f'longest_side_max must be a int: {self.longest_side_max}')
+        if self.longest_side_max <= 0:
+            raise TypeError(
+                f'`longest_side_max` must be positive: {self.longest_side_max}')
         
         # validate middle_percentile
         if not isinstance(self.middle_percentile, float):
