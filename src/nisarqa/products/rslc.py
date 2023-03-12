@@ -1038,8 +1038,6 @@ def process_power_images(pols, params, stats_h5, report_pdf,
 
     for band in pols:
         for freq in pols[band]:
-            if freq == 'B':
-                continue
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
@@ -1473,7 +1471,7 @@ def _save_slc_browse_img(pol_imgs, filepath):
         # Either way, WLOG plot one of the image(s) in `pol_imgs`.
         plot_to_grayscale_png(img_arr=pol_imgs.popitem()[1],
                               filepath=filepath,
-                              transparency_arr=valid_pixels)
+                              valid_pixels=valid_pixels)
 
         # This `else` is a catch-all clause. Return early, so that 
         # we do not try to plot to RGB
