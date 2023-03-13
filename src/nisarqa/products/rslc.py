@@ -1058,9 +1058,8 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                         pol in layers_for_browse[freq]:
                     
                     # ...keep the multilooked, color-corrected image
-
+                    # Note: Browse image must be linear (not dB).
                     if not params.linear_units.val:
-                        # Browse image must be linear (not dB).
                         # Redo color correction, but without dB correction.
                         corrected_img = clip_array(
                                             multilooked_img,
@@ -1071,11 +1070,6 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                             corrected_img = apply_gamma_correction(
                                             corrected_img,
                                             gamma=params.gamma.val)
-
-                    # TODO - delete this. for testing only.
-                    if pol == 'HH':
-                        corrected_img[100:300,200:300] = np.nan
-                    corrected_img = corrected_img[:600,:600] # subset for testing
 
                     pol_imgs_for_browse[pol] = corrected_img
 
@@ -1304,58 +1298,6 @@ def apply_gamma_correction(img_arr, gamma):
     return out_img
 
 
-def plot_to_grayscale_png(img_arr, filepath, valid_pixels=None):
-    '''
-    Save the image array to a 1-channel grayscale browse image png.
-
-    Browse image pixels values will be scaled from 0-254. The pixel value
-    of 255 is reserved to denote transparent pixels.
-    If `valid_pixels` is not provided or is `None`, then output png will
-    not have transparency. If `valid_pixels` is provided, output png
-    will have transparency. 
-
-    Parameters
-    ----------
-    img_arr : array_like
-        2D Image to plot
-    filepath : str
-        Full filepath the browse image product.
-    valid_pixels : Boolean_like array_like, optional
-        2D array of same shape as `img_arr`.
-        Valid pixels should be denoted with a `1` or `True`, indicating that
-        these pixels will be opaque and appear in the output .png image.
-        Invalid pixels should be denoted with a `0` or `False`, indicating
-        that these pixels should appear as transparent in the output .png.
-        Defaults to `None`, meaning no transparency will be applied.
-
-    Notes
-    -----
-    This function does not add a full alpha channel to the output png.
-    It instead uses "cheap transparency" (palette-based transparency)
-    to keep file size smaller.
-    See: http://www.libpng.org/pub/png/book/chapter08.html#png.ch08.div.5.4
-    '''
-
-    # Only use 2D arrays
-    if len(np.shape(img_arr)) != 2:
-        raise ValueError('Input image array must be 2D.')
-
-    if valid_pixels is not None:
-        if np.shape(valid_pixels) != np.shape(img_arr):
-            raise ValueError('Input valid pixels array has shape'
-                             f' {np.shape(valid_pixels)}, but it must'
-                             ' match the input image array shape which is'
-                             f' {np.shape(img_arr)}')
-
-    img_arr, transparency_val = \
-        prep_arr_for_png_with_transparency(img_arr, valid_pixels)
-
-    # Save as grayscale image using PIL.Image. 'L' is grayscale mode.
-    # (Pyplot only saves png's as RGB, even if cmap=plt.cm.gray)
-    im = Image.fromarray(img_arr, mode='L')
-    im.save(filepath, transparency=transparency_val)  # default = 72 dpi
-
-
 def _save_slc_browse_img(pol_imgs, filepath):
     '''
     Save the given polarization images to a RGB or Grayscale PNG with
@@ -1419,28 +1361,12 @@ def _save_slc_browse_img(pol_imgs, filepath):
     # WLOG, get the shape of the image arrays
     # They should all be the same shape; the check for this is below.
     img_2D_shape = np.shape(pol_imgs.copy().popitem()[1])
-
-    # Create the valid pixels mask. True for valid pixels. False for invalid.
-    # If a pixel is invalid in any polarization image, it should be invalid
-    # for all images. Otherwise, only e.g. one channel might have a missing
-    # pixel, which would cause the final image to have have "flecks"
-    # TODO Geoff -- Is the (above) actually the correct thinking? Or should
-    # each layer retain its own, independent valid_pixels array so that we
-    # could actually maybe see those "flecks"?
-
-    valid_pixels = np.full(img_2D_shape, True, dtype=bool)
     for img in pol_imgs.values():
         # Input validation check
         if np.shape(img) != img_2D_shape:
             raise ValueError(
                 'All image arrays in `pol_imgs` must have the same shape.')
-        
-        # Build the valid pixels array
-        valid_pixels &= np.isfinite(img)
 
-    # TODO for testing - delete!!
-    valid_pixels = None
-    
     # Assign color channels
     set_of_pol_imgs = set(pol_imgs)
 
@@ -1469,9 +1395,8 @@ def _save_slc_browse_img(pol_imgs, filepath):
         # either there is only one image provided (e.g. single pol),
         # or the images provided are not one of the expected cases.
         # Either way, WLOG plot one of the image(s) in `pol_imgs`.
-        plot_to_grayscale_png(img_arr=pol_imgs.popitem()[1],
-                              filepath=filepath,
-                              valid_pixels=valid_pixels)
+        gray_img = pol_imgs.popitem()[1]
+        plot_to_grayscale_png(img_arr=gray_img, filepath=filepath)
 
         # This `else` is a catch-all clause. Return early, so that 
         # we do not try to plot to RGB
@@ -1480,29 +1405,60 @@ def _save_slc_browse_img(pol_imgs, filepath):
     plot_to_rgb_png(red=red,
                     green=green,
                     blue=blue,
-                    filepath=filepath,
-                    valid_pixels=valid_pixels)
+                    filepath=filepath)
 
 
-def plot_to_rgb_png(red, green, blue, filepath, valid_pixels=None):
+def plot_to_grayscale_png(img_arr, filepath):
     '''
-    Image correct and save a RSLC Power Image to a browse PNG.
+    Save the image array to a 1-channel grayscale PNG with transparency.
+
+    Finite pixels will have their values scaled to 1-255. Non-finite pixels
+    will be set to 0 and made to appear transparent in the PNG.
+    The pixel value of 0 is reserved for the transparent pixels.
+
+    Parameters
+    ----------
+    img_arr : array_like
+        2D Image to plot
+    filepath : str
+        Full filepath the browse image product.
+
+    Notes
+    -----
+    This function does not add a full alpha channel to the output png.
+    It instead uses "cheap transparency" (palette-based transparency)
+    to keep file size smaller.
+    See: http://www.libpng.org/pub/png/book/chapter08.html#png.ch08.div.5.4
+    '''
+
+    # Only use 2D arrays
+    if len(np.shape(img_arr)) != 2:
+        raise ValueError('Input image array must be 2D.')
+
+    img_arr, transparency_val = prep_arr_for_png_with_transparency(img_arr)
+
+    # Save as grayscale image using PIL.Image. 'L' is grayscale mode.
+    # (Pyplot only saves png's as RGB, even if cmap=plt.cm.gray)
+    im = Image.fromarray(img_arr, mode='L')
+    im.save(filepath, transparency=transparency_val)  # default = 72 dpi
+
+
+def plot_to_rgb_png(red, green, blue, filepath):
+    '''
+    Combine and save RGB channel arrays to a browse PNG with transparency.
+
+    Finite pixels will have their values scaled to 1-255. Non-finite pixels
+    will be set to 0 and made to appear transparent in the PNG.
+    The pixel value of 0 is reserved for the transparent pixels.
 
     Parameters
     ----------
     red, green, blue : numpy.ndarray
         2D arrays that will be mapped to the red, green, and blue
-        channels (respectively) for the PNG. These four arrays must have
+        channels (respectively) for the PNG. These three arrays must have
         identical shape.
     filepath : str
         Full filepath for where to save the browse image PNG.
-    valid_pixels : Boolean_like array_like, optional
-        2D array of same shape as `img_arr`.
-        Valid pixels should be denoted with a `1` or `True`, indicating that
-        these pixels will be opaque and appear in the output .png image.
-        Invalid pixels should be denoted with a `0` or `False`, indicating
-        that these pixels should appear as transparent in the output .png.
-        Defaults to None (no transparency).
 
     Notes
     -----
@@ -1517,51 +1473,36 @@ def plot_to_rgb_png(red, green, blue, filepath, valid_pixels=None):
         if len(np.shape(arr)) != 2:
             raise ValueError('Input image array must be 2D.')
 
-    img_shape = np.shape(red)  # WLOG use red layer
-    if valid_pixels is not None:
-        if np.shape(valid_pixels) != img_shape:
-            raise ValueError('Input valid pixels array has shape'
-                             f' {np.shape(valid_pixels)}, but it must'
-                             ' match the input image array shape which is'
-                             f' {img_shape}')
-
     # Concatenate into uint8 RGB array.
-    rgb_arr = np.zeros((img_shape[0], img_shape[1], 3), dtype=np.uint8)
+    rgb_arr = np.zeros((np.shape(red)[0], np.shape(red)[1], 3), dtype=np.uint8)
 
     # transparency_val will be the same from all calls to this function;
     # only need to capture it once.
     rgb_arr[:,:,0], transparency_val = \
-                        prep_arr_for_png_with_transparency(red, valid_pixels)
-    rgb_arr[:,:,1] = prep_arr_for_png_with_transparency(green, valid_pixels)[0]
-    rgb_arr[:,:,2] = prep_arr_for_png_with_transparency(blue, valid_pixels)[0]
+                        prep_arr_for_png_with_transparency(red)
+    rgb_arr[:,:,1] = prep_arr_for_png_with_transparency(green)[0]
+    rgb_arr[:,:,2] = prep_arr_for_png_with_transparency(blue)[0]
 
-    if valid_pixels is not None:
-        # make a tuple with length 3, where each entry denotes the transparent
-        # value for R, G, and B channels (respectively)
-        transparency_val = ((transparency_val, ) * 3)
-
+    # make a tuple with length 3, where each entry denotes the transparent
+    # value for R, G, and B channels (respectively)
+    transparency_val = ((transparency_val, ) * 3)
+    
     im = Image.fromarray(rgb_arr, mode='RGB')
     im.save(filepath, transparency=transparency_val)  # default = 72 dpi    
 
 
-def prep_arr_for_png_with_transparency(img_arr, valid_pixels=None):
+def prep_arr_for_png_with_transparency(img_arr):
     '''
     Prepare a 2D image array for use in a uint8 PNG with palette-based
     transparency.
     
-    Normalizes and then scales the array values to 0-254. If `valid_pixels` is
-    provided, will set each invalid pixel to 255.
+    Normalizes and then scales the array values to 1-255. Non-finite pixels
+    (aka invalid pixels) are set to 0.
 
     Parameters
     ----------
     img_arr : array_like
         2D Image to plot
-    valid_pixels : Boolean_like array_like, optional
-        2D array of same shape as `img_arr`.
-        Valid pixels should be denoted with a `1` or `True`.
-        Invalid pixels should be denoted with a `0` or `False`.
-        All invalid pixels will be set to 255 in the output array.
-        Defaults to None, meaning all pixels are valid.
     
     Returns
     -------
@@ -1569,13 +1510,10 @@ def prep_arr_for_png_with_transparency(img_arr, valid_pixels=None):
         Copy of the input image array that has been prepared for use in
         a PNG file.
         Input image array values were normalized to [0,1] and then
-        scaled to [0,254]. If a `valid_arr` was provided, invalid
-        pixels are set to 255.
-    transparency_value : int or None
-        If `valid_pixels` was not provided, then `None` will be returned.
-        If `valid_pixels` was provided, then the number denoting invalid
-        pixels (255) will be returned.
-    
+        scaled to [1,255]. Non-finite pixels are set to 0.
+    transparency_value : int
+        The number denoting non-finite (invalid) pixels. This is `0`.
+
     Notes
     -----
     For PNGs with palette-based transparency, one value in 0-255 will need
@@ -1583,26 +1521,33 @@ def prep_arr_for_png_with_transparency(img_arr, valid_pixels=None):
     as transparent). For unsigned integer data, it's conventional to use 
     the largest representable value. (For signed integer data you usually
     want the most negative value.)
-    Reference: https://borretti.me/article/signed-integers-asymmetrical
+    However, when using RGB mode + palette-based transparency in Python's
+    PIL library, if a pixel in only e.g. one color channel is invalid,
+    but the corresponding pixel in other channels is valid, then the 
+    resulting PNG image will make the color for the first channel appear
+    dominant. For example, for a given pixel in an RGB image. If a red 
+    channel's value for that pixel is 255 (invalid), while the green and
+    blue channels' values are 123 and 67 (valid), then in the output RGB
+    that pixel will appear bright red -- even if the `transparency` parameter
+    is assigned correctly. So, instead we'll use 0 to represent invalid
+    pixels, so that the resulting PNG "looks" more representative of the
+    underlying data.
     '''
 
     # Normalize to range [0,1]. If the array is already normalized,
     # this should have no impact.
     out = nisarqa.normalize(img_arr)
 
-    # After normalization to range [0,1], scale to 0-254 for unsigned int8
-    # Reserve the value 255 for use as the transparency value.
-    out = np.uint8(out * 254)
+    # After normalization to range [0,1], scale to 1-255 for unsigned int8
+    # Reserve the value 0 for use as the transparency value.
+    #   out = (<normalized array> * (target_max - target_min)) + target_min
+    out = (np.uint8(out * (255-1))) + 1
 
-    if valid_pixels is None:
-        transparency_value = None
+    # Set transparency value so that the "alpha" is added to the image
+    transparency_value = 0
 
-    else:
-        # Update transparency value so that the "alpha" is added to the image
-        transparency_value = 255
-
-        # Denote invalid pixels with 255, so that they output as transparent
-        out[~valid_pixels.astype(bool)] = transparency_value
+    # Denote invalid pixels with 255, so that they output as transparent
+    out[~np.isfinite(img_arr)] = transparency_value
     
     return out, transparency_value
 
