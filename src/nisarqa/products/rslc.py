@@ -1059,6 +1059,8 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                     
                     # ...keep the multilooked, color-corrected image
                     # Note: Browse image must be linear (not dB).
+                    # TODO - Geoff - How much should the browse image
+                    # and the power images for the PDF be decoupled?
                     if not params.linear_units.val:
                         # Redo color correction, but without dB correction.
                         corrected_img = clip_array(
