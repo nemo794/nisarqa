@@ -164,38 +164,38 @@ def compute_square_pixel_nlooks(img_shape,
 
     Assumptions and Variable Definitions:
     Source Image has:
-        - dimensions M X N
+        - dimensions M x N
             - M : (int) # azimuth lines
-            - N : (int) # range lines
+            - N : (int) # range samples
         - sample spacing da and dr
-            - da : (int) distance between samples in azimuth direction
-            - dr : (int) distance between samples in range direction
+            - da : (float) distance between samples in azimuth direction
+            - dr : (float) distance between samples in range direction
     Output Multilooked Image has:
         - Same units as Source Image (e.g. sample spacing is in meters for both)
-        - dimensions M_1 X N_1
+        - dimensions M_1 x N_1
             - M_1 : (int) # azimuth lines
-            - N_1 : (int) # range lines
+            - N_1 : (int) # range samples
         - sample spacing da_1 and dr_1
-            - da_1 : (int) distance between samples in azimuth direction
-            - dr_1 : (int) distance between samples in range direction
+            - da_1 : (float) distance between samples in azimuth direction
+            - dr_1 : (float) distance between samples in range direction
     Number of Looks:
         - ka : number of looks in the azimuth direction for multilooking
         - kr : number of looks in the range direction for multilooking
            
     Problem Setup:
-    (1) da * ka = da_1                # az sample spacing is scaled by nlooks
+    (1) da * ka = da_1                # az lines spacing is scaled by nlooks
     (2) dr * kr = dr_1                # range sample spacing is scaled by nlooks
-    (3) M / kr = M_1                  # num az lines is scaled by nlooks
-    (4) N / ka = N_1                  # num range lines is scaled by nlooks
+    (3) M / ka = M_1                  # num az lines is scaled by nlooks
+    (4) N / kr = N_1                  # num range lines is scaled by nlooks
     (5) dr_1 = da_1                   # output Multilooked image should have square pixels
-    (6) grd_rng_dist = M * dr         # ground range distance in e.g. meters
-    (7) grd_az_dist = N * da          # ground azimuth distance in e.g. meters
-    
+    (6) Da = M * da                   # total extent of image in y real space coordinates
+    (7) Dr = N * dr                   # total extent of image in x real space coordinates
+
     Derivation:
-    (8) WLOG, let grd_az_dist > grd_rng_dist    # Determine via a conditional
-    (9) ka = N // longest_side_max              # By definitions
+    (8) WLOG, let Da > Dr                       # Determine via a conditional
+    (9) kr = N / longest_side_max               # By definitions
     (10) kr * dr = ka * da                      # from (5), (1), (2)
-    (11) kr = (ka * da) / dr                    # from (10), (9)
+    (11) ka = (kr * dr) / da                    # from (10), (9)
 
     `longest_side_max` provides an upper limit on the length of the
     longest side of the final multilooked image. So, during 
@@ -217,34 +217,29 @@ def compute_square_pixel_nlooks(img_shape,
     da = np.abs(sample_spacing[0])  # azimuth
     dr = np.abs(sample_spacing[1])  # range
 
-    if M * dr >= N * da:
-        # Range ground distance is longer
-        kr = M / longest_side_max
+    if M * da >= N * dr:
+        # Y (azimuth) extent is longer
+        ka = M / longest_side_max
 
-        # Adjust kr to be an odd integer before computing ka. This will
-        # keep the final multilooked pixels closer to being square pixels
-        # in ground-distance measurements.
-        kr = nisarqa.next_greater_odd_int(kr)
-
-        ka = (kr * dr) / da  # Formula (8)
+        # Adjust ka to be an odd integer before computing kr. This will
+        # keep the final multilooked pixels closer to being square pixels.
         ka = nisarqa.next_greater_odd_int(ka)
 
-        # TODO - Geoff - for computing kr based on ka, does this (above) order of
-        # computing and coverting kr and ka to next_greater_odd_int make sense?
-        # Or should we first stay in Real numbers to compute both, and then
-        # afterwards convert both to next_greater_odd_int?
+        kr = (ka * da) / dr  # Formula (11)
+        kr = nisarqa.next_greater_odd_int(kr)
 
     else:
+        # TODO - fix to match discussion
         # Azimuth ground distance is longer
         ka = N / longest_side_max
         ka = nisarqa.next_greater_odd_int(ka)
 
-        kr = (ka * da) / dr  # Formula (8)
+        kr = (ka * da) / dr  # Formula (11)
         kr = nisarqa.next_greater_odd_int(kr)
 
     # Sanity Check
-    assert N // ka <= longest_side_max
-    assert M // kr <= longest_side_max
+    assert N // kr <= longest_side_max
+    assert M // ka <= longest_side_max
 
     return (ky, kx)
 
