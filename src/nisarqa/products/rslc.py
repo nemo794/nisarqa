@@ -1058,21 +1058,6 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                         pol in layers_for_browse[freq]:
                     
                     # ...keep the multilooked, color-corrected image
-                    # Note: Browse image must be linear (not dB).
-                    # TODO - Geoff - How much should the browse image
-                    # and the power images for the PDF be decoupled?
-                    if not params.linear_units.val:
-                        # Redo color correction, but without dB correction.
-                        corrected_img = clip_array(
-                                            multilooked_img,
-                                            middle_percentile= \
-                                                params.middle_percentile.val)
-                        
-                        if params.gamma.val is not None:
-                            corrected_img = apply_gamma_correction(
-                                            corrected_img,
-                                            gamma=params.gamma.val)
-
                     pol_imgs_for_browse[pol] = corrected_img
 
     # Construct the browse image
