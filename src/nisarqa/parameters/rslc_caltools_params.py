@@ -39,34 +39,67 @@ class WorkflowsParamGroup(YamlParamGroup):
     # Generic description for all workflows
     descr: ClassVar[str] = f'Flag to run `%s` workflow. Default: `{def_val}`'
 
+    metadata: ClassVar[dict] = \
+        {'validate' : {'default' : False,
+                       'yaml_attrs': YamlAttrs(name='validate',
+                                               descr=descr % 'validate')},
+        'qa_reports' : {'default' : False,
+                       'yaml_attrs': YamlAttrs(name='qa_reports',
+                                               descr=descr % 'qa_reports')},
+        'absolute_calibration_factor' : {'default' : False,
+                       'yaml_attrs': YamlAttrs(name='absolute_calibration_factor',
+                                               descr=descr % 'absolute_calibration_factor')},
+        'nesz' : {'default' : False,
+                       'yaml_attrs': YamlAttrs(name='nesz',
+                                               descr=descr % 'nesz')},
+        'point_target_analyzer' : {'default' : False,
+                       'yaml_attrs': YamlAttrs(name='point_target_analyzer',
+                                               descr=descr % 'point_target_analyzer')}
+        }
+
     # Dataclass fields
-    name = 'validate'
-    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
-    validate: bool = field(default=def_val,
-                             metadata={'yaml_attrs': yaml_attrs})
- 
-    name = 'qa_reports'
-    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
-    qa_reports: bool = field(default=def_val,
-                             metadata={'yaml_attrs': yaml_attrs})
+    # validate: bool
+    # qa_reports: bool
+    # absolute_calibration_factor: bool
+    # nesz: bool
+    # point_target_analyzer: bool
 
-    name = 'absolute_calibration_factor'
-    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
-    absolute_calibration_factor: bool = field(
+    validate: ClassVar[bool] = field(default=def_val,
+        metadata={'yaml_attrs': YamlAttrs(name='validate',
+                                          descr=descr % 'validate')})
+    
+    qa_reports: ClassVar[bool] = field(default=def_val,
+        metadata={'yaml_attrs': YamlAttrs(name='qa_reports',
+                                          descr=descr % 'qa_reports')})
+
+    absolute_calibration_factor: ClassVar[bool] = field(
         default=def_val,
-        metadata={'yaml_attrs': yaml_attrs})
+        metadata={'yaml_attrs': YamlAttrs(name='absolute_calibration_factor',
+                                descr=descr % 'absolute_calibration_factor')})
 
-    name = 'nesz'
-    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
-    nesz: bool = field(default=def_val,
-                             metadata={'yaml_attrs': yaml_attrs})
+    nesz: bool = field(
+        default=def_val,
+        metadata={'yaml_attrs': YamlAttrs(name='nesz', 
+                                          descr=descr % 'nesz')})
 
-    name = 'point_target_analyzer'
-    yaml_attrs = YamlAttrs(name=name, descr=descr % name)
     point_target_analyzer: bool = field(
-                            default=f'{def_val}',
-                            metadata={'yaml_attrs': yaml_attrs})
+        default=def_val,
+        metadata={'yaml_attrs': YamlAttrs(name='point_target_analyzer',
+                                        descr=descr % 'point_target_analyzer')})
 
+
+    def __init__(self,
+                validate: bool = False,
+                qa_reports: bool = False,
+                absolute_calibration_factor: bool = False,
+                nesz: bool = False,
+                point_target_analyzer: bool = False):
+
+        self.validate = validate
+        self.qa_reports = qa_reports
+        self.absolute_calibration_factor = absolute_calibration_factor
+        self.nesz = nesz
+        self.point_target_analyzer = point_target_analyzer
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -74,7 +107,7 @@ class WorkflowsParamGroup(YamlParamGroup):
 
 
     @staticmethod
-    def _validate_arg(attr, attr_name):
+    def _check_workflow_arg(attr, attr_name):
         '''
         Validate that `attr` is of the correct type for the
         WorkflowsParamGroup's attribute `attr_name`.
@@ -92,7 +125,6 @@ class WorkflowsParamGroup(YamlParamGroup):
             raise TypeError(f'`{attr_name}` must be of type bool. '
                             f'It is {type(attr)}')
 
-
     @property
     def validate(self) -> bool:
         return self._validate
@@ -100,7 +132,7 @@ class WorkflowsParamGroup(YamlParamGroup):
     @validate.setter
     def validate(self, val: bool):
         # Validate input
-        self._validate_arg(val, 'validate')
+        self._check_workflow_arg(val, 'validate')
         # Set attribute
         self._validate = val
 
@@ -112,19 +144,19 @@ class WorkflowsParamGroup(YamlParamGroup):
     @qa_reports.setter
     def qa_reports(self, val: bool):
         # Validate input
-        self._validate_arg(val, 'qa_reports')
+        self._check_workflow_arg(val, 'qa_reports')
         # Set attribute
         self._qa_reports = val
 
 
     @property
-    def abs_cal(self) -> bool:
+    def absolute_calibration_factor(self) -> bool:
         return self._abs_cal
     
-    @abs_cal.setter
-    def abs_cal(self, val: bool):
+    @absolute_calibration_factor.setter
+    def absolute_calibration_factor(self, val: bool):
         # Validate input
-        self._validate_arg(val, 'abs_cal')
+        self._check_workflow_arg(val, 'absolute_calibration_factor')
         # Set attribute
         self._abs_cal = val
 
@@ -136,7 +168,7 @@ class WorkflowsParamGroup(YamlParamGroup):
     @nesz.setter
     def nesz(self, val: bool):
         # Validate input
-        self._validate_arg(val, 'nesz')
+        self._check_workflow_arg(val, 'nesz')
         # Set attribute
         self._nesz = val
 
@@ -148,12 +180,7 @@ class WorkflowsParamGroup(YamlParamGroup):
     @point_target_analyzer.setter
     def point_target_analyzer(self, val: YamlParam[bool]):
         # Validate input
-        print("bababa: ", val)
-        if isinstance(val, property):
-            val = fields(self)[4].default
-            print("2222bababa: ", fields(self))
-            print("bghghgh: ", val)
-        self._validate_arg(val, 'point_target_analyzer')
+        self._check_workflow_arg(val, 'point_target_analyzer')
         # Set attribute
         self._point_target_analyzer = val
 
@@ -184,7 +211,7 @@ class InputFileGroupParamGroup(YamlParamGroup):
         The input NISAR product file name (with path).
     '''
 
-    yaml_attrs: ClassVar[YamlAttrs] = YamlAttrs(
+    qa_input_file_yaml_attrs: ClassVar[YamlAttrs] = YamlAttrs(
         name='qa_input_file',
         descr='''
         Filename of the input file for QA.
@@ -196,7 +223,7 @@ class InputFileGroupParamGroup(YamlParamGroup):
         )
 
     # `qa_input_file` is required.
-    qa_input_file: str = field(metadata={'yaml_attrs': yaml_attrs})
+    qa_input_file: str = field(metadata={'yaml_attrs': qa_input_file_yaml_attrs})
 
     def __init__(self, qa_input_file: str):
         self.qa_input_file = qa_input_file
@@ -1671,6 +1698,7 @@ class RSLCRootParamGroup:
         # the groups will appear in the runconfig.
         # TODO - create a list of the param groups, pass this into the helper fxn,
         # then do the standard loop.
+        WorkflowsParamGroup.populate_runcfg(runconfig_cm)
         InputFileGroupParamGroup.populate_runcfg(runconfig_cm)
         DynamicAncillaryFileParamGroup.populate_runcfg(runconfig_cm)
         ProductPathGroupParamGroup.populate_runcfg(runconfig_cm)

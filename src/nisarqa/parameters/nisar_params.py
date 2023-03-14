@@ -9,19 +9,7 @@ from ruamel.yaml import CommentedSeq as CS
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
-
-# 1. Param (just a value) + YamlAttrs
-# 2. Param + HDF5Attrs
-# 3. Param + YamlAttrs + HDF5Attrs
-
-# Param
-# YamlParam
-# HDF5Param
-# YamlHDF5Param
-
-# # --------------------
 T = TypeVar("T")
-
 
 @dataclass
 class YamlAttrs:
@@ -350,6 +338,46 @@ class YamlParamGroup(ABC):
         -----
         Reference: https://stackoverflow.com/questions/56471040/add-a-comment-in-list-element-in-ruamel-yaml
         '''
+        # build yaml params group
+        params_cm = CM()
+
+        print("$$$$$$$$$$: ", cls.__name__)
+
+        # for i in inspect.getmembers(cls):
+        #     print("bebebe: ", i)
+        #     print("type(i): ", type(i))
+
+        print('bababba: ', cls.validate)
+        print("$$$$$$$$$$: __dataclass_fields__", cls.__dataclass_fields__['validate'])
+
+        for name1 in cls.__dataclass_fields__:
+            cls.__dataclass_fields__['nesz']
+
+        # Add all attributes from this dataclass to the group
+        for field in fields(cls):
+            print("field: ", field)
+            field_name = field.name
+            print("SAM 55555 name: ", field_name)
+            field_metadata = field.metadata
+            print("    55555 metadata: ", field_metadata)
+            field_default = field.default
+            print("    55555 default: ", field_default)
+
+            # if not field_metadata:  # if the metadata field is not empty
+            if 'yaml_attrs' in field_metadata.keys():
+                yaml_attrs = field_metadata['yaml_attrs']
+                print("Ha! got here for attr_name: ", field_name)
+                cls.add_param_to_cm(params_cm=params_cm,
+                                        param_name=yaml_attrs['name'],
+                                        param_val=field_default,
+                                        param_comment=yaml_attrs['descr'],
+                                        indent=indent_size)
+
+        # Add the new parameter group to the runconfig
+        cls.add_param_group_to_runconfig(runconfig_cm, params_cm)
+
+
+        '''
         # Create a default instance of this class
 
         # ruamel.yaml requires an argument value to create each parameter.
@@ -372,52 +400,6 @@ class YamlParamGroup(ABC):
         # created.)
         default = cls(**required_params)
 
-        '''
-        if required_params:  # if `required_params` is not empty
-            # Override just the property setters in the base class;
-            # keep all other defaults, descriptions, etc.
-            def get_dict_attr(obj, attr):
-                for obj in [obj] + obj.__class__.mro():
-                    if attr in obj.__dict__:
-                        return obj.__dict__[attr]
-                raise AttributeError
-            print("LALA: ", cls)
-
-            class OverrideCls(cls):
-
-                # class property(fget=None, fset=None, fdel=None, doc=None)
-
-                def __init__(self):
-                    for param in required_params:
-                        
-                        wrapped_param = getattr(cls, f'_{param}_2_param')('')
-
-
-                        # @cls.qa_input_file.setter
-                        # def qa_input_file(self, attr):
-                        #     cls._qa_input_file = attr
-
-                    #     # object.__setattr__(cls, f'_{param}', required_params[param])
-
-                    #     x_property = get_dict_attr(self, param)
-                    #     print("x_property: ", x_property)
-                    #     # setattr(self, param, property(lambda sub_self: super(type(sub_self), sub_self).qa_input_file))
-                    #     # new_param = cls._qa_input_file_2_param('')
-                    #     # raise Exception('x_property: ', x_property)
-                    #     x_setter = getattr(x_property, 'setter')
-                    #     print("x_setter: ", x_setter)
-                    #     setattr(OverrideCls, param,
-                    #                   x_setter(lambda sub_self, val: 
-                    #                             super(type(sub_self), 
-                    #                             type(sub_self)).qa_input_file.fset(sub_self, val)))
-                    # print(required_params)
-                    super().__init__(self, **required_params)
-
-            default = OverrideCls()
-        else:
-            default = cls()
-        '''
-
         # build yaml params group
         params_cm = CM()
 
@@ -432,9 +414,9 @@ class YamlParamGroup(ABC):
 
         # Add the new parameter group to the runconfig
         default.add_param_group_to_runconfig(runconfig_cm, params_cm)
+        '''
 
-
-    def add_param_to_cm(self, params_cm, param_attr, indent=4):
+    def add_param_to_cm(self, params_cm, param_name, param_val, param_comment='', indent=4):
         '''
         Add a Param attribute to a Commented Map.
 
@@ -454,19 +436,19 @@ class YamlParamGroup(ABC):
         # To have ruamel.yaml display list values as a list in the runconfig,
         # use CommentedSeq
         # https://stackoverflow.com/questions/56937691/making-yaml-ruamel-yaml-always-dump-lists-inline
-        if isinstance(param_attr.val, (list, tuple)):
+        if isinstance(param_val, (list, tuple)):
             seq = CS()
             seq.fa.set_flow_style()
-            for item in param_attr.val:
+            for item in param_val:
                 seq.append(item)
             val = seq
         else:
-            val = param_attr.val
+            val = param_val
 
         # Add attribute to the group
-        name = param_attr.yaml_attrs.name
+        name = param_name
         params_cm[name] = val
-        comment = param_attr.yaml_attrs.descr
+        comment = param_comment
         for line in nisarqa.multi_line_string_iter(comment):
             params_cm.yaml_set_comment_before_after_key(
                 name, before=line, indent=comment_indent)
