@@ -1,19 +1,20 @@
 import os
 import sys
 import warnings
-from dataclasses import dataclass, field, fields
+from dataclasses import Field, InitVar, dataclass, field, fields
 from typing import ClassVar, Iterable, Optional, Union
 
 import nisarqa
 import numpy as np
 from nisarqa.parameters.nisar_params import *
+from numpy.typing import ArrayLike
 from ruamel.yaml import YAML
 from ruamel.yaml import CommentedMap as CM
 
 objects_to_skip = nisarqa.get_all(__name__)
 
 
-@dataclass
+@dataclass(frozen=True)
 class WorkflowsParamGroup(YamlParamGroup):
     '''
     The parameters specifying which RSLC-Caltools QA workflows should be run.
@@ -37,42 +38,19 @@ class WorkflowsParamGroup(YamlParamGroup):
     def_val: ClassVar[bool] = False
 
     # Generic description for all workflows
-    descr: ClassVar[str] = f'Flag to run `%s` workflow. Default: `{def_val}`'
+    descr: ClassVar[str] = f'Flag to run `%s` workflow.'
 
-    metadata: ClassVar[dict] = \
-        {'validate' : {'default' : False,
-                       'yaml_attrs': YamlAttrs(name='validate',
-                                               descr=descr % 'validate')},
-        'qa_reports' : {'default' : False,
-                       'yaml_attrs': YamlAttrs(name='qa_reports',
-                                               descr=descr % 'qa_reports')},
-        'absolute_calibration_factor' : {'default' : False,
-                       'yaml_attrs': YamlAttrs(name='absolute_calibration_factor',
-                                               descr=descr % 'absolute_calibration_factor')},
-        'nesz' : {'default' : False,
-                       'yaml_attrs': YamlAttrs(name='nesz',
-                                               descr=descr % 'nesz')},
-        'point_target_analyzer' : {'default' : False,
-                       'yaml_attrs': YamlAttrs(name='point_target_analyzer',
-                                               descr=descr % 'point_target_analyzer')}
-        }
-
-    # Dataclass fields
-    # validate: bool
-    # qa_reports: bool
-    # absolute_calibration_factor: bool
-    # nesz: bool
-    # point_target_analyzer: bool
-
-    validate: ClassVar[bool] = field(default=def_val,
+    validate: bool = field(
+        default=def_val,
         metadata={'yaml_attrs': YamlAttrs(name='validate',
                                           descr=descr % 'validate')})
     
-    qa_reports: ClassVar[bool] = field(default=def_val,
+    qa_reports: bool = field(
+        default=def_val,
         metadata={'yaml_attrs': YamlAttrs(name='qa_reports',
                                           descr=descr % 'qa_reports')})
 
-    absolute_calibration_factor: ClassVar[bool] = field(
+    absolute_calibration_factor: bool = field(
         default=def_val,
         metadata={'yaml_attrs': YamlAttrs(name='absolute_calibration_factor',
                                 descr=descr % 'absolute_calibration_factor')})
@@ -87,19 +65,15 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={'yaml_attrs': YamlAttrs(name='point_target_analyzer',
                                         descr=descr % 'point_target_analyzer')})
 
+    def __post_init__(self):
 
-    def __init__(self,
-                validate: bool = False,
-                qa_reports: bool = False,
-                absolute_calibration_factor: bool = False,
-                nesz: bool = False,
-                point_target_analyzer: bool = False):
+        # VALIDATE INPUTS
+        self._check_workflows_arg('validate', self.validate)
+        self._check_workflows_arg('qa_reports', self.qa_reports)
+        self._check_workflows_arg('absolute_calibration_factor', self.absolute_calibration_factor)
+        self._check_workflows_arg('nesz', self.nesz)
+        self._check_workflows_arg('point_target_analyzer', self.point_target_analyzer)
 
-        self.validate = validate
-        self.qa_reports = qa_reports
-        self.absolute_calibration_factor = absolute_calibration_factor
-        self.nesz = nesz
-        self.point_target_analyzer = point_target_analyzer
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -107,103 +81,28 @@ class WorkflowsParamGroup(YamlParamGroup):
 
 
     @staticmethod
-    def _check_workflow_arg(attr, attr_name):
+    def _check_workflows_arg(attr_name, val):
         '''
-        Validate that `attr` is of the correct type for the
+        Validate that `val` is of the correct type for the
         WorkflowsParamGroup's attribute `attr_name`.
 
         Parameters
         ----------
-        attr : bool
-            Argument value for `attr_name`.
         attr_name : str
             The name of the attribute of WorkflowsParamGroup for `attr`
+        val : bool
+            Argument value for `attr_name`.
         '''
-
-        # Validate the attr.val
-        if not isinstance(attr, bool):
+        # Validate `val`
+        if not isinstance(val, bool):
             raise TypeError(f'`{attr_name}` must be of type bool. '
-                            f'It is {type(attr)}')
-
-    @property
-    def validate(self) -> bool:
-        return self._validate
-    
-    @validate.setter
-    def validate(self, val: bool):
-        # Validate input
-        self._check_workflow_arg(val, 'validate')
-        # Set attribute
-        self._validate = val
+                            f'It is {type(val)}')
 
 
-    @property
-    def qa_reports(self) -> bool:
-        return self._qa_reports
-    
-    @qa_reports.setter
-    def qa_reports(self, val: bool):
-        # Validate input
-        self._check_workflow_arg(val, 'qa_reports')
-        # Set attribute
-        self._qa_reports = val
-
-
-    @property
-    def absolute_calibration_factor(self) -> bool:
-        return self._abs_cal
-    
-    @absolute_calibration_factor.setter
-    def absolute_calibration_factor(self, val: bool):
-        # Validate input
-        self._check_workflow_arg(val, 'absolute_calibration_factor')
-        # Set attribute
-        self._abs_cal = val
-
-
-    @property
-    def nesz(self) -> bool:
-        return self._nesz
-    
-    @nesz.setter
-    def nesz(self, val: bool):
-        # Validate input
-        self._check_workflow_arg(val, 'nesz')
-        # Set attribute
-        self._nesz = val
-
-
-    @property
-    def point_target_analyzer(self) -> YamlParam[bool]:
-        return self._point_target_analyzer
-    
-    @point_target_analyzer.setter
-    def point_target_analyzer(self, val: YamlParam[bool]):
-        # Validate input
-        self._check_workflow_arg(val, 'point_target_analyzer')
-        # Set attribute
-        self._point_target_analyzer = val
-
-
-@dataclass
+@dataclass(frozen=True)
 class InputFileGroupParamGroup(YamlParamGroup):
     '''
     Parameters from the Input File Group runconfig group.
-
-    Arguments should be passed into this dataclass' parameters with 
-    types such as `str` or `int`. During initialization, these arguments
-    are processed into, stored as, and later accessible by the calling
-    function as attributes with the type Param. The attributes will have
-    the same name as the corresponding parameter, but will be of 
-    type Param instead of type e.g. `str`.
-    
-    The original argument is accessible via the `val` attribute 
-    of the new Param class; the additional Param attributes
-    will be populated with default metadata by this dataclass.
-
-    If no value or `None` is provided as an argument, then the
-    Param attribute will be initialized with all default values.
-
 
     Parameters
     ----------
@@ -211,56 +110,34 @@ class InputFileGroupParamGroup(YamlParamGroup):
         The input NISAR product file name (with path).
     '''
 
-    qa_input_file_yaml_attrs: ClassVar[YamlAttrs] = YamlAttrs(
-        name='qa_input_file',
-        descr='''
-        Filename of the input file for QA.
-        REQUIRED for QA. NOT REQUIRED if only running Product SAS.
-        If Product SAS and QA SAS are run back-to-back,
-        this field should be identical to `sas_output_file`.
-        Otherwise, this field should contain the filename of the single
-        NISAR product for QA to process.'''
-        )
+    # Required parameter
+    qa_input_file: str = field(
+        metadata={'yaml_attrs': 
+            YamlAttrs(
+                name='qa_input_file',
+                descr='''
+                Filename of the input file for QA.
+                REQUIRED for QA. NOT REQUIRED if only running Product SAS.
+                If Product SAS and QA SAS are run back-to-back,
+                this field should be identical to `sas_output_file`.
+                Otherwise, this field should contain the filename of the single
+                NISAR product for QA to process.''')})
 
-    # `qa_input_file` is required.
-    qa_input_file: str = field(metadata={'yaml_attrs': qa_input_file_yaml_attrs})
-
-    def __init__(self, qa_input_file: str):
-        self.qa_input_file = qa_input_file
-
+    def __post_init__(self):
+        # VALIDATE INPUTS
+        nisarqa.validate_is_file(filepath=self.qa_input_file, 
+                                 parameter_name='qa_input_file',
+                                 extension='.h5')
 
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ['runconfig','groups','input_file_group']
 
-    @property
-    def qa_input_file(self) -> str:
-        return self._qa_input_file
-    
-    @qa_input_file.setter
-    def qa_input_file(self, qa_input_file: str):
-        # Validate input
-        nisarqa.validate_is_file(qa_input_file, 'qa_input_file', '.h5')
 
-        # Set attribute
-        self._qa_input_file = qa_input_file
-
-
-@dataclass
+@dataclass(frozen=True)
 class DynamicAncillaryFileParamGroup(YamlParamGroup):
     '''
     The parameters from the QA Dynamic Ancillary File runconfig group.
-
-    Arguments should be passed into this dataclass' parameters with 
-    types such as `str` or `int`. During initialization, these arguments
-    are processed into, stored as, and later accessible by the calling
-    function as attributes with the type Param. The attributes will have
-    the same name as the corresponding parameter, but will be of 
-    type Param instead of type e.g. `str`.
-    
-    The original argument is accessible via the `val` attribute 
-    of the new Param class; the additional Param attributes
-    will be populated with default metadata by this dataclass.
 
     Parameters
     ----------
@@ -270,13 +147,22 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
         Analyzer workflows.
     '''
 
-    # Set attributes to Param type for correct downstream type checking
-    corner_reflector_file: YamlParam[str]
+    # Required parameter
+    corner_reflector_file: str = field(
+        metadata={
+            'yaml_attrs' : YamlAttrs(
+                name='corner_reflector_file',
+                descr='''Locations of the corner reflectors in the input product.
+                Only required if `absolute_calibration_factor` or
+                `point_target_analyzer` runconfig params are set to True for QA.'''
+            )})
 
-    def __init__(self, corner_reflector_file: str):
+    def __post_init__(self):
+        # VALIDATE INPUTS
 
-        self.corner_reflector_file = \
-            self._corner_reflector_file_2_param(corner_reflector_file)
+        nisarqa.validate_is_file(filepath=self.corner_reflector_file, 
+                                 parameter_name='corner_reflector_file',
+                                 extension='.csv')
 
 
     @staticmethod
@@ -284,53 +170,10 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
         return ['runconfig','groups','dynamic_ancillary_file_group']
 
 
-    def _corner_reflector_file_2_param(self, corner_reflector_file):
-        '''Return `corner_reflector_file` as a YamlParam'''
-
-        # Construct defaults for the new Param
-        attrs = YamlAttrs(
-            name='corner_reflector_file',
-            descr='''
-            Locations of the corner reflectors in the input product.
-            Only required if `absolute_calibration_factor` or
-            `point_target_analyzer` runconfig params are set to True for QA.'''
-            )
-
-        return YamlParam(corner_reflector_file, attrs)
-
-    @property
-    def corner_reflector_file(self) -> YamlParam[str]:
-        return self._corner_reflector_file
-    
-    @corner_reflector_file.setter
-    def corner_reflector_file(self, corner_reflector_file_attr: YamlParam[str]):
-        # Validate input
-        if not issubclass(type(corner_reflector_file_attr), YamlParam):
-            raise TypeError(f'`corner_reflector_file` must be a subclass of '
-                        f'YamlParam. It is {type(corner_reflector_file_attr)}')
-
-        val = corner_reflector_file_attr.val
-        nisarqa.validate_is_file(val, 'corner_reflector_file.val`', '.csv')
-
-        # Set attribute
-        self._corner_reflector_file = corner_reflector_file_attr
-
-
-@dataclass
+@dataclass(frozen=True)
 class ProductPathGroupParamGroup(YamlParamGroup):
     '''
     Parameters from the Product Path Group runconfig group.
-
-    Arguments should be passed into this dataclass' parameters with 
-    types such as `str` or `int`. During initialization, these arguments
-    are processed into, stored as, and later accessible by the calling
-    function as attributes with the type Param. The attributes will have
-    the same name as the corresponding parameter, but will be of 
-    type Param instead of type e.g. `str`.
-    
-    The original argument is accessible via the `val` attribute 
-    of the new Param class; the additional Param attributes
-    will be populated with default metadata by this dataclass.
 
     Parameters
     ----------
@@ -339,51 +182,24 @@ class ProductPathGroupParamGroup(YamlParamGroup):
         Defaults to './qa'
     '''
 
-    qa_output_dir: YamlParam[str]
-
-    def __init__(self, qa_output_dir: Optional[str] = './qa'):
-        self.qa_output_dir = self._qa_output_dir_2_param(qa_output_dir)
-
-
-    def _qa_output_dir_2_param(self, qa_output_dir):
-        '''Return `qa_output_dir` as a YamlParam.'''
-
-        default_val = self.get_default_arg_for_yaml(attr_name='qa_output_dir')
-
-        # Construct attributes for the new YamlParam
-        attrs = YamlAttrs(
+    qa_output_dir: str = field(
+        default='./qa',
+        metadata={'yaml_attrs' : YamlAttrs(
             name='corner_reflector_file',
-            descr=f'''
-                Output directory to store all QA output files.
-                Defaults to "{default_val}"'''
-            )
+            descr='''Output directory to store all QA output files.'''
+        )}
+    )
 
-        return YamlParam(qa_output_dir, attrs)
+    def __post_init__(self):
+        # VALIDATE INPUTS
 
-
-    @property
-    def qa_output_dir(self) -> YamlParam[str]:
-        return self._qa_output_dir
-    
-    @qa_output_dir.setter
-    def qa_output_dir(self, qa_output_dir_attr: YamlParam[str]):
-        # Validate input
-        if not issubclass(type(qa_output_dir_attr), YamlParam):
-            raise TypeError(f'`qa_output_dir_attr` must be a subclass of '
-                            f'YamlParam. It is {type(qa_output_dir_attr)}')
-
-        val = qa_output_dir_attr.val
-
-        if not isinstance(val, str):
-            raise TypeError(f'`qa_output_dir_attr.val` must be a str')
+        if not isinstance(self.qa_output_dir, str):
+            raise TypeError(f'`qa_output_dir` must be a str')
 
         # If this directory does not exist, make it.
-        if not os.path.isdir(val):
-            print(f'Creating QA output directory: {val}')
-            os.makedirs(val, exist_ok=True)
-
-        # Set attribute
-        self._qa_output_dir = qa_output_dir_attr
+        if not os.path.isdir(self.qa_output_dir):
+            print(f'Creating QA output directory: {self.qa_output_dir}')
+            os.makedirs(self.qa_output_dir, exist_ok=True)
 
 
     @staticmethod
@@ -391,25 +207,12 @@ class ProductPathGroupParamGroup(YamlParamGroup):
         return ['runconfig','groups','product_path_group']
 
 
-@dataclass
+@dataclass(frozen=True)
 class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
     '''
-    Parameters to generate RSLC Power Images; this corresponds to the
-    `qa_reports: power_image` runconfig group.
-
-    Arguments should be passed into this dataclass' parameters with 
-    types such as `str` or `int`. During initialization, these arguments
-    are processed into, stored as, and later accessible by the calling
-    function as attributes with the type Param. The attributes will have
-    the same name as the corresponding parameter, but will be of 
-    type Param instead of type e.g. `str`.
+    Parameters to generate RSLC Power Images and Browse Image.
     
-    The original argument is accessible via the `val` attribute 
-    of the new Param class; the additional Param attributes
-    will be populated with default metadata by this dataclass.
-
-    If no value or `None` is provided as an argument, then the
-    Param attribute will be initialized with all default values.
+    This corresponds to the `qa_reports: power_image` runconfig group.
 
     Parameters
     ----------
@@ -435,7 +238,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
         scaled to the range [0,1]. 
         The image colorbar will be defined with respect to the input
         image values prior to normalization and gamma correction.
-        Defaults to None (no normalization, no gamma correction)
+        If None, then no normalization, no gamma correction will be applied.
     tile_shape : iterable of int, optional
         Preferred tile shape for processing images by batches.
         Actual tile shape used during processing might
@@ -448,118 +251,178 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
     Attributes
     ----------
     pow_units : Param
-        Units of the power image. The `val` attribute of this Param
-        will be of type `str`, accessible via `pow_units.val`
+        Units of the power image.
         If `linear_units` is True, this will be set to 'linear'.
         If `linear_units` is False, this will be set to 'dB'.
     '''
 
-    # Set attributes to Param type for correct downstream type checking
-    linear_units: YamlParam[bool]
-    nlooks_freqa: YamlParam[Optional[Union[int, Iterable[int]]]]
-    nlooks_freqb: YamlParam[Optional[Union[int, Iterable[int]]]]
-    num_mpix: YamlParam[int]
-    middle_percentile: YamlHDF5Param[float]
-    gamma: YamlHDF5Param[Optional[float]]
-    tile_shape: YamlParam[list[int]]
+    linear_units: bool = field(
+        default=True,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='linear_units',
+            descr='''True to compute power in linear units when generating 
+                the power image for the browse images and graphical
+                summary PDF. False for decibel units.'''
+        )})
 
-    # Auto-generated attributes.
-    # `pow_units` is set by the `linear_units` attribute.
-    pow_units: HDF5Param = field(init=False)
+    nlooks_descr_template: ClassVar[str] = \
+        '''Number of looks along each axis of the Frequency %s
+        image arrays for multilooking the power image.
+        Format: [<num_rows>, <num_cols>]
+        Example: [6,7]
+        If not provided, the QA code to compute the nlooks values 
+        based on `num_mpix`.'''
 
-    def __init__(self,
-                 linear_units: bool = True,
-                 nlooks_freqa: Optional[Union[int, Iterable[int]]] = None,
-                 nlooks_freqb: Optional[Union[int, Iterable[int]]] = None,
-                 num_mpix: float = 4.0,
-                 middle_percentile: float = 95.0,
-                 gamma: Optional[float] = None,
-                 tile_shape: Iterable[int] = (1024,1024)
-                 ):
+    nlooks_freqa: Optional[Union[int, Iterable[int]]] = field(
+        default=None,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name=f'nlooks_freqa',
+            descr=nlooks_descr_template % 'A'
+        )})
 
-        self.linear_units = self._linear_units_2_param(linear_units)
-        self.nlooks_freqa = self._nlooks_2_param(nlooks=nlooks_freqa, freq='A')
-        self.nlooks_freqb = self._nlooks_2_param(nlooks=nlooks_freqb, freq='B')
-        self.num_mpix = self._num_mpix_2_param(num_mpix=num_mpix)
-        self.middle_percentile = \
-            self._middle_percentile_2_param(middle_percentile)
-        self.gamma = self._gamma_2_param(gamma)
-        self.tile_shape = self._tile_shape_2_param(tile_shape)
+    nlooks_freqb: Optional[Union[int, Iterable[int]]] = field(
+        default=None,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='nlooks_freqb',
+            descr=nlooks_descr_template % 'B'
+        )})
+
+    num_mpix: int = field(
+        default=4.0,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='num_mpix',
+            descr='''Approx. size (in megapixels) for the final
+                multilooked browse image(s). If `nlooks_freq*` parameter(s)
+                is not None, nlooks values will take precedence.'''
+        )})
+
+    middle_percentile: float = field(
+        default=90.0,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='middle_percentile',
+            descr='''The middle percentile range of the image array
+                that the colormap covers. Must be in the range [0.0, 100.0].'''
+            ),
+        'hdf5_attrs' : HDF5Attrs(
+            name='powerImageMiddlePercentile',
+            units='unitless',
+            descr='Middle percentile range of the image array '
+                  'that the colormap covers',
+            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            )
+        })
+
+    gamma: Optional[float] = field(
+        default=None,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='gamma',
+            descr='''Gamma correction parameter applied to power and browse image(s).
+                Gamma will be applied as follows:
+                    array_out = normalized_array ^ gamma
+                where normalized_array is a copy of the image with values
+                scaled to the range [0,1]. 
+                The image colorbar will be defined with respect to the input
+                image values prior to normalization and gamma correction.
+                Defaults to None (no normalization, no gamma correction)'''
+            ),
+        'hdf5_attrs' : HDF5Attrs(
+            name='powerImageGammaCorrection',
+            units='unitless',
+            descr='Gamma correction parameter applied to power and browse image(s).',
+            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            )
+        })
+
+    tile_shape: list[int] = field(
+        default=(1024,1024),
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='tile_shape',
+            descr='''Preferred tile shape for processing images by batches.
+                Actual tile shape may be modified by QA-SAS.
+                Format: [<num_rows>, <num_cols>]
+                -1 to indicate all rows / all columns (respectively).'''
+            )
+        })
+
+    # Auto-generated attributes, so set init=False and have no default.
+    # `pow_units` is determined by the `linear_units` attribute.
+    pow_units: str = field(
+        init=False,
+        metadata={
+            'hdf5_attrs' : HDF5Attrs(
+                name='powerImagePowerUnits',
+                units=None,
+                descr='''Units of the power image.''',
+                path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            )
+        })
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        # validate linear_units
+        if not isinstance(self.linear_units, bool):
+            raise TypeError(f'`linear_units` must be bool: {self.linear_units}')
+
+        # validate nlooks_freq*
+        self._validate_nlooks(self.nlooks_freqa, 'A')
+        self._validate_nlooks(self.nlooks_freqa, 'B')
+
+        # validate num_mpix
+        if not isinstance(self.num_mpix, float):
+            raise TypeError(f'`num_mpix` must be a float: {self.num_mpix}')
+        if self.num_mpix <= 0.0:
+            raise TypeError(f'`num_mpix` must be >= 0.0: {self.num_mpix}')
+        
+        # validate middle_percentile
+        if not isinstance(self.middle_percentile, float):
+            raise TypeError(
+                f'`middle_percentile` must be float: {self.middle_percentile}')
+
+        if self.middle_percentile < 0.0 or self.middle_percentile > 100.0:
+            raise TypeError('`middle_percentile` is '
+                f'{self.middle_percentile}, must be in range [0.0, 100.0]')
+
+        # validate gamma
+        if isinstance(self.gamma, float):
+            if (self.gamma < 0.0):
+                raise ValueError('If `gamma` is a float, it must be'
+                                f' non-negative: {self.gamma}')
+        elif self.gamma is not None:
+            raise TypeError('`gamma` must be a float or None. '
+                            f'Value: {self.gamma}, Type: {type(self.gamma)}')
+
+        # validate tile_shape
+        val = self.tile_shape
+        if not isinstance(val, (list, tuple)):
+            raise TypeError(f'`tile_shape` must be a list or tuple: {val}')
+        if not len(val) == 2:
+            raise TypeError(f'`tile_shape` must have a length of two: {val}')
+        if not all(isinstance(e, int) for e in val):
+            raise TypeError(f'`tile_shape` must contain only integers: {val}')
+        if any(e < -1 for e in val):
+            raise TypeError(f'Values in `tile_shape` must be >= -1: {val}')
+
+
+        # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
+        # This dataclass is frozen to ensure that all inputs are validated, 
+        # so we need to use object.__setattr__()
+
+        # use linear_units to set pow_units
+        object.__setattr__(self, 'pow_units',
+                                 'linear' if self.linear_units else 'dB')
 
 
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ['runconfig','groups','qa','qa_reports','power_image']
-
-
-    def _linear_units_2_param(self, linear_units):
-        '''Return `linear_units` as a Param.'''
-
-        # Construct attributes for the new Param
-        yaml_attrs = YamlAttrs(
-            name='linear_units',
-            descr='''
-                True to compute power in linear units when generating 
-                the power image for the browse images and graphical
-                summary PDF. False for decibel units.
-                Defaults to True.'''
-            )
-
-        return YamlParam(val=linear_units, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def linear_units(self) -> YamlParam[bool]:
-        return self._linear_units
-
-
-    @linear_units.setter
-    def linear_units(self, linear_units_attr: YamlParam[str]):
-        # Validate input
-        val = linear_units_attr.val
-        if not isinstance(val, bool):
-            raise TypeError(f'`linear_units.val` must be a bool: {val}')
-
-        # Set attributes
-        self._linear_units = linear_units_attr
-
-        self._pow_units = self._pow_units_2_param()
-
-
-    def _nlooks_2_param(self, nlooks, freq):
-        '''Return the number of looks for given frequency as a Param.
-        
-        Parameters
-        ----------
-        nlooks : int or iterable of int or None
-            Number of looks along each axis of the input array 
-            for the specified frequency.
-        freq : str
-            The frequnecy to assign this number of looks to.
-            Options: 'A' or 'B'
-
-        Returns
-        -------
-        nlooks_param : YamlParam
-            `nlooks` for frequency `freq` as a Param object.
-        '''
-
-        # Construct attributes for the new Param
-        default_val = self.get_default_arg_for_yaml(f'nlooks_freq{freq.lower()}')
-        yaml_attrs = YamlAttrs(
-            name=f'nlooks_freq{freq.lower()}',
-            descr=f'''
-                Number of looks along each axis of the Frequency {freq.upper()}
-                image arrays for multilooking the power image.
-                Format: [<num_rows>, <num_cols>]
-                Example: [6,7]
-                If not provided, the QA code to compute the nlooks values 
-                that would produce an approx. `num_mpix` MPix browse image.
-                Defaults to {default_val}.'''
-            )
-
-        return YamlParam(val=nlooks, yaml_attrs=yaml_attrs)
-
 
     @staticmethod
     def _validate_nlooks(nlooks, freq):
@@ -593,266 +456,14 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
             raise TypeError('`nlooks` must be of type int, iterable of int, '
                             f'or None: {nlooks}')
 
-    @property
-    def nlooks_freqa(self) -> YamlHDF5Param[str]:
-        return self._nlooks_freqa
-    
-    @nlooks_freqa.setter
-    def nlooks_freqa(self, nlooks_freqa_attr: YamlParam[str]):
-        # Validate input
-        val = nlooks_freqa_attr.val
-        self._validate_nlooks(val, 'A')
 
-        # Set attribute
-        self._nlooks_freqa = nlooks_freqa_attr
-
-    @property
-    def nlooks_freqb(self) -> YamlHDF5Param[str]:
-        return self._nlooks_freqb
-    
-    @nlooks_freqb.setter
-    def nlooks_freqb(self, nlooks_freqb_attr: YamlParam[str]):
-        # Validate input
-        val = nlooks_freqb_attr.val
-        self._validate_nlooks(val, 'B')
-
-        # Set attribute
-        self._nlooks_freqb = nlooks_freqb_attr
-
-
-    def _num_mpix_2_param(self, num_mpix):
-        '''Return `num_mpix` as a Param.'''
-
-        # Construct attributes for the new Param
-        default_val = self.get_default_arg_for_yaml(attr_name='num_mpix')
-        yaml_attrs = YamlAttrs(
-            name='num_mpix',
-            descr=f'''
-                The approx. size (in megapixels) for the final
-                multilooked browse image(s). Defaults to {default_val} MPix.
-                If `nlooks_freq*` parameter(s) is not None, nlooks
-                values will take precedence.'''
-            )
-
-        return YamlParam(val=num_mpix, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def num_mpix(self) -> YamlParam[bool]:
-        return self._num_mpix
-    
-    @num_mpix.setter
-    def num_mpix(self, num_mpix_attr: YamlParam[str]):
-        # Validate input
-        val = num_mpix_attr.val
-        if not isinstance(val, float):
-            raise TypeError(f'`num_mpix_attr.val` must be a float: {val}')
-
-        if val <= 0.0:
-            raise TypeError(f'`num_mpix_attr.val` must be >= 0.0: {val}')
-
-
-        # Set attribute
-        self._num_mpix = num_mpix_attr
-
-
-    def _middle_percentile_2_param(self, middle_percentile):
-        '''Return `middle_percentile` as a Param.'''
-
-        # Construct attributes for the new Param
-        default_val = self.get_default_arg_for_yaml(attr_name='middle_percentile')
-        yaml_attrs = YamlAttrs(
-            name='middle_percentile',
-            descr=f'''
-                Defines the middle percentile range of the image array
-                that the colormap covers. Must be in the range [0.0, 100.0].
-                Defaults to {default_val}.'''
-                )
-
-        hdf5_attrs = HDF5Attrs(
-            name='powerImageMiddlePercentile',
-            units='unitless',
-            descr='Middle percentile range of the image array '
-                  'that the colormap covers',
-            path=self.path_to_processing_group_in_stats_h5
-            )
-
-        return YamlHDF5Param(val=middle_percentile,
-                             yaml_attrs=yaml_attrs,
-                             hdf5_attrs=hdf5_attrs)
-
-
-    @property
-    def middle_percentile(self) -> YamlHDF5Param[float]:
-        return self._middle_percentile
-    
-    @middle_percentile.setter
-    def middle_percentile(self, middle_percentile_attr: YamlHDF5Param[float]):
-        # Validate input
-        val = middle_percentile_attr.val
-        if not isinstance(val, float):
-            raise TypeError(f'`middle_percentile_attr.val` must be a float: {val}')
-
-        if val < 0.0 or val > 100.0:
-            raise TypeError('`middle_percentileattr.val` is '
-                f'{val}, must be in range [0.0, 100.0]')
-
-        # Set attribute
-        self._middle_percentile = middle_percentile_attr
-
-
-    def _gamma_2_param(self, gamma):
-        '''Return `gamma` as a Param.'''
-
-        # Construct attributes for the new Param
-        default_val = self.get_default_arg_for_yaml(attr_name='gamma')
-        yaml_attrs = YamlAttrs(
-            name='gamma',
-            descr=f'Gamma correction applied to power image. Default: {default_val}.'
-                )
-
-        hdf5_attrs = HDF5Attrs(
-            name='powerImageGammaCorrection',
-            units='unitless',
-            descr='''
-                The gamma correction parameter.
-                Gamma will be applied as follows:
-                    array_out = normalized_array ^ gamma
-                where normalized_array is a copy of the image with values
-                scaled to the range [0,1]. 
-                The image colorbar will be defined with respect to the input
-                image values prior to normalization and gamma correction.
-                Defaults to None (no normalization, no gamma correction)''',
-            path=self.path_to_processing_group_in_stats_h5
-            )
-
-        return YamlHDF5Param(val=gamma,
-                             yaml_attrs=yaml_attrs,
-                             hdf5_attrs=hdf5_attrs)
-
-    @property
-    def gamma(self) -> YamlHDF5Param[Optional[float]]:
-        return self._gamma
-    
-    @gamma.setter
-    def gamma(self, gamma_attr: YamlHDF5Param[Optional[float]]):
-        # Validate input
-        val = gamma_attr.val
-
-        if isinstance(val, float):
-            if (val < 0.0):
-                raise ValueError('If `gamma_attr.val` is a float, it must be'
-                                f' non-negative: {val}')
-        elif val is not None:
-            raise TypeError('`gamma_attr.val` must be a float or None. '
-                            f'Value: {val}, Type: {type(val)}')
-
-        # Set attribute
-        self._gamma = gamma_attr
-
-
-    def _tile_shape_2_param(self, tile_shape):
-        '''Return `tile_shape` as a Param.
-                
-        TODO - this is duplicate code to other Params dataclasses. Fix.
-        '''
-
-        # Construct attributes for the new Param
-        default_val = self.get_default_arg_for_yaml(attr_name='tile_shape')
-        yaml_attrs = YamlAttrs(
-            name='tile_shape',
-            descr=f'''
-                Preferred tile shape for processing images by batches.
-                Actual tile shape used during processing might
-                be smaller due to shape of image.
-                Format: [<num_rows>, <num_cols>]
-                -1 to indicate all rows / all columns (respectively).
-                Defaults to {list(default_val)} to use all columns 
-                (i.e. full rows of data).'''
-            )
-
-        return YamlParam(val=tile_shape, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def tile_shape(self) -> YamlParam[Iterable[int]]:
-        return self._tile_shape
-    
-
-    @tile_shape.setter
-    def tile_shape(self, tile_shape_attr: YamlParam[Iterable[int]]):
-        # Validate input
-        val = tile_shape_attr.val
-        if not isinstance(val, (list, tuple)):
-            raise TypeError('`tile_shape_attr.val` must be a list or tuple: '
-                                f'{val}')
-
-        if not len(val) == 2:
-            raise TypeError('`tile_shape_attr.val` must have a length'
-                                f'of two: {val}')
-
-        if not all(isinstance(e, int) for e in val):
-            raise TypeError('`tile_shape_attr.val` must contain only '
-                                f'integers: {val}')
-
-        if any(e < -1 for e in val):
-            raise TypeError('`tile_shape_attr.val` must contain only '
-                                f' values >= -1: {val}')
-
-        # Set attribute
-        self._tile_shape = tile_shape_attr
-
-
-    def _pow_units_2_param(self):
-        '''Return `pow_units` as a Param.'''
-
-        if self.linear_units.val:
-            pow_units='linear'
-        else:
-            pow_units='dB'
-
-        # Construct attributes for the new Param
-        hdf5_attrs = HDF5Attrs(
-            name='powerImagePowerUnits',
-            units=None,
-            descr='''
-                Units of the power image.
-                If `linear_units` is True, this will be set to 'linear'.
-                If `linear_units` is False, this will be set to 'dB'.''',
-            path=self.path_to_processing_group_in_stats_h5
-            )
-
-        return HDF5Param(val=pow_units, hdf5_attrs=hdf5_attrs)
-
-
-    @property
-    def pow_units(self) -> HDF5Param[str]:
-        # There is no public setter for this property. It can only be set
-        # within the `linear_units` setter.
-        return self._pow_units
-    
-
-@dataclass
+@dataclass(frozen=True)
 class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
     # each param group will define the internal nesting path within its file (ABC property),
     # and how to populate its file.
     '''
     Parameters to generate the RSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
-
-    Arguments should be passed into this dataclass' parameters with 
-    types such as `str` or `int`. During initialization, these arguments
-    are processed into, stored as, and later accessible by the calling
-    function as attributes with the type Param. The attributes will have
-    the same name as the corresponding parameter, but will be of 
-    type Param instead of type e.g. `str`.
-    
-    The original argument is accessible via the `val` attribute 
-    of the new Param class; the additional Param attributes
-    will be populated with default metadata by this dataclass.
-
-    If no value or `None` is provided as an argument, then the
-    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
@@ -863,14 +474,10 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         every 3rd range line will be used to compute the histograms.
         Defaults to (10,10).
         Format: (<azimuth>, <range>)
-        When `decimation_ratio` is updated, the attributes
-        `pow_bin_edges` will be updated to match.
     pow_histogram_bin_edges_range : pair of float, optional
         The dB range for the power histogram's bin edges. Endpoint will
-        be included. Defaults to (-80.0,20.0).
+        be included. Defaults to [-80.0, 20.0].
         Format: (<starting value>, <endpoint>)
-        When `pow_histogram_bin_edges_range` is updated, the attribute
-        `pow_bin_edges` will be updated to match.
     phs_in_radians : bool, optional
         True to compute phase in radians units, False for degrees units.
         Defaults to True. If `phs_in_radians` is updated, then 
@@ -881,70 +488,192 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         be smaller due to shape of image.
         Format: (num_rows, num_cols) 
         -1 to indicate all rows / all columns (respectively).
-        Defaults to (1024, 1024) to use all columns 
-        (i.e. full rows of data).
 
     Attributes
     ----------
-    pow_bin_edges : Param
+    pow_bin_edges : numpy.ndarray
         The bin edges (including endpoint) to use when computing
         the power histograms. Will be set to 100 uniformly-spaced bins
-        in range [`pow_histogram_start`, `pow_histogram_endpoint`],
-        including endpoint. (units are dB)
-        This is set whenever `pow_histogram_bin_edges_range` is set.
-        This will be stored as a numpy.ndarray in `pow_bin_edges.val`
-    phs_bin_edges : Param
+        in range `pow_histogram_bin_edges_range`, including endpoint.
+    phs_bin_edges : numpy.ndarray
         The bin edges (including endpoint) to use when computing
-        the phase histograms. This is set whenever `phs_in_radians` is set.
-        This will be stored as a numpy.ndarray in `phs_bin_edges.val`
+        the phase histograms.
         If `phs_in_radians` is True, this will be set to 100 
         uniformly-spaced bins in range [-pi,pi], including endpoint.
         If `phs_in_radians` is False, this will be set to 100
         uniformly-spaced bins in range [-180,180], including endpoint.
+    az_decimation : int
+        The azimuth decimation ratio value; a copy of `decimation_ratio[0]`,
+        but with `hdf5_attrs` information in the dataclasses.field metadata.
+    rng_decimation : int
+        The range decimation ratio value; a copy of `decimation_ratio[1]`,
+        but with `hdf5_attrs` information in the dataclasses.field metadata.
     '''
 
-    # Set attributes to Param type for correct downstream type checking
-    # User-Provided attributes:
-    decimation_ratio: YamlParam
-    pow_histogram_bin_edges_range: YamlParam
-    phs_in_radians: YamlParam
-    tile_shape: YamlParam
+    decimation_ratio: Iterable[int] = field(
+        default=(10,10),
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='decimation_ratio',
+            descr='''Step size to decimate the input array for computing
+                the power and phase histograms.
+                For example, [2,3] means every 2nd azimuth line and
+                every 3rd range line will be used to compute the histograms.
+                Format: [<azimuth>, <range>]'''
+        )})
+
+    pow_histogram_bin_edges_range: Iterable[float] = field(
+        default=(-80.0,20.0),
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='pow_histogram_bin_edges_range',
+            descr='''The dB range for the power histogram's bin edges. Endpoint will
+                be included. Format: [<starting value>, <endpoint>]'''
+        )})
+
+    phs_in_radians: bool = field(
+        default=True,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='phs_in_radians',
+            descr='''True to compute phase histogram in radians units,
+                False for degrees units.'''
+        )})
+
+    tile_shape: list[int] = field(
+        default=(1024,-1),
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='tile_shape',
+            descr='''Preferred tile shape for processing images by batches.
+                Actual tile shape may be modified by QA-SAS.
+                Format: [<num_rows>, <num_cols>]
+                -1 to indicate all rows / all columns (respectively).'''
+            )
+        })
 
     # Auto-generated attributes
     # Power Bin Edges (generated from `pow_histogram_bin_edges_range`)
-    pow_bin_edges: HDF5Param = field(init=False)
+    pow_bin_edges: ArrayLike = field(
+        init=False,
+        metadata={
+        'hdf5_attrs' : HDF5Attrs(
+            name='histogramEdgesPower',
+            units='dB',
+            descr='Bin edges (including endpoint) for power histogram',
+            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+        )})
 
     # Phase bin edges (generated from `phs_in_radians`)
-    phs_bin_edges: HDF5Param = field(init=False)
+    phs_bin_edges: ArrayLike = field(
+        init=False,
+        metadata={
+        'hdf5_func' : 
+            lambda obj : HDF5Attrs(
+                name='histogramEdgesPhase',
+                units='radians' if obj.phs_in_radians else 'degrees',
+                descr='Bin edges (including endpoint) for phase histogram',
+                path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group) \
+            if (isinstance(obj, RSLCHistogramParamGroup)) \
+            else nisarqa.raise_(TypeError(
+            f'`obj` is {type(obj)}, but must be type RSLCHistogramParamGroup'))
+        })
 
-    # HDF5-specific attributes, generated from `decimation_ratio`
-    az_decimation: HDF5Param = field(init=False)
-    rng_decimation: HDF5Param = field(init=False)
+    # Attributes derived from `decimation_ratio`
+    az_decimation: int = field(
+        init=False,
+        metadata={
+        'hdf5_attrs' : HDF5Attrs(
+            name='histogramDecimationAz',
+            units='unitless',
+            descr='Azimuth decimation stride used to compute power'
+                  ' and phase histograms',
+            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            )})
 
-    # # scratch thoughts for populate runconfig
-    # flag = False
-    # for field in fields(cls):
-    #     if field has yaml_attrs:
-    #         if field.name in dict_of_defaults:
-    #             set it in the runconfig
-    #         else:
-    #             this means it is a required argument, so set this to an empty string
+    rng_decimation: int = field(
+        init=False,
+        metadata={
+        'hdf5_attrs' : HDF5Attrs(
+            name='histogramDecimationRange',
+            units='unitless',
+            descr='Range decimation stride used to compute power'
+                  ' and phase histograms',
+            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            )})
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        # validate decimation_ratio
+        val = self.decimation_ratio
+        if not isinstance(val, (list, tuple)):
+            raise TypeError(f'`decimation_ratio` must be list or tuple: {val}')
+        if not len(val) == 2:
+            raise ValueError(f'`decimation_ratio` must have length of 2: {val}')
+        if not all(isinstance(e, int) for e in val):
+            raise TypeError(f'`decimation_ratio` must contain integers: {val}')
+        if any(e <= 0 for e in val):
+            raise ValueError(
+                f'`decimation_ratio` must contain positive values: {val}')
+
+        # Validate pow_histogram_bin_edges_range
+        val = self.pow_histogram_bin_edges_range
+        if not isinstance(val, (list, tuple)):
+            raise TypeError('`pow_histogram_bin_edges_range` must'
+                            f' be a list or tuple: {val}')
+        if not len(val) == 2:
+            raise ValueError('`pow_histogram_bin_edges_range` must'
+                            f' have a length of two: {val}')
+        if not all(isinstance(e, float) for e in val):
+            raise TypeError('`pow_histogram_bin_edges_range` must'
+                            f' contain only float values: {val}')
+        if val[0] >= val[1]:
+            raise ValueError(
+                '`pow_histogram_bin_edges_range` has format '
+                f'[<starting value>, <endpoint>] where <starting value> '
+                f'must be less than <ending value>: {val}')
+
+        # validate phs_in_radians
+        if not isinstance(self.phs_in_radians, bool):
+            raise TypeError(f'phs_in_radians` must be bool: {val}')
+
+        # validate tile_shape
+        val = self.tile_shape
+        if not isinstance(val, (list, tuple)):
+            raise TypeError(f'`tile_shape` must be a list or tuple: {val}')
+        if not len(val) == 2:
+            raise TypeError(f'`tile_shape` must have a length of two: {val}')
+        if not all(isinstance(e, int) for e in val):
+            raise TypeError(f'`tile_shape` must contain only integers: {val}')
+        if any(e < -1 for e in val):
+            raise TypeError(f'Values in `tile_shape` must be >= -1: {val}')
 
 
-    def __init__(self,
-                decimation_ratio: Iterable[int] = (10,10),
-                pow_histogram_bin_edges_range: Iterable[float] = (-80.0,20.0),
-                phs_in_radians: bool = True,
-                tile_shape: Iterable[int] = (1024,1024)
-                ):
+        # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
+        # This dataclass is frozen to ensure that all inputs are validated, 
+        # so we need to use object.__setattr__()
 
-        self.decimation_ratio = \
-            self._decimation_ratio_2_param(decimation_ratio)
-        self.pow_histogram_bin_edges_range = \
-            self._pow_histogram_bin_edges_range_2_param(
-                pow_histogram_bin_edges_range)
-        self.phs_in_radians = self._phs_in_radians_2_param(phs_in_radians)
-        self.tile_shape = self._tile_shape_2_param(tile_shape)
+        # Set attributes dependent upon decimation_ratio
+        object.__setattr__(self, 'az_decimation', self.decimation_ratio[0])
+        object.__setattr__(self, 'rng_decimation', self.decimation_ratio[1])
+
+        # Set attributes dependent upon pow_histogram_bin_edges_range
+        # Power Bin Edges - hardcode to be in decibels
+        # 101 bin edges => 100 bins
+        object.__setattr__(self, 'pow_bin_edges',
+                           np.linspace(self.pow_histogram_bin_edges_range[0],
+                                       self.pow_histogram_bin_edges_range[1],
+                                       num=101,
+                                       endpoint=True))
+  
+        # Set attributes dependent upon phs_in_radians
+        if self.phs_in_radians:
+            object.__setattr__(self, 'phs_bin_edges', 
+                np.linspace(start=-np.pi, stop=np.pi, num=101, endpoint=True))
+        else:  # phase in dB
+            object.__setattr__(self, 'phs_bin_edges', 
+                    np.linspace(start=-180, stop=180, num=101, endpoint=True))
 
 
     @staticmethod
@@ -952,326 +681,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         return ['runconfig','groups','qa','qa_reports','histogram']
 
 
-    def _decimation_ratio_2_param(self, decimation_ratio):
-        '''Return `decimation_ratio` as a Param.'''
-
-        # Construct attributes for the new Param
-        def_val = self.get_default_arg_for_yaml(attr_name='decimation_ratio')
-        yaml_attrs = YamlAttrs(
-            name='decimation_ratio',
-            descr=f'''
-                The step size to decimate the input array for computing
-                the power and phase histograms.
-                For example, [2,3] means every 2nd azimuth line and
-                every 3rd range line will be used to compute the histograms.
-                Defaults to {list(def_val)}.
-                Format: [<azimuth>, <range>]'''
-            )
-        
-        return YamlParam(val=decimation_ratio, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def decimation_ratio(self) -> YamlParam[Iterable[int]]:
-        return self._decimation_ratio
-
-
-    @decimation_ratio.setter
-    def decimation_ratio(self, decimation_ratio_attr: YamlParam[Iterable[int]]):
-        # Validate input
-        val = decimation_ratio_attr.val
-
-        if not isinstance(val, (list, tuple)):
-            raise TypeError('`decimation_ratio_attr.val` must be a list or'
-                            f' tuple: {val}')
-
-        if not len(val) == 2:
-            raise ValueError('`decimation_ratio_attr.val` must have a length of '
-                            f'two: {val}')
-
-        if not all(isinstance(e, int) for e in val):
-            raise TypeError('`decimation_ratio_attr.val` must contain only '
-                            f'integers: {val}')
-
-        if any(e <= 0 for e in val):
-            raise ValueError('`decimation_ratio_attr.val` must contain only'
-                            f' positive values: {val}')
-
-        # Set attributes
-        # Decimation Ratio must be set first, before setting the individual
-        # azimuth and range attributes.
-        self._decimation_ratio = decimation_ratio_attr
-
-        self._az_decimation = self._decimation_direction_2_param(
-                                                        direction='az')
-        self._rng_decimation = self._decimation_direction_2_param(
-                                                        direction='range')
-
-
-    def _decimation_direction_2_param(self, direction):
-        '''
-        Take the value from `self.decimation_ratio` that corresponds to 
-        `direction`, and return that value wrapped in a HDF5Param.
-
-        Parameters
-        ----------
-        direction : str
-            'az' for azimuth direction, 'range' for range direction.
-
-        Returns
-        -------
-        hdf5_param : HDF5Param
-            The value from `self.decimation_ratio` that corresponds to 
-            `direction` that has been wrapped into a HDF5Param.
-        '''
-        # Validate input
-        if not isinstance(self.decimation_ratio, YamlParam):
-            raise TypeError('`self.decimation_ratio` must be a YamlParam:'
-                            f' {self.decimation_ratio}')
-
-        if direction not in ('az', 'range'):
-            raise ValueError(f'`direction` must be "az" or "range": {direction}')
-
-        if direction == 'az':
-            names = ('Az', 'Azimuth')
-            decimation_val = self.decimation_ratio.val[0]
-        else:
-            names = ('Range', 'Range')
-            decimation_val = self.decimation_ratio.val[1]
-
-        # Construct attributes for the new Param
-        hdf5_attrs = HDF5Attrs(
-            name=f'histogramDecimation{names[0]}',
-            units='unitless',
-            descr=f'{names[1]} decimation stride used to compute power and '
-                   'phase histograms',
-            path=self.path_to_processing_group_in_stats_h5
-            )
-        
-        return HDF5Param(val=decimation_val, hdf5_attrs=hdf5_attrs)
-
-
-    @property
-    def az_decimation(self):
-        '''Get az_decimation attribute value.
-        
-        Note that there is no setter for this property; the value
-        can only be set within the @decimation_ratio.setter
-        '''
-        return self._az_decimation
-
-
-    @property
-    def rng_decimation(self):
-        '''Get rng_decimation attribute value.
-        
-        Note that there is no setter for this property; the value
-        can only be set within the @decimation_ratio.setter
-        '''
-        return self._rng_decimation
-
-
-    def _pow_histogram_bin_edges_range_2_param(self, pow_histogram_bin_edges_range):
-        '''Return `pow_histogram_bin_edges_range` as a Param.'''
-
-        # Construct defaults for the new Param
-        yaml_attrs = YamlAttrs(
-            name='pow_histogram_bin_edges_range',
-            descr='''
-                The dB range for the power histogram's bin edges. Endpoint will
-                be included. Defaults to [-80.0,20.0].
-                Format: [<starting value>, <endpoint>]'''
-            )
-
-        return YamlParam(val=pow_histogram_bin_edges_range, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def pow_histogram_bin_edges_range(self) -> YamlParam[float]:
-        return self._pow_histogram_bin_edges_range
-
-    
-    @pow_histogram_bin_edges_range.setter
-    def pow_histogram_bin_edges_range(self, 
-        pow_histogram_bin_edges_range_attr: YamlParam[Iterable[float]]):
-
-        # Validate input
-        val = pow_histogram_bin_edges_range_attr.val
-
-        if not isinstance(val, (list, tuple)):
-            raise TypeError('`pow_histogram_bin_edges_range_attr.val` must'
-                            f' be a list or tuple: {val}')
-
-        if not len(val) == 2:
-            raise ValueError('`pow_histogram_bin_edges_range_attr.val` must'
-                            f' have a length of two: {val}')
-
-        if not all(isinstance(e, float) for e in val):
-            raise TypeError('`pow_histogram_bin_edges_range_attr.val` must'
-                            f' contain only float: {val}')
-
-        if val[0] >= val[1]:
-            raise ValueError(
-                '`pow_histogram_bin_edges_range_attr.val` has format '
-                f'[<starting value>, <endpoint>]; <starting value> '
-                f'must be less than <ending value>: {val}')
-
-        # Set attributes
-        self._pow_histogram_bin_edges_range = pow_histogram_bin_edges_range_attr
-
-        self._pow_bin_edges = self._pow_bin_edges_2_param()
-
-
-    @property
-    def pow_bin_edges(self):
-        return self._pow_bin_edges
-
-
-    def _pow_bin_edges_2_param(self):
-        '''Return `pow_bin_edges` as a Param.'''
-
-        # Validate input
-        if not isinstance(self.pow_histogram_bin_edges_range, YamlParam):
-            raise TypeError('`self.pow_histogram_bin_edges_range` must be a '
-                            f'YamlParam: {self.pow_histogram_bin_edges_range}')
-
-        # Power Bin Edges - hardcode to be in decibels
-        # 101 bin edges => 100 bins
-        bin_edges = np.linspace(self.pow_histogram_bin_edges_range.val[0],
-                                self.pow_histogram_bin_edges_range.val[1],
-                                num=101,
-                                endpoint=True)
-
-        # Construct attributes for the new Param
-        hdf5_attrs = HDF5Attrs(
-            name='histogramEdgesPower',
-            units='dB',
-            descr='Bin edges (including endpoint) for power histogram',
-            path=self.path_to_processing_group_in_stats_h5
-            )
-        
-        return HDF5Param(val=bin_edges, hdf5_attrs=hdf5_attrs)
-
-
-    def _phs_in_radians_2_param(self, phs_in_radians):
-        '''Return `phs_in_radians` as a Param.'''
-
-        # Construct defaults for the new Param
-        default_val = self.get_default_arg_for_yaml(attr_name='phs_in_radians')
-        yaml_attrs = YamlAttrs(
-            name='phs_in_radians',
-            descr=f'''
-                True to compute phase in radians units, False for 
-                degrees units. Defaults to {default_val}.'''
-        )
-
-        return YamlParam(val=phs_in_radians, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def phs_in_radians(self):
-        return self._phs_in_radians
-
-
-    @phs_in_radians.setter
-    def phs_in_radians(self, phs_in_radians_attr):
-
-        val = phs_in_radians_attr.val
-        if not isinstance(val, bool):
-            raise TypeError('phs_in_radians_attr.va; must be bool: '
-                                f'{val}')
-
-        # Set Attributes
-        # `self._phs_in_radians` must be set first, before setting the
-        # phase bin attribute.
-        self._phs_in_radians = phs_in_radians_attr
-        self._phs_bin_edges = self._phs_bin_edges_2_param()
-
-
-    def _phs_bin_edges_2_param(self):
-        '''Return `phs_bin_edges` as a Param.'''
-
-        # Phase bin edges - allow for either radians or degrees
-        if self.phs_in_radians.val:
-            phs_units = 'radians'
-            start = -np.pi
-            stop = np.pi
-        else:
-            phs_units = 'degrees'
-            start = -180
-            stop = 180
-
-        # 101 bin edges => 100 bins
-        bin_edges = np.linspace(start, stop, num=101, endpoint=True)
-
-        hdf5_attrs = HDF5Attrs(
-            name='histogramEdgesPhase',
-            units=phs_units,
-            descr='Bin edges (including endpoint) for phase histogram',
-            path=self.path_to_processing_group_in_stats_h5
-        )
-
-        return HDF5Param(val=bin_edges, hdf5_attrs=hdf5_attrs)
-
-
-    @property
-    def phs_bin_edges(self):
-        return self._phs_bin_edges
-
-
-    def _tile_shape_2_param(self, tile_shape):
-        '''Return `tile_shape` as a Param.
-                
-        TODO - this is duplicate code to other Params dataclasses. Fix.
-        '''
-
-        # Construct attributes for the new Param
-        default_val = self.get_default_arg_for_yaml(attr_name='tile_shape')
-        yaml_attrs = YamlAttrs(
-            name='tile_shape',
-            descr=f'''
-                Preferred tile shape for processing images by batches.
-                Actual tile shape used during processing might
-                be smaller due to shape of image.
-                Format: [<num_rows>, <num_cols>]
-                -1 to indicate all rows / all columns (respectively).
-                Defaults to {list(default_val)} to use all columns 
-                (i.e. full rows of data).'''
-            )
-
-        return YamlParam(val=tile_shape, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def tile_shape(self) -> YamlParam[Iterable[int]]:
-        return self._tile_shape
-    
-
-    @tile_shape.setter
-    def tile_shape(self, tile_shape_attr: YamlParam[Iterable[int]]):
-        # Validate input
-        val = tile_shape_attr.val
-        if not isinstance(val, (list, tuple)):
-            raise TypeError('`tile_shape_attr.val` must be a list or tuple: '
-                                f'{val}')
-
-        if not len(val) == 2:
-            raise TypeError('`tile_shape_attr.val` must have a length'
-                                f'of two: {val}')
-
-        if not all(isinstance(e, int) for e in val):
-            raise TypeError('`tile_shape_attr.val` must contain only '
-                                f'integers: {val}')
-
-        if any(e < -1 for e in val):
-            raise TypeError('`tile_shape_attr.val` must contain only '
-                                f' values >= -1: {val}')
-
-        # Set attribute
-        self._tile_shape = tile_shape_attr
-
-
-@dataclass
+@dataclass(frozen=True)
 class AbsCalParamGroup(YamlHDF5ParamGroup):
     '''
     Parameters from the QA-CalTools Absolute Calibration Factor
@@ -1282,18 +692,37 @@ class AbsCalParamGroup(YamlHDF5ParamGroup):
     attr1 : float, optional
         Placeholder Attribute 1.
     '''
-
-    attr1: YamlHDF5Param[float]
-
-    # Override the parent class variable
-    path_to_processing_group_in_stats_h5: ClassVar[str] = \
+    
+    path_to_stats_h5_abscal_processing_group: ClassVar[str] = \
                         '/science/%s/absoluteCalibrationFactor/processing'
 
+    # Attributes
+    attr1: float = field(
+        default=2.3,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='attr1',
+            descr='''
+            Placeholder: Attribute 1 description for runconfig. Each new line
+            of text will be a separate line in the runconfig template.
+            `attr1` is a non-negative float value.'''
+        ),
+        'hdf5_attrs' : HDF5Attrs(
+            name='attribute1',
+            units='smoot',
+            descr='Description of `attr1` for stats.h5 file',
+            path=path_to_stats_h5_abscal_processing_group
+        )})
 
-    def __init__(self, attr1: float = 2.3):
 
-        # validate and initialize all attributes.
-        self.attr1 = self._attr1_2_param(attr1)
+    def __post_init__(self):
+        # validate all attributes in __post_init__
+
+        # validate attr1
+        if not isinstance(self.attr1, float):
+            raise TypeError(f'`attr1` must be a float: {self.attr1}')
+        if self.attr1 < 0:
+            raise TypeError(f'`attr1` must be positive: {self.attr1}')
 
 
     @staticmethod
@@ -1301,68 +730,10 @@ class AbsCalParamGroup(YamlHDF5ParamGroup):
         return ['runconfig','groups','qa','absolute_calibration_factor']
 
 
-    def _attr1_2_param(self, attr1):
-        '''Return `attr1` as a Param'''
-
-        # Construct defaults for the new Param
-        yaml_attrs = YamlAttrs(
-            name='attr1',
-            descr='''
-            Placeholder: Attribute 1 description for runconfig. Each new line
-            of text will be a separate line in the runconfig template.
-            `attr1` is a non-negative float value. Default: 2.3'''
-        )
-
-        hdf5_attrs = HDF5Attrs(
-            name='attribute1',
-            units='smoot',
-            descr='Description of `attr1` for stats.h5 file',
-            path=self.path_to_processing_group_in_stats_h5
-        )
-
-        return YamlHDF5Param(val=attr1,
-                             yaml_attrs=yaml_attrs,
-                             hdf5_attrs=hdf5_attrs)
-
-
-    @property
-    def attr1(self):
-        return self._attr1
-    
-
-    @attr1.setter
-    def attr1(self, attr1_attr):
-
-        # Validate
-        val = attr1_attr.val
-        if not isinstance(val, float):
-            raise TypeError(f'`attr1_attr.val` must be a float: {val}')
-
-        if val < 0.0:
-            raise TypeError(f'`attr1_attr.val` must be non-negative: {val}')
-
-        # Set Attribute
-        self._attr1 = attr1_attr
-
-
-@dataclass
+@dataclass(frozen=True)
 class NESZParamGroup(YamlHDF5ParamGroup):
     '''
     Parameters from the QA-CalTools Noise Estimator (NESZ) runconfig group.
-
-    Arguments should be passed into this dataclass' parameters with 
-    types such as `str` or `int`. During initialization, these arguments
-    are processed into, stored as, and later accessible by the calling
-    function as attributes with the type Param. The attributes will have
-    the same name as the corresponding parameter, but will be of 
-    type Param instead of type e.g. `str`.
-    
-    The original argument is accessible via the `val` attribute 
-    of the new Param class; the additional Param attributes
-    will be populated with default metadata by this dataclass.
-
-    If no value or `None` is provided as an argument, then the
-    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
@@ -1375,21 +746,51 @@ class NESZParamGroup(YamlHDF5ParamGroup):
         Placeholder parameter of type bool. This is set by updating `attr1`.
     '''
 
-    # Attributes for running the NESZ workflow
-    attr1: YamlParam[float]
-
-    # Auto-generated attributes
-    attr2: HDF5Param[bool] = field(init=False)
-
-    # Override the parent class' class variable
-    path_to_processing_group_in_stats_h5: ClassVar[str] = \
+    path_to_stats_h5_nesz_processing_group: ClassVar[str] = \
                                                 '/science/%s/NESZ/processing'
 
+    # Attributes for running the NESZ workflow
+    attr1: float = field(
+        default=11.9,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='attr1',
+            descr=f'''Placeholder: Attribute 1 description for runconfig.
+            Each new line of text will be a separate line in the runconfig
+            template. The Default value will be auto-appended to this
+            description by the QA code during generation of the template.
+            `attr1` is a positive float value.'''
+        )})
 
-    def __init__(self, attr1: float = 11.9):
+    # Auto-generated attributes. Set init=False for auto-generated attributes.
+    # attr2 is dependent upon attr1
+    attr2: bool = field(
+        init=False,
+        metadata={
+        'hdf5_attrs' : HDF5Attrs(
+            name='attribute2',
+            units='parsecs',
+            descr='True if K-run was less than 12.0',
+            path=path_to_stats_h5_nesz_processing_group
+        )})
 
-        # validate and initialize all attributes.
-        self.attr1 = self._attr1_2_param(attr1)
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        # Validate attr1
+        if not isinstance(self.attr1, float):
+            raise TypeError(f'`attr1` must be a float: {self.attr1}')
+        if self.attr1 < 0.0:
+            raise TypeError(f'`attr1` must be postive: {self.attr1}')
+
+
+        # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
+        # This dataclass is frozen to ensure that all inputs are validated, 
+        # so we need to use object.__setattr__()
+
+        # set attr2 based on attr1
+        object.__setattr__(self, 'attr2', (self.attr1 < 12.0))
 
 
     @staticmethod
@@ -1397,94 +798,10 @@ class NESZParamGroup(YamlHDF5ParamGroup):
         return ['runconfig','groups','qa','nesz']
 
 
-    def _attr1_2_param(self, attr1):
-        '''Return `attr1` as a Param'''
-
-        # Construct defaults for the new Param
-        default_value = self.get_default_arg_for_yaml(attr_name='attr1')
-        yaml_attrs = YamlAttrs(
-            name='attr1',
-            descr=f'''
-            Placeholder: Attribute 1 description for runconfig. Each new line
-            of text will be a separate line in the runconfig template.
-            `attr1` is a non-negative float value. Default: {default_value}'''
-        )
-
-        return YamlParam(val=attr1, yaml_attrs=yaml_attrs)
-
-
-    @property
-    def attr1(self):
-        return self._attr1
-    
-
-    @attr1.setter
-    def attr1(self, attr1_attr):
-
-        # Validate
-        val = attr1_attr.val
-        if not isinstance(val, float):
-            raise TypeError(f'`attr1_attr.val` must be a float: {val}')
-
-        if val < 0.0:
-            raise TypeError(f'`attr1_attr.val` must be non-negative: {val}')
-
-        # Set Attributes
-        self._attr1 = attr1_attr
-
-        # attr2 is dependent upon attr1, but they should always stay in sync
-        # with each other. So, whenever attr1 is updated, we should next 
-        # update attr2 at the same time.
-        # This also prevents an outside user from updating attr2 independently,
-        # which would cause the attributes to fall out of sync with each other.
-        self._attr2 = self._attr2_2_param()
-
-
-    def _attr2_2_param(self):
-        '''Return `attr2` as a Param.'''
-
-        # Here is where the dependency upon attr1 occurs:
-        if self.attr1.val < 12.0:
-            val = True
-        else:
-            val = False
-
-        hdf5_attrs = HDF5Attrs(
-            name='attribute2',
-            units='parsecs',
-            descr='True if K-run was less than 12.0',
-            path=self.path_to_processing_group_in_stats_h5
-        )
-
-        return HDF5Param(val=val, hdf5_attrs=hdf5_attrs)
-
-    @property
-    def attr2(self):
-        # Because attr2 can only be set when the attr1 is set
-        # (which is inside @attr1.setter), we should only define
-        # the @property for attr2. We do not need a separate setter for
-        # attr2.
-        return self._attr2
-
-
-@dataclass
+@dataclass(frozen=True)
 class PointTargetAnalyzerParamGroup(YamlHDF5ParamGroup):
     '''
     Parameters from the QA-CalTools Point Target Analyzer runconfig group.
-
-    Arguments should be passed into this dataclass' parameters with 
-    types such as `str` or `int`. During initialization, these arguments
-    are processed into, stored as, and later accessible by the calling
-    function as attributes with the type Param. The attributes will have
-    the same name as the corresponding parameter, but will be of 
-    type Param instead of type e.g. `str`.
-    
-    The original argument is accessible via the `val` attribute 
-    of the new Param class; the additional Param attributes
-    will be populated with default metadata by this dataclass.
-
-    If no value or `None` is provided as an argument, then the
-    Param attribute will be initialized with all default values.
 
     Parameters
     ----------
@@ -1492,64 +809,38 @@ class PointTargetAnalyzerParamGroup(YamlHDF5ParamGroup):
         Placeholder Attribute 1.
     '''
 
-    attr1: YamlHDF5Param[float]
-
     # Override the parent class variable
-    path_to_processing_group_in_stats_h5: ClassVar[str] = \
+    path_to_stats_h5_pta_processing_group: ClassVar[str] = \
                         '/science/%s/pointTargetAnalyzer/processing'
 
+    attr1: float = field(
+        default=2300.5,
+        metadata={
+        'yaml_attrs' : YamlAttrs(
+            name='attr1',
+            descr='''Placeholder: Attribute 1 description for runconfig.
+            Each new line of text will be a separate line in the runconfig
+            template.
+            `attr1` is a non-negative float value.'''
+        ),
+        'hdf5_attrs' : HDF5Attrs(
+            name='attribute1',
+            units='beard-second',
+            descr='Description of `attr1` for stats.h5 file',
+            path=path_to_stats_h5_pta_processing_group
+        )})
 
-    def __init__(self, attr1: float = 2300.5):
-        self.attr1 = self._attr1_2_param(attr1)
 
+    def __post_init__(self):
+        # validate attr1
+        if not isinstance(self.attr1, float):
+            raise TypeError(f'`attr1` must be a float: {self.attr1}')
+        if self.attr1 < 0.0:
+            raise TypeError(f'`attr1` must be non-negative: {self.attr1}')
 
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ['runconfig','groups','qa','point_target_analyzer']
-
-
-    def _attr1_2_param(self, attr1):
-        '''Return `attr1` as a Param'''
-
-        # Construct defaults for the new Param
-        yaml_attrs = YamlAttrs(
-            name='attr1',
-            descr='''
-            Placeholder: Attribute 1 description for runconfig. Each new line
-            of text will be a separate line in the runconfig template.
-            `attr1` is a non-negative float value. Default: 2.3'''
-        )
-
-        hdf5_attrs = HDF5Attrs(
-            name='attribute1',
-            units='beard-second',
-            descr='Description of `attr1` for stats.h5 file',
-            path=self.path_to_processing_group_in_stats_h5
-        )
-
-        return YamlHDF5Param(val=attr1,
-                             yaml_attrs=yaml_attrs,
-                             hdf5_attrs=hdf5_attrs)
-
-
-    @property
-    def attr1(self):
-        return self._attr1
-    
-
-    @attr1.setter
-    def attr1(self, attr1_attr):
-
-        # Validate
-        val = attr1_attr.val
-        if not isinstance(val, float):
-            raise TypeError(f'`attr1_attr.val` must be a float: {val}')
-
-        if val < 0.0:
-            raise TypeError(f'`attr1_attr.val` must be non-negative: {val}')
-
-        # Set attribute
-        self._attr1 = attr1_attr
 
 
 @dataclass

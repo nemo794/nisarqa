@@ -51,6 +51,43 @@ class DatasetNotFoundError(Exception):
         super().__init__('Dataset not found.')
 
 
+def raise_(exc):
+    '''Wrapper to raise an Exception for use in e.g. lambda functions.
+
+    Parameters
+    ----------
+    exc : Exception
+        An Exception or a subclass of Exception that can be re-raised.
+
+    Examples
+    --------
+    >>> raise_(Exception('mayday'))
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "<stdin>", line 2, in raise_
+    Exception: mayday
+    
+    >>> raise_(TypeError('Input has incorrect type'))
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "<stdin>", line 2, in raise_
+    TypeError: Input has incorrect type
+    >>> out = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
+    
+    >>> my_func = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
+    >>> my_func(3)
+    4
+    >>> my_func(-1)
+    Traceback (most recent call last):
+    File "<stdin>", line 1, in <module>
+      File "<stdin>", line 1, in <lambda>
+      File "<stdin>", line 2, in raise_
+    Exception: error
+    '''
+    
+    raise exc
+
+
 def compute_non_zero_mask(arr, epsilon=1.0E-05):
     '''
     Create a mask of the non-zero pixels in the input array.

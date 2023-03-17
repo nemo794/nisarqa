@@ -1,3 +1,5 @@
+from dataclasses import fields
+
 import nisarqa
 
 # List of objects from the import statements that
@@ -48,13 +50,15 @@ def run_abscal_tool(abscal_params, dyn_anc_params,
 
             # Step 2: store the data
             grp_path = f'/science/{band}/absoluteCalibrationFactor/data'
+            ds_units = abscal_params.get_units_from_hdf5_metadata('attr1')
+
             nisarqa.create_dataset_in_h5group(
                     h5_file = stats_h5,
                     grp_path=grp_path,
                     ds_name='abscalResult',
                     ds_data=result,
                     ds_description='TODO Description for abscalResult',
-                    ds_units=abscal_params.attr1.hdf5_attrs.units
+                    ds_units=ds_units
             )
 
 
@@ -90,7 +94,7 @@ def run_nesz_tool(params, input_filename, stats_filename):
     with nisarqa.open_h5_file(stats_filename, mode='a') as stats_h5:
         for band in bands:
             # Step 1: Run the tool; get some results
-            result = ((12.0 - params.attr1.val) / params.attr1.val) * 100.
+            result = ((12.0 - params.attr1) / params.attr1) * 100.
 
             # Step 2: store the data
             grp_path = f'/science/{band}/NESZ/data'

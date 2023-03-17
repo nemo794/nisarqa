@@ -34,7 +34,22 @@ def verify_rslc(runconfig_file):
 
     # Parse the runconfig file
     rslc_params = nisarqa.parse_rslc_runconfig(runconfig_file)
-    output_dir = rslc_params.prodpath.qa_output_dir.val
+    output_dir = rslc_params.prodpath.qa_output_dir
+
+    for params_obj in fields(rslc_params):
+        print("BOOP" , params_obj.name)
+        if params_obj.name == 'histogram':
+            po = getattr(rslc_params, params_obj.name)
+            for param in fields(po):
+                if param.name == 'phs_bin_edges':
+                    print("WOWOWOOW: ", param.metadata)
+                    tmp = param.metadata['hdf5_func']
+                    print("tmp: ", tmp)
+                    print("type: ", type(tmp))
+                    print("doop: ", tmp(po))
+                    print("lalala: ", param.metadata['hdf5_func'](po))
+                    # print("lalala: ", param.metadata['hdf5_func']("the"))
+                    break
 
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
 
@@ -69,7 +84,7 @@ def verify_rslc(runconfig_file):
     nisarqa.output_stub_files(output_dir=output_dir, stub_files='log_txt')
 
     # Create file paths for output files ()
-    input_file = rslc_params.input_f.qa_input_file.val
+    input_file = rslc_params.input_f.qa_input_file
     msg = f'Starting Quality Assurance for input file: {input_file}' \
             f'\nOutputs to be generated:'
     if rslc_params.workflows.validate or rslc_params.workflows.qa_reports:
@@ -1146,8 +1161,8 @@ def get_multilooked_power_image(img,
         The multilooked Power Image
     '''
 
-    nlooks_freqa_arg = params.nlooks_freqa.val
-    nlooks_freqb_arg = params.nlooks_freqb.val
+    nlooks_freqa_arg = params.nlooks_freqa
+    nlooks_freqb_arg = params.nlooks_freqb
 
     # Get the window size for multilooking
     if (img.freq == 'A' and nlooks_freqa_arg is None) or \
@@ -1156,7 +1171,7 @@ def get_multilooked_power_image(img,
         nlooks = nisarqa.compute_square_pixel_nlooks(
                     img.data.shape,
                     sample_spacing=(img.az_spacing, img.range_spacing),
-                    num_mpix=params.num_mpix.val)
+                    num_mpix=params.num_mpix)
 
     elif img.freq == 'A':
         nlooks = nlooks_freqa_arg
@@ -1167,7 +1182,7 @@ def get_multilooked_power_image(img,
                           'are valid options.')
 
     # Save the final nlooks to the HDF5 dataset
-    grp_path = params.path_to_processing_group_in_stats_h5 % img.band
+    grp_path = params.path_to_stats_h5_qa_processing_group % img.band
     dataset_name = f'powerImageNlooksFreq{img.freq.upper()}'
     if dataset_name in stats_h5[grp_path]:
         # Sanity Check: Ensure that the nlooks values are the same
@@ -1194,7 +1209,7 @@ def get_multilooked_power_image(img,
     out_img = nisarqa.compute_multilooked_power_by_tiling(
                                             arr=img.data,
                                             nlooks=nlooks,
-                                            tile_shape=params.tile_shape.val)
+                                            tile_shape=params.tile_shape)
 
     print(f'Multilooking Complete. Multilooked image shape: {out_img.shape}')
 
@@ -1282,11 +1297,11 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
     '''
 
     # Plot and Save Power Image to graphical summary pdf
-    title = f'RSLC Multilooked Power ({params.pow_units.val}%s)\n{img.name}'
-    if params.gamma.val is None:
+    title = f'RSLC Multilooked Power ({params.pow_units}%s)\n{img.name}'
+    if params.gamma is None:
         title = title % ''
     else:
-        title = title % fr', $\gamma$={params.gamma.val}'
+        title = title % fr', $\gamma$={params.gamma}'
 
     # Get Azimuth (y-axis) label
     az_title = f'Zero Doppler Time\n(seconds since {img.epoch})'
@@ -1859,7 +1874,7 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians, 
     configurable to be computed in degrees by setting
-    `params.phs_in_radians.val` to False.
+    `params.phs_in_radians` to False.
 
     Parameters
     ----------
@@ -1943,17 +1958,16 @@ def generate_histogram_single_freq(pol, band, freq,
         pow_hist_density, phs_hist_density = \
                 nisarqa.compute_power_and_phase_histograms_by_tiling(
                             arr=pol_data.data,
-                            pow_bin_edges=params.pow_bin_edges.val,
-                            phs_bin_edges=params.phs_bin_edges.val,
-                            phs_in_radians=params.phs_in_radians.val,
-                            decimation_ratio=params.decimation_ratio.val,
-                            tile_shape=params.tile_shape.val,
+                            pow_bin_edges=params.pow_bin_edges,
+                            phs_bin_edges=params.phs_bin_edges,
+                            decimation_ratio=params.decimation_ratio,
+                            tile_shape=params.tile_shape,
                             density=True)
 
         # Save to stats.h5 file
         grp_path = f'/science/{band}/QA/data/frequency{freq}/{pol_name}/'
-        pow_units = params.pow_bin_edges.hdf5_attrs.units
-        phs_units = params.phs_bin_edges.hdf5_attrs.units
+        pow_units = params.get_units_from_hdf5_metadata('pow_bin_edges')
+        phs_units = params.get_units_from_hdf5_metadata('phs_bin_edges')
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,
@@ -1974,12 +1988,12 @@ def generate_histogram_single_freq(pol, band, freq,
         # Add these densities to the figures
         add_hist_to_axis(pow_ax,
                          counts=pow_hist_density, 
-                         edges=params.pow_bin_edges.val,
+                         edges=params.pow_bin_edges,
                          label=pol_name)
 
         add_hist_to_axis(phs_ax,
                          counts=phs_hist_density,
-                         edges=params.phs_bin_edges.val,
+                         edges=params.phs_bin_edges,
                          label=pol_name)
 
     # Label the Power Figure

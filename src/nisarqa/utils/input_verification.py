@@ -39,8 +39,8 @@ def validate_is_file(filepath, parameter_name, extension=None):
 
     Parameters
     ----------
-    value : str
-        The value to be validated
+    filepath : str
+        The filename (with path) to the file to be validated
     parameter_name : str
         The name of the variable; Displays in the Exception message.
     extension : str, optional
