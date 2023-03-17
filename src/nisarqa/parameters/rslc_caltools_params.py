@@ -313,7 +313,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
             units='unitless',
             descr='Middle percentile range of the image array '
                   'that the colormap covers',
-            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )
         })
 
@@ -335,7 +335,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
             name='powerImageGammaCorrection',
             units='unitless',
             descr='Gamma correction parameter applied to power and browse image(s).',
-            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )
         })
 
@@ -360,7 +360,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
                 name='powerImagePowerUnits',
                 units=None,
                 descr='''Units of the power image.''',
-                path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+                path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )
         })
 
@@ -561,7 +561,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
             name='histogramEdgesPower',
             units='dB',
             descr='Bin edges (including endpoint) for power histogram',
-            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
         )})
 
     # Phase bin edges (generated from `phs_in_radians`)
@@ -573,7 +573,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
                 name='histogramEdgesPhase',
                 units='radians' if obj.phs_in_radians else 'degrees',
                 descr='Bin edges (including endpoint) for phase histogram',
-                path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group) \
+                path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
             if (isinstance(obj, RSLCHistogramParamGroup)) \
             else nisarqa.raise_(TypeError(
             f'`obj` is {type(obj)}, but must be type RSLCHistogramParamGroup'))
@@ -588,7 +588,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
             units='unitless',
             descr='Azimuth decimation stride used to compute power'
                   ' and phase histograms',
-            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )})
 
     rng_decimation: int = field(
@@ -599,7 +599,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
             units='unitless',
             descr='Range decimation stride used to compute power'
                   ' and phase histograms',
-            path=HDF5ParamGroup.path_to_stats_h5_qa_processing_group
+            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )})
 
     def __post_init__(self):
@@ -693,9 +693,6 @@ class AbsCalParamGroup(YamlHDF5ParamGroup):
         Placeholder Attribute 1.
     '''
     
-    path_to_stats_h5_abscal_processing_group: ClassVar[str] = \
-                        '/science/%s/absoluteCalibrationFactor/processing'
-
     # Attributes
     attr1: float = field(
         default=2.3,
@@ -711,7 +708,7 @@ class AbsCalParamGroup(YamlHDF5ParamGroup):
             name='attribute1',
             units='smoot',
             descr='Description of `attr1` for stats.h5 file',
-            path=path_to_stats_h5_abscal_processing_group
+            path=nisarqa.STATS_H5_ABSCAL_PROCESSING_GROUP
         )})
 
 
@@ -746,9 +743,6 @@ class NESZParamGroup(YamlHDF5ParamGroup):
         Placeholder parameter of type bool. This is set by updating `attr1`.
     '''
 
-    path_to_stats_h5_nesz_processing_group: ClassVar[str] = \
-                                                '/science/%s/NESZ/processing'
-
     # Attributes for running the NESZ workflow
     attr1: float = field(
         default=11.9,
@@ -771,7 +765,7 @@ class NESZParamGroup(YamlHDF5ParamGroup):
             name='attribute2',
             units='parsecs',
             descr='True if K-run was less than 12.0',
-            path=path_to_stats_h5_nesz_processing_group
+            path=nisarqa.STATS_H5_NESZ_PROCESSING_GROUP
         )})
 
 
@@ -809,10 +803,6 @@ class PointTargetAnalyzerParamGroup(YamlHDF5ParamGroup):
         Placeholder Attribute 1.
     '''
 
-    # Override the parent class variable
-    path_to_stats_h5_pta_processing_group: ClassVar[str] = \
-                        '/science/%s/pointTargetAnalyzer/processing'
-
     attr1: float = field(
         default=2300.5,
         metadata={
@@ -827,7 +817,7 @@ class PointTargetAnalyzerParamGroup(YamlHDF5ParamGroup):
             name='attribute1',
             units='beard-second',
             descr='Description of `attr1` for stats.h5 file',
-            path=path_to_stats_h5_pta_processing_group
+            path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP
         )})
 
 

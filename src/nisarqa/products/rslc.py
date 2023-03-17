@@ -36,21 +36,6 @@ def verify_rslc(runconfig_file):
     rslc_params = nisarqa.parse_rslc_runconfig(runconfig_file)
     output_dir = rslc_params.prodpath.qa_output_dir
 
-    for params_obj in fields(rslc_params):
-        print("BOOP" , params_obj.name)
-        if params_obj.name == 'histogram':
-            po = getattr(rslc_params, params_obj.name)
-            for param in fields(po):
-                if param.name == 'phs_bin_edges':
-                    print("WOWOWOOW: ", param.metadata)
-                    tmp = param.metadata['hdf5_func']
-                    print("tmp: ", tmp)
-                    print("type: ", type(tmp))
-                    print("doop: ", tmp(po))
-                    print("lalala: ", param.metadata['hdf5_func'](po))
-                    # print("lalala: ", param.metadata['hdf5_func']("the"))
-                    break
-
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
 
     rslc_params_names = {
@@ -173,10 +158,8 @@ def verify_rslc(runconfig_file):
             with nisarqa.open_h5_file(stats_file, mode='r+') as stats_h5, \
                 PdfPages(report_file) as report_pdf:
 
-                # Save product info to stats file
-                save_nisar_freq_metadata_to_h5(stats_h5=stats_h5,
-                                               path_to_group='/QA/data',
-                                               pols=pols)
+                # Save frequency/polarization info to stats file
+                save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
 
                 # Generate the RSLC Power Image
                 # Note: the `nlooks*` parameters might be updated. TODO comment better.
@@ -255,46 +238,40 @@ def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5):
     '''
 
     for band in nisar_h5['/science']:
-        grp_path = f'/science/{band}/identification'
+        src_grp_path = f'/science/{band}/identification'
+        dest_grp_path = nisarqa.STATS_H5_IDENTIFICATION_GROUP % band
 
-        if 'identification' in stats_h5[f'/science/{band}']:
-            # If the identification group already exists, copy each
+        if dest_grp_path in stats_h5:
+            # The identification group already exists, so copy each
             # dataset, etc. individually
-            for item in nisar_h5[grp_path]:
-                item_path = f'{grp_path}/{item}'
+            for item in nisar_h5[src_grp_path]:
+                item_path = f'{dest_grp_path}/{item}'
                 nisar_h5.copy(nisar_h5[item_path], stats_h5, item_path)
         else:
             # Copy entire identification metadata from input file to stats.h5
-            nisar_h5.copy(nisar_h5[grp_path], stats_h5, grp_path)
+            nisar_h5.copy(nisar_h5[src_grp_path], stats_h5, dest_grp_path)
 
-
-def save_nisar_freq_metadata_to_h5(stats_h5,
-                                   path_to_group,
-                                   pols):
+def save_nisar_freq_metadata_to_h5(stats_h5, pols):
     '''
     Populate the `stats_h5` HDF5 file with a list of each available
     frequency's polarizations.
 
     If `pols` contains values for Frequency A, then this dataset will
     be created in `stats_h5`:
-        /science/<band>/<path_to_group>/frequencyA/listOfPolarizations
+        /science/<band>/QA/data/frequencyA/listOfPolarizations
     
     If `pols` contains values for Frequency B, then this dataset will
     be created in `stats_h5`:
-        /science/<band>/<path_to_group>/frequencyB/listOfPolarizations
+        /science/<band>/QA/data/frequencyB/listOfPolarizations
+
+    * Note: The paths are pulled from the global nisarqa.STATS_H5_QA_FREQ_GROUP.
+    If the value of that global changes, then the path for the 
+    `listOfPolarizations` dataset(s) will change accordingly.
 
     Parameters
     ----------
     stats_h5 : h5py.File
-        Handle to an h5 file where the identification metadata
-        should be saved
-    path_to_group : str
-        Internal path in `stats_h5` to the HDF5 group where
-        the polarization data will be stored.
-        That this will be appended to the root '/science/<band>'
-        Example: if `path_to_group` is '/QA/data', and if only
-        LSAR is an available band in `pols`, then the
-        group will be '/science/LSAR/QA/data'
+        Handle to an h5 file where the list(s) of polarizations should be saved
     pols : nested dict of RSLCRasterQA
         Nested dict of RSLCRasterQA objects, where each object represents
         a polarization dataset.
@@ -306,8 +283,7 @@ def save_nisar_freq_metadata_to_h5(stats_h5,
     for band in pols:
         for freq in pols[band]:
             list_of_pols = list(pols[band][freq])
-            grp_path = \
-                f'/science/{band}/{path_to_group.lstrip("/")}/frequency{freq}'
+            grp_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq)
             nisarqa.create_dataset_in_h5group(
                 h5_file=stats_h5,
                 grp_path=grp_path,
@@ -1182,7 +1158,7 @@ def get_multilooked_power_image(img,
                           'are valid options.')
 
     # Save the final nlooks to the HDF5 dataset
-    grp_path = params.path_to_stats_h5_qa_processing_group % img.band
+    grp_path = nisarqa.STATS_H5_QA_PROCESSING_GROUP % img.band
     dataset_name = f'powerImageNlooksFreq{img.freq.upper()}'
     if dataset_name in stats_h5[grp_path]:
         # Sanity Check: Ensure that the nlooks values are the same
@@ -1196,9 +1172,9 @@ def get_multilooked_power_image(img,
             ds_name=dataset_name,
             ds_data=nlooks,
             ds_units='unitless',
-            ds_description='Number of looks along [<azimuth>,<range>] axes of the '
-                        f'Frequency {img.freq.upper()} image arrays '
-                        'for multilooking the power image.')
+            ds_description='Number of looks along [<azimuth>,<range>] axes of '
+                        f'the Frequency {img.freq.upper()} image arrays '
+                        'for multilooking the power and browse image.')
 
     print(f'\nMultilooking Image {img.name} with shape: {img.data.shape}')
     print('sceneCenterAlongTrackSpacing: ', img.az_spacing)
@@ -1965,7 +1941,7 @@ def generate_histogram_single_freq(pol, band, freq,
                             density=True)
 
         # Save to stats.h5 file
-        grp_path = f'/science/{band}/QA/data/frequency{freq}/{pol_name}/'
+        grp_path = f'{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/' % (band, freq)
         pow_units = params.get_units_from_hdf5_metadata('pow_bin_edges')
         phs_units = params.get_units_from_hdf5_metadata('phs_bin_edges')
 

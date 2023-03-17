@@ -269,9 +269,6 @@ class YamlParamGroup(ABC):
 class HDF5ParamGroup:
     '''Class for parameters that will be stored in the output HDF5 file.'''
 
-    path_to_stats_h5_qa_processing_group: ClassVar[str] = \
-                                                '/science/%s/QA/processing'
-
     def get_units_from_hdf5_metadata(self, attribute_name):
         '''
         Return the value of the input attribute's `units` metadata.

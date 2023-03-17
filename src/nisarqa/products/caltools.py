@@ -49,7 +49,7 @@ def run_abscal_tool(abscal_params, dyn_anc_params,
             result = -63.12
 
             # Step 2: store the data
-            grp_path = f'/science/{band}/absoluteCalibrationFactor/data'
+            grp_path = nisarqa.STATS_H5_ABSCAL_DATA_GROUP % band
             ds_units = abscal_params.get_units_from_hdf5_metadata('attr1')
 
             nisarqa.create_dataset_in_h5group(
@@ -97,7 +97,7 @@ def run_nesz_tool(params, input_filename, stats_filename):
             result = ((12.0 - params.attr1) / params.attr1) * 100.
 
             # Step 2: store the data
-            grp_path = f'/science/{band}/NESZ/data'
+            grp_path = nisarqa.STATS_H5_NESZ_DATA_GROUP % band
             nisarqa.create_dataset_in_h5group(
                     h5_file=stats_h5,
                     grp_path=grp_path,
@@ -151,7 +151,7 @@ def run_pta_tool(pta_params, dyn_anc_params,
             result = 'PLACEHOLDER'
 
             # Step 2: store the data
-            grp_path = f'/science/{band}/pointTargetAnalyzer/data'
+            grp_path = nisarqa.STATS_H5_PTA_DATA_GROUP % band
             nisarqa.create_dataset_in_h5group(
                     h5_file=stats_h5,
                     grp_path=grp_path,
