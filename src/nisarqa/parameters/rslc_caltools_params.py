@@ -1019,8 +1019,8 @@ def parse_rslc_runconfig(runconfig_yaml):
     with open(runconfig_yaml, 'r') as f:
         user_rncfg = parser.load(f)
     
-    # Dictionary to hold the *ParamGroup object. Will be used to create
-    # the RSLCRootParamGroup instance
+    # Dictionary to hold the *ParamGroup objects. Will be used as
+    # kwargs for the RSLCRootParamGroup instance.
     root_inputs = {}
 
     # Construct WorkflowsParamGroup dataclass (necessary for all workflows)
@@ -1031,7 +1031,8 @@ def parse_rslc_runconfig(runconfig_yaml):
                 user_rncfg=user_rncfg)
 
     except KeyError as e:
-        raise KeyError('`input_file_group` is a required runconfig group') from e
+        raise KeyError('`workflows` group is a required runconfig group') from e
+
     finally:
         # if all functionality is off, then exit
         # All workflows default to false. So, we only need to check if
@@ -1046,70 +1047,48 @@ def parse_rslc_runconfig(runconfig_yaml):
 
     workflows = root_inputs['workflows']
 
-    # Construct InputFileGroupParamGroup (necessary for all workflows)
-    try:
-        root_inputs['input_f'] = \
-            _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=InputFileGroupParamGroup,
-                user_rncfg=user_rncfg)
-    except KeyError as e:
-        raise KeyError(
-            '`qa_input_file` is a required runconfig parameter') from e
+    # Tuple of tuples: the runconfig groups to parse.
+    # Contents of each inner tuple:
+    #    (<bool of whether or not to instantiate this *ParamGroup>,
+    #       <str name of the RSLCRootParam attribute to store the *ParamGroup>,
+    #           <Callable to the corresponding *ParamGroup>)
+    grps_to_parse = (
+        (True, 'input_f', InputFileGroupParamGroup),
+        (True, 'prodpath', ProductPathGroupParamGroup),
+        (workflows.qa_reports, 'power_img', RSLCPowerImageParamGroup),
+        (workflows.qa_reports, 'histogram', RSLCHistogramParamGroup),
+        (workflows.absolute_calibration_factor, 'abs_cal', AbsCalParamGroup),
+        (workflows.absolute_calibration_factor | workflows.point_target_analyzer,
+             'anc_files', DynamicAncillaryFileParamGroup),
+        (workflows.nesz, 'nesz', NESZParamGroup),
+        (workflows.point_target_analyzer, 'pta', PointTargetAnalyzerParamGroup),
+    )
 
-    # Construct DynamicAncillaryFileParamGroup dataclass
-    if workflows.absolute_calibration_factor or \
-        workflows.point_target_analyzer:
-        try:
-            root_inputs['anc_files'] = \
-                _get_param_group_instance_from_runcfg(
-                    param_grp_class_handle=DynamicAncillaryFileParamGroup,
-                    user_rncfg=user_rncfg)
+    for (flag_to_run, root_attr, param_callable) in grps_to_parse:
+        if flag_to_run:
+            try:
+                root_inputs[root_attr] = \
+                    _get_param_group_instance_from_runcfg(
+                        param_grp_class_handle=param_callable,
+                        user_rncfg=user_rncfg)
+            
+            # Some custom exception handling, such as to help make errors
+            # from missing required input files less cryptic.
+            except KeyError as e:
+                if root_attr == 'input_f':
+                    raise KeyError(
+                        '`qa_input_file` is a required runconfig parameter') from e
+                else:
+                    raise e
+            except TypeError as e:
+                if root_attr == 'anc_files':
+                    raise KeyError('`corner_reflector_file` is a required '
+                            'runconfig parameter for Absolute Calibration '
+                            'Factor or Point Target Analyzer workflows') from e
+                else:
+                    raise e
 
-        except TypeError as e:
-            raise KeyError('`corner_reflector_file` is a required runconfig '
-                           'parameter for Absolute Calibration Factor '
-                           'or Point Target Analyzer workflows') from e
-        
-        # TODO - add in orbit file param for AbsCal. But, it is optional, very rare.
-
-    # Construct ProductPathGroupParamGroup (necessary for all workflows)
-    root_inputs['prodpath'] = \
-        _get_param_group_instance_from_runcfg(
-            param_grp_class_handle=ProductPathGroupParamGroup,
-            user_rncfg=user_rncfg)
-
-    # Construct parameter groups for generating the QA REPORT.pdf and Browse
-    if workflows.qa_reports:
-        root_inputs['power_img'] = \
-            _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=RSLCPowerImageParamGroup,
-                user_rncfg=user_rncfg)
-        
-        root_inputs['histogram'] = \
-            _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=RSLCHistogramParamGroup,
-                user_rncfg=user_rncfg)
-
-    # Construct AbsCalParamGroup dataclass
-    if workflows.absolute_calibration_factor:
-        root_inputs['abs_cal'] = \
-            _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=AbsCalParamGroup,
-                user_rncfg=user_rncfg)
-
-    # Construct NESZ dataclass
-    if workflows.nesz:
-        root_inputs['nesz'] = \
-            _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=NESZParamGroup,
-                user_rncfg=user_rncfg)
-
-    # Construct PointTargetAnalyzerParamGroup dataclass
-    if workflows.point_target_analyzer:
-        root_inputs['pta'] = \
-            _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=PointTargetAnalyzerParamGroup,
-                user_rncfg=user_rncfg)
+    #     # TODO - add in orbit file param for AbsCal. But, it is optional, very rare.
 
     # Construct RSLCRootParamGroup
     rslc_params = RSLCRootParamGroup(**root_inputs)
