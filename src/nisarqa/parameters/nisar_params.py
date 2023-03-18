@@ -2,7 +2,7 @@ import dataclasses
 import inspect
 import warnings
 from abc import ABC, abstractmethod
-from dataclasses import MISSING, dataclass, fields
+from dataclasses import MISSING, dataclass, field, fields
 from typing import ClassVar, Generic, TypeVar
 
 import nisarqa
@@ -371,5 +371,105 @@ class YamlHDF5ParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''Abstract Base Class for creating *Params dataclasses.'''
     pass
 
+
+@dataclass(frozen=True)
+class WorkflowsParamGroup(YamlParamGroup):
+    '''
+    The parameters specifying which QA workflows should be run.
+
+    This corresponds to the `workflows` runconfig group.
+
+    Parameters
+    ----------
+    validate : bool, optional
+        True to run the validate workflow. Default: False
+    qa_reports : bool, optional
+        True to run the QA Reports workflow. Default: False
+    '''
+
+    # default value for all workflows
+    def_val: ClassVar[bool] = False
+
+    # Generic description for all workflows
+    descr: ClassVar[str] = f'Flag to run `%s` workflow.'
+
+    validate: bool = field(
+        default=def_val,
+        metadata={'yaml_attrs': YamlAttrs(name='validate',
+                                          descr=descr % 'validate')})
+    
+    qa_reports: bool = field(
+        default=def_val,
+        metadata={'yaml_attrs': YamlAttrs(name='qa_reports',
+                                          descr=descr % 'qa_reports')})
+
+
+    def __post_init__(self):
+
+        # VALIDATE INPUTS
+        self._check_workflows_arg('validate', self.validate)
+        self._check_workflows_arg('qa_reports', self.qa_reports)
+
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ['runconfig','groups','qa','workflows']
+
+
+    @staticmethod
+    def _check_workflows_arg(attr_name, val):
+        '''
+        Validate that `val` is of the correct type for the
+        WorkflowsParamGroup's attribute `attr_name`.
+
+        Parameters
+        ----------
+        attr_name : str
+            The name of the attribute of WorkflowsParamGroup for `attr`
+        val : bool
+            Argument value for `attr_name`.
+        '''
+        # Validate `val`
+        if not isinstance(val, bool):
+            raise TypeError(f'`{attr_name}` must be of type bool. '
+                            f'It is {type(val)}')
+
+@dataclass
+class RootParamGroup(ABC):
+    '''Abstract Base Class for all NISAR Products' *RootParamGroup'''
+
+    workflows: WorkflowsParamGroup
+
+    def get_mapping_of_workflows2param_groups_from_self(self):
+        '''Wrapper to call `get_mapping_of_workflows2param_groups` on
+        the current instance of *RootParamGroup'''
+        return RootParamGroup.get_mapping_of_workflows2param_groups(self.workflows)
+
+    @staticmethod
+    @abstractmethod
+    def get_mapping_of_workflows2param_groups(workflows):
+        '''
+        Return a tuple of tuples which map the workflows requested in this 
+        class' WorkflowsParamGroup attribute to their corresponding 
+        *RootParamGroup attribute(s) and runconfig groups.
+
+        Parameters
+        ----------
+        workflows : WorkflowsParamGroup
+            An instance of WorkflowsParamGroup with attributes that correspond
+            to this product's *RootParams object.
+
+        Returns
+        -------
+        grps_to_parse : Tuple of Tuples
+            This tuple maps the workflows requested in the WorkflowsParamGroup
+            attribute to their corresponding *RootParamGroup attribute(s) 
+            and runconfig groups.
+            Structure of each inner tuple:
+            (<bool of whether or not to instantiate this *ParamGroup>,
+                <str name of the *RootParamGroup attribute to store the *ParamGroup>,
+                    <Callable to the corresponding *ParamGroup>)
+        '''
+        pass
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

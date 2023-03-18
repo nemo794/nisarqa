@@ -14,7 +14,7 @@ objects_to_skip = nisarqa.get_all(__name__)
 
 
 @dataclass(frozen=True)
-class WorkflowsParamGroup(YamlParamGroup):
+class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     '''
     The parameters specifying which RSLC-Caltools QA workflows should be run.
 
@@ -24,8 +24,10 @@ class WorkflowsParamGroup(YamlParamGroup):
     ----------
     validate : bool, optional
         True to run the validate workflow. Default: False
+        (inherited from WorkflowsParamGroup class)
     qa_reports : bool, optional
         True to run the QA Reports workflow. Default: False
+        (inherited from WorkflowsParamGroup class)
     absolute_calibration_factor : bool, optional
         True to run the Absolute Calibration Factor (AbsCal) workflow.
         Default: False
@@ -35,71 +37,36 @@ class WorkflowsParamGroup(YamlParamGroup):
         True to run the Point Target Analyzer (PTA) workflow. Default: False
     '''
 
-    # default value for all workflows
-    def_val: ClassVar[bool] = False
-
-    # Generic description for all workflows
-    descr: ClassVar[str] = f'Flag to run `%s` workflow.'
-
-    validate: bool = field(
-        default=def_val,
-        metadata={'yaml_attrs': YamlAttrs(name='validate',
-                                          descr=descr % 'validate')})
-    
-    qa_reports: bool = field(
-        default=def_val,
-        metadata={'yaml_attrs': YamlAttrs(name='qa_reports',
-                                          descr=descr % 'qa_reports')})
-
     absolute_calibration_factor: bool = field(
-        default=def_val,
-        metadata={'yaml_attrs': YamlAttrs(name='absolute_calibration_factor',
-                                descr=descr % 'absolute_calibration_factor')})
+        default=WorkflowsParamGroup.def_val,
+        metadata={
+        'yaml_attrs': YamlAttrs(
+            name='absolute_calibration_factor',
+            descr=WorkflowsParamGroup.descr % 'absolute_calibration_factor')})
 
     nesz: bool = field(
-        default=def_val,
-        metadata={'yaml_attrs': YamlAttrs(name='nesz', 
-                                          descr=descr % 'nesz')})
+        default=WorkflowsParamGroup.def_val,
+        metadata={
+        'yaml_attrs': YamlAttrs(
+            name='nesz', 
+            descr=WorkflowsParamGroup.descr % 'nesz')})
 
     point_target_analyzer: bool = field(
-        default=def_val,
-        metadata={'yaml_attrs': YamlAttrs(name='point_target_analyzer',
-                                        descr=descr % 'point_target_analyzer')})
+        default=WorkflowsParamGroup.def_val,
+        metadata={
+        'yaml_attrs': YamlAttrs(
+            name='point_target_analyzer',
+            descr=WorkflowsParamGroup.descr % 'point_target_analyzer')})
 
     def __post_init__(self):
 
         # VALIDATE INPUTS
-        self._check_workflows_arg('validate', self.validate)
-        self._check_workflows_arg('qa_reports', self.qa_reports)
+        super().__post_init__()
         self._check_workflows_arg('absolute_calibration_factor', 
                                     self.absolute_calibration_factor)
         self._check_workflows_arg('nesz', self.nesz)
         self._check_workflows_arg('point_target_analyzer',
                                     self.point_target_analyzer)
-
-
-    @staticmethod
-    def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','workflows']
-
-
-    @staticmethod
-    def _check_workflows_arg(attr_name, val):
-        '''
-        Validate that `val` is of the correct type for the
-        WorkflowsParamGroup's attribute `attr_name`.
-
-        Parameters
-        ----------
-        attr_name : str
-            The name of the attribute of WorkflowsParamGroup for `attr`
-        val : bool
-            Argument value for `attr_name`.
-        '''
-        # Validate `val`
-        if not isinstance(val, bool):
-            raise TypeError(f'`{attr_name}` must be of type bool. '
-                            f'It is {type(val)}')
 
 
 @dataclass(frozen=True)
@@ -817,7 +784,7 @@ class PointTargetAnalyzerParamGroup(YamlHDF5ParamGroup):
 
 
 @dataclass
-class RSLCRootParamGroup:
+class RSLCRootParamGroup(RootParamGroup):
     '''
     Dataclass of all *ParamGroup objects to process QA for NISAR RSLC products.
 
@@ -831,7 +798,7 @@ class RSLCRootParamGroup:
 
     Parameters
     ----------
-    workflows : WorkflowsParamGroup
+    workflows : RSLCWorkflowsParamGroup
         RSLC QA Workflows parameters
     input_f : InputFileGroupParamGroup or None, optional
         Input File Group parameters for RSLC QA
@@ -852,7 +819,7 @@ class RSLCRootParamGroup:
     '''
 
     # Shared parameters
-    workflows: WorkflowsParamGroup
+    workflows: RSLCWorkflowsParamGroup
     input_f: Optional[InputFileGroupParamGroup] = None
     prodpath: Optional[ProductPathGroupParamGroup] = None
 
@@ -931,6 +898,24 @@ class RSLCRootParamGroup:
                     'DynamicAncillaryFileParamGroup is required to run the '
                     'requested point_target_analyzer workflow')
 
+            print(self.get_mapping_of_workflows2param_groups_from_self())
+
+    @staticmethod
+    def get_mapping_of_workflows2param_groups(workflows):
+        grps_to_parse = (
+            (True, 'input_f', InputFileGroupParamGroup),
+            (True, 'prodpath', ProductPathGroupParamGroup),
+            (workflows.qa_reports, 'power_img', RSLCPowerImageParamGroup),
+            (workflows.qa_reports, 'histogram', RSLCHistogramParamGroup),
+            (workflows.absolute_calibration_factor, 'abs_cal', AbsCalParamGroup),
+            (workflows.absolute_calibration_factor \
+              or workflows.point_target_analyzer,
+                'anc_files', DynamicAncillaryFileParamGroup),
+            (workflows.nesz, 'nesz', NESZParamGroup),
+            (workflows.point_target_analyzer, 'pta', PointTargetAnalyzerParamGroup)
+            )
+        return grps_to_parse
+
 
     @staticmethod
     def dump_runconfig_template(indent=4):
@@ -964,11 +949,10 @@ class RSLCRootParamGroup:
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
         param_group_callables = (
-            WorkflowsParamGroup,
             InputFileGroupParamGroup,
             DynamicAncillaryFileParamGroup,
             ProductPathGroupParamGroup,
-            WorkflowsParamGroup,
+            RSLCWorkflowsParamGroup,
             RSLCPowerImageParamGroup,
             RSLCHistogramParamGroup,
             AbsCalParamGroup,
@@ -1029,11 +1013,11 @@ def parse_rslc_runconfig(runconfig_yaml):
     # kwargs for the RSLCRootParamGroup instance.
     root_inputs = {}
 
-    # Construct WorkflowsParamGroup dataclass (necessary for all workflows)
+    # Construct RSLCWorkflowsParamGroup dataclass (necessary for all workflows)
     try:
         root_inputs['workflows'] = \
             _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=WorkflowsParamGroup,
+                param_grp_class_handle=RSLCWorkflowsParamGroup,
                 user_rncfg=user_rncfg)
 
     except KeyError as e:
@@ -1053,22 +1037,8 @@ def parse_rslc_runconfig(runconfig_yaml):
 
     workflows = root_inputs['workflows']
 
-    # Tuple of tuples: the runconfig groups to parse.
-    # Contents of each inner tuple:
-    #    (<bool of whether or not to instantiate this *ParamGroup>,
-    #       <str name of the RSLCRootParam attribute to store the *ParamGroup>,
-    #           <Callable to the corresponding *ParamGroup>)
-    grps_to_parse = (
-        (True, 'input_f', InputFileGroupParamGroup),
-        (True, 'prodpath', ProductPathGroupParamGroup),
-        (workflows.qa_reports, 'power_img', RSLCPowerImageParamGroup),
-        (workflows.qa_reports, 'histogram', RSLCHistogramParamGroup),
-        (workflows.absolute_calibration_factor, 'abs_cal', AbsCalParamGroup),
-        (workflows.absolute_calibration_factor | workflows.point_target_analyzer,
-             'anc_files', DynamicAncillaryFileParamGroup),
-        (workflows.nesz, 'nesz', NESZParamGroup),
-        (workflows.point_target_analyzer, 'pta', PointTargetAnalyzerParamGroup),
-    )
+    grps_to_parse = RSLCRootParamGroup.get_mapping_of_workflows2param_groups(
+                                                            workflows=workflows)
 
     for (flag_to_run, root_attr, param_callable) in grps_to_parse:
         if flag_to_run:
