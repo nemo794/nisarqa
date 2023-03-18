@@ -1026,7 +1026,7 @@ def parse_rslc_runconfig(runconfig_yaml):
     # Construct WorkflowsParamGroup dataclass (necessary for all workflows)
     try:
         root_inputs['workflows'] = \
-            _runconfig_parser_helper(
+            _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=WorkflowsParamGroup,
                 user_rncfg=user_rncfg)
 
@@ -1049,7 +1049,7 @@ def parse_rslc_runconfig(runconfig_yaml):
     # Construct InputFileGroupParamGroup (necessary for all workflows)
     try:
         root_inputs['input_f'] = \
-            _runconfig_parser_helper(
+            _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=InputFileGroupParamGroup,
                 user_rncfg=user_rncfg)
     except KeyError as e:
@@ -1061,7 +1061,7 @@ def parse_rslc_runconfig(runconfig_yaml):
         workflows.point_target_analyzer:
         try:
             root_inputs['anc_files'] = \
-                _runconfig_parser_helper(
+                _get_param_group_instance_from_runcfg(
                     param_grp_class_handle=DynamicAncillaryFileParamGroup,
                     user_rncfg=user_rncfg)
 
@@ -1074,40 +1074,40 @@ def parse_rslc_runconfig(runconfig_yaml):
 
     # Construct ProductPathGroupParamGroup (necessary for all workflows)
     root_inputs['prodpath'] = \
-        _runconfig_parser_helper(
+        _get_param_group_instance_from_runcfg(
             param_grp_class_handle=ProductPathGroupParamGroup,
             user_rncfg=user_rncfg)
 
     # Construct parameter groups for generating the QA REPORT.pdf and Browse
     if workflows.qa_reports:
         root_inputs['power_img'] = \
-            _runconfig_parser_helper(
+            _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=RSLCPowerImageParamGroup,
                 user_rncfg=user_rncfg)
         
         root_inputs['histogram'] = \
-            _runconfig_parser_helper(
+            _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=RSLCHistogramParamGroup,
                 user_rncfg=user_rncfg)
 
     # Construct AbsCalParamGroup dataclass
     if workflows.absolute_calibration_factor:
         root_inputs['abs_cal'] = \
-            _runconfig_parser_helper(
+            _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=AbsCalParamGroup,
                 user_rncfg=user_rncfg)
 
     # Construct NESZ dataclass
     if workflows.nesz:
         root_inputs['nesz'] = \
-            _runconfig_parser_helper(
+            _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=NESZParamGroup,
                 user_rncfg=user_rncfg)
 
     # Construct PointTargetAnalyzerParamGroup dataclass
     if workflows.point_target_analyzer:
         root_inputs['pta'] = \
-            _runconfig_parser_helper(
+            _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=PointTargetAnalyzerParamGroup,
                 user_rncfg=user_rncfg)
 
@@ -1117,7 +1117,41 @@ def parse_rslc_runconfig(runconfig_yaml):
     return rslc_params
 
 
-def _runconfig_parser_helper(param_grp_class_handle, user_rncfg):
+def _get_param_group_instance_from_runcfg(param_grp_class_handle, 
+                                          user_rncfg=None):
+    '''
+    Generate an instance of a YamlParamGroup (or subclass) object
+    where the values from a user runconfig take precedence.
+    
+    Parameters
+    ----------
+    param_grp_class_callable : YamlParamGroup callable
+        A callable subclass of YamlParamGroup.
+    user_rncfg : nested dict, optional
+        A dict containing the user's runconfig values in the format of a dict.
+        (Typically, this is the QA runconfig yaml parsed directly into a dict.)
+        The structure of this nested dict must match the structure of the
+        QA runconfig yaml file for this product. To see the expected yaml 
+        structure for e.g. RSLC, run  `nisarqa dumpconfig rslc` from the 
+        command line.
+        If `user_rncfg` contains entries that do not correspond to attributes
+        in `param_grp_class_callable`, they will be ignored.
+        If `user_rncfg` is None, an empty dict, or does not contain values
+        for `param_grp_class_callable` in a nested structure that matches
+        the QA runconfig group that corresponds to the callable, then
+        an instance with all default values will be returned.
+
+    Returns
+    -------
+    param_grp_instance : `param_grp_class_callable` instance
+        An instance of `param_grp_class_callable` that is fully instantiated
+        using default values and the arguments provided in `user_rncfg`.
+        The values in `user_rncfg` have precedence over the defaults.
+    '''
+
+    if not user_rncfg:
+        # If user_rncfg is None or is an empty dict, then return the default
+        return param_grp_class_handle()
 
     rncfg_path = param_grp_class_handle.get_path_to_group_in_runconfig()
 
@@ -1130,7 +1164,7 @@ def _runconfig_parser_helper(param_grp_class_handle, user_rncfg):
         # throw an error.
         return param_grp_class_handle()
     else:
-        # Keep only the relevant parameters in the group
+        # Get the relevant yaml runconfig parameters for this ParamGroup
         yaml_names = param_grp_class_handle.get_list_of_yaml_names()
 
         # prune extraneous fields from the runconfig group
