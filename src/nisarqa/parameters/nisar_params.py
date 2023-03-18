@@ -155,10 +155,10 @@ class YamlParamGroup(ABC):
                 if field.default == dataclasses.MISSING:
                     msg = 'REQUIRED'
 
-                    # in ruamel.yaml, providing the empty string as a value
-                    # will cause the output .yaml to have an empty field.
+                    # in ruamel.yaml, providing None as a value causes
+                    # the output .yaml to have an empty field argument.
                     # This indicates to a user that there is no default value.
-                    val = ''
+                    val = None
                 else:
                     msg = f'Default: {field.default}'
                     val = field.default
