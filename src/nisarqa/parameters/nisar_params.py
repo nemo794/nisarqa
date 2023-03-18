@@ -128,8 +128,8 @@ class YamlParamGroup(ABC):
     @classmethod
     def populate_runcfg(cls, runconfig_cm, indent=4):
         '''Update the provided ruamel.yaml object with select attributes
-        (parameters) of this instance of the dataclass for use in a
-        NISAR product QA runconfig file.
+        (parameters) of this dataclass object for use in a NISAR product 
+        QA runconfig file.
 
         Only default values will be used.
 
@@ -273,7 +273,6 @@ class YamlParamGroup(ABC):
         parent_cm.yaml_set_comment_before_after_key(path[-1], before='\n')
 
 
-@dataclass(frozen=True)
 class HDF5ParamGroup:
     '''Class for parameters that will be stored in the output HDF5 file.'''
 
@@ -326,7 +325,7 @@ class HDF5ParamGroup:
             Defaults to ('LSAR')
         '''
 
-        # Flag -- the intention is to help assist developers to set up
+        # Flag -- the intention is to help assist developers and ensure
         # child classes are set up correctly
         found_at_least_one_hdf5_attr = False
 
@@ -368,7 +367,6 @@ class HDF5ParamGroup:
                         ' or \'hdf5_attrs_func\'')
 
 
-@dataclass(frozen=True)
 class YamlHDF5ParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''Abstract Base Class for creating *Params dataclasses.'''
     pass

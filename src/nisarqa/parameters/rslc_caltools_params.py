@@ -1,7 +1,6 @@
 import os
 import sys
-import warnings
-from dataclasses import Field, InitVar, dataclass, field, fields
+from dataclasses import dataclass, field, fields
 from typing import ClassVar, Iterable, Optional, Union
 
 import nisarqa
@@ -118,7 +117,7 @@ class InputFileGroupParamGroup(YamlParamGroup):
         The input NISAR product file name (with path).
     '''
 
-    # Required parameter
+    # Required parameter - do not set a default
     qa_input_file: str = field(
         metadata={'yaml_attrs': 
             YamlAttrs(
@@ -250,7 +249,8 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
         scaled to the range [0,1]. 
         The image colorbar will be defined with respect to the input
         image values prior to normalization and gamma correction.
-        Defaults to None (no normalization, no gamma correction)
+        If None, then no normalization, no gamma correction will be applied.
+        Default: 0.5
     tile_shape : iterable of int, optional
         Preferred tile shape for processing images by batches.
         Actual tile shape may be modified by QA-SAS.
@@ -306,8 +306,8 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
         'yaml_attrs' : YamlAttrs(
             name='num_mpix',
             descr='''Approx. size (in megapixels) for the final
-                multilooked browse image(s). If `nlooks_freq*` parameter(s)
-                is not None, nlooks values will take precedence.'''
+                multilooked browse image(s). When `nlooks_freq*` parameter(s)
+                is not None, those nlooks values will take precedence.'''
         )})
 
     middle_percentile: float = field(
@@ -435,6 +435,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
     def get_path_to_group_in_runconfig():
         return ['runconfig','groups','qa','qa_reports','power_image']
 
+
     @staticmethod
     def _validate_nlooks(nlooks, freq):
         '''
@@ -442,19 +443,14 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
 
         Parameters
         ----------
-        nlooks : int or iterable of int or None
+        nlooks : iterable of int or None
             Number of looks along each axis of the input array 
             for the specified frequency.
         freq : str
             The frequency to assign this number of looks to.
             Options: 'A' or 'B'
         '''
-        if isinstance(nlooks, int):
-            if nlooks < 1:
-                raise ValueError(
-                    f'`nlooks_freq{freq.lower()}` must be >= 1: {nlooks}')
-
-        elif isinstance(nlooks, (list, tuple)):
+        if isinstance(nlooks, (list, tuple)):
             if all(isinstance(e, int) for e in nlooks):
                 if any((e < 1) for e in nlooks) or not len(nlooks) == 2:
                     raise TypeError(
@@ -464,7 +460,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
             # the code will use num_mpix to compute `nlooks` instead.
             pass
         else:
-            raise TypeError('`nlooks` must be of type int, iterable of int, '
+            raise TypeError('`nlooks` must be of type iterable of int, '
                             f'or None: {nlooks}')
 
 
@@ -579,6 +575,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
     #     TypeError: 'mappingproxy' object does not support item assignment
     # So, use a lambda function; this can be called to generate the correct
     # HDF5Attrs when needed, and it does not clutter the dataclass much.
+    # Usage: `obj` is an instance of RSLCHistogramParamGroup()
     phs_bin_edges: ArrayLike = field(
         init=False,
         metadata={
@@ -656,12 +653,10 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
                                        endpoint=True))
   
         # Set attributes dependent upon phs_in_radians
-        if self.phs_in_radians:
-            object.__setattr__(self, 'phs_bin_edges', 
-                np.linspace(start=-np.pi, stop=np.pi, num=101, endpoint=True))
-        else:  # phase in dB
-            object.__setattr__(self, 'phs_bin_edges', 
-                    np.linspace(start=-180, stop=180, num=101, endpoint=True))
+        start = -np.pi if self.phs_in_radians else -180
+        stop  =  np.pi if self.phs_in_radians else  180
+        object.__setattr__(self, 'phs_bin_edges', 
+            np.linspace(start=start, stop=stop, num=101, endpoint=True))
 
 
     @staticmethod
@@ -824,45 +819,35 @@ class PointTargetAnalyzerParamGroup(YamlHDF5ParamGroup):
 @dataclass
 class RSLCRootParamGroup:
     '''
-    Dataclass of all *Params objects to process QA for NISAR RSLC products.
+    Dataclass of all *ParamGroup objects to process QA for NISAR RSLC products.
 
-    `workflows` is the only required parameter. Based on the workflows set to
-    True in `workflows`, the other RSLCRootParamGroup parameters will be set
-    per these rules:
-        a) If a *Params object is needed by any workflow, it will be
-           set to an instance of that *Params object.
-
-                i) If a *Params object is provided by the caller, the
-                corresponding attribute in RSLCRootParamGroup will be set
-                to that.
-
-                i) If a *Params object is not provided, one will be 
-                instantiated using all default value, and the
-                corresponding attribute in RSLCRootParamGroup will be set
-                to that.
-
-        b) If a *Params object is not needed by any workflow,
-           it will be set to `None`, regardless of the input.
+    `workflows` is the only required parameter; this *ParamGroup contains
+    boolean attributes that indicate which QA workflows to run.
     
+    All other parameters are optional, but they each coorespond to (at least)
+    one of the QA workflows. Based on the workflows set to True in 
+    `workflows`, certain others of these parameters will be required.
+
+
     Parameters
     ----------
     workflows : WorkflowsParamGroup
         RSLC QA Workflows parameters
-    input_f : InputFileGroupParamGroup, optional
+    input_f : InputFileGroupParamGroup or None, optional
         Input File Group parameters for RSLC QA
-    prodpath : ProductPathGroupParamGroup, optional
+    prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for RSLC QA
-    power_img : RSLCPowerImageParamGroup
+    power_img : RSLCPowerImageParamGroup or None, optional
         Power Image Group parameters for RSLC QA
-    histogram : RSLCHistogramParamGroup
+    histogram : RSLCHistogramParamGroup or None, optional
         Histogram Group parameters for RSLC QA
-    anc_files : DynamicAncillaryFileParamGroup, optional
+    anc_files : DynamicAncillaryFileParamGroup or None, optional
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
-    abs_cal : AbsCalParamGroup, optional
+    abs_cal : AbsCalParamGroup or None, optional
         Absolute Calibration Factor group parameters for RSLC QA-Caltools
-    nesz : NESZParamGroup, optional
+    nesz : NESZParamGroup or None, optional
         NESZ group parameters for RSLC QA-Caltools
-    pta : PointTargetAnalyzerParamGroup, optional
+    pta : PointTargetAnalyzerParamGroup or None, optional
         Point Target Analyzer group parameters for RSLC QA-Caltools
     '''
 
