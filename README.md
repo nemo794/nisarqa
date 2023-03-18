@@ -75,9 +75,11 @@ the default parameters, use the `dumpconfig` subcommand.
 
 See `nisarqa dumpconfig -h` for usage.
 
-Example commands to process QA:
+Example commands:
 ```
 nisarqa dumpconfig rslc
+nisarqa dumpconfig rslc --indent 2                # change the indent spacing
+nisarqa dumpconfig rslc > my_rslc_runconfig.yaml  # save runconfig to a file
 nisarqa dumpconfig gcov
 ```
 
