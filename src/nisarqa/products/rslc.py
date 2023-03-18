@@ -15,7 +15,7 @@ from PIL import Image
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
 
-def verify_rslc(runconfig_file):
+def verify_rslc(user_rncfg):
     '''
     Verify an RSLC product based on the input file, parameters, etc.
     specified in the input runconfig file.
@@ -28,12 +28,13 @@ def verify_rslc(runconfig_file):
 
     Parameters
     ----------
-    runconfig_file : str
-        Full filename for an existing RSLC QA runconfig file
+    user_rncfg : dict
+        A dictionary whose structure matches an this product's QA runconfig
+        yaml file and which contains the parameters needed to run its QA SAS.
     '''
 
     # Parse the runconfig file
-    rslc_params = nisarqa.parse_rslc_runconfig(runconfig_file)
+    rslc_params = nisarqa.build_rslc_params(user_rncfg)
     output_dir = rslc_params.prodpath.qa_output_dir
 
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')

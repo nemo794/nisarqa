@@ -935,14 +935,15 @@ class RSLCRootParamGroup(RootParamGroup):
                     po.write_params_to_h5(h5_file, bands=bands)
 
 
-def parse_rslc_runconfig(runconfig_yaml):
+def build_rslc_params(user_rncfg):
     '''
     Parse a QA RSLC Runconfig yaml file into a RSLCRootParamGroup object.
     
     Parameters
     ----------
-    runconfig_yaml : str
-        Filename (with path) to an RSLC QA runconfig yaml file.
+    user_rncfg : dict
+        A dictionary whose structure matches an RSLC QA runconfig file
+        and which contains the parameters needed to run the RSLC QA SAS.
     
     Returns
     -------
@@ -950,12 +951,7 @@ def parse_rslc_runconfig(runconfig_yaml):
         RSLCRootParamGroup object populated with runconfig values where provided,
         and default values for missing runconfig parameters.
     '''
-    # parse runconfig into a dict structure
-    parser = YAML(typ='safe')
-    with open(runconfig_yaml, 'r') as f:
-        user_rncfg = parser.load(f)
-    
-    # Dictionary to hold the *ParamGroup objects. Will be used as
+        # Dictionary to hold the *ParamGroup objects. Will be used as
     # kwargs for the RSLCRootParamGroup instance.
     root_inputs = {}
 

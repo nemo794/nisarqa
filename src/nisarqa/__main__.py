@@ -9,6 +9,7 @@ import argparse
 
 import nisarqa
 import pkg_resources
+from ruamel.yaml import YAML
 
 
 def parse_cli_args():
@@ -109,6 +110,26 @@ def dumpconfig(product_type, indent=4):
             f'{product_type} dumpconfig code not implemented yet.')
 
 
+def load_user_runconfig(runconfig_yaml):
+    '''
+    Load a QA Runconfig yaml file into a dict format.
+    
+    Parameters
+    ----------
+    runconfig_yaml : str
+        Filename (with path) to a QA runconfig yaml file.
+    
+    Returns
+    -------
+    user_rncfg : dict
+        `runconfig_yaml` loaded into a dict format
+    '''
+    # parse runconfig into a dict structure
+    parser = YAML(typ='safe')
+    with open(runconfig_yaml, 'r') as f:
+        user_rncfg = parser.load(f)
+    return user_rncfg
+
 def main():
     # parse the args
     args = parse_cli_args()
@@ -117,22 +138,27 @@ def main():
 
     if subcommand == 'dumpconfig':
         dumpconfig(product_type=args.product_type, indent=args.indent)
-    elif subcommand == 'rslc_qa':
-        nisarqa.rslc.verify_rslc(runconfig_file=args.runconfig_yaml)
+        return
+    
+    # parse runconfig into a dict structure
+    user_rncfg = load_user_runconfig(args.runconfig_yaml)
+
+    if subcommand == 'rslc_qa':
+        nisarqa.rslc.verify_rslc(user_rncfg=user_rncfg)
     elif subcommand == 'gslc_qa':
-        nisarqa.gslc.verify_gslc(runconfig_file=args.runconfig_yaml)
+        nisarqa.gslc.verify_gslc(user_rncfg=user_rncfg)
     elif subcommand == 'gcov_qa':
-        nisarqa.gcov.verify_gcov(runconfig_file=args.runconfig_yaml)
+        nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg)
     elif subcommand == 'rifg_qa':
-        nisarqa.rifg.verify_rifg(runconfig_file=args.runconfig_yaml)
+        nisarqa.rifg.verify_rifg(user_rncfg=user_rncfg)
     elif subcommand == 'runw_qa':
-        nisarqa.runw.verify_runw(runconfig_file=args.runconfig_yaml)
+        nisarqa.runw.verify_runw(user_rncfg=user_rncfg)
     elif subcommand == 'gunw_qa':
-        nisarqa.gunw.verify_gunw(runconfig_file=args.runconfig_yaml)
+        nisarqa.gunw.verify_gunw(user_rncfg=user_rncfg)
     elif subcommand == 'roff_qa':
-        nisarqa.roff.verify_roff(runconfig_file=args.runconfig_yaml)
+        nisarqa.roff.verify_roff(user_rncfg=user_rncfg)
     elif subcommand == 'goff_qa':
-        nisarqa.goff.verify_goff(runconfig_file=args.runconfig_yaml)
+        nisarqa.goff.verify_goff(user_rncfg=user_rncfg)
     else:
         raise ValueError(f'Unknown subcommand: {subcommand}')
 

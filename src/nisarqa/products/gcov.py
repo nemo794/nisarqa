@@ -4,7 +4,7 @@ import nisarqa
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
 
-def verify_gcov(runconfig_file):
+def verify_gcov(user_rncfg):
     '''
     Verify an GCOV product based on the input file, parameters, etc.
     specified in the input runconfig file.
@@ -19,10 +19,11 @@ def verify_gcov(runconfig_file):
 
     Parameters
     ----------
-    runconfig_file : str
-        Full filename for an existing QA runconfig file for this NISAR product
+    user_rncfg : dict
+        A dictionary whose structure matches an this product's QA runconfig
+        yaml file and which contains the parameters needed to run its QA SAS.
     '''
 
-    nisarqa.verify_gslc_gcov_stub(runconfig_file)
+    nisarqa.verify_gslc_gcov_stub(user_rncfg)
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

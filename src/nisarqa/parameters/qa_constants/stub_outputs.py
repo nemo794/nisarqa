@@ -362,7 +362,7 @@ def get_workflows(user_rncfg,
     return validate, qa_reports
 
 
-def verify_gslc_gcov_stub(runconfig_file):
+def verify_gslc_gcov_stub(user_rncfg):
     '''
     Parse the runconfig and generate stub outputs for GSLC or GCOV products.
     
@@ -371,14 +371,10 @@ def verify_gslc_gcov_stub(runconfig_file):
 
     Parameters
     ----------
-    runconfig_file : str
-        Full filename for an existing QA runconfig file for this NISAR product
+    user_rncfg : dict
+        A dictionary whose structure matches an this product's QA runconfig
+        yaml file and which contains the parameters needed to run its QA SAS.
     '''
-
-    # parse runconfig yaml
-    parser = YAML(typ='safe')
-    with open(runconfig_file, 'r') as f:
-        user_rncfg = parser.load(f)
 
     input_file = get_input_file(user_rncfg)
     output_dir = get_output_dir(user_rncfg)
@@ -394,25 +390,21 @@ def verify_gslc_gcov_stub(runconfig_file):
                           input_file=input_file)
 
 
-def verify_insar(runconfig_file, product):
+def verify_insar(user_rncfg, product):
     '''
     Parse the runconfig and generate stub outputs for InSAR products.
 
     Parameters
     ----------
-    runconfig_file : str
-        Full filename for an existing QA runconfig file for this NISAR product
+    user_rncfg : dict
+        A dictionary whose structure matches an this product's QA runconfig
+        yaml file and which contains the parameters needed to run its QA SAS.
     product : str
         InSAR product name
         Options: 'rifg','runw','gunw','roff','goff'
     '''
 
     assert product in ('rifg','runw','gunw','roff','goff')
-
-    # parse runconfig yaml
-    parser = YAML(typ='safe')
-    with open(runconfig_file, 'r') as f:
-        user_rncfg = parser.load(f)
 
     # Step 1: Get workflows flags for the requested product
     wkflw_path = ('runconfig','groups','qa', product,'workflows')
