@@ -77,7 +77,7 @@ def verify_rslc(runconfig_file):
         msg += f'\n\tSummary file: {summary_file}'
 
     if rslc_params.workflows.qa_reports or \
-        rslc_params.workflows.absolute_calibration_factor or \
+        rslc_params.workflows.abs_cal or \
         rslc_params.workflows.nesz or \
         rslc_params.workflows.point_target_analyzer:
     
@@ -106,7 +106,7 @@ def verify_rslc(runconfig_file):
         # If running these workflows, save the processing parameters and
         # identification group to STATS.h5
         if rslc_params.workflows.qa_reports or \
-            rslc_params.workflows.absolute_calibration_factor or \
+            rslc_params.workflows.abs_cal or \
             rslc_params.workflows.nesz or \
             rslc_params.workflows.point_target_analyzer:
 
@@ -183,7 +183,7 @@ def verify_rslc(runconfig_file):
 
                 # Compute metrics for stats.h5
 
-    if rslc_params.workflows.absolute_calibration_factor:
+    if rslc_params.workflows.abs_cal:
         msg = f'Running Absolute Calibration Factor CalTool: {input_file}'
         print(msg)
         # logger.log_message(logging_base.LogFilterInfo, msg)

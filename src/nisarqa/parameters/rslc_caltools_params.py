@@ -28,16 +28,16 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     qa_reports : bool, optional
         True to run the QA Reports workflow. Default: False
         (inherited from WorkflowsParamGroup class)
-    absolute_calibration_factor : bool, optional
+    abs_cal : bool, optional
         True to run the Absolute Calibration Factor (AbsCal) workflow.
         Default: False
     nesz : bool, optional
         True to run the Noise Estimator (NESZ) workflow. Default: False
-    point_target_analyzer : bool, optional
+    point_target : bool, optional
         True to run the Point Target Analyzer (PTA) workflow. Default: False
     '''
 
-    absolute_calibration_factor: bool = field(
+    abs_cal: bool = field(
         default=WorkflowsParamGroup.def_val,
         metadata={
         'yaml_attrs': YamlAttrs(
@@ -51,7 +51,7 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
             name='nesz', 
             descr=WorkflowsParamGroup.descr % 'nesz')})
 
-    point_target_analyzer: bool = field(
+    point_target: bool = field(
         default=WorkflowsParamGroup.def_val,
         metadata={
         'yaml_attrs': YamlAttrs(
@@ -62,11 +62,10 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
 
         # VALIDATE INPUTS
         super().__post_init__()
-        self._check_workflows_arg('absolute_calibration_factor', 
-                                    self.absolute_calibration_factor)
+        self._check_workflows_arg('abs_cal', self.abs_cal)
         self._check_workflows_arg('nesz', self.nesz)
-        self._check_workflows_arg('point_target_analyzer',
-                                    self.point_target_analyzer)
+        self._check_workflows_arg('point_target',
+                                    self.point_target)
 
 
 @dataclass(frozen=True)
@@ -75,8 +74,6 @@ class InputFileGroupParamGroup(YamlParamGroup):
     Parameters from the Input File Group runconfig group.
 
     This corresponds to the `groups: input_file_group` runconfig group.
-
-
 
     Parameters
     ----------
@@ -791,10 +788,9 @@ class RSLCRootParamGroup(RootParamGroup):
     `workflows` is the only required parameter; this *ParamGroup contains
     boolean attributes that indicate which QA workflows to run.
     
-    All other parameters are optional, but they each coorespond to (at least)
+    All other parameters are optional, but they each correspond to (at least)
     one of the QA workflows. Based on the workflows set to True in 
-    `workflows`, certain others of these parameters will be required.
-
+    `workflows`, certain others of these parameters will become required.
 
     Parameters
     ----------
@@ -819,7 +815,7 @@ class RSLCRootParamGroup(RootParamGroup):
     '''
 
     # Shared parameters
-    workflows: RSLCWorkflowsParamGroup
+    workflows: RSLCWorkflowsParamGroup  # add `workflows` to child b/c new type
     input_f: Optional[InputFileGroupParamGroup] = None
     prodpath: Optional[ProductPathGroupParamGroup] = None
 
@@ -858,12 +854,11 @@ class RSLCRootParamGroup(RootParamGroup):
             (flag_any_workflows_true, 'prodpath', ProductPathGroupParamGroup),
             (workflows.qa_reports, 'power_img', RSLCPowerImageParamGroup),
             (workflows.qa_reports, 'histogram', RSLCHistogramParamGroup),
-            (workflows.absolute_calibration_factor, 'abs_cal', AbsCalParamGroup),
-            (workflows.absolute_calibration_factor \
-              or workflows.point_target_analyzer,
+            (workflows.abs_cal, 'abs_cal', AbsCalParamGroup),
+            (workflows.abs_cal or workflows.point_target,
                 'anc_files', DynamicAncillaryFileParamGroup),
             (workflows.nesz, 'nesz', NESZParamGroup),
-            (workflows.point_target_analyzer, 'pta', PointTargetAnalyzerParamGroup)
+            (workflows.point_target, 'pta', PointTargetAnalyzerParamGroup)
             )
         return grps_to_parse
 
@@ -970,6 +965,7 @@ def parse_rslc_runconfig(runconfig_yaml):
             _get_param_group_instance_from_runcfg(
                 param_grp_class_handle=RSLCWorkflowsParamGroup,
                 user_rncfg=user_rncfg)
+        print(root_inputs['workflows'])
 
     except KeyError as e:
         raise KeyError('`workflows` group is a required runconfig group') from e
@@ -1071,16 +1067,17 @@ def _get_param_group_instance_from_runcfg(param_grp_class_handle,
         return param_grp_class_handle()
     else:
         # Get the relevant yaml runconfig parameters for this ParamGroup
-        yaml_names = param_grp_class_handle.get_list_of_yaml_names()
+        yaml_names = param_grp_class_handle.get_dict_of_yaml_names()
 
         # prune extraneous fields from the runconfig group
         # (aka keep only the runconfig fields that are relevant to QA)
-        # The "if..." line will allow us to skip missing runconfig fields.
-        runcfg_grp_dict = \
-            {key:runcfg_grp_dict[key] for key in yaml_names 
-                                        if key in runcfg_grp_dict}
+        # The "if..." logic will allow us to skip missing runconfig fields.
+        user_input_args = \
+            {cls_name : runcfg_grp_dict[yaml_name] \
+                for cls_name, yaml_name in yaml_names.items() 
+                    if yaml_name in runcfg_grp_dict}
 
-        return param_grp_class_handle(**runcfg_grp_dict)
+        return param_grp_class_handle(**user_input_args)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -97,32 +97,49 @@ class YamlParamGroup(ABC):
         pass
 
     @classmethod
-    def get_list_of_yaml_names(cls):
+    def get_dict_of_yaml_names(cls):
         '''
-        For all attributes in this dataclass that appear in the runconfig,
-        return a list of their names as they appear in the runconfig.
+        For all attributes in this class that are also in the runconfig,
+        return a dict mapping their class attribute name to their name
+        as it appears in the runconfig.
 
-        This list will be parsed from each attribute's field metadata;
-        specifically, it will be parsed from the YamlAttrs `name` metadata.
+        This will be parsed from each attribute's field metadata;
+        specifically, it will be parsed from the 'yaml_attrs' key's
+        YamlAttrs `name` attribute.
 
         Returns
         -------
-        yaml_names : list of str
-            Name of the class attribute to parse the HDF5Attrs
-            `units` value from
+        yaml_names : dict
+            Dict mapping class attribute names to runconfig yaml names.
+            Format: {<class_attribute_name> : <YamlAttrs object .name>}
+            Types:  {<str> : <str>}
         '''
-        yaml_names = []
+        yaml_names = {}
         for field in fields(cls):
             if 'yaml_attrs' in field.metadata:
-                yaml_names.append(field.metadata['yaml_attrs'].name)
+                yaml_names[field.name] = field.metadata['yaml_attrs'].name
 
         if yaml_names:
             return yaml_names
         else:
-            # Sanity check - list is still empty
+            # Sanity check - dict is still empty
             warnings.warn(f'None of the attributes in {cls.__name__}'
                             ' contain info for an YamlAttrs object')
             return yaml_names
+
+
+        # yaml_names = []
+        # for field in fields(cls):
+        #     if 'yaml_attrs' in field.metadata:
+        #         yaml_names.append(field.metadata['yaml_attrs'].name)
+
+        # if yaml_names:
+        #     return yaml_names
+        # else:
+        #     # Sanity check - list is still empty
+        #     warnings.warn(f'None of the attributes in {cls.__name__}'
+        #                     ' contain info for an YamlAttrs object')
+        #     return yaml_names
 
 
     @classmethod
