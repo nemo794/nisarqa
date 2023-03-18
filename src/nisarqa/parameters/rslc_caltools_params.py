@@ -836,75 +836,26 @@ class RSLCRootParamGroup(RootParamGroup):
     def __post_init__(self):
 
         # Ensure that the minimum parameters were provided
+        msg = '`%s` parameter of type `%s` is required for the requested ' \
+              'QA workflow(s).'
 
-        # If any of the workflows requested, then the input files group
-        # and product path group must be provided
-        # These are only optional in the case of doing a dumpconfig
-        if any([getattr(self.workflows, field.name) \
-                            for field in fields(self.workflows)]):
-            if not isinstance(self.input_f, InputFileGroupParamGroup):
-                raise TypeError('`input_f` parameter of type '
-                    'InputFileGroupParamGroup is required to run any of the '
-                    'QA workflows.')
+        mapping_of_req_wkflws = \
+            self.get_mapping_of_workflows2param_groups_from_self()
 
-            if not isinstance(self.prodpath, ProductPathGroupParamGroup):
-                raise TypeError('`prodpath` parameter of type '
-                    'ProductPathGroupParamGroup is required to run any of the '
-                    'QA workflows.')
+        for (flag_to_run, root_attr, param_callable) in mapping_of_req_wkflws:
+            if flag_to_run:
+                attr = getattr(self, root_attr)
+                if not isinstance(attr, param_callable):
+                    raise TypeError(msg % (root_attr, str(param_callable)))
 
-        if self.workflows.qa_reports:
-            if self.power_img is None or \
-                not isinstance(self.power_img, RSLCPowerImageParamGroup):
-                raise TypeError('`power_img` parameter of type '
-                    'RSLCPowerImageParamGroup is required to run the '
-                    'requested qa_reports workflow')
-
-            if self.histogram is None or \
-                not isinstance(self.histogram, RSLCHistogramParamGroup):
-                raise TypeError('`histogram` parameter of type '
-                    'RSLCHistogramParamGroup is required to run the '
-                    'requested qa_reports workflow')
-
-        if self.workflows.absolute_calibration_factor:
-            if self.abs_cal is None or \
-                not isinstance(self.abs_cal, AbsCalParamGroup):
-                raise TypeError('`abs_cal` parameter of type '
-                    'AbsCalParamGroup is required to run the '
-                    'requested absolute_calibration_factor workflow')
-
-            if self.anc_files is None or \
-                not isinstance(self.anc_files, DynamicAncillaryFileParamGroup):
-                raise TypeError('`anc_files` parameter of type '
-                    'DynamicAncillaryFileParamGroup is required to run the '
-                    'requested absolute_calibration_factor workflow')
-
-        if self.workflows.nesz:
-            if self.nesz is None or \
-                not isinstance(self.nesz, NESZParamGroup):
-                raise TypeError('`nesz` parameter of type '
-                    'NESZParamGroup is required to run the '
-                    'requested nesz workflow')
-
-        if self.workflows.point_target_analyzer:
-            if self.pta is None or \
-                not isinstance(self.pta, PointTargetAnalyzerParamGroup):
-                raise TypeError('`pta` parameter of type '
-                    'PointTargetAnalyzerParamGroup is required to run the '
-                    'requested point_target_analyzer workflow')
-
-            if self.anc_files is None or \
-                not isinstance(self.anc_files, DynamicAncillaryFileParamGroup):
-                raise TypeError('`anc_files` parameter of type '
-                    'DynamicAncillaryFileParamGroup is required to run the '
-                    'requested point_target_analyzer workflow')
-
-            print(self.get_mapping_of_workflows2param_groups_from_self())
 
     @staticmethod
     def get_mapping_of_workflows2param_groups(workflows):
+        flag_any_workflows_true = any([getattr(workflows, field.name) \
+                            for field in fields(workflows)])
         grps_to_parse = (
-            (True, 'input_f', InputFileGroupParamGroup),
-            (True, 'prodpath', ProductPathGroupParamGroup),
+            (flag_any_workflows_true, 'input_f', InputFileGroupParamGroup),
+            (flag_any_workflows_true, 'prodpath', ProductPathGroupParamGroup),
             (workflows.qa_reports, 'power_img', RSLCPowerImageParamGroup),
             (workflows.qa_reports, 'histogram', RSLCHistogramParamGroup),
             (workflows.absolute_calibration_factor, 'abs_cal', AbsCalParamGroup),
