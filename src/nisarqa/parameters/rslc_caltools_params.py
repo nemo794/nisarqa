@@ -960,18 +960,21 @@ class RSLCRootParamGroup:
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
-        # TODO - create a list of the param groups, pass this into the helper fxn,
-        # then do the standard loop.
-        WorkflowsParamGroup.populate_runcfg(runconfig_cm)
-        InputFileGroupParamGroup.populate_runcfg(runconfig_cm)
-        DynamicAncillaryFileParamGroup.populate_runcfg(runconfig_cm)
-        ProductPathGroupParamGroup.populate_runcfg(runconfig_cm)
-        WorkflowsParamGroup.populate_runcfg(runconfig_cm)
-        RSLCPowerImageParamGroup.populate_runcfg(runconfig_cm)
-        RSLCHistogramParamGroup.populate_runcfg(runconfig_cm)
-        AbsCalParamGroup.populate_runcfg(runconfig_cm)
-        NESZParamGroup.populate_runcfg(runconfig_cm)
-        PointTargetAnalyzerParamGroup.populate_runcfg(runconfig_cm)
+        param_group_callables = (
+            WorkflowsParamGroup,
+            InputFileGroupParamGroup,
+            DynamicAncillaryFileParamGroup,
+            ProductPathGroupParamGroup,
+            WorkflowsParamGroup,
+            RSLCPowerImageParamGroup,
+            RSLCHistogramParamGroup,
+            AbsCalParamGroup,
+            NESZParamGroup,
+            PointTargetAnalyzerParamGroup
+            )
+        
+        for callable in param_group_callables:
+            callable.populate_runcfg(runconfig_cm)
 
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
