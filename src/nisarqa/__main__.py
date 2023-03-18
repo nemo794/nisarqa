@@ -23,6 +23,7 @@ def parse_cli_args():
     Examples command line calls for RSLC product:
         nisar_qa --version
         nisar_qa dumpconfig rslc
+        nisar_qa dumpconfig rslc --indent 8
         nisar_qa rslc_qa runconfig.yaml
     
     Returns
@@ -60,12 +61,20 @@ def parse_cli_args():
           'For usage, see: `nisarqa dumpconfig -h`'
     parser_dumpconfig = sub_parsers.add_parser('dumpconfig', help=msg)
 
-    # Add the required positional argument for the dumpconfig
+    # Add the required positional argument for dumpconfig
     parser_dumpconfig.add_argument(
             'product_type',  # positional argument
             choices=list_of_products,
             help='Product type of the default runconfig template')
-    
+
+    # Add an optional argument to set the indent spacing for dumpconfig
+    parser_dumpconfig.add_argument(
+            '-i', '--indent',
+            dest='indent',
+            default=4,
+            type=int,
+            help='Indent spacing for the output runconfig yaml')
+
     # create a parser for each *_qa subcommand
     msg = 'Run QA for a NISAR %s with runconfig yaml. Usage: `nisarqa %s_qa <runconfig.yaml>`'
     for prod in list_of_products:
@@ -81,9 +90,20 @@ def parse_cli_args():
     return args
 
 
-def dumpconfig(product_type):
+def dumpconfig(product_type, indent=4):
+    '''
+    Output a template runconfig file with default values to stdout.
+
+    Parameters
+    ----------
+    product_type : str
+        One of:'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', or 'goff'
+    indent : int, optional
+        Number of spaces of an indent in the output runconfig yaml.
+        Defaults to 4.
+    '''
     if product_type == 'rslc':
-        nisarqa.RSLCRootParamGroup.dump_runconfig_template()
+        nisarqa.RSLCRootParamGroup.dump_runconfig_template(indent=indent)
     else:
         raise NotImplementedError(
             f'{product_type} dumpconfig code not implemented yet.')
@@ -96,7 +116,7 @@ def main():
     subcommand = args.command
 
     if subcommand == 'dumpconfig':
-        dumpconfig(args.product_type)
+        dumpconfig(product_type=args.product_type, indent=args.indent)
     elif subcommand == 'rslc_qa':
         nisarqa.rslc.verify_rslc(runconfig_file=args.runconfig_yaml)
     elif subcommand == 'gslc_qa':

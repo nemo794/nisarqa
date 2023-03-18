@@ -948,13 +948,31 @@ class RSLCRootParamGroup:
 
 
     @staticmethod
-    def dump_runconfig_template():
+    def dump_runconfig_template(indent=4):
         '''Output the runconfig template (with default values) to stdout.
+
+        Parameters
+        ----------
+        indent : int, optional
+            Number of spaces of an indent. Defaults to 4.
         '''
 
         # Build a ruamel yaml object that contains the runconfig structure
         yaml = YAML()
-        yaml.indent(mapping=4, offset=4)
+
+        # Here, the `mapping` parameter sets the size of an indent for the
+        # mapping keys (aka the variable names) in the output yaml file. But,
+        # it does not set the indent for the in-line comments in the output
+        # yaml file; the indent spacing for inline comments will need to be
+        # set later while creating the commented maps.
+        # Re: `sequence` and `offset` parameters -- At the time of writing,
+        # the current QA implementation of `add_param_to_cm` specifies that
+        # lists should always be dumped inline, which means that these
+        # `sequence` and `offset` parameters are a moot point. However,
+        # should that underlying implementation change, settings sequence=4, 
+        # offset=2 results in nicely-indented yaml files.
+        # Ref: https://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
+        yaml.indent(mapping=indent, sequence=indent, offset=max(indent-2, 0))
 
         runconfig_cm = CM()
 
@@ -974,7 +992,7 @@ class RSLCRootParamGroup:
             )
         
         for callable in param_group_callables:
-            callable.populate_runcfg(runconfig_cm)
+            callable.populate_runcfg(runconfig_cm, indent=indent)
 
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)

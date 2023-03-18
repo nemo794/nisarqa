@@ -126,7 +126,7 @@ class YamlParamGroup(ABC):
 
 
     @classmethod
-    def populate_runcfg(cls, runconfig_cm, indent_size=4):
+    def populate_runcfg(cls, runconfig_cm, indent=4):
         '''Update the provided ruamel.yaml object with select attributes
         (parameters) of this instance of the dataclass for use in a
         NISAR product QA runconfig file.
@@ -138,7 +138,7 @@ class YamlParamGroup(ABC):
         runconfig_cm : ruamel.yaml.comments.CommentedMap
             The base commented map; will be updated with the attributes
             from this dataclass that are in the QA runconfig file
-        indent_size : int, optional
+        indent : int, optional
             Number of spaces per indent. Default: 4.
 
         Notes
@@ -168,7 +168,7 @@ class YamlParamGroup(ABC):
                                     name=yaml_attrs.name,
                                     val=val,
                                     comment=f'\n{yaml_attrs.descr}\n{msg}',
-                                    indent=indent_size)
+                                    indent=indent)
 
         if not params_cm:  # No attributes were added
             warnings.warn(f'{cls.__name__} is a subclass of YamlParamGroup'
