@@ -19,6 +19,8 @@ class WorkflowsParamGroup(YamlParamGroup):
     '''
     The parameters specifying which RSLC-Caltools QA workflows should be run.
 
+    This corresponds to the `qa: workflows` runconfig group.
+
     Parameters
     ----------
     validate : bool, optional
@@ -70,9 +72,11 @@ class WorkflowsParamGroup(YamlParamGroup):
         # VALIDATE INPUTS
         self._check_workflows_arg('validate', self.validate)
         self._check_workflows_arg('qa_reports', self.qa_reports)
-        self._check_workflows_arg('absolute_calibration_factor', self.absolute_calibration_factor)
+        self._check_workflows_arg('absolute_calibration_factor', 
+                                    self.absolute_calibration_factor)
         self._check_workflows_arg('nesz', self.nesz)
-        self._check_workflows_arg('point_target_analyzer', self.point_target_analyzer)
+        self._check_workflows_arg('point_target_analyzer',
+                                    self.point_target_analyzer)
 
 
     @staticmethod
@@ -104,6 +108,10 @@ class InputFileGroupParamGroup(YamlParamGroup):
     '''
     Parameters from the Input File Group runconfig group.
 
+    This corresponds to the `groups: input_file_group` runconfig group.
+
+
+
     Parameters
     ----------
     qa_input_file : str
@@ -115,8 +123,7 @@ class InputFileGroupParamGroup(YamlParamGroup):
         metadata={'yaml_attrs': 
             YamlAttrs(
                 name='qa_input_file',
-                descr='''
-                Filename of the input file for QA.
+                descr='''Filename of the input file for QA.
                 REQUIRED for QA. NOT REQUIRED if only running Product SAS.
                 If Product SAS and QA SAS are run back-to-back,
                 this field should be identical to `sas_output_file`.
@@ -138,6 +145,9 @@ class InputFileGroupParamGroup(YamlParamGroup):
 class DynamicAncillaryFileParamGroup(YamlParamGroup):
     '''
     The parameters from the QA Dynamic Ancillary File runconfig group.
+
+    This corresponds to the `groups: dynamic_ancillary_file_group`
+    runconfig group.
 
     Parameters
     ----------
@@ -175,6 +185,8 @@ class ProductPathGroupParamGroup(YamlParamGroup):
     '''
     Parameters from the Product Path Group runconfig group.
 
+    This corresponds to the `groups: product_path_group` runconfig group.
+
     Parameters
     ----------
     qa_output_dir : str, optional
@@ -185,7 +197,7 @@ class ProductPathGroupParamGroup(YamlParamGroup):
     qa_output_dir: str = field(
         default='./qa',
         metadata={'yaml_attrs' : YamlAttrs(
-            name='corner_reflector_file',
+            name='qa_output_dir',
             descr='''Output directory to store all QA output files.'''
         )}
     )
@@ -217,9 +229,9 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
     Parameters
     ----------
     linear_units : bool, optional
-        True to compute power in linear units, False for decibel units.
+        True to compute power image in linear units, False for decibel units.
         Defaults to True.
-    nlooks_freqa, nlooks_freqb : int, iterable of int, None, optional
+    nlooks_freqa, nlooks_freqb : iterable of int, None, optional
         Number of looks along each axis of the input array 
         for the specified frequency. If None, then nlooks will be computed
         on-the-fly based on `num_mpix`.
@@ -229,7 +241,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
     middle_percentile : float, optional
         Defines the middle percentile range of the image array
         that the colormap covers. Must be in the range [0.0, 100.0].
-        Defaults to 95.0.
+        Defaults to 90.0.
     gamma : float, None, optional
         The gamma correction parameter.
         Gamma will be applied as follows:
@@ -238,15 +250,13 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
         scaled to the range [0,1]. 
         The image colorbar will be defined with respect to the input
         image values prior to normalization and gamma correction.
-        If None, then no normalization, no gamma correction will be applied.
+        Defaults to None (no normalization, no gamma correction)
     tile_shape : iterable of int, optional
         Preferred tile shape for processing images by batches.
-        Actual tile shape used during processing might
-        be smaller due to shape of image.
+        Actual tile shape may be modified by QA-SAS.
         Format: (num_rows, num_cols) 
         -1 to indicate all rows / all columns (respectively).
-        Defaults to (1024, 1024) to use all columns 
-        (i.e. full rows of data).
+        Defaults to (1024, 1024).
 
     Attributes
     ----------
@@ -318,18 +328,19 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
         })
 
     gamma: Optional[float] = field(
-        default=None,
+        default=0.5,
         metadata={
         'yaml_attrs' : YamlAttrs(
             name='gamma',
-            descr='''Gamma correction parameter applied to power and browse image(s).
-                Gamma will be applied as follows:
-                    array_out = normalized_array ^ gamma
-                where normalized_array is a copy of the image with values
-                scaled to the range [0,1]. 
-                The image colorbar will be defined with respect to the input
-                image values prior to normalization and gamma correction.
-                Defaults to None (no normalization, no gamma correction)'''
+            descr=\
+            '''Gamma correction parameter applied to power and browse image(s).
+            Gamma will be applied as follows:
+                array_out = normalized_array ^ gamma
+            where normalized_array is a copy of the image with values
+            scaled to the range [0,1]. 
+            The image colorbar will be defined with respect to the input
+            image values prior to normalization and gamma correction.
+            If None, then no normalization and no gamma correction will be applied.'''
             ),
         'hdf5_attrs' : HDF5Attrs(
             name='powerImageGammaCorrection',
@@ -459,8 +470,6 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
 
 @dataclass(frozen=True)
 class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
-    # each param group will define the internal nesting path within its file (ABC property),
-    # and how to populate its file.
     '''
     Parameters to generate the RSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
@@ -480,12 +489,10 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         Format: (<starting value>, <endpoint>)
     phs_in_radians : bool, optional
         True to compute phase in radians units, False for degrees units.
-        Defaults to True. If `phs_in_radians` is updated, then 
-        `phs_bin_edges` will be updated to match.
+        Defaults to True.
     tile_shape : iterable of int, optional
         Preferred tile shape for processing images by batches.
-        Actual tile shape used during processing might
-        be smaller due to shape of image.
+        Actual tile shape may be modified by QA-SAS.
         Format: (num_rows, num_cols) 
         -1 to indicate all rows / all columns (respectively).
 
@@ -502,12 +509,6 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         uniformly-spaced bins in range [-pi,pi], including endpoint.
         If `phs_in_radians` is False, this will be set to 100
         uniformly-spaced bins in range [-180,180], including endpoint.
-    az_decimation : int
-        The azimuth decimation ratio value; a copy of `decimation_ratio[0]`,
-        but with `hdf5_attrs` information in the dataclasses.field metadata.
-    rng_decimation : int
-        The range decimation ratio value; a copy of `decimation_ratio[1]`,
-        but with `hdf5_attrs` information in the dataclasses.field metadata.
     '''
 
     decimation_ratio: Iterable[int] = field(
@@ -519,7 +520,13 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
                 the power and phase histograms.
                 For example, [2,3] means every 2nd azimuth line and
                 every 3rd range line will be used to compute the histograms.
-                Format: [<azimuth>, <range>]'''
+                Format: [<azimuth>, <range>]'''),
+        'hdf5_attrs' : HDF5Attrs(
+            name='histogramDecimationRatio',
+            units='unitless',
+            descr='Image decimation strides used to compute power'
+                  ' and phase histograms. Format: [<azimuth>, <range>]',
+            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
         )})
 
     pow_histogram_bin_edges_range: Iterable[float] = field(
@@ -527,7 +534,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         metadata={
         'yaml_attrs' : YamlAttrs(
             name='pow_histogram_bin_edges_range',
-            descr='''The dB range for the power histogram's bin edges. Endpoint will
+            descr='''Range in dB for the power histogram's bin edges. Endpoint will
                 be included. Format: [<starting value>, <endpoint>]'''
         )})
 
@@ -565,10 +572,17 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         )})
 
     # Phase bin edges (generated from `phs_in_radians`)
+    # Note: `phs_bin_edges` is dependent upon `phs_in_radians` being set
+    # first. The value of `phs_bin_edges` can be set in __post_init__,
+    # but the contents of the field metadata cannot be modified 
+    # after initialization. It raises this error:
+    #     TypeError: 'mappingproxy' object does not support item assignment
+    # So, use a lambda function; this can be called to generate the correct
+    # HDF5Attrs when needed, and it does not clutter the dataclass much.
     phs_bin_edges: ArrayLike = field(
         init=False,
         metadata={
-        'hdf5_func' : 
+        'hdf5_attrs_func' : 
             lambda obj : HDF5Attrs(
                 name='histogramEdgesPhase',
                 units='radians' if obj.phs_in_radians else 'degrees',
@@ -579,28 +593,6 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
             f'`obj` is {type(obj)}, but must be type RSLCHistogramParamGroup'))
         })
 
-    # Attributes derived from `decimation_ratio`
-    az_decimation: int = field(
-        init=False,
-        metadata={
-        'hdf5_attrs' : HDF5Attrs(
-            name='histogramDecimationAz',
-            units='unitless',
-            descr='Azimuth decimation stride used to compute power'
-                  ' and phase histograms',
-            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-            )})
-
-    rng_decimation: int = field(
-        init=False,
-        metadata={
-        'hdf5_attrs' : HDF5Attrs(
-            name='histogramDecimationRange',
-            units='unitless',
-            descr='Range decimation stride used to compute power'
-                  ' and phase histograms',
-            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-            )})
 
     def __post_init__(self):
         # VALIDATE INPUTS
@@ -653,10 +645,6 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
         # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
         # This dataclass is frozen to ensure that all inputs are validated, 
         # so we need to use object.__setattr__()
-
-        # Set attributes dependent upon decimation_ratio
-        object.__setattr__(self, 'az_decimation', self.decimation_ratio[0])
-        object.__setattr__(self, 'rng_decimation', self.decimation_ratio[1])
 
         # Set attributes dependent upon pow_histogram_bin_edges_range
         # Power Bin Edges - hardcode to be in decibels
@@ -740,7 +728,7 @@ class NESZParamGroup(YamlHDF5ParamGroup):
     Attributes
     ----------
     attr2 : Param
-        Placeholder parameter of type bool. This is set by updating `attr1`.
+        Placeholder parameter of type bool. This is set based on `attr1`.
     '''
 
     # Attributes for running the NESZ workflow
@@ -897,9 +885,9 @@ class RSLCRootParamGroup:
 
         # Ensure that the minimum parameters were provided
 
-        # If any of the workflows requested, then prodpath must be an
-        # instance of ProductPathGroupParamGroup.
-        # prodpath is only optional in the case of doing a dumpconfig
+        # If any of the workflows requested, then the input files group
+        # and product path group must be provided
+        # These are only optional in the case of doing a dumpconfig
         if any([getattr(self.workflows, field.name) \
                             for field in fields(self.workflows)]):
             if not isinstance(self.input_f, InputFileGroupParamGroup):
@@ -907,11 +895,6 @@ class RSLCRootParamGroup:
                     'InputFileGroupParamGroup is required to run any of the '
                     'QA workflows.')
 
-        # If any of the workflows requested, then prodpath must be an
-        # instance of ProductPathGroupParamGroup.
-        # prodpath is only optional in the case of doing a dumpconfig
-        if any([getattr(self.workflows, field.name) \
-                            for field in fields(self.workflows)]):
             if not isinstance(self.prodpath, ProductPathGroupParamGroup):
                 raise TypeError('`prodpath` parameter of type '
                     'ProductPathGroupParamGroup is required to run any of the '
@@ -1035,185 +1018,129 @@ def parse_rslc_runconfig(runconfig_yaml):
     parser = YAML(typ='safe')
     with open(runconfig_yaml, 'r') as f:
         user_rncfg = parser.load(f)
+    
+    # Dictionary to hold the *ParamGroup object. Will be used to create
+    # the RSLCRootParamGroup instance
+    root_inputs = {}
 
-    # Construct WorkflowsParamGroup dataclass
-    rncfg_path = WorkflowsParamGroup.get_path_to_group_in_runconfig()
+    # Construct WorkflowsParamGroup dataclass (necessary for all workflows)
     try:
-        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
-    except KeyError:
-        # if group does not exist in runconfig, use defaults
-        workflows_params = WorkflowsParamGroup()
-    else:
-        workflows_params = WorkflowsParamGroup(**params_dict)
+        root_inputs['workflows'] = \
+            _runconfig_parser_helper(
+                param_grp_class_handle=WorkflowsParamGroup,
+                user_rncfg=user_rncfg)
+
+    except KeyError as e:
+        raise KeyError('`input_file_group` is a required runconfig group') from e
     finally:
         # if all functionality is off, then exit
         # All workflows default to false. So, we only need to check if
         # any workflows were turned on via the runconfig.
-        if not any(params_dict.values()):
+        for field in fields(root_inputs['workflows']):
+            # All attributes in WorkflowsParam are boolean.
+            # So, if at least one is True, then we should proceed with QA-SAS.
+            if getattr(root_inputs['workflows'], field.name):
+                break
+        else:
             return
 
-    # Construct InputFileGroupParamGroup dataclass (required if any workflows are True)
-    rncfg_path = InputFileGroupParamGroup.get_path_to_group_in_runconfig()
-    try:
-        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
-                                                            rncfg_path)
-    except KeyError as e:
-        raise KeyError('`input_file_group` is a required runconfig group') from e
+    workflows = root_inputs['workflows']
 
+    # Construct InputFileGroupParamGroup (necessary for all workflows)
     try:
-        input_file_params = InputFileGroupParamGroup(
-                        qa_input_file=params_dict['qa_input_file'])
+        root_inputs['input_f'] = \
+            _runconfig_parser_helper(
+                param_grp_class_handle=InputFileGroupParamGroup,
+                user_rncfg=user_rncfg)
     except KeyError as e:
-        raise KeyError('`qa_input_file` is a required parameter for QA') from e
+        raise KeyError(
+            '`qa_input_file` is a required runconfig parameter') from e
 
     # Construct DynamicAncillaryFileParamGroup dataclass
-    # Only two of the CalVal workflows use the dynamic_ancillary_file_group
-    # YES - this file is required for these tools. Treat same as RSLC Input File.
-    if workflows_params.absolute_calibration_factor or \
-        workflows_params.point_target_analyzer:
+    if workflows.absolute_calibration_factor or \
+        workflows.point_target_analyzer:
+        try:
+            root_inputs['anc_files'] = \
+                _runconfig_parser_helper(
+                    param_grp_class_handle=DynamicAncillaryFileParamGroup,
+                    user_rncfg=user_rncfg)
 
-        rncfg_path = DynamicAncillaryFileParamGroup.get_path_to_group_in_runconfig()
-        try:
-            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
-                                                                rncfg_path)
-        except KeyError as e:
-            raise KeyError('`dynamic_ancillary_file_group` is a required '
-                           'runconfig group to run Absolute Calibration Factor'
-                           ' or Point Target Analyzer workflows.') from e
-        try:
-            dyn_anc_files = DynamicAncillaryFileParamGroup(
-                    corner_reflector_file=params_dict['corner_reflector_file'])
-        except KeyError as e:
+        except TypeError as e:
             raise KeyError('`corner_reflector_file` is a required runconfig '
                            'parameter for Absolute Calibration Factor '
                            'or Point Target Analyzer workflows') from e
         
         # TODO - add in orbit file param for AbsCal. But, it is optional, very rare.
 
-    else:
-        dyn_anc_files = None
+    # Construct ProductPathGroupParamGroup (necessary for all workflows)
+    root_inputs['prodpath'] = \
+        _runconfig_parser_helper(
+            param_grp_class_handle=ProductPathGroupParamGroup,
+            user_rncfg=user_rncfg)
 
-    # Construct ProductPathGroupParamGroup dataclass
-    rncfg_path = ProductPathGroupParamGroup.get_path_to_group_in_runconfig()
-    try:
-        params_dict = nisarqa.get_nested_element_in_dict(
-                                user_rncfg, rncfg_path)
-    except KeyError:
-        # group not found in runconfig. Use defaults.
-        warnings.warn('`product_path_group` not found in runconfig. '
-                      'Using default output directory.')
-        product_path_params = ProductPathGroupParamGroup()
-    else:
-        try:
-            product_path_params = ProductPathGroupParamGroup(
-                                    qa_output_dir=params_dict['qa_output_dir'])
-        except KeyError:
-            # parameter not found in runconfig. Use defaults.
-            warnings.warn('`qa_output_dir` not found in runconfig. '
-                        'Using default output directory.')
-            product_path_params = ProductPathGroupParamGroup()
-
-    # Construct RSLCPowerImageParamGroup dataclass
-    if workflows_params.qa_reports:
-        rncfg_path = RSLCPowerImageParamGroup.get_path_to_group_in_runconfig()
-        try:
-            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
-                                                                rncfg_path)
-        except KeyError:
-            pow_img_params = RSLCPowerImageParamGroup()
-        else:
-            pow_img_params = RSLCPowerImageParamGroup(**params_dict)
-    else:
-        pow_img_params = None
-
-    # Construct RSLCHistogramParamGroup dataclass
-    if workflows_params.qa_reports:
-        rncfg_path = RSLCHistogramParamGroup.get_path_to_group_in_runconfig()
-        try:
-            params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
-                                                                rncfg_path)
-        except KeyError:
-            histogram_params = RSLCHistogramParamGroup()
-        else:
-            histogram_params = RSLCHistogramParamGroup(**params_dict)
-    else:
-        histogram_params = None
+    # Construct parameter groups for generating the QA REPORT.pdf and Browse
+    if workflows.qa_reports:
+        root_inputs['power_img'] = \
+            _runconfig_parser_helper(
+                param_grp_class_handle=RSLCPowerImageParamGroup,
+                user_rncfg=user_rncfg)
+        
+        root_inputs['histogram'] = \
+            _runconfig_parser_helper(
+                param_grp_class_handle=RSLCHistogramParamGroup,
+                user_rncfg=user_rncfg)
 
     # Construct AbsCalParamGroup dataclass
-    if workflows_params.absolute_calibration_factor:
-        # TODO: This code is commented out for R3.2. Once CalTools and its
-        # runconfig parameters are integrated into QA SAS, then uncomment
-        # this section.
-
-        # rncfg_path = AbsCalParamGroup.get_path_to_group_in_runconfig()
-        # try:
-        #     params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
-        #                                                         rncfg_path)
-        # except KeyError:
-        #     abscal_params = AbsCalParamGroup()
-        # else:
-        #     abscal_params = AbsCalParamGroup(**params_dict)
-
-        # For R3.2 only, always use the default parameters
-        abscal_params = AbsCalParamGroup()
-    else:
-        abscal_params = None
+    if workflows.absolute_calibration_factor:
+        root_inputs['abs_cal'] = \
+            _runconfig_parser_helper(
+                param_grp_class_handle=AbsCalParamGroup,
+                user_rncfg=user_rncfg)
 
     # Construct NESZ dataclass
-    if workflows_params.nesz:
-        # TODO: This code is commented out for R3.2. Once CalTools and its
-        # runconfig parameters are integrated into QA SAS, then uncomment
-        # this section.
-
-        # rncfg_path = NESZParamGroup.get_path_to_group_in_runconfig()
-        # try:
-        #     params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
-        #                                                         rncfg_path)
-        # except KeyError:
-        #     nesz_params = NESZParamGroup()
-        # else:
-        #     nesz_params = NESZParamGroup(**params_dict)
-    
-        # For R3.2 only, always use the default parameters
-        nesz_params = NESZParamGroup()
-
-    else:
-        nesz_params = None
+    if workflows.nesz:
+        root_inputs['nesz'] = \
+            _runconfig_parser_helper(
+                param_grp_class_handle=NESZParamGroup,
+                user_rncfg=user_rncfg)
 
     # Construct PointTargetAnalyzerParamGroup dataclass
-    if workflows_params.point_target_analyzer:
-        # TODO: This code is commented out for R3.2. Once CalTools and its
-        # runconfig parameters are integrated into QA SAS, then uncomment
-        # this section.
-
-        # rncfg_path = PointTargetAnalyzerParamGroup.get_path_to_group_in_runconfig()
-        # try:
-        #     params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
-        #                                                         rncfg_path)
-        # except KeyError:
-        #     pta_params = PointTargetAnalyzerParamGroup()
-        # else:
-        #     pta_params = PointTargetAnalyzerParamGroup(**params_dict)
-
-        # For R3.2 only, always use the default parameters
-        pta_params = PointTargetAnalyzerParamGroup()
-
-    else:
-        pta_params = None
+    if workflows.point_target_analyzer:
+        root_inputs['pta'] = \
+            _runconfig_parser_helper(
+                param_grp_class_handle=PointTargetAnalyzerParamGroup,
+                user_rncfg=user_rncfg)
 
     # Construct RSLCRootParamGroup
-    rslc_params = RSLCRootParamGroup(workflows=workflows_params,
-                                 input_f=input_file_params,
-                                 anc_files=dyn_anc_files,
-                                 prodpath=product_path_params,
-                                 power_img=pow_img_params,
-                                 histogram=histogram_params,
-                                 abs_cal=abscal_params,
-                                 nesz=nesz_params,
-                                 pta=pta_params
-                                 )
+    rslc_params = RSLCRootParamGroup(**root_inputs)
 
     return rslc_params
+
+
+def _runconfig_parser_helper(param_grp_class_handle, user_rncfg):
+
+    rncfg_path = param_grp_class_handle.get_path_to_group_in_runconfig()
+
+    try:
+        runcfg_grp_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
+                                                            rncfg_path)
+    except KeyError:
+        # Group was not found, so construct an instance using all defaults.
+        # If a dataclass has a required parameter, this will (correctly)
+        # throw an error.
+        return param_grp_class_handle()
+    else:
+        # Keep only the relevant parameters in the group
+        yaml_names = param_grp_class_handle.get_list_of_yaml_names()
+
+        # prune extraneous fields from the runconfig group
+        # (aka keep only the runconfig fields that are relevant to QA)
+        # The "if..." line will allow us to skip missing runconfig fields.
+        runcfg_grp_dict = \
+            {key:runcfg_grp_dict[key] for key in yaml_names 
+                                        if key in runcfg_grp_dict}
+
+        return param_grp_class_handle(**runcfg_grp_dict)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

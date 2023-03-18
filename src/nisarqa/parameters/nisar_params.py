@@ -66,6 +66,14 @@ class HDF5Attrs:
 class YamlParamGroup(ABC):
     '''Abstract Base Class for creating *Params dataclasses.'''
 
+    @abstractmethod
+    def __post_init__(self):
+        '''
+        Validate all input parameter arguments, and set any auto-generated
+        attributes.
+        '''
+        pass
+
     @staticmethod
     @abstractmethod
     def get_path_to_group_in_runconfig():
@@ -88,33 +96,33 @@ class YamlParamGroup(ABC):
         '''
         pass
 
-
     @classmethod
-    def get_default_arg_for_yaml(cls, attr_name: str):
+    def get_list_of_yaml_names(cls):
         '''
-        Get this class' default argument for its attribute `attr_name`
-        
-        Parameters
-        ----------
-        attr_name : str
-            Name of an attribute of this class.
+        For all attributes in this dataclass that appear in the runconfig,
+        return a list of their names as they appear in the runconfig.
+
+        This list will be parsed from each attribute's field metadata;
+        specifically, it will be parsed from the YamlAttrs `name` metadata.
 
         Returns
         -------
-        default_arg : Any
-            The default value for `attr_name`. If there is no default value,
-            then an instance of RequiredParam is returned.
+        yaml_names : list of str
+            Name of the class attribute to parse the HDF5Attrs
+            `units` value from
         '''
-        # TODO - is this function used? Can it be deleted?
-
+        yaml_names = []
         for field in fields(cls):
-            if field.name == attr_name:
-                if field.default == MISSING:
-                    return RequiredParam()
-                else:
-                    return field.default
+            if 'yaml_attrs' in field.metadata:
+                yaml_names.append(field.metadata['yaml_attrs'].name)
+
+        if yaml_names:
+            return yaml_names
         else:
-            raise KeyError(f'{attr_name} is not an attribute of {cls.__name__}')
+            # Sanity check - list is still empty
+            warnings.warn(f'None of the attributes in {cls.__name__}'
+                            ' contain info for an YamlAttrs object')
+            return yaml_names
 
 
     @classmethod
@@ -269,21 +277,34 @@ class YamlParamGroup(ABC):
 class HDF5ParamGroup:
     '''Class for parameters that will be stored in the output HDF5 file.'''
 
+    def __post_init__(self):
+        '''
+        Validate all input parameter arguments, and set any auto-generated
+        attributes.
+        '''
+        pass
+
+
     def get_units_from_hdf5_metadata(self, attribute_name):
         '''
-        Return the value of the input attribute's `units` metadata.
+        Return the value of the input attribute's HDF5Attrs `units` metadata.
 
         Parameters
         ----------
-        attribute_name
+        attribute_name : str
+            Name of the class attribute to parse the HDF5Attrs
+            `units` value from
         '''
-
         for field in fields(self):
             if field.name == attribute_name:
                 if 'hdf5_attrs' in field.metadata:
                     return field.metadata['hdf5_attrs'].units
+                elif 'hdf5_attrs_func' in field.metadata:
+                    return field.metadata['hdf5_attrs_func'](self).units
                 else:
-                    return field.metadata['hdf5_func'](self).units
+                    raise TypeError(f'The field metadata for `{attribute_name}`'
+                                    ' does not contain info for an HDF5Attrs'
+                                    ' object')
 
         # If the request field was not found, raise an error        
         raise KeyError(
@@ -313,18 +334,18 @@ class HDF5ParamGroup:
         for band in bands:
             for field in fields(self):
                 if ('hdf5_attrs' in field.metadata) or \
-                    ('hdf5_func' in field.metadata):
+                    ('hdf5_attrs_func' in field.metadata):
 
                     attr = getattr(self, field.name)
                     
                     # Create filler data to stand in for Python's Nonetype.
-                    # TODO - Geoff - is this the best filler value that should appear in stats.h5?
+                    # TODO - Geoff - is 'None' the correct filler value for use in stats.h5?
                     val = 'None' if attr is None else attr
 
                     if 'hdf5_attrs' in field.metadata:
                         hdf5_attrs = field.metadata['hdf5_attrs']
                     else:
-                        hdf5_attrs = field.metadata['hdf5_func'](self)
+                        hdf5_attrs = field.metadata['hdf5_attrs_func'](self)
 
                     nisarqa.create_dataset_in_h5group(
                         h5_file=h5_file,
@@ -337,22 +358,19 @@ class HDF5ParamGroup:
                     found_at_least_one_hdf5_attr = True
 
         if not found_at_least_one_hdf5_attr:
-            # No attributes in this class were added to stats.h5
+            # No attributes in this class were added to stats.h5.
+            # Since this class is specifically for HDF5 parameters, this
+            # is probably cause for concern because something was not
+            # set up (coded) properly elsewhere.
             warnings.warn(f'{self.__name__} is a subclass of HDF5ParamGroup'
                         ' but does not have any attributes whose'
-                        ' dataclasses.field metadata contains "hdf5_attrs"')
+                        ' dataclasses.field metadata contains \'hdf5_attrs\''
+                        ' or \'hdf5_attrs_func\'')
 
 
 @dataclass(frozen=True)
 class YamlHDF5ParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''Abstract Base Class for creating *Params dataclasses.'''
-    pass
-
-
-class RequiredParam:
-    '''Sentinel value to indicate that a runconfig param is a required param, 
-    and hence there is no default value.
-    '''
     pass
 
 

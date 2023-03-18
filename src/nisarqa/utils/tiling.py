@@ -201,6 +201,11 @@ def compute_multilooked_power_by_tiling(arr,
     if tile_shape[1] == -1:
         tile_shape = (tile_shape[0], arr_shape[1])
 
+    if len(nlooks) != 2:
+        raise ValueError(f'`nlooks` must be a tuple of length 2: {nlooks}')
+    if not all(isinstance(x, int) for x in nlooks):
+        raise ValueError(f'`nlooks` must contain only ints: {nlooks}')
+
     # Compute the portion (shape) of the input array 
     # that is integer multiples of nlooks.
     # This will be used to trim off (discard) the 'uneven edges' of the image,
