@@ -79,7 +79,7 @@ def verify_rslc(runconfig_file):
     if rslc_params.workflows.qa_reports or \
         rslc_params.workflows.abs_cal or \
         rslc_params.workflows.nesz or \
-        rslc_params.workflows.point_target_analyzer:
+        rslc_params.workflows.point_target:
     
         stats_file = os.path.join(output_dir, 'STATS.h5')
         msg += f'\n\tMetrics file: {stats_file}'
@@ -108,7 +108,7 @@ def verify_rslc(runconfig_file):
         if rslc_params.workflows.qa_reports or \
             rslc_params.workflows.abs_cal or \
             rslc_params.workflows.nesz or \
-            rslc_params.workflows.point_target_analyzer:
+            rslc_params.workflows.point_target:
 
             # This is the first time opening the STATS.h5 file for RSLC
             # workflow, so open in 'w' mode.
@@ -204,7 +204,7 @@ def verify_rslc(runconfig_file):
                                        input_filename=input_file,
                                        stats_filename=stats_file)
 
-    if rslc_params.workflows.point_target_analyzer:
+    if rslc_params.workflows.point_target:
         msg = f'Running Point Target Analyzer CalTool: {input_file}'
         print(msg)
         # logger.log_message(logging_base.LogFilterInfo, msg)
