@@ -52,10 +52,11 @@ class HDF5Attrs:
                 (e.g. a file name, or a list of frequency names such as ['A', 'B']),
                 then set `units` to None so that no units attribute
                 is created.
-        Defaults to None
     descr : str
         Short one-line description of this parameter. Preferably,
         this should meet CF conventions; can be used for the stats.h5 file.
+    path : str
+        The HDF5 path to group where this attribute should be stored.
     '''
     name: str
     units: str
