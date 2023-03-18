@@ -443,7 +443,7 @@ class RootParamGroup(ABC):
     def get_mapping_of_workflows2param_groups_from_self(self):
         '''Wrapper to call `get_mapping_of_workflows2param_groups` on
         the current instance of *RootParamGroup'''
-        return RootParamGroup.get_mapping_of_workflows2param_groups(self.workflows)
+        return self.get_mapping_of_workflows2param_groups(self.workflows)
 
     @staticmethod
     @abstractmethod
