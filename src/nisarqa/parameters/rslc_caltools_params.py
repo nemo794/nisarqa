@@ -646,10 +646,9 @@ class AbsCalParamGroup(YamlHDF5ParamGroup):
         metadata={
         'yaml_attrs' : YamlAttrs(
             name='attr1',
-            descr='''
-            Placeholder: Attribute 1 description for runconfig. Each new line
-            of text will be a separate line in the runconfig template.
-            `attr1` is a non-negative float value.'''
+            descr='''Placeholder: Attribute 1 description for runconfig.
+            Each new line of text will be a separate line in the runconfig
+            template. `attr1` is a non-negative float value.'''
         ),
         'hdf5_attrs' : HDF5Attrs(
             name='attribute1',
@@ -935,52 +934,65 @@ class RSLCRootParamGroup(RootParamGroup):
                     po.write_params_to_h5(h5_file, bands=bands)
 
 
-def build_rslc_params(user_rncfg):
+def build_root_params(product_type, user_rncfg):
     '''
-    Parse a QA RSLC Runconfig yaml file into a RSLCRootParamGroup object.
+    Build the *RootParamGroup object for the specified product type.
     
     Parameters
     ----------
+    product_type : str
+        One of: 'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', 'goff'
     user_rncfg : dict
-        A dictionary whose structure matches an RSLC QA runconfig file
-        and which contains the parameters needed to run the RSLC QA SAS.
+        A dictionary of parameters; the structure if this dict must match
+        the QA runconfig file for the specified `product_type`.
     
     Returns
     -------
-    rslc_params : RSLCRootParamGroup
-        RSLCRootParamGroup object populated with runconfig values where provided,
+    root_param_group : RSLCRootParamGroup
+        *RootParamGroup object for the specified product type. This will be 
+        populated with runconfig values where provided,
         and default values for missing runconfig parameters.
     '''
-        # Dictionary to hold the *ParamGroup objects. Will be used as
-    # kwargs for the RSLCRootParamGroup instance.
+    if product_type not in nisarqa.LIST_OF_NISAR_PRODUCTS:
+        raise ValueError(f'`product_type` is {product_type}; must one of:'
+                         f' {nisarqa.LIST_OF_NISAR_PRODUCTS}')
+
+    if product_type == 'rslc':
+        workflows_param_callable = RSLCWorkflowsParamGroup
+        root_param_callable = RSLCRootParamGroup
+    else:
+        raise NotImplementedError(
+            f'{product_type} code not implemented yet.')
+        
+    # Dictionary to hold the *ParamGroup objects. Will be used as
+    # kwargs for the *RootParamGroup instance.
     root_inputs = {}
 
-    # Construct RSLCWorkflowsParamGroup dataclass (necessary for all workflows)
+    # Construct *WorkflowsParamGroup dataclass (necessary for all workflows)
     try:
         root_inputs['workflows'] = \
             _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=RSLCWorkflowsParamGroup,
+                param_grp_class_handle=workflows_param_callable,
                 user_rncfg=user_rncfg)
-        print(root_inputs['workflows'])
 
     except KeyError as e:
         raise KeyError('`workflows` group is a required runconfig group') from e
 
     finally:
-        # if all functionality is off, then exit
+        # If all functionality is off, then exit early.
         # All workflows default to false. So, we only need to check if
-        # any workflows were turned on via the runconfig.
+        # at least one workflows was set to True in the runconfig
+        # to know whether to proceed with QA-SAS.
         for field in fields(root_inputs['workflows']):
-            # All attributes in WorkflowsParam are boolean.
-            # So, if at least one is True, then we should proceed with QA-SAS.
             if getattr(root_inputs['workflows'], field.name):
+                # Yep! At least one workflow was set to True
                 break
         else:
             return
 
     workflows = root_inputs['workflows']
 
-    grps_to_parse = RSLCRootParamGroup.get_mapping_of_workflows2param_groups(
+    grps_to_parse = root_param_callable.get_mapping_of_workflows2param_groups(
                                                             workflows=workflows)
 
     for (flag_to_run, root_attr, param_callable) in grps_to_parse:
@@ -994,23 +1006,21 @@ def build_rslc_params(user_rncfg):
             # Some custom exception handling, such as to help make errors
             # from missing required input files less cryptic.
             except KeyError as e:
-                if root_attr == 'input_f':
+                if (product_type == 'rslc') and (root_attr == 'input_f'):
                     raise KeyError(
-                        '`qa_input_file` is a required runconfig parameter') from e
+                    '`*qa_input_file` is a required runconfig parameter') from e
                 else:
                     raise e
             except TypeError as e:
-                if root_attr == 'anc_files':
+                if (product_type == 'rslc') and (root_attr == 'anc_files'):
                     raise KeyError('`corner_reflector_file` is a required '
                             'runconfig parameter for Absolute Calibration '
                             'Factor or Point Target Analyzer workflows') from e
                 else:
                     raise e
 
-    #     # TODO - add in orbit file param for AbsCal. But, it is optional, very rare.
-
-    # Construct RSLCRootParamGroup
-    rslc_params = RSLCRootParamGroup(**root_inputs)
+    # Construct *RootParamGroup
+    rslc_params = root_param_callable(**root_inputs)
 
     return rslc_params
 
@@ -1051,6 +1061,7 @@ def _get_param_group_instance_from_runcfg(param_grp_class_handle,
         # If user_rncfg is None or is an empty dict, then return the default
         return param_grp_class_handle()
 
+    # Get the runconfig path for this *ParamGroup
     rncfg_path = param_grp_class_handle.get_path_to_group_in_runconfig()
 
     try:
@@ -1059,7 +1070,7 @@ def _get_param_group_instance_from_runcfg(param_grp_class_handle,
     except KeyError:
         # Group was not found, so construct an instance using all defaults.
         # If a dataclass has a required parameter, this will (correctly)
-        # throw an error.
+        # throw another error.
         return param_grp_class_handle()
     else:
         # Get the relevant yaml runconfig parameters for this ParamGroup
@@ -1069,8 +1080,8 @@ def _get_param_group_instance_from_runcfg(param_grp_class_handle,
         # (aka keep only the runconfig fields that are relevant to QA)
         # The "if..." logic will allow us to skip missing runconfig fields.
         user_input_args = \
-            {cls_name : runcfg_grp_dict[yaml_name] \
-                for cls_name, yaml_name in yaml_names.items() 
+            {cls_attr_name : runcfg_grp_dict[yaml_name] \
+                for cls_attr_name, yaml_name in yaml_names.items() 
                     if yaml_name in runcfg_grp_dict}
 
         return param_grp_class_handle(**user_input_args)

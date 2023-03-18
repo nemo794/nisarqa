@@ -33,8 +33,9 @@ def verify_rslc(user_rncfg):
         yaml file and which contains the parameters needed to run its QA SAS.
     '''
 
-    # Parse the runconfig file
-    rslc_params = nisarqa.build_rslc_params(user_rncfg)
+    # Build the RSLCRootParamGroup parameters per the runconfig
+    rslc_params = nisarqa.build_root_params(product_type='rslc',
+                                            user_rncfg=user_rncfg)
     output_dir = rslc_params.prodpath.qa_output_dir
 
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')

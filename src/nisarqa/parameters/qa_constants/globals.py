@@ -14,6 +14,8 @@ CUSTOM_CYCLER = (cycler(color=seaborn_colorblind) +
                  cycler(linestyle=['-', '-.', '--', (0, (3, 1, 1, 1)), (0, (3, 5, 1, 5, 1, 5)), ':']) +
                  cycler(lw=np.linspace(3,1,6)))
 
+LIST_OF_NISAR_PRODUCTS = ['rslc', 'gslc', 'gcov', 'rifg',
+                          'runw', 'gunw', 'roff', 'goff']
 
 BANDS = ('LSAR', 'SSAR')
 
@@ -55,6 +57,7 @@ __all__ = [
      'RSLC_FREQS',
      'RSLC_POLS',
      'CUSTOM_CYCLER',
+     'LIST_OF_NISAR_PRODUCTS',
      'STATS_H5_BASE_GROUP',
      'STATS_H5_IDENTIFICATION_GROUP',
      'STATS_H5_QA_STATS_H5_BASE_GROUP',
