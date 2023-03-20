@@ -147,7 +147,7 @@ def compute_square_pixel_nlooks(img_shape,
     Returns
     -------
     nlooks : pair of int
-        The nlooks values for azimuth and range. To 
+        The nlooks values for azimuth and range.
         Format: (ka, kr)
 
     Notes
@@ -160,7 +160,7 @@ def compute_square_pixel_nlooks(img_shape,
     is increased to be an integer multiple of `longest_side_max`, with the
     shorter dimension increased proportionally.
 
-    Derivation for the formulas:
+    Derivation for formulas (does not):
 
     Assumptions and Variable Definitions:
     Source Image has:
@@ -183,21 +183,24 @@ def compute_square_pixel_nlooks(img_shape,
         - kr : number of looks in the range direction for multilooking
            
     Problem Setup:
-    (1) da * ka = da_1                # az lines spacing is scaled by nlooks
-    (2) dr * kr = dr_1                # range sample spacing is scaled by nlooks
-    (3) M / ka = M_1                  # num az lines is scaled by nlooks
-    (4) N / kr = N_1                  # num range lines is scaled by nlooks
-    (5) dr_1 = da_1                   # output Multilooked image should have square pixels
-    (6) Da = M * da                   # total extent of image in y real space coordinates
-    (7) Dr = N * dr                   # total extent of image in x real space coordinates
+    (1) da * ka = da_1      # az lines spacing is scaled by nlooks
+    (2) dr * kr = dr_1      # range sample spacing is scaled by nlooks
+    (3) M / ka = M_1        # num az lines is scaled by nlooks
+    (4) N / kr = N_1        # num range lines is scaled by nlooks
+    (5) dr_1 = da_1         # Set equal (the multilooked image will have square pixels)
+    (6) Da = M * da         # total extent of image in y real space coordinates
+    (7) Dr = N * dr         # total extent of image in x real space coordinates
 
     Derivation:
-    (8) WLOG, let Da > Dr                       # Determine via a conditional
-    (9) kr = N / longest_side_max               # By definitions
-    (10) kr * dr = ka * da                      # from (5), (1), (2)
-    (11) ka = (kr * dr) / da                    # from (10), (9)
+    (8) WLOG, let Da > Dr                 # Determine via a conditional
+    (9) ka = M / longest_side_max         # By definitions
+    (9.5) ka = next_greater_odd_int(ka)   # round to next greater odd int here
+                                          #    for "square-er" pixels
+    (10) ka * da = kr * dr                # from (5), (1), (2)
+    (11) kr = (ka * da) / dr              # from (10), (9)
+    (11.5) kr = next_greater_odd_int(kr)  # nlooks values are int
 
-    `longest_side_max` provides an upper limit on the length of the
+    ** `longest_side_max` provides an upper limit on the length of the
     longest side of the final multilooked image. So, during 
     computation of ka and kr, they will be rounded to the nearest
     odd integer greater than the exact Real solution for ka and kr.
@@ -229,13 +232,12 @@ def compute_square_pixel_nlooks(img_shape,
         kr = nisarqa.next_greater_odd_int(kr)
 
     else:
-        # TODO - fix to match discussion
-        # Azimuth ground distance is longer
-        ka = N / longest_side_max
-        ka = nisarqa.next_greater_odd_int(ka)
-
-        kr = (ka * da) / dr  # Formula (11)
+        # X (range) ground distance is longer
+        kr = N / longest_side_max
         kr = nisarqa.next_greater_odd_int(kr)
+
+        ka = (kr * dr) / da  # Formula (11)
+        ka = nisarqa.next_greater_odd_int(ka)
 
     # Sanity Check
     assert N // kr <= longest_side_max
