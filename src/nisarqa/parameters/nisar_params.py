@@ -484,9 +484,10 @@ class RootParamGroup(ABC):
             attribute to their corresponding *RootParamGroup attribute(s) 
             and runconfig groups.
             Structure of each inner tuple:
-            (<bool of whether or not to instantiate this *ParamGroup>,
+            
+            (<bool of whether the requested workflows require this *ParamGroup>,
                 <str name of the *RootParamGroup attribute to store the *ParamGroup>,
-                    <Callable to the corresponding *ParamGroup>)
+                    <class object for the corresponding *ParamGroup>)
         '''
         pass
 

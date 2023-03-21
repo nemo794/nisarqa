@@ -837,11 +837,11 @@ class RSLCRootParamGroup(RootParamGroup):
         mapping_of_req_wkflws = \
             self.get_mapping_of_workflows2param_groups_from_self()
 
-        for (flag_to_run, root_attr, param_callable) in mapping_of_req_wkflws:
+        for (flag_to_run, root_attr, param_grp_cls_obj) in mapping_of_req_wkflws:
             if flag_to_run:
                 attr = getattr(self, root_attr)
-                if not isinstance(attr, param_callable):
-                    raise TypeError(msg % (root_attr, str(param_callable)))
+                if not isinstance(attr, param_grp_cls_obj):
+                    raise TypeError(msg % (root_attr, str(param_grp_cls_obj)))
 
 
     @staticmethod
@@ -893,7 +893,7 @@ class RSLCRootParamGroup(RootParamGroup):
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
-        param_group_callables = (
+        param_group_class_objects = (
             InputFileGroupParamGroup,
             DynamicAncillaryFileParamGroup,
             ProductPathGroupParamGroup,
@@ -905,8 +905,8 @@ class RSLCRootParamGroup(RootParamGroup):
             PointTargetAnalyzerParamGroup
             )
         
-        for callable in param_group_callables:
-            callable.populate_runcfg(runconfig_cm, indent=indent)
+        for param_grp in param_group_class_objects:
+            param_grp.populate_runcfg(runconfig_cm, indent=indent)
 
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
@@ -958,8 +958,8 @@ def build_root_params(product_type, user_rncfg):
                          f' {nisarqa.LIST_OF_NISAR_PRODUCTS}')
 
     if product_type == 'rslc':
-        workflows_param_callable = RSLCWorkflowsParamGroup
-        root_param_callable = RSLCRootParamGroup
+        workflows_param_cls_obj = RSLCWorkflowsParamGroup
+        root_param_class_obj = RSLCRootParamGroup
     else:
         raise NotImplementedError(
             f'{product_type} code not implemented yet.')
@@ -972,7 +972,7 @@ def build_root_params(product_type, user_rncfg):
     try:
         root_inputs['workflows'] = \
             _get_param_group_instance_from_runcfg(
-                param_grp_class_handle=workflows_param_callable,
+                param_grp_cls_obj=workflows_param_cls_obj,
                 user_rncfg=user_rncfg)
 
     except KeyError as e:
@@ -992,15 +992,15 @@ def build_root_params(product_type, user_rncfg):
 
     workflows = root_inputs['workflows']
 
-    grps_to_parse = root_param_callable.get_mapping_of_workflows2param_groups(
+    grps_to_parse = root_param_class_obj.get_mapping_of_workflows2param_groups(
                                                             workflows=workflows)
 
-    for (flag_to_run, root_attr, param_callable) in grps_to_parse:
+    for (flag_to_run, root_attr, param_grp_cls_obj) in grps_to_parse:
         if flag_to_run:
             try:
                 root_inputs[root_attr] = \
                     _get_param_group_instance_from_runcfg(
-                        param_grp_class_handle=param_callable,
+                        param_grp_cls_obj=param_grp_cls_obj,
                         user_rncfg=user_rncfg)
             
             # Some custom exception handling, such as to help make errors
@@ -1020,49 +1020,55 @@ def build_root_params(product_type, user_rncfg):
                     raise e
 
     # Construct *RootParamGroup
-    rslc_params = root_param_callable(**root_inputs)
+    rslc_params = root_param_class_obj(**root_inputs)
 
     return rslc_params
 
+from typing import Type
 
-def _get_param_group_instance_from_runcfg(param_grp_class_handle, 
-                                          user_rncfg=None):
+
+def _get_param_group_instance_from_runcfg(
+        param_grp_cls_obj: Type[YamlParamGroup],
+        user_rncfg: Optional[dict] = None):
     '''
-    Generate an instance of a YamlParamGroup (or subclass) object
+    Generate an instance of a YamlParamGroup subclass) object
     where the values from a user runconfig take precedence.
     
     Parameters
     ----------
-    param_grp_class_callable : YamlParamGroup callable
-        A callable subclass of YamlParamGroup.
+    param_grp_cls_obj : Type[YamlParamGroup]
+        A class instance of a subclass of YamlParamGroup.
+        For example, `RSLCHistogramParamGroup`.
     user_rncfg : nested dict, optional
-        A dict containing the user's runconfig values in the format of a dict.
-        (Typically, this is the QA runconfig yaml parsed directly into a dict.)
-        The structure of this nested dict must match the structure of the
-        QA runconfig yaml file for this product. To see the expected yaml 
-        structure for e.g. RSLC, run  `nisarqa dumpconfig rslc` from the 
-        command line.
+        A dict containing the user's runconfig values that (at minimum)
+        correspond to the `param_grp_cls_obj` parameters. (Other values
+        will be ignored.) For example, a QA runconfig yaml loaded directly
+        into a dict would be a perfect input for `user_rncfg`.
+        The nested structure of `user_rncfg` must match the structure
+        of the QA runconfig yaml file for this parameter group.
+        To see the expected yaml structure for e.g. RSLC, run  
+        `nisarqa dumpconfig rslc` from the command line.
         If `user_rncfg` contains entries that do not correspond to attributes
-        in `param_grp_class_callable`, they will be ignored.
-        If `user_rncfg` is None, an empty dict, or does not contain values
-        for `param_grp_class_callable` in a nested structure that matches
-        the QA runconfig group that corresponds to the callable, then
-        an instance with all default values will be returned.
+        in `param_grp_cls_obj`, they will be ignored.
+        If `user_rncfg` is either None, an empty dict, or does not contain
+        values for `param_grp_cls_obj` in a nested structure that matches
+        the QA runconfig group that corresponds to `param_grp_cls_obj`,
+        then an instance with all default values will be returned.
 
     Returns
     -------
-    param_grp_instance : `param_grp_class_callable` instance
-        An instance of `param_grp_class_callable` that is fully instantiated
+    param_grp_instance : `param_grp_cls_obj` instance
+        An instance of `param_grp_cls_obj` that is fully instantiated
         using default values and the arguments provided in `user_rncfg`.
         The values in `user_rncfg` have precedence over the defaults.
     '''
 
     if not user_rncfg:
         # If user_rncfg is None or is an empty dict, then return the default
-        return param_grp_class_handle()
+        return param_grp_cls_obj()
 
     # Get the runconfig path for this *ParamGroup
-    rncfg_path = param_grp_class_handle.get_path_to_group_in_runconfig()
+    rncfg_path = param_grp_cls_obj.get_path_to_group_in_runconfig()
 
     try:
         runcfg_grp_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
@@ -1071,10 +1077,10 @@ def _get_param_group_instance_from_runcfg(param_grp_class_handle,
         # Group was not found, so construct an instance using all defaults.
         # If a dataclass has a required parameter, this will (correctly)
         # throw another error.
-        return param_grp_class_handle()
+        return param_grp_cls_obj()
     else:
         # Get the relevant yaml runconfig parameters for this ParamGroup
-        yaml_names = param_grp_class_handle.get_dict_of_yaml_names()
+        yaml_names = param_grp_cls_obj.get_dict_of_yaml_names()
 
         # prune extraneous fields from the runconfig group
         # (aka keep only the runconfig fields that are relevant to QA)
@@ -1084,7 +1090,7 @@ def _get_param_group_instance_from_runcfg(param_grp_class_handle,
                 for cls_attr_name, yaml_name in yaml_names.items() 
                     if yaml_name in runcfg_grp_dict}
 
-        return param_grp_class_handle(**user_input_args)
+        return param_grp_cls_obj(**user_input_args)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
