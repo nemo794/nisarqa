@@ -1,3 +1,4 @@
+import collections
 import dataclasses
 import inspect
 import warnings
@@ -458,14 +459,29 @@ class RootParamGroup(ABC):
 
     workflows: WorkflowsParamGroup
 
-    def get_mapping_of_workflows2param_groups_from_self(self):
-        '''Wrapper to call `get_mapping_of_workflows2param_groups` on
+    # Create a namedtuple which maps the workflows requested 
+    # in `workflows` to their corresponding *RootParamGroup attribute(s) 
+    # and runconfig groups.
+    # Structure of each namedtuple:
+    # (<bool of whether the requested workflows require this *ParamGroup>,
+    #     <str name of the *RootParamGroup attribute to store the *ParamGroup>,
+    #         <class object for the corresponding *ParamGroup>)
+    ReqParamGrp: ClassVar[collections.namedtuple] = collections.namedtuple(
+        typename='ReqParamGrp',
+        field_names=['flag_param_grp_req', 
+                     'root_param_grp_attr_name', 
+                     'param_grp_cls_obj'])
+
+
+    def get_mapping_of_workflows2param_grps_from_self(self):
+        '''Wrapper to call `get_mapping_of_workflows2param_grps` on
         the current instance of *RootParamGroup'''
-        return self.get_mapping_of_workflows2param_groups(self.workflows)
+        return self.get_mapping_of_workflows2param_grps(self.workflows)
+
 
     @staticmethod
     @abstractmethod
-    def get_mapping_of_workflows2param_groups(workflows):
+    def get_mapping_of_workflows2param_grps(workflows):
         '''
         Return a tuple of tuples which map the workflows requested in this 
         class' WorkflowsParamGroup attribute to their corresponding 
@@ -479,11 +495,11 @@ class RootParamGroup(ABC):
 
         Returns
         -------
-        grps_to_parse : Tuple of Tuples
+        grps_to_parse : Tuple of RootParamGroup.ReqParamGrp
             This tuple maps the workflows requested in the WorkflowsParamGroup
             attribute to their corresponding *RootParamGroup attribute(s) 
             and runconfig groups.
-            Structure of each inner tuple:
+            Structure of each inner named tuple:
             
             (<bool of whether the requested workflows require this *ParamGroup>,
                 <str name of the *RootParamGroup attribute to store the *ParamGroup>,

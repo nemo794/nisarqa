@@ -1,7 +1,7 @@
 import os
 import sys
 from dataclasses import dataclass, field, fields
-from typing import ClassVar, Iterable, Optional, Union
+from typing import ClassVar, Iterable, Optional, Type, Union
 
 import nisarqa
 import numpy as np
@@ -814,7 +814,7 @@ class RSLCRootParamGroup(RootParamGroup):
     '''
 
     # Shared parameters
-    workflows: RSLCWorkflowsParamGroup  # add `workflows` to child b/c new type
+    workflows: RSLCWorkflowsParamGroup  # overwrite parent's `workflows` b/c new type
     input_f: Optional[InputFileGroupParamGroup] = None
     prodpath: Optional[ProductPathGroupParamGroup] = None
 
@@ -834,31 +834,59 @@ class RSLCRootParamGroup(RootParamGroup):
         msg = '`%s` parameter of type `%s` is required for the requested ' \
               'QA workflow(s).'
 
-        mapping_of_req_wkflws = \
-            self.get_mapping_of_workflows2param_groups_from_self()
+        mapping_of_req_wkflws2params = \
+            self.get_mapping_of_workflows2param_grps_from_self()
 
-        for (flag_to_run, root_attr, param_grp_cls_obj) in mapping_of_req_wkflws:
-            if flag_to_run:
-                attr = getattr(self, root_attr)
-                if not isinstance(attr, param_grp_cls_obj):
-                    raise TypeError(msg % (root_attr, str(param_grp_cls_obj)))
+        for param_grp in mapping_of_req_wkflws2params:
+            if param_grp.flag_param_grp_req:
+                attr = getattr(self, param_grp.root_param_grp_attr_name)
+                if not isinstance(attr, param_grp.param_grp_cls_obj):
+                    raise TypeError(msg % (param_grp.root_param_grp_attr_name,
+                                           str(param_grp.param_grp_cls_obj)))
 
 
     @staticmethod
-    def get_mapping_of_workflows2param_groups(workflows):
+    def get_mapping_of_workflows2param_grps(workflows):
+        Grp = RootParamGroup.ReqParamGrp  # class object for our named tuple
+
         flag_any_workflows_true = any([getattr(workflows, field.name) \
                             for field in fields(workflows)])
+
         grps_to_parse = (
-            (flag_any_workflows_true, 'input_f', InputFileGroupParamGroup),
-            (flag_any_workflows_true, 'prodpath', ProductPathGroupParamGroup),
-            (workflows.qa_reports, 'power_img', RSLCPowerImageParamGroup),
-            (workflows.qa_reports, 'histogram', RSLCHistogramParamGroup),
-            (workflows.abs_cal, 'abs_cal', AbsCalParamGroup),
-            (workflows.abs_cal or workflows.point_target,
-                'anc_files', DynamicAncillaryFileParamGroup),
-            (workflows.nesz, 'nesz', NESZParamGroup),
-            (workflows.point_target, 'pta', PointTargetAnalyzerParamGroup)
+            Grp(flag_param_grp_req=flag_any_workflows_true, 
+                root_param_grp_attr_name='input_f',
+                param_grp_cls_obj=InputFileGroupParamGroup),
+
+            Grp(flag_param_grp_req=flag_any_workflows_true, 
+                root_param_grp_attr_name='prodpath',
+                param_grp_cls_obj=ProductPathGroupParamGroup),
+
+            Grp(flag_param_grp_req=workflows.qa_reports, 
+                root_param_grp_attr_name='power_img',
+                param_grp_cls_obj=RSLCPowerImageParamGroup),
+
+            Grp(flag_param_grp_req=workflows.qa_reports, 
+                root_param_grp_attr_name='histogram',
+                param_grp_cls_obj=RSLCHistogramParamGroup),
+
+            Grp(flag_param_grp_req=workflows.abs_cal, 
+                root_param_grp_attr_name='abs_cal',
+                param_grp_cls_obj=AbsCalParamGroup),
+
+            Grp(flag_param_grp_req= \
+                    workflows.abs_cal or workflows.point_target, 
+                root_param_grp_attr_name='anc_files',
+                param_grp_cls_obj=DynamicAncillaryFileParamGroup),
+
+            Grp(flag_param_grp_req=workflows.nesz, 
+                root_param_grp_attr_name='nesz',
+                param_grp_cls_obj=NESZParamGroup),
+
+            Grp(flag_param_grp_req=workflows.point_target, 
+                root_param_grp_attr_name='pta',
+                param_grp_cls_obj=PointTargetAnalyzerParamGroup)
             )
+
         return grps_to_parse
 
 
@@ -992,27 +1020,32 @@ def build_root_params(product_type, user_rncfg):
 
     workflows = root_inputs['workflows']
 
-    grps_to_parse = root_param_class_obj.get_mapping_of_workflows2param_groups(
-                                                            workflows=workflows)
+    wkflws2params_mapping = \
+        root_param_class_obj.get_mapping_of_workflows2param_grps(
+                                                        workflows=workflows)
 
-    for (flag_to_run, root_attr, param_grp_cls_obj) in grps_to_parse:
-        if flag_to_run:
+    for param_grp in wkflws2params_mapping:
+        if param_grp.flag_param_grp_req:
             try:
-                root_inputs[root_attr] = \
+                root_inputs[param_grp.root_param_grp_attr_name] = \
                     _get_param_group_instance_from_runcfg(
-                        param_grp_cls_obj=param_grp_cls_obj,
+                        param_grp_cls_obj=param_grp.param_grp_cls_obj,
                         user_rncfg=user_rncfg)
-            
+
             # Some custom exception handling, such as to help make errors
             # from missing required input files less cryptic.
             except KeyError as e:
-                if (product_type == 'rslc') and (root_attr == 'input_f'):
+                if (product_type == 'rslc') \
+                    and (param_grp.root_param_grp_attr_name == 'input_f'):
+
                     raise KeyError(
                     '`*qa_input_file` is a required runconfig parameter') from e
                 else:
                     raise e
             except TypeError as e:
-                if (product_type == 'rslc') and (root_attr == 'anc_files'):
+                if (product_type == 'rslc') \
+                    and (param_grp.root_param_grp_attr_name == 'anc_files'):
+
                     raise KeyError('`corner_reflector_file` is a required '
                             'runconfig parameter for Absolute Calibration '
                             'Factor or Point Target Analyzer workflows') from e
@@ -1023,8 +1056,6 @@ def build_root_params(product_type, user_rncfg):
     rslc_params = root_param_class_obj(**root_inputs)
 
     return rslc_params
-
-from typing import Type
 
 
 def _get_param_group_instance_from_runcfg(
