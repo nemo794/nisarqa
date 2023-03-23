@@ -862,7 +862,7 @@ def _layer_selection_for_browse(pols):
         layers_for_browse['A']     : list of str, optional
                                         List of the Freq A polarizations
                                         required to create the browse image.
-                                        A subset of ['HH','HV','VV','RH', 'LH']
+                                        A subset of ['HH','HV','VV','RH','LH']
         layers_for_browse['B']     : list of str, optional
                                         List of the Freq B polarizations
                                         required to create the browse image.
@@ -900,8 +900,8 @@ def _layer_selection_for_browse(pols):
     '''
 
     layers_for_browse = {}
-    # Determine which band to use. LSAR has priority over SSAR.
 
+    # Determine which band to use. LSAR has priority over SSAR.
     bands = list(pols)
     if 'LSAR' in bands:
         layers_for_browse['band'] = 'LSAR'
@@ -917,7 +917,8 @@ def _layer_selection_for_browse(pols):
         raise ValueError(f'`pols["{band}"]` must contain only "A" '
                          f'and/or "B": {pols.keys()}')
 
-    # Get the frequency. A has priority over B.
+    # Get the frequency sub-band containing science mode data.
+    # This is always frequency A if present, otherwise B.
     if 'A' in pols[band]:
         freq = 'A'
     else:
@@ -956,7 +957,7 @@ def _layer_selection_for_browse(pols):
         if n_pols == 1:
 
             if ('B' in pols[band]) and \
-                (available_pols == list(pols[band]['B'])):
+                (set(available_pols) == set(pols[band]['B'])):
 
                 # A's polarization image is identical to B's pol image,
                 # which only occurs for Quasi Dual Pol
@@ -979,6 +980,7 @@ def _layer_selection_for_browse(pols):
 
             elif 'VV' in available_pols and 'VH' in available_pols:
                 # If there is only 'VV', then this granule must be dual-pol
+                assert n_pols == 2
                 layers_for_browse['A'] = ['VV', 'VH']
             
             else:
@@ -995,7 +997,7 @@ def _layer_selection_for_browse(pols):
 
 
 def process_power_images(pols, params, stats_h5, report_pdf,
-                         browse_filename='./BROWSE.png'):
+                         browse_filename='BROWSE.png'):
     '''
     Generate the RSLC Power Image plots for the `report_pdf` and
     corresponding browse image product.
@@ -1017,7 +1019,7 @@ def process_power_images(pols, params, stats_h5, report_pdf,
         The output pdf file to append the power image plot to
     browse_filename : str, optional
         Filename (with path) for the browse image PNG.
-        Defaults to './BROWSE.png'
+        Defaults to 'BROWSE.png'
     '''
 
     # Select which layers will be needed for the browse image.
@@ -1347,7 +1349,8 @@ def _save_slc_browse_img(pol_imgs, filepath):
 
     # WLOG, get the shape of the image arrays
     # They should all be the same shape; the check for this is below.
-    img_2D_shape = np.shape(pol_imgs.copy().popitem()[1])
+    arbitrary_img = next(iter(pol_imgs.values()))
+    img_2D_shape = np.shape(arbitrary_img)
     for img in pol_imgs.values():
         # Input validation check
         if np.shape(img) != img_2D_shape:
@@ -1461,7 +1464,8 @@ def plot_to_rgb_png(red, green, blue, filepath):
             raise ValueError('Input image array must be 2D.')
 
     # Concatenate into uint8 RGB array.
-    rgb_arr = np.zeros((np.shape(red)[0], np.shape(red)[1], 3), dtype=np.uint8)
+    nrow, ncol = np.shape(red)
+    rgb_arr = np.zeros((nrow, ncol, 3), dtype=np.uint8)
 
     # transparency_val will be the same from all calls to this function;
     # only need to capture it once.
@@ -1472,7 +1476,7 @@ def plot_to_rgb_png(red, green, blue, filepath):
 
     # make a tuple with length 3, where each entry denotes the transparent
     # value for R, G, and B channels (respectively)
-    transparency_val = ((transparency_val, ) * 3)
+    transparency_val = (transparency_val, ) * 3
     
     im = Image.fromarray(rgb_arr, mode='RGB')
     im.save(filepath, transparency=transparency_val)  # default = 72 dpi    
@@ -1499,7 +1503,7 @@ def prep_arr_for_png_with_transparency(img_arr):
         Input image array values were normalized to [0,1] and then
         scaled to [1,255]. Non-finite pixels are set to 0.
     transparency_value : int
-        The number denoting non-finite (invalid) pixels. This is `0`.
+        The pixel value denoting non-finite (invalid) pixels. This is currently always 0.
 
     Notes
     -----
