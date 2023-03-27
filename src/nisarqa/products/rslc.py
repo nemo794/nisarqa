@@ -1223,9 +1223,9 @@ def get_colorbar_formatter(func):
     
     Parameters
     ----------
-    func : function
+    func : callable
         A function to apply to the colorbar tick labels. This function
-        call only have one input argument and it must be numberic, and it
+        call only have one input argument and it must be numeric, and it
         can only return one output value which must also be numeric.
 
     Returns
@@ -1273,7 +1273,7 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
         and outputting the power image(s).
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
-    colorbar_formatter : function or None, optional
+    colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
         Tick formatter function to define how the numeric value 
         associated with each tick on the colorbar axis is formatted
         as a string. This function must take exactly two arguments: 
