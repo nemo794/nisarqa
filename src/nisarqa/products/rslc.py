@@ -8,6 +8,7 @@ import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.ticker import FuncFormatter
 from PIL import Image
 
 # List of objects from the import statements that
@@ -1080,8 +1081,9 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                         vmin=orig_vmin,
                         vmax=orig_vmax)
                     
-                    colorbar_formatter = \
-                        get_colorbar_formatter(func=inverse_func)
+                    colorbar_formatter = FuncFormatter(
+                        lambda x, pos: '{:.2f}'.format(inverse_func(x)))
+
                 else:
                     colorbar_formatter = None
 
@@ -1213,48 +1215,6 @@ def apply_image_correction(img_arr, params):
     return img_arr, vmin, vmax
 
 
-def get_colorbar_formatter(func):
-    '''
-    Wrap `func` in a FuncFormatter function.
-
-    This can be used by matplotlib to process the default colorbar tick labels
-    into values that e.g. match the underlying, pre-gamma corrected data
-    for display purposes.
-    
-    Parameters
-    ----------
-    func : callable
-        A function to apply to the colorbar tick labels. This function
-        call only have one input argument and it must be numeric, and it
-        can only return one output value which must also be numeric.
-
-    Returns
-    -------
-    colorbar_formatter : FuncFormatter function
-        `func` wrapped in FuncFormatter.
-        Note: FuncFormatter functions take two arguments: `x` for the 
-        tick value and `pos` for the tick position. They also must return
-        a str. The `pos` argument is used internally by matplotlib.
-        Displayed numeric values will have 2 decimal places.
-    
-    Reference
-    ---------
-    https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
-    '''
-    
-    def formatter_func(x, pos):
-        '''
-        FuncFormatter functions must take two arguments: 
-        `x` for the tick value and `pos` for the tick position,
-        and must return a str. The `pos` argument is used
-        internally by matplotlib.
-        '''
-        val = func(x)
-        return '{:.2f}'.format(val)
-
-    return formatter_func
-
-
 def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
                                    colorbar_formatter=None):
     '''
@@ -1282,7 +1242,6 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
         internally by matplotlib.
         If None, then default tick values will be used. Defaults to None.
         See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
-        (Wrapping the function with FuncFormatter is optional.)
     '''
 
     # Plot and Save Power Image to graphical summary pdf
@@ -1696,10 +1655,10 @@ def img2pdf(img_arr,
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>], 
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
-    colorbar_formatter : function or None, optional
+    colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
         Tick formatter function to define how the numeric value 
         associated with each tick on the colorbar axis is formatted
-        as a string. This function must take exactly two arguments: 
+        as a string. `FuncFormatter`s take exactly two arguments: 
         `x` for the tick value and `pos` for the tick position,
         and must return a `str`. The `pos` argument is used
         internally by matplotlib.
