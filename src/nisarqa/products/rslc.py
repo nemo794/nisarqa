@@ -832,15 +832,17 @@ def _get_pols(h5_file, freqs):
     return pols
 
 
-def _layer_selection_for_browse(pols):
+def _select_layers_for_browse(pols):
     '''
     Assign the polarization layers in the input file to grayscale or
     RGBA channels for the Browse Image.
 
     See `Notes` for details on the possible NISAR modes and assigned channels
     for LSAR band.
-    SSAR is currently only minimally supported, so only the first polarization
-    found should be used to create a grayscale image.
+    SSAR is currently only minimally supported, so only a grayscale image
+    will be created. Prioritization order to select the freq/pol to use:
+        For frequency: Freq A then Freq B.
+        For polarization: 'HH', then 'VV', then the first polarization found.
 
     
     Parameters
@@ -860,9 +862,10 @@ def _layer_selection_for_browse(pols):
         layers_for_browse['band']  : str
                                         Either 'LSAR' or 'SSAR'
         layers_for_browse['A']     : list of str, optional
-                                        List of the Freq A polarizations
+                                        List of the Freq A polarization(s)
                                         required to create the browse image.
-                                        A subset of ['HH','HV','VV','RH','LH']
+                                        A subset of:
+                                           ['HH','HV','VV','RH','RV','LH','LV']
         layers_for_browse['B']     : list of str, optional
                                         List of the Freq B polarizations
                                         required to create the browse image.
@@ -895,8 +898,8 @@ def _layer_selection_for_browse(pols):
         - Freq A: Red=HH, Blue=HH
         - Freq B: Green=VV
     CP Assignment:
-        - Freq A: Red=RH, Blue=RH (or LH?)
-        - Freq B: Green=RV (or LV?)
+        - Freq A: Grayscale of one pol image, with 
+                  Prioritization order: ['RH','RV','LH','LV']
     '''
 
     layers_for_browse = {}
@@ -914,8 +917,8 @@ def _layer_selection_for_browse(pols):
 
     # Check that the correct frequencies are available
     if not set(pols[band].keys()).issubset({'A', 'B'}):
-        raise ValueError(f'`pols["{band}"]` must contain only "A" '
-                         f'and/or "B": {pols.keys()}')
+        raise ValueError(f'`pols[\'{band}\']` contains {set(pols[band].keys())}'
+                         ', but must be a subset of {\'A\', \'B\'}')
 
     # Get the frequency sub-band containing science mode data.
     # This is always frequency A if present, otherwise B.
@@ -954,7 +957,20 @@ def _layer_selection_for_browse(pols):
         layers_for_browse['B'] = available_pols
 
     else:  # freq A exists
-        if n_pols == 1:
+        if available_pols[0].startswith('R') \
+            or available_pols[0].startswith('L'):
+            # Compact Pol. This is not a planned mode for LSAR,
+            # and there is no test data, so simply make a grayscale image.
+
+            # Per the Prioritization Order, use first available polarization
+            for pol in ['RH','RV','LH','LV']:
+                if pol in available_pols:
+                    layers_for_browse['A'] = [pol]
+                    break
+
+            assert len(layers_for_browse['A']) == 1
+
+        elif n_pols == 1:  # Horizontal/Vertical transmit
 
             if ('B' in pols[band]) and \
                 (set(available_pols) == set(pols[band]['B'])):
@@ -968,7 +984,7 @@ def _layer_selection_for_browse(pols):
                 # Single Pol
                 layers_for_browse['A'] = available_pols
 
-        elif n_pols in (2,4):
+        elif n_pols in (2,4):  # Horizontal/Vertical transmit
             # dual-pol, quad-pol, or Quasi-Quad pol
 
             # HH has priority over VV
@@ -984,9 +1000,15 @@ def _layer_selection_for_browse(pols):
                 layers_for_browse['A'] = ['VV', 'VH']
             
             else:
-                raise ValueError('For dual-pol, quad-pol, and quasi-quad, '
-                                 'polarizations must have the same Tx '
-                                 f'polarization: {available_pols}')
+                raise ValueError('For dual-pol, quad-pol, and quasi-quad modes, '
+                                'the input product must contain at least one '
+                                'of HH+HV and/or VV+VH channels. Instead got: '
+                                f'{available_pols}')
+        else:
+            raise ValueError(f'Input product\'s band {band} contains {n_pols} '
+                                'polarization images, but only 1, 2, or 4 '
+                                'are supported.')
+
 
     # Sanity Check
     if ('A' not in layers_for_browse) and ('B' not in layers_for_browse):
@@ -1028,12 +1050,10 @@ def process_power_images(pols, params, stats_h5, report_pdf,
     # so it's ok to store the necessary multilooked Power Images in memory.
     # to combine them later into the Browse image. The memory costs are
     # less than the costs for re-computing the multilooking.
-    layers_for_browse = _layer_selection_for_browse(pols)
+    layers_for_browse = _select_layers_for_browse(pols)
 
-    # Empty dictionary to hold the multilooked polarization images that
-    # will be used for the browse.
-    # Per the design of `_save_slc_browse_img()`, this dictionary should
-    # contain exactly the polarizations 
+    # At the end of the loop below, the keys of this dict should exactly
+    # match the set of TxRx polarizations needed to form the browse image
     pol_imgs_for_browse = {}
 
     # Process each image in the dataset
@@ -1325,7 +1345,8 @@ def _save_slc_browse_img(pol_imgs, filepath):
         If there are multiple image arrays, they must have identical shape.
         Format of dictionary:
             pol_imgs[<polarization>] : <2D numpy.ndarray image>, where
-                <polarization> must be a subset of: 'HH', 'HV', 'VV', 'VH'
+                <polarization> must be a subset of: 'HH', 'HV', 'VV', 'VH',
+                                                    'RH', 'RV', 'LV', 'LH',
         Example:
             pol_imgs['HH'] : <2D numpy.ndarray image>
             pol_imgs['VV'] : <2D numpy.ndarray image>
