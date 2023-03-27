@@ -1,3 +1,4 @@
+import functools
 import os
 from dataclasses import dataclass, fields
 
@@ -1073,10 +1074,14 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                                            params=params)
                 
                 if params.gamma.val is not None:
-                    colorbar_formatter = get_colorbar_formatter_to_invert_gamma(
+                    inverse_func = functools.partial(
+                        invert_gamma_correction,
                         gamma=params.gamma.val,
                         vmin=orig_vmin,
                         vmax=orig_vmax)
+                    
+                    colorbar_formatter = \
+                        get_colorbar_formatter(func=inverse_func)
                 else:
                     colorbar_formatter = None
 
@@ -1208,76 +1213,46 @@ def apply_image_correction(img_arr, params):
     return img_arr, vmin, vmax
 
 
-def get_colorbar_formatter_to_invert_gamma(gamma, vmin, vmax):
+def get_colorbar_formatter(func):
     '''
-    Get a formatter function that inverts gamma correction.
+    Wrap `func` in a FuncFormatter function.
 
-    This can be used by matplotlib to produce colorbar tick labels
-    with values that match the underlying, pre-gamma corrected data.
-    Example Usage:
-        f = plt.figure()
-        ax = plt.gca()
-        ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
-        cbar = plt.colorbar(ax_img, ax=ax)  # Add Colorbar
-        cbar.ax.yaxis.set_major_formatter(colorbar_formatter)  # set formatter
+    This can be used by matplotlib to process the default colorbar tick labels
+    into values that e.g. match the underlying, pre-gamma corrected data
+    for display purposes.
     
     Parameters
     ----------
-    gamma : float
-        The gamma correction parameter.
-       
-    vmin, vmax : float
-        The min and max of the source image array BEFORE gamma correction
-        was applied.
+    func : function
+        A function to apply to the colorbar tick labels. This function
+        call only have one input argument and it must be numberic, and it
+        can only return one output value which must also be numeric.
 
     Returns
     -------
     colorbar_formatter : FuncFormatter function
-        FuncFormatter to invert the gamma correction computation and return
-        the "true" value of the data for a given tick.
+        `func` wrapped in FuncFormatter.
         Note: FuncFormatter functions take two arguments: `x` for the 
         tick value and `pos` for the tick position. They also must return
         a str. The `pos` argument is used internally by matplotlib.
+        Displayed numeric values will have 2 decimal places.
     
-    Example
-    -------
-    >>> from matplotlib import pyplot as plt
-    >>> f = plt.figure()
-    >>> ax = plt.gca()
-    >>> img_arr = np.random(100,300)
-    >>> ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
-    >>> cbar = plt.colorbar(ax_img, ax=ax)  # Add Colorbar
-    >>> cbar.ax.yaxis.set_major_formatter(colorbar_formatter)  # set formatter
-
     Reference
     ---------
     https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
     '''
     
-    # Define the formatter function to invert the gamma correction
-    # and produce the colorbar labels with values that match
-    # the underlying, pre-gamma corrected data.
-
-    def invert_gamma_correction(x, pos):
+    def formatter_func(x, pos):
         '''
-        FuncFormatter to invert the gamma correction values
-        and return the "true" value of the data for a 
-        given tick.
-
         FuncFormatter functions must take two arguments: 
         `x` for the tick value and `pos` for the tick position,
         and must return a str. The `pos` argument is used
         internally by matplotlib.
         '''
-        # Invert the power
-        val = np.power(x, 1 / gamma)
-
-        # Invert the normalization
-        val = (val * (vmax - vmin)) + vmin
-
+        val = func(x)
         return '{:.2f}'.format(val)
 
-    return invert_gamma_correction
+    return formatter_func
 
 
 def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
@@ -1386,6 +1361,10 @@ def apply_gamma_correction(img_arr, gamma):
     out_img : numpy.ndarray
         Copy of `img_arr` with the specified gamma correction applied.
         Due to normalization, values in `out_img` will be in range [0,1].
+
+    Also See
+    --------
+    invert_gamma_correction : inverts this function
     '''
     # Normalize to range [0,1]
     out_img = nisarqa.normalize(img_arr)
@@ -1394,6 +1373,46 @@ def apply_gamma_correction(img_arr, gamma):
     out_img = np.power(out_img, gamma)
 
     return out_img
+
+
+def invert_gamma_correction(img_arr, gamma, vmin, vmax):
+    '''
+    Invert the gamma correction to the input array.
+
+    Function will normalize the array and apply gamma correction.
+    The returned output array will remain in range [0,1].
+
+    Parameters
+    ----------
+    img_arr : array_like
+        Input array
+    gamma : float
+        The gamma correction parameter.
+        Gamma will be inverted as follows:
+            array_out = img_arr ^ (1/gamma)
+        The array will then be rescaled as follows, to "undo" normalization:
+            array_out = (array_out * (vmax - vmin)) + vmin
+    vmin, vmax : float
+        The min and max of the source image array BEFORE gamma correction
+        was applied.
+
+    Returns
+    -------
+    out : numpy.ndarray
+        Copy of `img_arr` with the specified gamma correction inverted
+        and scaled to range [<vmin>, <vmax>]
+
+    Also See
+    --------
+    apply_gamma_correction : inverts this function
+    '''
+    # Invert the power
+    out = np.power(img_arr, 1 / gamma)
+
+    # Invert the normalization
+    out = (out * (vmax - vmin)) + vmin
+
+    return out
 
 
 def _save_slc_browse_img(pol_imgs, filepath):
