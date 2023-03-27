@@ -1067,12 +1067,24 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                                             img=img,
                                             params=params,
                                             stats_h5=stats_h5)
+                
+                corrected_img, orig_vmin, orig_vmax = \
+                    apply_image_correction(img_arr=multilooked_img,
+                                           params=params)
+                
+                if params.gamma.val is not None:
+                    colorbar_formatter = get_colorbar_formatter_to_invert_gamma(
+                        gamma=params.gamma.val,
+                        vmin=orig_vmin,
+                        vmax=orig_vmax)
+                else:
+                    colorbar_formatter = None
 
-                corrected_img = save_single_power_image_to_pdf(
-                                            img_arr=multilooked_img,
-                                            img=img,
-                                            params=params,
-                                            report_pdf=report_pdf)
+                save_rslc_power_image_to_pdf(img_arr=corrected_img,
+                                             img=img,
+                                             params=params,
+                                             report_pdf=report_pdf,
+                                             colorbar_formatter=colorbar_formatter)
 
                 # If this power image is needed to construct the browse image...
                 if band == layers_for_browse['band'] and \
@@ -1145,33 +1157,36 @@ def get_multilooked_power_image(img,
     return out_img
 
 
-def save_single_power_image_to_pdf(img_arr, img, params, report_pdf):
+def apply_image_correction(img_arr, params):
     '''
-    Annotate and save a RSLC Power Image to `report_pdf`.
+    Apply image correction in `img_arr` as specified in `params`.
 
+    Image correction is applied in the following order:
+        Step 1: Per `params.middle_percentile`, clip the image array's outliers 
+        Step 2: Per `params.linear_units`, convert from linear units to dB
+        Step 3: Per `params.gamma`, apply gamma correction
+    
     Parameters
     ----------
     img_arr : numpy.ndarray
-        RSLC 2D image array to be saved. This has typically been multilooked
-        to the correct size.
-    img : RSLCRasterQA
-        The RSLCRasterQA object that corresponds to `img`. The metadata
-        from this will be used for annotating the image plot.
+        2D image array to have image correction applied to.
+        For example, for RSLC this is the multilooked image array.
     params : RSLCPowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
-    report_pdf : PdfPages
-        The output pdf file to append the power image plot to
 
     Returns
     -------
     out_img : numpy.ndarray
-        2D image array that was saved to the PDF. If any image correction
-        was specified via `params` and applied to `img_arr`, this returned
-        array will include that image correction.
+        2D image array. If any image correction was specified via `params` 
+        and applied to `img_arr`, this returned array will include that
+        image correction.
+    vmin, vmax : float
+        The min and max of the image array, as computed after Step 2 but
+        before Step 3. These can be used to set colorbar tick mark values;
+        by computing vmin and vmax prior to gamma correction, the tick marks
+        values retain physical meaning.
     '''
-
-    # Apply image correction to the multilooked array
 
     # Step 1: Clip the image array's outliers
     img_arr = clip_array(img_arr, middle_percentile=params.middle_percentile.val)
@@ -1180,15 +1195,120 @@ def save_single_power_image_to_pdf(img_arr, img, params, report_pdf):
     if not params.linear_units.val:
         img_arr = nisarqa.pow2db(img_arr)
 
+    # Get the vmin and vmax prior to applying gamma correction.
+    # These can later be used for setting the colorbar's
+    # tick mark values.
+    vmin = np.min(img_arr)
+    vmax = np.max(img_arr)
+
     # Step 3: Apply gamma correction
     if params.gamma.val is not None:
-        # Get the vmin and vmax prior to applying gamma correction.
-        # These will later be used for setting the colorbar's
-        # tick mark values.
-        vmin = np.min(img_arr)
-        vmax = np.max(img_arr)
-
         img_arr = apply_gamma_correction(img_arr, gamma=params.gamma.val)
+    
+    return img_arr, vmin, vmax
+
+
+def get_colorbar_formatter_to_invert_gamma(gamma, vmin, vmax):
+    '''
+    Get a formatter function that inverts gamma correction.
+
+    This can be used by matplotlib to produce colorbar tick labels
+    with values that match the underlying, pre-gamma corrected data.
+    Example Usage:
+        f = plt.figure()
+        ax = plt.gca()
+        ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
+        cbar = plt.colorbar(ax_img, ax=ax)  # Add Colorbar
+        cbar.ax.yaxis.set_major_formatter(colorbar_formatter)  # set formatter
+    
+    Parameters
+    ----------
+    gamma : float
+        The gamma correction parameter.
+       
+    vmin, vmax : float
+        The min and max of the source image array BEFORE gamma correction
+        was applied.
+
+    Returns
+    -------
+    colorbar_formatter : FuncFormatter function
+        FuncFormatter to invert the gamma correction computation and return
+        the "true" value of the data for a given tick.
+        Note: FuncFormatter functions take two arguments: `x` for the 
+        tick value and `pos` for the tick position. They also must return
+        a str. The `pos` argument is used internally by matplotlib.
+    
+    Example
+    -------
+    >>> from matplotlib import pyplot as plt
+    >>> f = plt.figure()
+    >>> ax = plt.gca()
+    >>> img_arr = np.random(100,300)
+    >>> ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
+    >>> cbar = plt.colorbar(ax_img, ax=ax)  # Add Colorbar
+    >>> cbar.ax.yaxis.set_major_formatter(colorbar_formatter)  # set formatter
+
+    Reference
+    ---------
+    https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
+    '''
+    
+    # Define the formatter function to invert the gamma correction
+    # and produce the colorbar labels with values that match
+    # the underlying, pre-gamma corrected data.
+
+    def invert_gamma_correction(x, pos):
+        '''
+        FuncFormatter to invert the gamma correction values
+        and return the "true" value of the data for a 
+        given tick.
+
+        FuncFormatter functions must take two arguments: 
+        `x` for the tick value and `pos` for the tick position,
+        and must return a str. The `pos` argument is used
+        internally by matplotlib.
+        '''
+        # Invert the power
+        val = np.power(x, 1 / gamma)
+
+        # Invert the normalization
+        val = (val * (vmax - vmin)) + vmin
+
+        return '{:.2f}'.format(val)
+
+    return invert_gamma_correction
+
+
+def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
+                                   colorbar_formatter=None):
+    '''
+    Annotate and save a RSLC Power Image to `report_pdf`.
+
+    Parameters
+    ----------
+    img_arr : numpy.ndarray
+        2D image array to be saved. All image correction, multilooking, etc.
+        needs to have previously been applied
+    img : RSLCRasterQA
+        The RSLCRasterQA object that corresponds to `img`. The metadata
+        from this will be used for annotating the image plot.
+    params : RSLCPowerImageParams
+        A structure containing the parameters for processing
+        and outputting the power image(s).
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
+    colorbar_formatter : function or None, optional
+        Tick formatter function to define how the numeric value 
+        associated with each tick on the colorbar axis is formatted
+        as a string. This function must take exactly two arguments: 
+        `x` for the tick value and `pos` for the tick position,
+        and must return a `str`. The `pos` argument is used
+        internally by matplotlib.
+        If None, then default tick values will be used. Defaults to None.
+        See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
+        (Wrapping the function with FuncFormatter is optional.)
+    '''
 
     # Plot and Save Power Image to graphical summary pdf
     title = f'RSLC Multilooked Power ({params.pow_units.val}%s)\n{img.name}'
@@ -1206,47 +1326,16 @@ def save_single_power_image_to_pdf(img_arr, img, params, report_pdf):
     rng_stop_km = img.rng_stop/1000.
     rng_title = 'Slant Range (km)'
 
-    # Define the formatter function to invert the gamma correction
-    # and produce the colorbar labels with values that match
-    # the underlying, pre-gamma corrected data.
-    # See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
-    if params.gamma.val is not None:
-        def inverse_gamma_correction(x, pos):
-            '''
-            FuncFormatter to invert the gamma correction values
-            and return the "true" value of the data for a 
-            given tick.
-
-            FuncFormatter functions must take two arguments: 
-            `x` for the tick value and `pos` for the tick position,
-            and must return a str. The `pos` argument is used
-            internally by matplotlib.
-            '''
-            # Invert the power
-            val = np.power(x, 1 / params.gamma.val)
-
-            # Invert the normalization
-            val = (val * (vmax - vmin)) + vmin
-
-            return '{:.2f}'.format(val)
-
-        colorbar_formatter = inverse_gamma_correction
-        
-    else:
-        colorbar_formatter = None
-
-    plot2pdf(img_arr=img_arr,
-             title=title,
-             ylim=[img.az_start, img.az_stop],
-             xlim=[rng_start_km, rng_stop_km],
-             colorbar_formatter=colorbar_formatter,
-             ylabel=az_title,
-             xlabel=rng_title,
-             plots_pdf=report_pdf
-             )
+    img2pdf(img_arr=img_arr,
+            title=title,
+            ylim=[img.az_start, img.az_stop],
+            xlim=[rng_start_km, rng_stop_km],
+            colorbar_formatter=colorbar_formatter,
+            ylabel=az_title,
+            xlabel=rng_title,
+            plots_pdf=report_pdf
+            )
     
-    return img_arr
-
 
 def clip_array(arr, middle_percentile=100.0):
     '''
@@ -1564,7 +1653,7 @@ def prep_arr_for_png_with_transparency(img_arr):
     return out, transparency_value
 
 
-def plot2pdf(img_arr,
+def img2pdf(img_arr,
              plots_pdf,
              title=None,
              xlim=None,
@@ -1574,12 +1663,12 @@ def plot2pdf(img_arr,
              ylabel=None
              ):
     '''
-    Plot the clipped image array and append it to the pdf.
+    Plot the image array in grayscale, add a colorbar, and append to the pdf.
 
     Parameters
     ----------
     img_arr : array_like
-        Image to plot
+        Image to plot in grayscale
     plots_pdf : PdfPages
         The output pdf file to append the power image plot to
     title : str, optional
@@ -1588,13 +1677,14 @@ def plot2pdf(img_arr,
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>], 
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
-    colorbar_formatter : function, optional
+    colorbar_formatter : function or None, optional
         Tick formatter function to define how the numeric value 
         associated with each tick on the colorbar axis is formatted
         as a string. This function must take exactly two arguments: 
         `x` for the tick value and `pos` for the tick position,
         and must return a `str`. The `pos` argument is used
         internally by matplotlib.
+        If None, then default tick values will be used. Defaults to None.
         See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
         (Wrapping the function with FuncFormatter is optional.)
     xlabel, ylabel : str, optional
