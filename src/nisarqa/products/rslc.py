@@ -974,14 +974,31 @@ def _select_layers_for_browse(pols):
 
         elif n_pols == 1:  # Horizontal/Vertical transmit
 
-            if ('B' in pols[band]) and \
-                (set(available_pols) == set(pols[band]['B'])):
+            if 'B' in pols[band]:
+                # Freq A has one pol image, and Freq B exists.
+                if set(available_pols) == set(pols[band]['B']):
+                    # A's polarization image is identical to B's pol image,
+                    # which means that this is a single-pol observation mode
+                    # where both frequency bands were active
+                    layers_for_browse['A'] = available_pols
 
-                # A's polarization image is identical to B's pol image,
-                # which only occurs for Quasi Dual Pol
-                layers_for_browse['A'] = available_pols
-                layers_for_browse['B'] = available_pols
+                elif len(pols[band]['B']) == 1:
+                    # Quasi Dual Pol -- Freq A has HH, Freq B has VV
+                    assert 'HH' in pols[band]['A']
+                    assert 'VV' in pols[band]['B']
 
+                    layers_for_browse['A'] = available_pols
+                    layers_for_browse['B'] = ['VV']
+
+                else:
+                    # There is/are polarization image(s) for both A and B.
+                    # But, they are not representative of any of the current
+                    # observation modes for NISAR.
+                    raise ValueError(
+                        f'Freq A contains 1 polarization {available_pols}, but'
+                        f' Freq B contains polarization(s) {pols[band]["B"]}.'
+                        ' This setup does not match any known NISAR'
+                        ' observation mode.')
             else:
                 # Single Pol
                 layers_for_browse['A'] = available_pols
