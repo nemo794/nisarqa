@@ -1,18 +1,14 @@
-import os
-import sys
-from dataclasses import dataclass, field, fields
-from typing import ClassVar, Iterable, Optional, Type, Union
+from dataclasses import dataclass, fields
+from typing import Optional
 
 import nisarqa
-import numpy as np
 from nisarqa.parameters.nisar_params import *
-from nisarqa.parameters.rslc_caltools_params import *  # TODO Remove this import after re-org of code
-from numpy.typing import ArrayLike
-from ruamel.yaml import YAML
-from ruamel.yaml import CommentedMap as CM
+# TODO Remove the rslc_caltools_params imports after re-org of code
+from nisarqa.parameters.rslc_caltools_params import (
+    InputFileGroupParamGroup, ProductPathGroupParamGroup,
+    SLCPowerImageParamGroup)
 
 objects_to_skip = nisarqa.get_all(__name__)
-
 
 
 @dataclass

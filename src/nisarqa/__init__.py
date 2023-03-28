@@ -86,7 +86,6 @@ def get_all(name, objects_to_skip=None, skip_private=True):
     
     return item_list
 
-
 # import constants and utilities into the global namespace
 # These will be accessed by all products. Note that each
 # function name will need to be unique across the submodules.
@@ -96,9 +95,13 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 # A helper function to set `__all__` (with example) can be found above.
 # Note: Keep each NISAR product in a unique namespace, due to a higher
 # potential for overlapping function names
+
+# Import Globals first (these must be imported before the parameters)
+from .parameters.constants.globals import *
+from .parameters.constants.stub_outputs import *
+# Next import parameters, products, utils, etc.
+from .parameters.gslc_params import *
 from .parameters.nisar_params import *
-from .parameters.qa_constants.globals import *
-from .parameters.qa_constants.stub_outputs import *
 from .parameters.rslc_caltools_params import *
 from .products import (caltools, gcov, goff,  # keep in their own namespace
                        gslc, gunw, rifg, roff, rslc, runw)

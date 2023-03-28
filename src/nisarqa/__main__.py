@@ -105,6 +105,8 @@ def dumpconfig(product_type, indent=4):
 
     if product_type == 'rslc':
         nisarqa.RSLCRootParamGroup.dump_runconfig_template(indent=indent)
+    elif product_type == 'gslc':
+        nisarqa.GSLCRootParamGroup.dump_runconfig_template(indent=indent)
     else:
         raise NotImplementedError(
             f'{product_type} dumpconfig code not implemented yet.')

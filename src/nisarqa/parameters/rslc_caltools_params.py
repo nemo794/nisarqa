@@ -8,7 +8,6 @@ import numpy as np
 from nisarqa import (HDF5Attrs, HDF5ParamGroup, RootParamGroup,
                      WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
 from numpy.typing import ArrayLike
-from ruamel.yaml import YAML, CommentedMap
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -902,6 +901,7 @@ class RSLCRootParamGroup(RootParamGroup):
                 )
 
 
+# TODO - move to generic NISAR module
 def build_root_params(product_type, user_rncfg):
     '''
     Build the *RootParamGroup object for the specified product type.
@@ -994,6 +994,7 @@ def build_root_params(product_type, user_rncfg):
     return root_param_group
 
 
+# TODO - move to generic NISAR module
 def _get_param_group_instance_from_runcfg(
         param_grp_cls_obj: Type[YamlParamGroup],
         user_rncfg: Optional[dict] = None):
