@@ -1085,10 +1085,10 @@ def process_power_images(pols, params, stats_h5, report_pdf,
                     apply_image_correction(img_arr=multilooked_img,
                                            params=params)
                 
-                if params.gamma.val is not None:
+                if params.gamma is not None:
                     inverse_func = functools.partial(
                         invert_gamma_correction,
-                        gamma=params.gamma.val,
+                        gamma=params.gamma,
                         vmin=orig_vmin,
                         vmax=orig_vmax)
                     
@@ -1226,10 +1226,10 @@ def apply_image_correction(img_arr, params):
     '''
 
     # Step 1: Clip the image array's outliers
-    img_arr = clip_array(img_arr, middle_percentile=params.middle_percentile.val)
+    img_arr = clip_array(img_arr, middle_percentile=params.middle_percentile)
 
     # Step 2: Convert from linear units to dB
-    if not params.linear_units.val:
+    if not params.linear_units:
         img_arr = nisarqa.pow2db(img_arr)
 
     # Get the vmin and vmax prior to applying gamma correction.
@@ -1239,8 +1239,8 @@ def apply_image_correction(img_arr, params):
     vmax = np.max(img_arr)
 
     # Step 3: Apply gamma correction
-    if params.gamma.val is not None:
-        img_arr = apply_gamma_correction(img_arr, gamma=params.gamma.val)
+    if params.gamma is not None:
+        img_arr = apply_gamma_correction(img_arr, gamma=params.gamma)
     
     return img_arr, vmin, vmax
 
