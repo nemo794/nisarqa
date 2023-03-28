@@ -1,6 +1,7 @@
 import collections
 import dataclasses
 import inspect
+import sys
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import MISSING, dataclass, field, fields
@@ -458,6 +459,22 @@ class RootParamGroup(ABC):
                      'param_grp_cls_obj'])
 
 
+    def __post_init__(self):
+        # Ensure that the minimum parameters were provided
+        msg = '`%s` parameter of type `%s` is required for the requested ' \
+              'QA workflow(s).'
+
+        mapping_of_req_wkflws2params = \
+            self.get_mapping_of_workflows2param_grps_from_self()
+
+        for param_grp in mapping_of_req_wkflws2params:
+            if param_grp.flag_param_grp_req:
+                attr = getattr(self, param_grp.root_param_grp_attr_name)
+                if not isinstance(attr, param_grp.param_grp_cls_obj):
+                    raise TypeError(msg % (param_grp.root_param_grp_attr_name,
+                                           str(param_grp.param_grp_cls_obj)))
+
+
     def get_mapping_of_workflows2param_grps_from_self(self):
         '''Wrapper to call `get_mapping_of_workflows2param_grps` on
         the current instance of *RootParamGroup'''
@@ -491,5 +508,105 @@ class RootParamGroup(ABC):
                     <class object for the corresponding *ParamGroup>)
         '''
         pass
+
+
+    @staticmethod
+    @abstractmethod
+    def get_order_of_groups_in_yaml():
+        '''
+        Return the order that parameter groups should appear in the output
+        runconfig template file.
+        
+        Returns
+        -------
+        param_group_class_objects : tuple of *ParamGroup class objects
+            Tuple containing the *ParamGroup class objects for the
+            fields in this *RootParamGroup class. The order that these
+            *ParamGroup objects appear in the tuple is the order that
+            they will appear in the output runconfig yaml template file.
+
+        Examples
+        --------
+        A call to `RSLCRootParamGroup.get_order_of_groups_in_yaml()`
+        would return**:
+
+            (InputFileGroupParamGroup,
+            DynamicAncillaryFileParamGroup,
+            ProductPathGroupParamGroup,
+            RSLCWorkflowsParamGroup,
+            SLCPowerImageParamGroup,
+            RSLCHistogramParamGroup,
+            AbsCalParamGroup,
+            NESZParamGroup,
+            PointTargetAnalyzerParamGroup
+            )
+
+        ** Exact RSLC groups are subject to change, based on code updates
+           and new features added to RSLC QA-SAS.
+        '''
+        pass
+
+
+    @classmethod
+    def dump_runconfig_template(cls, indent=4):
+        '''Output the runconfig template (with default values) to stdout.
+
+        Parameters
+        ----------
+        indent : int, optional
+            Number of spaces of an indent. Defaults to 4.
+        '''
+
+        # Build a ruamel yaml object that contains the runconfig structure
+        yaml = YAML()
+
+        # Here, the `mapping` parameter sets the size of an indent for the
+        # mapping keys (aka the variable names) in the output yaml file. But,
+        # it does not set the indent for the in-line comments in the output
+        # yaml file; the indent spacing for inline comments will need to be
+        # set later while creating the commented maps.
+        # Re: `sequence` and `offset` parameters -- At the time of writing,
+        # the current QA implementation of `add_param_to_cm` specifies that
+        # lists should always be dumped inline, which means that these
+        # `sequence` and `offset` parameters are a moot point. However,
+        # should that underlying implementation change, settings sequence=4, 
+        # offset=2 results in nicely-indented yaml files.
+        # Ref: https://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
+        yaml.indent(mapping=indent, sequence=indent, offset=max(indent-2, 0))
+
+        runconfig_cm = CM()
+
+        # Populate the yaml object. This order determines the order
+        # the groups will appear in the runconfig.
+        param_group_class_objects = cls.get_order_of_groups_in_yaml()
+        
+        for param_grp in param_group_class_objects:
+            param_grp.populate_runcfg(runconfig_cm, indent=indent)
+
+        # output to console. Let user stream that into a file.
+        yaml.dump(runconfig_cm, sys.stdout)
+
+
+    def save_params_to_stats_file(self, h5_file, bands=('LSAR')):
+        '''Update the provided HDF5 file handle with select attributes
+        (parameters) of this instance of *RootParams.
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            Handle to an h5 file where the parameter metadata
+            should be saved
+        bands : iterable of str, optional
+            Sequence of the band names. Ex: ('SSAR', 'LSAR')
+            Defaults to ('LSAR')
+        '''
+        for params_obj in fields(self):
+            po = getattr(self, params_obj.name)
+            # If a workflow was not requested, its RootParams attribute
+            # will be None, so there will be no params to add to the h5 file
+            if po is not None:
+                if issubclass(type(po), HDF5ParamGroup):
+                    po.write_params_to_h5(h5_file, bands=bands)
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -68,6 +68,7 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
                                     self.point_target)
 
 
+# TODO - move to generic NISAR module (InSAR will need more thought)
 @dataclass(frozen=True)
 class InputFileGroupParamGroup(YamlParamGroup):
     '''
@@ -141,6 +142,7 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
         return ['runconfig','groups','dynamic_ancillary_file_group']
 
 
+# TODO - move to generic NISAR module (InSAR will need more thought)
 @dataclass(frozen=True)
 class ProductPathGroupParamGroup(YamlParamGroup):
     '''
@@ -180,10 +182,11 @@ class ProductPathGroupParamGroup(YamlParamGroup):
         return ['runconfig','groups','product_path_group']
 
 
+# TODO - move to generic SLC module
 @dataclass(frozen=True)
 class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
-    Parameters to generate RSLC Power Images and Browse Image.
+    Parameters to generate RSLC or GSLC Power Images and Browse Image.
     
     This corresponds to the `qa_reports: power_image` runconfig group.
 
@@ -808,7 +811,7 @@ class RSLCRootParamGroup(RootParamGroup):
         Input File Group parameters for RSLC QA
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for RSLC QA
-    power_img : RSLCPowerImageParamGroup or None, optional
+    power_img : SLCPowerImageParamGroup or None, optional
         Power Image Group parameters for RSLC QA
     histogram : RSLCHistogramParamGroup or None, optional
         Histogram Group parameters for RSLC QA
@@ -828,7 +831,7 @@ class RSLCRootParamGroup(RootParamGroup):
     prodpath: Optional[ProductPathGroupParamGroup] = None
 
     # QA parameters
-    power_img: Optional[RSLCPowerImageParamGroup] = None
+    power_img: Optional[SLCPowerImageParamGroup] = None
     histogram: Optional[RSLCHistogramParamGroup] = None
 
     # CalTools parameters
@@ -836,22 +839,6 @@ class RSLCRootParamGroup(RootParamGroup):
     abs_cal: Optional[AbsCalParamGroup] = None
     noise_estimation: Optional[NoiseEstimationParamGroup] = None
     pta: Optional[PointTargetAnalyzerParamGroup] = None
-
-    def __post_init__(self):
-
-        # Ensure that the minimum parameters were provided
-        msg = '`%s` parameter of type `%s` is required for the requested ' \
-              'QA workflow(s).'
-
-        mapping_of_req_wkflws2params = \
-            self.get_mapping_of_workflows2param_grps_from_self()
-
-        for param_grp in mapping_of_req_wkflws2params:
-            if param_grp.flag_param_grp_req:
-                attr = getattr(self, param_grp.root_param_grp_attr_name)
-                if not isinstance(attr, param_grp.param_grp_cls_obj):
-                    raise TypeError(msg % (param_grp.root_param_grp_attr_name,
-                                           str(param_grp.param_grp_cls_obj)))
 
 
     @staticmethod
@@ -872,7 +859,7 @@ class RSLCRootParamGroup(RootParamGroup):
 
             Grp(flag_param_grp_req=workflows.qa_reports, 
                 root_param_grp_attr_name='power_img',
-                param_grp_cls_obj=RSLCPowerImageParamGroup),
+                param_grp_cls_obj=SLCPowerImageParamGroup),
 
             Grp(flag_param_grp_req=workflows.qa_reports, 
                 root_param_grp_attr_name='histogram',
@@ -900,75 +887,19 @@ class RSLCRootParamGroup(RootParamGroup):
 
 
     @staticmethod
-    def dump_runconfig_template(indent=4):
-        '''Output the runconfig template (with default values) to stdout.
-
-        Parameters
-        ----------
-        indent : int, optional
-            Number of spaces of an indent. Defaults to 4.
-        '''
-
-        # Build a ruamel yaml object that contains the runconfig structure
-        yaml = YAML()
-
-        # Here, the `mapping` parameter sets the size of an indent for the
-        # mapping keys (aka the variable names) in the output yaml file. But,
-        # it does not set the indent for the in-line comments in the output
-        # yaml file; the indent spacing for inline comments will need to be
-        # set later while creating the commented maps.
-        # Re: `sequence` and `offset` parameters -- At the time of writing,
-        # the current QA implementation of `add_param_to_cm` specifies that
-        # lists should always be dumped inline, which means that these
-        # `sequence` and `offset` parameters are a moot point. However,
-        # should that underlying implementation change, settings sequence=4, 
-        # offset=2 results in nicely-indented yaml files.
-        # Ref: https://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
-        yaml.indent(mapping=indent, sequence=indent, offset=max(indent-2, 0))
-
-        runconfig_cm = CommentedMap()
-
-        # Populate the yaml object. This order determines the order
+    def get_order_of_groups_in_yaml():
+        # This order determines the order
         # the groups will appear in the runconfig.
-        param_group_class_objects = (
-            InputFileGroupParamGroup,
-            DynamicAncillaryFileParamGroup,
-            ProductPathGroupParamGroup,
-            RSLCWorkflowsParamGroup,
-            RSLCPowerImageParamGroup,
-            RSLCHistogramParamGroup,
-            AbsCalParamGroup,
-            NoiseEstimationParamGroup,
-            PointTargetAnalyzerParamGroup
-            )
-        
-        for param_grp in param_group_class_objects:
-            param_grp.populate_runcfg(runconfig_cm, indent=indent)
-
-        # output to console. Let user stream that into a file.
-        yaml.dump(runconfig_cm, sys.stdout)
-
-
-    def save_params_to_stats_file(self, h5_file, bands=('LSAR')):
-        '''Update the provided HDF5 file handle with select attributes
-        (parameters) of this instance of RLSCRootParams.
-
-        Parameters
-        ----------
-        h5_file : h5py.File
-            Handle to an h5 file where the parameter metadata
-            should be saved
-        bands : iterable of str, optional
-            Sequence of the band names. Ex: ('SSAR', 'LSAR')
-            Defaults to ('LSAR')
-        '''
-        for params_obj in fields(self):
-            po = getattr(self, params_obj.name)
-            # If a workflow was not requested, its RootParams attribute
-            # will be None, so there will be no params to add to the h5 file
-            if po is not None:
-                if issubclass(type(po), HDF5ParamGroup):
-                    po.write_params_to_h5(h5_file, bands=bands)
+        return (InputFileGroupParamGroup,
+                DynamicAncillaryFileParamGroup,
+                ProductPathGroupParamGroup,
+                RSLCWorkflowsParamGroup,
+                SLCPowerImageParamGroup,
+                RSLCHistogramParamGroup,
+                AbsCalParamGroup,
+                NESZParamGroup,
+                PointTargetAnalyzerParamGroup
+                )
 
 
 def build_root_params(product_type, user_rncfg):
@@ -979,7 +910,7 @@ def build_root_params(product_type, user_rncfg):
     ----------
     product_type : str
         One of: 'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', 'goff'
-    user_rncfg : dict
+    root_param_group : dict
         A dictionary of parameters; the structure if this dict must match
         the QA runconfig file for the specified `product_type`.
     
@@ -997,6 +928,9 @@ def build_root_params(product_type, user_rncfg):
     if product_type == 'rslc':
         workflows_param_cls_obj = RSLCWorkflowsParamGroup
         root_param_class_obj = RSLCRootParamGroup
+    elif product_type == 'gslc':
+        workflows_param_cls_obj = WorkflowsParamGroup
+        root_param_class_obj = nisarqa.GSLCRootParamGroup
     else:
         raise NotImplementedError(
             f'{product_type} code not implemented yet.')
@@ -1055,9 +989,9 @@ def build_root_params(product_type, user_rncfg):
                     raise e
 
     # Construct *RootParamGroup
-    root_params = root_param_class_obj(**root_inputs)
+    root_param_group = root_param_class_obj(**root_inputs)
 
-    return root_params
+    return root_param_group
 
 
 def _get_param_group_instance_from_runcfg(

@@ -58,6 +58,7 @@ class ExitEarly(Exception):
     should exit early, such as for when all `workflows` are set to
     `False` and so no QA processing should be performed.
     '''
+    pass
 
 def raise_(exc):
     '''
