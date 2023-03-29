@@ -227,6 +227,7 @@ def verify_rslc(user_rncfg):
     print('Successful completion. Check log file for validation warnings and errors.')
 
 
+# TODO - move to generic NISAR module 
 def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5):
     '''
     Copy the identification group from the input NISAR file
@@ -260,6 +261,8 @@ def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5):
             # Copy entire identification metadata from input file to stats.h5
             nisar_h5.copy(nisar_h5[src_grp_path], stats_h5, dest_grp_path)
 
+
+# TODO - move to generic NISAR module 
 def save_nisar_freq_metadata_to_h5(stats_h5, pols):
     '''
     Populate the `stats_h5` HDF5 file with a list of each available
@@ -281,11 +284,11 @@ def save_nisar_freq_metadata_to_h5(stats_h5, pols):
     ----------
     stats_h5 : h5py.File
         Handle to an h5 file where the list(s) of polarizations should be saved
-    pols : nested dict of RSLCRasterQA
-        Nested dict of RSLCRasterQA objects, where each object represents
+    pols : nested dict of RadarRaster
+        Nested dict of RadarRaster objects, where each object represents
         a polarization dataset.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRasterQA object
+        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RadarRaster object
     '''
 
     # Populate data group's metadata
@@ -369,56 +372,312 @@ class ComplexFloat16Decoder(object):
         return self.dataset.ndim
 
 
+# @dataclass
+# class RSLCRaster:
+#     '''
+#     RSLC image dataset with name.
+    
+#     Parameters
+#     ----------
+#     data : array_like
+#         Raster data to be stored.
+#     name : str
+#         Name for the dataset
+
+#     Notes
+#     -----
+#     If data is an HDF5 dataset, suggest initializing using
+#     the class method from_h5dataset(..).
+#     '''
+
+#     # Raster data. Could be a numpy.ndarray, h5py.Dataset, etc.
+#     data: npt.ArrayLike
+
+#     # identifying name of this Raster; can be used for logging
+#     # e.g. 'LSAR_A_HH'
+#     name: str
+
+
+#     @classmethod
+#     def from_h5dataset(cls, h5dataset, name):
+#         '''
+#         Initialize an RSLCRaster object for a HDF5 dataset
+#         that needs to be decoded via a specific dtype.
+
+#         This will store the dataset as a ComplexFloat16Decoder
+#         object instead of a standard Arraylike object.
+
+#         Parameters
+#         ----------
+#         h5dataset : h5py.Dataset
+#             Raster data to be stored.
+#         name : str
+#             Name for the dataset
+#         '''
+#         data = ComplexFloat16Decoder(h5dataset)
+#         return cls(data, name)
+
+
+# @dataclass
+# class RSLCRasterQA(RSLCRaster):
+#     '''
+#     An RSLCRaster with additional attributes specific to the QA Code.
+    
+#     Parameters
+#     ----------
+#     data : array_like
+#         Raster data to be stored.
+#     name : str
+#         Name for the dataset
+#     band : str
+#         name of the band for `img`, e.g. 'LSAR'
+#     freq : str
+#         name of the frequency for `img`, e.g. 'A' or 'B'
+#     pol : str
+#         name of the polarization for `img`, e.g. 'HH' or 'HV'
+#     az_spacing : float
+#         Azimuth spacing of pixels of input array
+#     az_start : float
+#         The start time of the observation for this
+#         RSLC Raster
+#     az_stop : float
+#         The stopping time of the observation for this
+#         RSLC Raster
+#     range_spacing : float
+#         Range spacing of pixels of input array
+#     rng_start : float
+#         Start (near) distance of the range of input array
+#     rng_stop : float
+#         End (far) distance of the range of input array
+#     epoch : str
+#         The start of the epoch for this observation,
+#         in the format 'YYYY-MM-DD HH:MM:SS'
+
+#     Notes
+#     -----
+#     If data is an HDF5 dataset, suggest initializing using
+#     the class method from_h5dataset(..).
+#     '''
+
+#     # Attributes of the input array
+#     band: str
+#     freq: str
+#     pol: str
+
+#     az_spacing: float
+#     az_start: float
+#     az_stop: float
+
+#     range_spacing: float
+#     rng_start: float
+#     rng_stop: float
+
+#     epoch: str
+
+
+#     @classmethod
+#     def from_h5dataset(cls,
+#                        h5dataset, band, freq, pol,
+#                        az_spacing, az_start, az_stop,
+#                        range_spacing, rng_start, rng_stop,
+#                        epoch):
+#         '''
+#         Initialize an RSLCRasterQA object for a HDF5 dataset
+#         that needs to be decoded via a specific dtype.
+
+#         This will store the dataset as a ComplexFloat16Decoder
+#         object instead of a standard Arraylike object.
+
+#         Parameters
+#         ----------
+#         h5dataset : h5py.Dataset
+#             Raster data to be stored.
+#         band : str
+#             name of the band for `img`, e.g. 'LSAR'
+#         freq : str
+#             name of the frequency for `img`, e.g. 'A' or 'B'
+#         pol : str
+#             name of the polarization for `img`, e.g. 'HH' or 'HV'
+#         az_spacing : float
+#             Azimuth spacing of pixels of input array
+#         az_start : float
+#             The start time of the observation for this
+#             RSLC Raster
+#         az_stop : float
+#             The stopping time of the observation for this
+#             RSLC Raster
+#         range_spacing : float
+#             Range spacing of pixels of input array
+#         rng_start : float
+#             Start (near) distance of the range of input array
+#         rng_stop : float
+#             End (far) distance of the range of input array
+#         epoch : str
+#             The reference epoch for this observation,
+#             in the format 'YYYY-MM-DD HH:MM:SS'
+
+#         Notes
+#         -----
+#         Unlike the default constructor for RSLCRasterQA, this
+#         function does not include a user-specified input 
+#         parameter `name`. Instead, to maintain consistency of
+#         the format of the `name` for each NISAR RSLC QA image,
+#         the `name` attribute will be populated with a string
+#         of the format: <band>_<freq>_<pol>
+#         '''
+#         data = ComplexFloat16Decoder(h5dataset)
+
+#         # Format the name
+#         name = f'{band}_{freq}_{pol}'
+
+#         # Note the order of the positional arguments being passed;
+#         # the attributes of the parent class must be passed first.
+#         return cls(data, name, band, freq, pol, 
+#                    az_spacing, az_start, az_stop,
+#                    range_spacing, rng_start, rng_stop,
+#                    epoch)
+
+#     @classmethod
+#     def from_nisar_rslc_h5_dataset(cls,
+#                        h5_file, band, freq, pol):
+#         '''
+#         Initialize an RSLCRasterQA object for the given 
+#         band-freq-pol image in the input NISAR RSLC HDF5 file.
+        
+#         This will store the dataset as a ComplexFloat16Decoder
+#         object instead of a standard Arraylike object. If the file 
+#         does not contain an image dataset for the given 
+#         band-freq-pol combination, a DatasetNotFoundError
+#         exception will be thrown.
+
+#         Parameters
+#         ----------
+#         h5_file : h5py.File
+#             File handle to a valid NISAR RSLC hdf5 file.
+#             Polarization images must be located in the h5 file in the path: 
+#             /science/<band>/RSLC/swaths/frequency<freq>/<pol>
+#             or they will not be found. This is the file structure
+#             as determined from the NISAR Product Spec.
+#         band : str
+#             name of the band for `img`, e.g. 'LSAR'
+#         freq : str
+#             name of the frequency for `img`, e.g. 'A' or 'B'
+#         pol : str
+#             name of the polarization for `img`, e.g. 'HH' or 'HV'
+
+#         Notes
+#         -----
+#         The `name` attribute will be populated with a string
+#         of the format: <band>_<freq>_<pol>
+#         '''
+
+#         # check if this is an RSLC or and SLC file.
+#         if f'/science/{band}/RSLC' in h5_file:
+#             slc_type = 'RSLC'
+#         elif f'/science/{band}/SLC' in h5_file:
+#             # TODO - The UAVSAR test datasets were created with only the 'SLC'
+#             # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
+#             # Once the test datasets have been updated to 'RSLC', then remove this
+#             # warning, and raise a fatal error.
+#             print('WARNING!! This product uses the deprecated "SLC" group. Update to "RSLC".')
+
+#             slc_type = 'SLC'
+#         else:
+#             # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
+#             raise nisarqa.DatasetNotFoundError
+
+#         # Hardcoded paths to various groups in the NISAR RSLC h5 file.
+#         # These paths are determined by the RSLC .xml product spec
+#         swaths_path = f'/science/{band}/{slc_type}/swaths'
+#         freq_path = f'{swaths_path}/frequency{freq}/'
+#         pol_path = f'{freq_path}/{pol}'
+#         band_freq_pol_str = f'{band}_{freq}_{pol}'
+
+#         if pol_path in h5_file:
+#             # self.logger.log_message(logging_base.LogFilterInfo, 
+#             #                         'Found image %s' % band_freq_pol_str)
+#             pass
+#         else:
+#             # self.logger.log_message(logging_base.LogFilterInfo, 
+#             #                         'Image %s not present' % band_freq_pol_str)
+#             return None
+
+#         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
+#         # 'Nominal along track spacing in meters between consecutive lines 
+#         # near mid swath of the RSLC image.'
+#         az_spacing = h5_file[freq_path]['sceneCenterAlongTrackSpacing'][...]
+
+#         # Get Azimuth (y-axis) tick range + label
+#         # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
+#         az_start = float(h5_file[swaths_path]['zeroDopplerTime'][0])
+#         az_stop =  float(h5_file[swaths_path]['zeroDopplerTime'][-1])
+
+#         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the 
+#         # 'Nominal ground range spacing in meters between consecutive pixels
+#         # near mid swath of the RSLC image.'
+#         range_spacing = h5_file[freq_path]['sceneCenterGroundRangeSpacing'][...]
+
+#         # Range in meters (units are specified as meters in the product spec)
+#         rng_start = float(h5_file[freq_path]['slantRange'][0])
+#         rng_stop = float(h5_file[freq_path]['slantRange'][-1])
+
+#         # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
+#         sec_since_epoch = h5_file[swaths_path]['zeroDopplerTime'].attrs['units'].decode('utf-8')
+#         epoch = sec_since_epoch.replace('seconds since ', '').strip()
+
+#         return RSLCRasterQA.from_h5dataset(h5_file[pol_path],
+#                                    band=band,
+#                                    freq=freq,
+#                                    pol=pol,
+#                                    az_spacing=az_spacing,
+#                                    az_start=az_start,
+#                                    az_stop=az_stop,
+#                                    range_spacing=range_spacing,
+#                                    rng_start=rng_start,
+#                                    rng_stop=rng_stop,
+#                                    epoch=epoch)
+
+
+# TODO - move to generic
 @dataclass
-class RSLCRaster:
+class NISARRaster:
     '''
-    RSLC image dataset with name.
+    NISAR image dataset with name.
     
     Parameters
     ----------
     data : array_like
-        Raster data to be stored.
+        Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
     name : str
         Name for the dataset
-
-    Notes
-    -----
-    If data is an HDF5 dataset, suggest initializing using
-    the class method from_h5dataset(..).
+    band : str
+        name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        name of the frequency for `img`, e.g. 'A' or 'B'
+    pol : str
+        name of the polarization for `img`, e.g. 'HH' or 'HV'
     '''
 
-    # Raster data
+    # Raster data. Could be a numpy.ndarray, h5py.Dataset, etc.
     data: npt.ArrayLike
 
     # identifying name of this Raster; can be used for logging
     # e.g. 'LSAR_A_HH'
     name: str
 
-
-    @classmethod
-    def from_h5dataset(cls, h5dataset, name):
-        '''
-        Initialize an RSLCRaster object for a HDF5 dataset
-        that needs to be decoded via a specific dtype.
-
-        This will store the dataset as a ComplexFloat16Decoder
-        object instead of a standard Arraylike object.
-
-        Parameters
-        ----------
-        h5dataset : h5py.Dataset
-            Raster data to be stored.
-        name : str
-            Name for the dataset
-        '''
-        data = ComplexFloat16Decoder(h5dataset)
-        return cls(data, name)
+    band: str
+    freq: str
+    pol: str
 
 
+# TODO - move to generic
 @dataclass
-class RSLCRasterQA(RSLCRaster):
+class RadarRaster(NISARRaster):
     '''
-    An RSLCRaster with additional attributes specific to the QA Code.
+    An NISARRaster with attributes specific the Radar products.
+
+    The attributes specified here are based on the needs of the QA code
+    for generating and labeling plots, etc.
     
     Parameters
     ----------
@@ -452,15 +711,11 @@ class RSLCRasterQA(RSLCRaster):
 
     Notes
     -----
-    If data is an HDF5 dataset, suggest initializing using
-    the class method from_h5dataset(..).
+    If data is NISAR HDF5 dataset, suggest initializing using
+    the class method init_from_nisar_h5_product(..).
     '''
 
     # Attributes of the input array
-    band: str
-    freq: str
-    pol: str
-
     az_spacing: float
     az_start: float
     az_stop: float
@@ -473,86 +728,23 @@ class RSLCRasterQA(RSLCRaster):
 
 
     @classmethod
-    def from_h5dataset(cls,
-                       h5dataset, band, freq, pol,
-                       az_spacing, az_start, az_stop,
-                       range_spacing, rng_start, rng_stop,
-                       epoch):
-        '''
-        Initialize an RSLCRasterQA object for a HDF5 dataset
-        that needs to be decoded via a specific dtype.
-
-        This will store the dataset as a ComplexFloat16Decoder
-        object instead of a standard Arraylike object.
-
-        Parameters
-        ----------
-        h5dataset : h5py.Dataset
-            Raster data to be stored.
-        band : str
-            name of the band for `img`, e.g. 'LSAR'
-        freq : str
-            name of the frequency for `img`, e.g. 'A' or 'B'
-        pol : str
-            name of the polarization for `img`, e.g. 'HH' or 'HV'
-        az_spacing : float
-            Azimuth spacing of pixels of input array
-        az_start : float
-            The start time of the observation for this
-            RSLC Raster
-        az_stop : float
-            The stopping time of the observation for this
-            RSLC Raster
-        range_spacing : float
-            Range spacing of pixels of input array
-        rng_start : float
-            Start (near) distance of the range of input array
-        rng_stop : float
-            End (far) distance of the range of input array
-        epoch : str
-            The reference epoch for this observation,
-            in the format 'YYYY-MM-DD HH:MM:SS'
-
-        Notes
-        -----
-        Unlike the default constructor for RSLCRasterQA, this
-        function does not include a user-specified input 
-        parameter `name`. Instead, to maintain consistency of
-        the format of the `name` for each NISAR RSLC QA image,
-        the `name` attribute will be populated with a string
-        of the format: <band>_<freq>_<pol>
-        '''
-        data = ComplexFloat16Decoder(h5dataset)
-
-        # Format the name
-        name = f'{band}_{freq}_{pol}'
-
-        # Note the order of the positional arguments being passed;
-        # the attributes of the parent class must be passed first.
-        return cls(data, name, band, freq, pol, 
-                   az_spacing, az_start, az_stop,
-                   range_spacing, rng_start, rng_stop,
-                   epoch)
-
-    @classmethod
-    def from_nisar_rslc_h5_dataset(cls,
+    def init_from_nisar_h5_product(cls,
                        h5_file, band, freq, pol):
         '''
-        Initialize an RSLCRasterQA object for the given 
-        band-freq-pol image in the input NISAR RSLC HDF5 file.
-        
-        This will store the dataset as a ComplexFloat16Decoder
-        object instead of a standard Arraylike object. If the file 
-        does not contain an image dataset for the given 
-        band-freq-pol combination, a DatasetNotFoundError
-        exception will be thrown.
+        Initialize an RadarRaster object for the given 
+        band-freq-pol image in the input NISAR Radar domain HDF5 file.
 
+        NISAR product type must be one of: 'RSLC', 'SLC', 'RIFG', 'RUNW', 'ROFF'
+        If the product type is 'RSLC' or 'SLC', then the image dataset
+        will be stored as a ComplexFloat16Decoder instance; this will allow
+        significantly faster access to the data.
+        
         Parameters
         ----------
         h5_file : h5py.File
-            File handle to a valid NISAR RSLC hdf5 file.
+            File handle to a valid NISAR product hdf5 file.
             Polarization images must be located in the h5 file in the path: 
-            /science/<band>/RSLC/swaths/frequency<freq>/<pol>
+            /science/<band>/<product name>/swaths/frequency<freq>/<pol>
             or they will not be found. This is the file structure
             as determined from the NISAR Product Spec.
         band : str
@@ -562,33 +754,40 @@ class RSLCRasterQA(RSLCRaster):
         pol : str
             name of the polarization for `img`, e.g. 'HH' or 'HV'
 
+        Raises
+        ------
+        DatasetNotFoundError
+            If the file does not contain an image dataset for the given 
+            band-freq-pol combination, a DatasetNotFoundError
+            exception will be thrown.
+
         Notes
         -----
         The `name` attribute will be populated with a string
         of the format: <band>_<freq>_<pol>
         '''
 
-        # check if this is an RSLC or and SLC file.
-        if f'/science/{band}/RSLC' in h5_file:
-            slc_type = 'RSLC'
-        elif f'/science/{band}/SLC' in h5_file:
-            # TODO - The UAVSAR test datasets were created with only the 'SLC'
-            # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
-            # Once the test datasets have been updated to 'RSLC', then remove this
-            # warning, and raise a fatal error.
-            print('WARNING!! This product uses the deprecated "SLC" group. Update to "RSLC".')
+        for product_type in ('RSLC', 'SLC', 'RIFG', 'RUNW', 'ROFF'):
+            if f'/science/{band}/{product_type}' in h5_file:
+                product = product_type
 
-            slc_type = 'SLC'
+                if product_type == 'SLC':
+                    # TODO - The UAVSAR test datasets were created with only the 'SLC'
+                    # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
+                    # Once the test datasets have been updated to 'RSLC', then remove this
+                    # warning, and raise a fatal error.
+                    print('WARNING!! This product uses the deprecated "SLC" group. Update to "RSLC".')
+                
+                break
         else:
             # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
             raise nisarqa.DatasetNotFoundError
 
         # Hardcoded paths to various groups in the NISAR RSLC h5 file.
         # These paths are determined by the RSLC .xml product spec
-        swaths_path = f'/science/{band}/{slc_type}/swaths'
+        swaths_path = f'/science/{band}/{product}/swaths'
         freq_path = f'{swaths_path}/frequency{freq}/'
         pol_path = f'{freq_path}/{pol}'
-        band_freq_pol_str = f'{band}_{freq}_{pol}'
 
         if pol_path in h5_file:
             # self.logger.log_message(logging_base.LogFilterInfo, 
@@ -598,6 +797,13 @@ class RSLCRasterQA(RSLCRaster):
             # self.logger.log_message(logging_base.LogFilterInfo, 
             #                         'Image %s not present' % band_freq_pol_str)
             return None
+
+        if product in ('RSLC', 'SLC'):
+            print("WOOP")
+            # Use special decoder for NISAR RSLC products
+            dataset = ComplexFloat16Decoder(h5_file[pol_path])
+        else:
+            dataset = h5_file[pol_path]
 
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
         # 'Nominal along track spacing in meters between consecutive lines 
@@ -622,19 +828,21 @@ class RSLCRasterQA(RSLCRaster):
         sec_since_epoch = h5_file[swaths_path]['zeroDopplerTime'].attrs['units'].decode('utf-8')
         epoch = sec_since_epoch.replace('seconds since ', '').strip()
 
-        return RSLCRasterQA.from_h5dataset(h5_file[pol_path],
-                                   band=band,
-                                   freq=freq,
-                                   pol=pol,
-                                   az_spacing=az_spacing,
-                                   az_start=az_start,
-                                   az_stop=az_stop,
-                                   range_spacing=range_spacing,
-                                   rng_start=rng_start,
-                                   rng_stop=rng_stop,
-                                   epoch=epoch)
+        return cls(data=dataset,
+                   name=f'{band}_{freq}_{pol}',
+                   band=band,
+                   freq=freq,
+                   pol=pol,
+                   az_spacing=az_spacing,
+                   az_start=az_start,
+                   az_stop=az_stop,
+                   range_spacing=range_spacing,
+                   rng_start=rng_start,
+                   rng_stop=rng_stop,
+                   epoch=epoch)
 
 
+# TODO - move to generic
 def get_bands_freqs_pols(h5_file):
     '''
     Locate the available bands, frequencies, and polarizations
@@ -657,11 +865,11 @@ def get_bands_freqs_pols(h5_file):
         where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
         Format: freqs[<band>][<freq>] -> a h5py Group
         Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
-    pols : nested dict of RSLCRasterQA
-        Nested dict of RSLCRasterQA objects, where each object represents
+    pols : nested dict of RadarRaster
+        Nested dict of RadarRaster objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRasterQA object
+        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RadarRaster object
 
     '''
 
@@ -787,11 +995,11 @@ def _get_pols(h5_file, freqs):
 
     Returns
     -------
-    pols : nested dict of RSLCRasterQA
-        Nested dict of RSLCRasterQA objects, where each object represents
+    pols : nested dict of RadarRaster
+        Nested dict of RadarRaster objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RSLCRasterQA object
+        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RadarRaster object
 
     See Also
     --------
@@ -807,16 +1015,16 @@ def _get_pols(h5_file, freqs):
             for pol in nisarqa.RSLC_POLS:
 
                 try:
-                    tmp_RSLCRasterQA = \
-                        RSLCRasterQA.from_nisar_rslc_h5_dataset(h5_file, band, freq, pol)
+                    tmp_RadarRaster = \
+                        RadarRaster.init_from_nisar_h5_product(h5_file, band, freq, pol)
                 except nisarqa.DatasetNotFoundError:
                     # RSLC Raster QA could not be created, which means that the
                     # input file did not contain am image with the current
                     # `band`, `freq`, and `pol` combination.
                     continue
 
-                if isinstance(tmp_RSLCRasterQA, RSLCRasterQA):
-                    pols[band][freq][pol] = tmp_RSLCRasterQA
+                if isinstance(tmp_RadarRaster, RadarRaster):
+                    pols[band][freq][pol] = tmp_RadarRaster
 
     # Sanity Check - if a band/freq does not have any polarizations, 
     # this is a validation error. This check should be handled during 
@@ -850,12 +1058,12 @@ def _select_layers_for_browse(pols):
     
     Parameters
     ----------
-    pols : nested dict of RSLCRasterQA
-        Nested dict of RSLCRasterQA objects, where each object represents
+    pols : nested dict of RadarRaster
+        Nested dict of RadarRaster objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
+        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
-                                       in a RSLCRasterQA object
+                                       in a RadarRaster object
 
     Returns
     -------
@@ -1046,12 +1254,12 @@ def process_power_images(pols, params, stats_h5, report_pdf,
 
     Parameters
     ----------
-    pols : nested dict of RSLCRasterQA
-        Nested dict of RSLCRasterQA objects, where each object represents
+    pols : nested dict of RadarRaster
+        Nested dict of RadarRaster objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
+        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
-                                       in a RSLCRasterQA object
+                                       in a RadarRaster object
     params : RSLCPowerImageParams
         A dataclass containing the parameters for processing
         and outputting the power image(s).
@@ -1132,7 +1340,7 @@ def get_multilooked_power_image(img,
 
     Parameters
     ----------
-    img : RSLCRasterQA
+    img : RadarRaster
         The RSLC raster to be processed
     params : RSLCPowerImageParams
         A structure containing the parameters for processing
@@ -1262,8 +1470,8 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
     img_arr : numpy.ndarray
         2D image array to be saved. All image correction, multilooking, etc.
         needs to have previously been applied
-    img : RSLCRasterQA
-        The RSLCRasterQA object that corresponds to `img`. The metadata
+    img : RadarRaster
+        The RadarRaster object that corresponds to `img`. The metadata
         from this will be used for annotating the image plot.
     params : RSLCPowerImageParams
         A structure containing the parameters for processing
@@ -1863,12 +2071,12 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
 
     Parameters
     ----------
-    pols : nested dict of RSLCRaster
-        Nested dict of RSLCRaster objects, where each object represents
+    pols : nested dict of RadarRaster
+        Nested dict of RadarRaster objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRaster
+        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
-                                       in a RSLCRaster object
+                                       in a RadarRaster object
     params : RSLCHistogramParams
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
@@ -1904,13 +2112,13 @@ def generate_histogram_single_freq(pol, band, freq,
 
     Parameters
     ----------
-    pol : dict of RSLCRaster
-        dict of RSLCRaster objects for the given `band`
+    pol : dict of RadarRaster
+        dict of RadarRaster objects for the given `band`
         and `freq`. Each key is a polarization (e.g. 'HH'
         or 'HV'), and each key's item is the corresponding
-        RSLCRaster instance.
+        RadarRaster instance.
         Ex: pol['HH'] -> the HH dataset, stored 
-                         in a RSLCRaster object
+                         in a RadarRaster object
     band : str
         Band name for the histograms to be processed,
         e.g. 'LSAR'
