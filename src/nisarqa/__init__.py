@@ -109,5 +109,6 @@ from .utils.calc import *
 from .utils.generate_test_data import *
 from .utils.input_verification import *
 from .utils.multilook import *
+from .utils.raster_classes import *
 from .utils.tiling import *
 from .utils.utils import *
