@@ -60,6 +60,15 @@ class ExitEarly(Exception):
     '''
     pass
 
+
+class InvalidNISARProductError(Exception):
+    '''Custom exception name for when an input NISAR product 
+    HDF5 file does not match the structure of the product spec.
+    '''
+    def __init__(self):
+        super().__init__('Invalid NISAR Product.')
+
+
 def raise_(exc):
     '''
     Wrapper to raise an Exception for use in e.g. lambda functions.
@@ -256,6 +265,46 @@ def get_nested_element_in_dict(source_dict, path_to_element):
     for nested_dict in path_to_element:
         element = element[nested_dict]
     return element
+
+
+def get_NISAR_product_type(h5_file):
+    '''
+    Returns the product type for the provided NISAR HDF5 product file.
+
+    Parameters
+    ----------
+    h5_file : h5py.File
+        File handle to a valid NISAR RSLC hdf5 file.
+        Product name must be located in the h5 file in the path: 
+        /science/<band>/<product type> or a ValueError will be raised.
+
+    Returns
+    -------
+    product_type : str
+        One of: 'RSLC', 'SLC', 'GSLC', 'GCOV', 'RIFG', 'RUNW', 'GUNW', 
+                'ROFF', or 'GOFF'
+    '''
+
+    nisar_products = [p.toupper() for p in nisarqa.LIST_OF_NISAR_PRODUCTS]
+    nisar_products.append('SLC')
+
+    for band in h5_file['/science']:
+
+        for product in nisar_products:
+            if product in h5_file[f'/science/{band}']:
+                if product == 'SLC':
+                    # TODO - The UAVSAR test datasets were created with 
+                    # only the 'SLC' filepath. New NISAR RSLC Products should 
+                    # only contain 'RSLC' file paths.
+                    # Once the test datasets have been updated to 'RSLC', 
+                    # then remove this warning, and raise a fatal error.
+                    print('WARNING!! This product uses the deprecated '
+                          '"SLC" group. Update to "RSLC".')
+
+                return product
+        else:
+            raise ValueError('Provided input file does not have a valid'
+                             f'NISAR product group under band {band}')
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

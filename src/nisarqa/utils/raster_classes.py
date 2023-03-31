@@ -68,7 +68,7 @@ class GeoRaster(nisarqa.rslc.Raster):
         Parameters
         ----------
         h5_file : h5py.File
-            File handle to a valid NISAR product hdf5 file.
+            File handle to a valid NISAR Geocoded product hdf5 file.
             Polarization images must be located in the h5 file in the path: 
             /science/<band>/<product name>/grids/frequency<freq>/<pol>
             or they will not be found. This is the file structure
@@ -93,13 +93,11 @@ class GeoRaster(nisarqa.rslc.Raster):
         of the format: <band>_<freq>_<pol>
         '''
 
-        for product_type in ('GSLC', 'GCOV', 'GUNW', 'GOFF'):
-            if f'/science/{band}/{product_type}' in h5_file:
-                product = product_type
-                break
-        else:
+        product = nisarqa.get_NISAR_product_type(h5_file)
+
+        if product not in ('GSLC', 'GCOV', 'GUNW', 'GOFF'):
             # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
-            raise nisarqa.DatasetNotFoundError
+            raise nisarqa.InvalidNISARProductError
 
         # Hardcoded paths to various groups in the NISAR RSLC h5 file.
         # These paths are determined by the .xml product specs
@@ -114,7 +112,7 @@ class GeoRaster(nisarqa.rslc.Raster):
         else:
             # self.logger.log_message(logging_base.LogFilterInfo, 
             #                         'Image %s not present' % band_freq_pol_str)
-            return None
+            raise nisarqa.DatasetNotFoundError
 
         # TODO - Geoff - confirm that these are the correct datasets (below)
         # From the xml Product Spec, xCoordinateSpacing is the 

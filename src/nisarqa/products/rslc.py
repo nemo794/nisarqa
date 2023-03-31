@@ -501,21 +501,11 @@ class RadarRaster(Raster):
         of the format: <band>_<freq>_<pol>
         '''
 
-        for product_type in ('RSLC', 'SLC', 'RIFG', 'RUNW', 'ROFF'):
-            if f'/science/{band}/{product_type}' in h5_file:
-                product = product_type
+        product = nisarqa.get_NISAR_product_type(h5_file)
 
-                if product_type == 'SLC':
-                    # TODO - The UAVSAR test datasets were created with only the 'SLC'
-                    # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
-                    # Once the test datasets have been updated to 'RSLC', then remove this
-                    # warning, and raise a fatal error.
-                    print('WARNING!! This product uses the deprecated "SLC" group. Update to "RSLC".')
-                
-                break
-        else:
+        if product not in ('RSLC', 'SLC', 'RIFG', 'RUNW', 'ROFF'):
             # self.logger.log_message(logging_base.LogFilterError, 'Invalid file structure.')
-            raise nisarqa.DatasetNotFoundError
+            raise nisarqa.InvalidNISARProductError
 
         # Hardcoded paths to various groups in the NISAR RSLC h5 file.
         # These paths are determined by the RSLC .xml product spec
@@ -530,7 +520,7 @@ class RadarRaster(Raster):
         else:
             # self.logger.log_message(logging_base.LogFilterInfo, 
             #                         'Image %s not present' % band_freq_pol_str)
-            return None
+            raise nisarqa.DatasetNotFoundError
 
         if product in ('RSLC', 'SLC'):
             # Use special decoder for NISAR RSLC products
@@ -677,7 +667,7 @@ def _get_freqs(h5_file, bands):
     freqs = {}
     for band in bands.keys():
         freqs[band] = {}
-        for freq in nisarqa.RSLC_FREQS:
+        for freq in nisarqa.NISAR_FREQS:
             path = f'/science/{band}/RSLC/swaths/frequency{freq}'
             if path in h5_file:
                 # self.logger.log_message(logging_base.LogFilterInfo, 'Found band %s' % band)
@@ -744,6 +734,93 @@ def _get_pols(h5_file, freqs):
     for band in freqs:
         pols[band] = {}
         for freq in freqs[band]:
+            pols[band][freq] = {}
+            for pol in nisarqa.RSLC_POLS:
+
+                try:
+                    tmp_RadarRaster = \
+                        RadarRaster.init_from_nisar_h5_product(h5_file, band, freq, pol)
+                except nisarqa.DatasetNotFoundError:
+                    # RSLC Raster QA could not be created, which means that the
+                    # input file did not contain am image with the current
+                    # `band`, `freq`, and `pol` combination.
+                    continue
+
+                if isinstance(tmp_RadarRaster, RadarRaster):
+                    pols[band][freq][pol] = tmp_RadarRaster
+
+    # Sanity Check - if a band/freq does not have any polarizations, 
+    # this is a validation error. This check should be handled during 
+    # the validation process before this function was called,
+    # not the quality process, so raise an error.
+    # In the future, this step might be moved earlier in the 
+    # processing, and changed to be handled via: 'log the error 
+    # and remove the band from the dictionary' 
+    for band in pols.keys():
+        for freq in pols[band].keys():
+            # Empty dictionaries evaluate to False in Python
+            if not pols[band][freq]:
+                raise ValueError(f'Provided input file does not have any polarizations'
+                            f' included under band {band}, frequency {freq}.')
+
+    return pols
+
+
+def get_bands_freqs_pols(h5_file):
+    '''
+    Locate the available bands, frequencies, and polarizations
+    in the input HDF5 file.
+
+    Parameters
+    ----------
+    h5_file : h5py.File
+        Handle to the input product h5 file
+
+    Returns
+    -------
+    pols : nested dict of *Raster
+        Nested dict of *Raster objects, where each object represents
+        a polarization dataset in `h5_file`.
+        If the input product is in radar domain, *Raster means RadarRaster.
+        If the input product is geocoded, *Raster means GeoRaster.
+        Format: pols[<band>][<freq>][<pol>] -> a *Raster
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a *Raster object
+    '''
+    product_type = nisarqa.get_NISAR_product_type(h5_file=h5_file)
+
+    # Flag for whether product is in radar domain or geocoded
+    radar_product = True
+    if product_type.startswith('G'):
+        radar_product = False
+
+    if radar_product:
+        swaths_or_grids = 'swaths'
+    else:
+        swaths_or_grids = 'grids'
+
+    # Discover images in input file and populate the dictionary
+    pols = {}
+    for band in h5_file['/science']:
+        pols[band] = {}
+
+        for freq in nisarqa.NISAR_FREQS:
+            path = f'/science/{band}/{product_type}/{swaths_or_grids}/frequency{freq}'
+            if path not in h5_file:
+                continue
+
+            pols[band][freq] = {}
+
+            for pol in nisarqa.:
+            
+            TODO -- FINISH THIS FUNCTION TO BE GENERIC FOR ALL NISAR PRODUCTS
+
+        path = f'/science/{band}/{product_type}/{swaths_or_grids}/frequency{freq}'
+        if path in h5_file:
+            pols[band][freq] = h5_file[path]
+
+
+
+        for freq in h5_file[f'/science/{band}']:
             pols[band][freq] = {}
             for pol in nisarqa.RSLC_POLS:
 

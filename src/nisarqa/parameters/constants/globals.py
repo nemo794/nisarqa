@@ -19,8 +19,8 @@ LIST_OF_NISAR_PRODUCTS = ['rslc', 'gslc', 'gcov', 'rifg',
 
 BANDS = ('LSAR', 'SSAR')
 
-RSLC_FREQS = ('A', 'B')
-RSLC_POLS = ('HH', 'VV', 'HV', 'VH')
+NISAR_FREQS = ('A', 'B')
+RSLC_POLS = ('HH', 'VV', 'HV', 'VH', 'RH', 'RV', 'LH', 'LV')
 
 # Directory Structure and Paths in STATS.h5 file
 STATS_H5_BASE_GROUP = '/science/%s'
@@ -54,7 +54,7 @@ STATS_H5_NOISE_EST_DATA_GROUP = STATS_H5_NOISE_EST_STATS_H5_BASE_GROUP + data_gr
 # so manually create the __all__ attribute.
 __all__ = [
      'BANDS',
-     'RSLC_FREQS',
+     'NISAR_FREQS',
      'RSLC_POLS',
      'CUSTOM_CYCLER',
      'LIST_OF_NISAR_PRODUCTS',
