@@ -1,5 +1,6 @@
 import functools
 import os
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
 
 import h5py
@@ -103,14 +104,14 @@ def verify_rslc(user_rncfg):
                f'\n\tBrowse Image Geolocation file: {browse_kml}'
     print(msg)
 
-    # Parse the file's bands, frequencies, and polarizations.
-    # Save data to STATS.h5
+
+    # Begin QA workflows
     with nisarqa.open_h5_file(input_file, mode='r') as in_file:
 
         # Note: `pols` contains references to datasets in the open input file.
         # All processing with `pols` must be done within this context manager,
         # or the references will be closed and inaccessible.
-        bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
+        pols = nisarqa.rslc.get_pols(in_file)
 
         # If running these workflows, save the processing parameters and
         # identification group to STATS.h5
@@ -128,7 +129,7 @@ def verify_rslc(user_rncfg):
                 # Note: If only the validate workflow is requested,
                 # this will do nothing.
                 rslc_params.save_params_to_stats_file(h5_file=stats_h5,
-                                                      bands=bands)
+                                                      bands=tuple(pols.keys()))
 
                 # Copy the Product identification group to STATS.h5
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
@@ -170,13 +171,14 @@ def verify_rslc(user_rncfg):
                 # Save frequency/polarization info to stats file
                 save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
 
-                # Generate the RSLC Power Image
+                # Generate the RSLC Power Image and Browse Image
                 # Note: the `nlooks*` parameters might be updated. TODO comment better.
-                process_power_images(pols=pols,
-                                     params=rslc_params.power_img,
-                                     stats_h5=stats_h5,
-                                     report_pdf=report_pdf,
-                                     browse_filename=browse_image)
+                process_slc_power_images_and_browse(
+                                    pols=pols,
+                                    params=rslc_params.power_img,
+                                    stats_h5=stats_h5,
+                                    report_pdf=report_pdf,
+                                    browse_filename=browse_image)
 
                 # Generate the RSLC Power and Phase Histograms
                 process_power_and_phase_histograms(pols=pols,
@@ -372,7 +374,7 @@ class ComplexFloat16Decoder(object):
         return self.dataset.ndim
 
 
-# TODO - move to generic
+# TODO - move to raster.py
 @dataclass
 class Raster:
     '''
@@ -385,11 +387,11 @@ class Raster:
     name : str
         Name for the dataset
     band : str
-        name of the band for `img`, e.g. 'LSAR'
+        Name of the band for `img`, e.g. 'LSAR'
     freq : str
-        name of the frequency for `img`, e.g. 'A' or 'B'
+        Name of the frequency for `img`, e.g. 'A' or 'B'
     pol : str
-        name of the polarization for `img`, e.g. 'HH' or 'HV'
+        Name of the polarization for `img`, e.g. 'HH' or 'HV'
     '''
 
     # Raster data. Could be a numpy.ndarray, h5py.Dataset, etc.
@@ -404,9 +406,27 @@ class Raster:
     pol: str
 
 
-# TODO - move to generic
+# TODO - move to raster.py
 @dataclass
-class RadarRaster(Raster):
+class SARRaster(ABC, Raster):
+    '''Abstract Base Class for SAR Raster dataclasses.'''
+
+    @property
+    @abstractmethod
+    def y_axis_spacing(self):
+        '''Pixel Spacing in Y direction (azimuth for radar domain rasters)'''
+        pass
+
+    @property
+    @abstractmethod
+    def x_axis_spacing(self):
+        '''Pixel Spacing in X direction (range for radar domain rasters)'''
+        pass
+
+
+# TODO - move to raster.py
+@dataclass
+class RadarRaster(SARRaster):
     '''
     A Raster with attributes specific to Radar products.
 
@@ -459,6 +479,15 @@ class RadarRaster(Raster):
     rng_stop: float
 
     epoch: str
+
+
+    @property
+    def y_axis_spacing(self):
+        return self.az_spacing
+
+    @property
+    def x_axis_spacing(self):
+        return self.range_spacing
 
 
     @classmethod
@@ -566,207 +595,7 @@ class RadarRaster(Raster):
 
 
 # TODO - move to generic
-def get_bands_freqs_pols(h5_file):
-    '''
-    Locate the available bands, frequencies, and polarizations
-    in the input HDF5 file.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-        Handle to the input product h5 file
-
-    Returns
-    -------
-    bands : dict of h5py Groups
-        Dict of the h5py Groups for each band in `h5_file`,
-        where the keys are the available bands (i.e. 'SSAR' or 'LSAR').
-        Format: bands[<band>] -> a h5py Group
-        Ex: bands['LSAR'] -> the h5py Group for LSAR
-    freqs : nested dict of h5py Groups
-        Nested dict of the h5py Groups for each freq in `h5_file`,
-        where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
-        Format: freqs[<band>][<freq>] -> a h5py Group
-        Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
-    pols : nested dict of RadarRaster
-        Nested dict of RadarRaster objects, where each object represents
-        a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RadarRaster object
-
-    '''
-
-    bands = _get_bands(h5_file)
-    freqs = _get_freqs(h5_file, bands)
-    pols = _get_pols(h5_file, freqs)
-
-    return bands, freqs, pols
-
-
-def _get_bands(h5_file):
-    '''
-    Finds the available bands in the input file
-    and stores their paths in a nested dictionary.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-        File handle to a valid NISAR RSLC hdf5 file.
-        Bands must be located in the h5 file in the path: /science/<band>
-        or they will not be found.
-
-    Returns
-    -------
-    bands : dict of h5py Groups
-        Dict of the h5py Groups for each band in `h5_file`,
-        where the keys are the available bands (i.e. 'SSAR' and/or 'LSAR').
-        Format: bands[<band>] -> a h5py Group
-        Ex: bands['LSAR'] -> the h5py Group for LSAR
-    '''
-
-    bands = {}
-    for band in nisarqa.BANDS:
-        path = f'/science/{band}'
-        if path in h5_file:
-            # self.logger.log_message(logging_base.LogFilterInfo, 'Found band %s' % band)
-            bands[band] = h5_file[path]
-        else:
-            # self.logger.log_message(logging_base.LogFilterInfo, '%s not present' % band)
-            pass
-    return bands
-
-
-def _get_freqs(h5_file, bands):
-    '''
-    Finds the available frequencies in the input file
-    and stores their paths in a nested dictionary.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-        File handle to a valid NISAR RSLC hdf5 file.
-        Frequencies must be located in the h5 file in the path: 
-        /science/<band>/RSLC/swaths/frequency<freq>
-        or they will not be found.
-    bands : list_like
-        An iterable of the bands in `h5_file`.
-
-    Returns
-    -------
-    freqs : nested dict of h5py Groups
-        Dict of the h5py Groups for each freq in `h5_file`,
-        where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
-        Format: freqs[<band>][<freq>] -> a h5py Group
-        Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
-
-    See Also
-    --------
-    get_bands : function to generate the `bands` input argument
-    '''
-
-    freqs = {}
-    for band in bands.keys():
-        freqs[band] = {}
-        for freq in nisarqa.NISAR_FREQS:
-            path = f'/science/{band}/RSLC/swaths/frequency{freq}'
-            if path in h5_file:
-                # self.logger.log_message(logging_base.LogFilterInfo, 'Found band %s' % band)
-                freqs[band][freq] = h5_file[path]
-
-            # TODO - The original test datasets were created with only the 'SLC'
-            # filepath. New NISAR RSLC Products should only contain 'RSLC' file paths.
-            # Once the test datasets have been updated to 'RSLC', then remove this
-            # warning, and raise a fatal error.
-            elif path.replace('RSLC', 'SLC') in h5_file:
-                freqs[band][freq] = h5_file[path.replace('RSLC', 'SLC')]
-                print('WARNING!! This product uses the deprecated "SLC" group. Update to "RSLC".')
-            else:
-                # self.logger.log_message(logging_base.LogFilterInfo, '%s not present' % band)
-                pass
-
-    # Sanity Check - if a band does not have any frequencies, this is a validation error.
-    # This check should be handled during the validation process before this function was called,
-    # not the quality process, so raise an error.
-    # In the future, this step might be moved earlier in the processing, and changed to
-    # be handled via: 'log the error and remove the band from the dictionary' 
-    for band in freqs.keys():
-        # Empty dictionaries evaluate to False in Python
-        if not freqs[band]:
-            raise ValueError(f'Provided input file\'s band {band} does not '
-                              'contain any frequency groups.')
-
-    return freqs
-
-
-def _get_pols(h5_file, freqs):
-    '''
-    Finds the available polarization rasters in the input file
-    and stores their paths in a nested dictionary.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-        File handle to a valid NISAR RSLC hdf5 file.
-        frequencies must be located in the h5 file in the path: 
-        /science/<band>/RSLC/swaths/frequency<freq>/<pol>
-        or they will not be found.
-    freqs : nested dict of h5py Groups
-        Dict of the h5py Groups for each freq in `h5_file`,
-        where the keys are the available bands-freqs (i.e. 'LSAR B' or 'SSAR A').
-        Format: freqs[<band>][<freq>] -> a h5py Group
-        Ex: freqs['LSAR']['A'] -> the h5py Group for LSAR's FrequencyA
-
-    Returns
-    -------
-    pols : nested dict of RadarRaster
-        Nested dict of RadarRaster objects, where each object represents
-        a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RadarRaster object
-
-    See Also
-    --------
-    get_freqs : function to generate the `freqs` input argument
-    '''
-
-    # Discover images in dataset and populate the dictionary
-    pols = {}
-    for band in freqs:
-        pols[band] = {}
-        for freq in freqs[band]:
-            pols[band][freq] = {}
-            for pol in nisarqa.RSLC_POLS:
-
-                try:
-                    tmp_RadarRaster = \
-                        RadarRaster.init_from_nisar_h5_product(h5_file, band, freq, pol)
-                except nisarqa.DatasetNotFoundError:
-                    # RSLC Raster QA could not be created, which means that the
-                    # input file did not contain am image with the current
-                    # `band`, `freq`, and `pol` combination.
-                    continue
-
-                if isinstance(tmp_RadarRaster, RadarRaster):
-                    pols[band][freq][pol] = tmp_RadarRaster
-
-    # Sanity Check - if a band/freq does not have any polarizations, 
-    # this is a validation error. This check should be handled during 
-    # the validation process before this function was called,
-    # not the quality process, so raise an error.
-    # In the future, this step might be moved earlier in the 
-    # processing, and changed to be handled via: 'log the error 
-    # and remove the band from the dictionary' 
-    for band in pols.keys():
-        for freq in pols[band].keys():
-            # Empty dictionaries evaluate to False in Python
-            if not pols[band][freq]:
-                raise ValueError(f'Provided input file does not have any polarizations'
-                            f' included under band {band}, frequency {freq}.')
-
-    return pols
-
-
-def get_bands_freqs_pols(h5_file):
+def get_pols(h5_file):
     '''
     Locate the available bands, frequencies, and polarizations
     in the input HDF5 file.
@@ -788,20 +617,19 @@ def get_bands_freqs_pols(h5_file):
     '''
     product_type = nisarqa.get_NISAR_product_type(h5_file=h5_file)
 
-    # Flag for whether product is in radar domain or geocoded
-    radar_product = True
     if product_type.startswith('G'):
-        radar_product = False
-
-    if radar_product:
-        swaths_or_grids = 'swaths'
-    else:
+        # geocoded product
         swaths_or_grids = 'grids'
+    else:
+        # radar domain
+        swaths_or_grids = 'swaths'
 
-    # Discover images in input file and populate the dictionary
+    # Discover images in input file and populate the `pols` dictionary
     pols = {}
-    for band in h5_file['/science']:
+    path = '/science'
+    for band in h5_file[path]:
         pols[band] = {}
+        path += f'/{band}/{product_type}/{swaths_or_grids}'
 
         for freq in nisarqa.NISAR_FREQS:
             path = f'/science/{band}/{product_type}/{swaths_or_grids}/frequency{freq}'
@@ -810,31 +638,17 @@ def get_bands_freqs_pols(h5_file):
 
             pols[band][freq] = {}
 
-            for pol in nisarqa.:
-            
-            TODO -- FINISH THIS FUNCTION TO BE GENERIC FOR ALL NISAR PRODUCTS
-
-        path = f'/science/{band}/{product_type}/{swaths_or_grids}/frequency{freq}'
-        if path in h5_file:
-            pols[band][freq] = h5_file[path]
-
-
-
-        for freq in h5_file[f'/science/{band}']:
-            pols[band][freq] = {}
-            for pol in nisarqa.RSLC_POLS:
-
+            for pol in nisarqa.get_possible_pols(product_type.lower()):
                 try:
                     tmp_RadarRaster = \
                         RadarRaster.init_from_nisar_h5_product(h5_file, band, freq, pol)
                 except nisarqa.DatasetNotFoundError:
-                    # RSLC Raster QA could not be created, which means that the
+                    # RadarRaster could not be created, which means that the
                     # input file did not contain am image with the current
                     # `band`, `freq`, and `pol` combination.
                     continue
 
-                if isinstance(tmp_RadarRaster, RadarRaster):
-                    pols[band][freq][pol] = tmp_RadarRaster
+                pols[band][freq][pol] = tmp_RadarRaster
 
     # Sanity Check - if a band/freq does not have any polarizations, 
     # this is a validation error. This check should be handled during 
@@ -1056,11 +870,13 @@ def _select_layers_for_browse(pols):
     return layers_for_browse
 
 
-def process_power_images(pols, params, stats_h5, report_pdf,
+def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
                          browse_filename='BROWSE.png'):
     '''
-    Generate the RSLC Power Image plots for the `report_pdf` and
+    Generate SLC Power Image plots for the `report_pdf` and
     corresponding browse image product.
+
+    Can be used for both RSLC and GSLC datasets.
 
     Parameters
     ----------
@@ -1070,9 +886,9 @@ def process_power_images(pols, params, stats_h5, report_pdf,
         Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
                                        in a RadarRaster object
-    params : RSLCPowerImageParams
+    params : SLCPowerImageParams
         A dataclass containing the parameters for processing
-        and outputting the power image(s).
+        and outputting the SLC power image(s) and browse image.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
@@ -1145,7 +961,7 @@ def get_multilooked_power_image(img,
                                 params,
                                 stats_h5):
     '''
-    Generate the multilooked RSLC Power Image array for a single RSLC
+    Generate the multilooked SLC Power Image array for a single RSLC or GSLC
     polarization image.
 
     Parameters
@@ -1173,7 +989,7 @@ def get_multilooked_power_image(img,
 
         nlooks = nisarqa.compute_square_pixel_nlooks(
                     img.data.shape,
-                    sample_spacing=(img.az_spacing, img.range_spacing),
+                    sample_spacing=(img.y_axis_spacing, img.x_axis_spacing),
                     num_mpix=params.num_mpix)
 
     elif img.freq == 'A':

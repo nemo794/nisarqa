@@ -8,7 +8,7 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 
 @dataclass
-class GeoRaster(nisarqa.rslc.Raster):
+class GeoRaster(nisarqa.rslc.SARRaster):
     '''
     A Raster with attributes specific to Geocoded products.
 
@@ -54,6 +54,15 @@ class GeoRaster(nisarqa.rslc.Raster):
     y_spacing: float
     y_start: float
     y_stop: float
+
+
+    @property
+    def y_axis_spacing(self):
+        return self.y_spacing
+
+    @property
+    def x_axis_spacing(self):
+        return self.x_spacing
 
 
     @classmethod
@@ -114,7 +123,8 @@ class GeoRaster(nisarqa.rslc.Raster):
             #                         'Image %s not present' % band_freq_pol_str)
             raise nisarqa.DatasetNotFoundError
 
-        # TODO - Geoff - confirm that these are the correct datasets (below)
+        # TODO - Geoff - could you please confirm that these are the
+        # correct xml product spec datasets to use?
         # From the xml Product Spec, xCoordinateSpacing is the 
         # 'Nominal spacing in meters between consecutive pixels'
         x_spacing = h5_file[freq_path]['xCoordinateSpacing'][...]

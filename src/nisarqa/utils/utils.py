@@ -285,7 +285,7 @@ def get_NISAR_product_type(h5_file):
                 'ROFF', or 'GOFF'
     '''
 
-    nisar_products = [p.toupper() for p in nisarqa.LIST_OF_NISAR_PRODUCTS]
+    nisar_products = [p.upper() for p in nisarqa.LIST_OF_NISAR_PRODUCTS]
     nisar_products.append('SLC')
 
     for band in h5_file['/science']:

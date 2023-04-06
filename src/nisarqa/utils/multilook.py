@@ -1,7 +1,7 @@
-import numpy as np
 import warnings
 
 import nisarqa
+import numpy as np
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -130,9 +130,11 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
         the M x N dimensions of the source array to be multilooked
         Format: (M, N)
     sample_spacing : pair of float
-        The azimuth sample spacing (da) and range sample spacing (dr)
+        The Y direction sample spacing and X direction sample spacing
         of the source array.
-        Format: (da, dr)
+        For radar-domain products, Y direction corresponds to azimuth,
+        and X direction corresponds to range.
+        Format: (dY, dX)
     num_mpix : scalar
         The approx. size (in megapixels) for the final multilooked image.
         Defaults to 4.0 MPix.
@@ -140,8 +142,8 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
     Returns
     -------
     nlooks : pair of int
-        The nlooks values for azimuth and range.
-        Format: (ka, kr)
+        The nlooks values for Y direction and X direction.
+        Format: (kY, kX)
 
     Notes
     -----
@@ -149,68 +151,68 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
 
     Assumptions and Variable Definitions:
     Source Image has:
-        - dimensions M X N
-            - M : (int) # range lines
-            - N : (int) # azimuth lines
-        - sample spacing dr and da
-            - dr : (int) distance between samples in range direction
-            - da : (int) distance between samples in azimuth direction
+        - dimensions M x N
+            - M : (int) # Y rows
+            - N : (int) # X columns
+        - sample spacing dX and dY
+            - dY : (float) distance between samples in Y direction
+            - dX : (float) distance between samples in range direction
     Output Multilooked Image has:
         - Same units as Source Image (e.g. sample spacing is in meters for both)
-        - dimensions M_1 X N_1
-            - M_1 : (int) # range lines
-            - N_1 : (int) # azimuth lines
-        - sample spacing dr_1 and da_1
-            - dr_1 : (int) distance between samples in range direction
-            - da_1 : (int) distance between samples in azimuth direction
+        - dimensions M_1 x N_1
+            - M_1 : (int) # Y rows
+            - N_1 : (int) # X columns
+        - sample spacing dX_1 and dY_1
+            - dY_1 : (float) distance between samples in Y direction
+            - dX_1 : (float) distance between samples in range direction
     Number of Looks:
         - These will be Real numbers during the computation, but then
           rounded to the nearest odd integer for final output.
-        - ka : number of looks in the azimuth direction
-        - kr : number of looks in the range direction
+        - kY : number of looks in the Y direction
+        - kX : number of looks in the X direction
 
     Problem Setup:
-    (1) da * ka = da_1                # az sample spacing is scaled by nlooks
-    (2) dr * kr = dr_1                # range sample spacing is scaled by nlooks
-    (3) M / ka = M_1                  # num az lines is scaled by nlooks
-    (4) N / kr = N_1                  # num range lines is scaled by nlooks
+    (1) dY * kY = dY_1                # Y sample spacing is scaled by nlooks
+    (2) dX * kX = dX_1                # X sample spacing is scaled by nlooks
+    (3) M / kY = M_1                  # num Y rows is scaled by nlooks
+    (4) N / kX = N_1                  # num X columns is scaled by nlooks
     (5) num_Pix = `num_mpix` * 1e6    # convert Megapixels to pixels
     (6) M_1 * N_1 = num_Pix           # output Multilooked image is `num_mpix` MPix
-    (7) dr_1 = da_1                   # output Multilooked image should have square pixels
+    (7) dX_1 = dY_1                   # output Multilooked image should have square pixels
 
     Derivation:
-    (8) kr * dr = ka * da                       # from (7), (1), (2)
-    (9) kr = (ka * da) / dr                     # rearrange (8)
-    (10) (M / ka) * (N / kr) = num_Pix          # from (6), (3), (4)
-    (11) (M / ka) * ((N * dr) / (ka * da)) =    # from (10), (9) -- substitute kr
+    (8) kX * dX = kY * dY                       # from (7), (1), (2)
+    (9) kX = (kY * dY) / dX                     # rearrange (8)
+    (10) (M / kY) * (N / kX) = num_Pix          # from (6), (3), (4)
+    (11) (M / kY) * ((N * dX) / (kY * dY)) =    # from (10), (9) -- substitute kX
                             num_Pix
-    (12) ka**2 = (M * N * dr) / (da * num_Pix)  # rearrange (11)
+    (12) kY**2 = (M * N * dX) / (dY * num_Pix)  # rearrange (11)
 
-    Formula (12) can give the Real-valued ka. This can be used with (8)
-    to compute kr.
+    Formula (12) can give the Real-valued kY. This can be used with (8)
+    to compute kX.
 
     Because it is convenient for nlooks to be odd integer values,
-    by computing ka and kr as Real values instead of integer values,
+    by computing kY and kX as Real values instead of integer values,
     rounding to the nearest odd-valued integers is easily computed.
     '''
 
     # Variables
     M = img_shape[0]
     N = img_shape[1]
-    da = sample_spacing[0]
-    dr = sample_spacing[1]
+    dY = sample_spacing[0]
+    dX = sample_spacing[1]
     num_Pix = num_mpix * 1e6
 
     # Formula (12) -- see docstring
-    ka_sqrd = (M * N * dr) / (da * num_Pix)
+    kY_sqrd = (M * N * dX) / (dY * num_Pix)
 
-    # Get Real-Valued ka and kr
-    ka = np.sqrt(ka_sqrd)
-    kr = (ka * da) / dr  # Formula (8)
+    # Get Real-Valued kY and kX
+    kY = np.sqrt(kY_sqrd)
+    kX = (kY * dY) / dX  # Formula (9)
 
-    kr = nisarqa.nearest_odd_int(kr)
-    ka = nisarqa.nearest_odd_int(ka)
+    kX = nisarqa.nearest_odd_int(kX)
+    kY = nisarqa.nearest_odd_int(kY)
 
-    return (ka, kr)
+    return (kY, kX)
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

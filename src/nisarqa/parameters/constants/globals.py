@@ -17,12 +17,37 @@ CUSTOM_CYCLER = (cycler(color=seaborn_colorblind) +
 LIST_OF_NISAR_PRODUCTS = ['rslc', 'gslc', 'gcov', 'rifg',
                           'runw', 'gunw', 'roff', 'goff']
 
-BANDS = ('LSAR', 'SSAR')
+NISAR_BANDS = ('LSAR', 'SSAR')
 
 NISAR_FREQS = ('A', 'B')
-RSLC_POLS = ('HH', 'VV', 'HV', 'VH', 'RH', 'RV', 'LH', 'LV')
 
-# Directory Structure and Paths in STATS.h5 file
+
+def get_possible_pols(product_type):
+    '''
+    Return the possible polarizations for the requested product type.
+
+    Parameters
+    ----------
+    product_type : str
+        One of: 'rslc', 'gslc', 'gcov', 'rifg',
+                'runw', 'gunw', 'roff', 'goff'
+    Returns
+    -------
+    polarization_list : tuple of str
+        Tuple of all possible polarizations for the given product type.
+        Ex: ('HH', 'VV', 'HV', 'VH')
+
+    '''
+    if product_type not in LIST_OF_NISAR_PRODUCTS:
+        raise ValueError(f'input product type is {product_type}, but '
+                         f'must be one of: {LIST_OF_NISAR_PRODUCTS}')
+    
+    if product_type == 'rslc':
+        return ('HH', 'VV', 'HV', 'VH', 'RH', 'RV', 'LH', 'LV')
+    else:
+        raise NotImplementedError
+
+# Directory Structure and Paths in QA STATS.h5 file
 STATS_H5_BASE_GROUP = '/science/%s'
 STATS_H5_IDENTIFICATION_GROUP = STATS_H5_BASE_GROUP + '/identification'
 processing_group = '/processing'
@@ -53,17 +78,20 @@ STATS_H5_NOISE_EST_DATA_GROUP = STATS_H5_NOISE_EST_STATS_H5_BASE_GROUP + data_gr
 # The are global constants and not functions nor classes,
 # so manually create the __all__ attribute.
 __all__ = [
-     'BANDS',
-     'NISAR_FREQS',
-     'RSLC_POLS',
      'CUSTOM_CYCLER',
      'LIST_OF_NISAR_PRODUCTS',
+     'NISAR_BANDS',
+     'NISAR_FREQS',
+     'get_possible_pols',
+
      'STATS_H5_BASE_GROUP',
      'STATS_H5_IDENTIFICATION_GROUP',
+
      'STATS_H5_QA_STATS_H5_BASE_GROUP',
      'STATS_H5_QA_PROCESSING_GROUP',
      'STATS_H5_QA_DATA_GROUP',
      'STATS_H5_QA_FREQ_GROUP',
+
      'STATS_H5_ABSCAL_STATS_H5_BASE_GROUP',
      'STATS_H5_ABSCAL_PROCESSING_GROUP',
      'STATS_H5_ABSCAL_DATA_GROUP',

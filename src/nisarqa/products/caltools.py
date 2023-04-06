@@ -35,7 +35,7 @@ def run_abscal_tool(abscal_params, dyn_anc_params,
     # QA must be able to handle both LSAR and SSAR.
     bands = []
     with nisarqa.open_h5_file(input_filename, mode='r') as in_file:
-        for band in nisarqa.BANDS:
+        for band in nisarqa.NISAR_BANDS:
             grp_path = f'/science/{band}'
             if grp_path in in_file:
                 bands.append(band)
@@ -83,7 +83,7 @@ def run_noise_estimation_tool(params, input_filename, stats_filename):
     # QA must be able to handle both LSAR and SSAR.
     bands = []
     with nisarqa.open_h5_file(input_filename, mode='r') as in_file:
-        for band in nisarqa.BANDS:
+        for band in nisarqa.NISAR_BANDS:
             grp_path = f'/science/{band}'
             if grp_path in in_file:
                 bands.append(band)
@@ -137,7 +137,7 @@ def run_pta_tool(pta_params, dyn_anc_params,
     # QA must be able to handle both LSAR and SSAR.
     bands = []
     with nisarqa.open_h5_file(input_filename, mode='r') as in_file:
-        for band in nisarqa.BANDS:
+        for band in nisarqa.NISAR_BANDS:
             grp_path = f'/science/{band}'
             if grp_path in in_file:
                 bands.append(band)

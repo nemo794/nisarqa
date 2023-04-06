@@ -89,34 +89,12 @@ def verify_gslc(user_rncfg):
 
     print(msg)
 
-    # Parse the file's bands, frequencies, and polarizations.
-    # Save data to STATS.h5
     with nisarqa.open_h5_file(input_file, mode='r') as in_file:
 
         # Note: `pols` contains references to datasets in the open input file.
         # All processing with `pols` must be done within this context manager,
         # or the references will be closed and inaccessible.
-        bands, freqs, pols = nisarqa.rslc.get_bands_freqs_pols(in_file)
-
-        # If running these workflows, save the processing parameters and
-        # identification group to STATS.h5
-        if gslc_params.workflows.qa_reports:
-
-            # This is the first time opening the STATS.h5 file for RSLC
-            # workflow, so open in 'w' mode.
-            # After this, always open STATS.h5 in 'r+' mode.
-            with nisarqa.open_h5_file(stats_file, mode='w') as stats_h5:
-
-                # Save the processing parameters to the stats.h5 file
-                # Note: If only the validate workflow is requested,
-                # this will do nothing.
-                gslc_params.save_params_to_stats_file(h5_file=stats_h5,
-                                                      bands=bands)
-
-                # Copy the Product identification group to STATS.h5
-                nisarqa.rslc.save_NISAR_identification_group_to_h5(
-                        nisar_h5=in_file,
-                        stats_h5=stats_h5)
+        pols = nisarqa.rslc.get_pols(in_file)
 
         # Run the requested workflows
         if gslc_params.workflows.validate:
@@ -137,15 +115,24 @@ def verify_gslc(user_rncfg):
             # For now, make sure that the stub file is output
             if not os.path.isfile(summary_file):
                 nisarqa.output_stub_files(output_dir=output_dir,
-                                        stub_files='summary_csv')
+                                          stub_files='summary_csv')
 
             # TODO qa_reports will create the BROWSE.kml file.
             # For now, make sure that the stub file is output
             nisarqa.output_stub_files(output_dir=output_dir,
-                                    stub_files='browse_kml')
+                                      stub_files='browse_kml')
 
-            with nisarqa.open_h5_file(stats_file, mode='r+') as stats_h5, \
+            with nisarqa.open_h5_file(stats_file, mode='w') as stats_h5, \
                 PdfPages(report_file) as report_pdf:
+
+                # Save the processing parameters to the stats.h5 file
+                gslc_params.save_params_to_stats_file(h5_file=stats_h5,
+                                                      bands=tuple(pols.keys()))
+
+                # Copy the Product identification group to STATS.h5
+                nisarqa.rslc.save_NISAR_identification_group_to_h5(
+                        nisar_h5=in_file,
+                        stats_h5=stats_h5)
 
                 # Save frequency/polarization info to stats file
                 nisarqa.rslc.save_nisar_freq_metadata_to_h5(
@@ -153,7 +140,7 @@ def verify_gslc(user_rncfg):
 
                 # Generate the GSLC Power Image and Browse Image
                 # Note: the `nlooks*` parameters might be updated. TODO comment better.
-                nisarqa.rslc.process_power_images(
+                nisarqa.rslc.process_slc_power_images_and_browse(
                                     pols=pols,
                                     params=gslc_params.power_img,
                                     stats_h5=stats_h5,
