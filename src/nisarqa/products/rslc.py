@@ -957,6 +957,7 @@ def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
     _save_slc_browse_img(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
 
 
+# TODO - move to generic location
 def get_multilooked_power_image(img,
                                 params,
                                 stats_h5):
@@ -966,9 +967,9 @@ def get_multilooked_power_image(img,
 
     Parameters
     ----------
-    img : RadarRaster
-        The RSLC raster to be processed
-    params : RSLCPowerImageParams
+    img : RadarRaster or GeoRaster
+        The RSLC or GSLC raster to be processed
+    params : SLCPowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
     stats_h5 : h5py.File
@@ -1003,25 +1004,29 @@ def get_multilooked_power_image(img,
     # Save the final nlooks to the HDF5 dataset
     grp_path = nisarqa.STATS_H5_QA_PROCESSING_GROUP % img.band
     dataset_name = f'powerImageNlooksFreq{img.freq.upper()}'
-    if dataset_name in stats_h5[grp_path]:
-        # Sanity Check: Ensure that the nlooks values are the same
-        # for each polarization in this frequency.
-        assert(list(nlooks) == list(stats_h5[grp_path][dataset_name][...])), f'Band {img.band} Freq {img.freq} - Computed'
+
+    if isinstance(img, RadarRaster):
+        axes = '[<azimuth>,<range>]'
+    elif isinstance(img, nisarqa.GeoRaster):
+        axes = '[<Y direction>,<X direction>]'
     else:
-        # Create the nlooks dataset
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name=dataset_name,
-            ds_data=nlooks,
-            ds_units='unitless',
-            ds_description='Number of looks along [<azimuth>,<range>] axes of '
-                        f'the Frequency {img.freq.upper()} image arrays '
-                        'for multilooking the power and browse image.')
+        raise TypeError('Input `img` must be RadarRaster or GeoRaster. '
+                        f'It is {type(img)}')
+
+    # Create the nlooks dataset
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name=dataset_name,
+        ds_data=nlooks,
+        ds_units='unitless',
+        ds_description=f'Number of looks along {axes} axes of '
+                    f'Frequency {img.freq.upper()} image arrays '
+                    'for multilooking the power and browse image.')
 
     print(f'\nMultilooking Image {img.name} with shape: {img.data.shape}')
-    print('sceneCenterAlongTrackSpacing: ', img.az_spacing)
-    print('sceneCenterGroundRangeSpacing: ', img.range_spacing)
+    print('Y direction (azimuth) ground spacing: ', img.y_axis_spacing)
+    print('X direction (range) ground spacing: ', img.x_axis_spacing)
     print('Beginning Multilooking with nlooks window shape: ', nlooks)
 
     # Multilook
@@ -1049,7 +1054,7 @@ def apply_image_correction(img_arr, params):
     img_arr : numpy.ndarray
         2D image array to have image correction applied to.
         For example, for RSLC this is the multilooked image array.
-    params : RSLCPowerImageParams
+    params : SLCPowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
 
@@ -1099,7 +1104,7 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
     img : RadarRaster
         The RadarRaster object that corresponds to `img`. The metadata
         from this will be used for annotating the image plot.
-    params : RSLCPowerImageParams
+    params : SLCPowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
     report_pdf : PdfPages
