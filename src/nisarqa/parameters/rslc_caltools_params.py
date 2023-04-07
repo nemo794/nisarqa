@@ -901,7 +901,7 @@ class RSLCRootParamGroup(RootParamGroup):
                 )
 
 
-# TODO - move to generic NISAR module
+# TODO - move to nisar_params.py module
 def build_root_params(product_type, user_rncfg):
     '''
     Build the *RootParamGroup object for the specified product type.

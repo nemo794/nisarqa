@@ -620,9 +620,11 @@ def get_pols(h5_file):
     if product_type.startswith('G'):
         # geocoded product
         swaths_or_grids = 'grids'
+        raster_cls = nisarqa.GeoRaster
     else:
         # radar domain
         swaths_or_grids = 'swaths'
+        raster_cls = RadarRaster
 
     # Discover images in input file and populate the `pols` dictionary
     pols = {}
@@ -640,15 +642,16 @@ def get_pols(h5_file):
 
             for pol in nisarqa.get_possible_pols(product_type.lower()):
                 try:
-                    tmp_RadarRaster = \
-                        RadarRaster.init_from_nisar_h5_product(h5_file, band, freq, pol)
+                    raster = raster_cls.init_from_nisar_h5_product(
+                                                h5_file, band, freq, pol)
+
                 except nisarqa.DatasetNotFoundError:
                     # RadarRaster could not be created, which means that the
                     # input file did not contain am image with the current
                     # `band`, `freq`, and `pol` combination.
                     continue
 
-                pols[band][freq][pol] = tmp_RadarRaster
+                pols[band][freq][pol] = raster
 
     # Sanity Check - if a band/freq does not have any polarizations, 
     # this is a validation error. This check should be handled during 
@@ -939,7 +942,8 @@ def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
                 else:
                     colorbar_formatter = None
 
-                save_rslc_power_image_to_pdf(img_arr=corrected_img,
+                # TODO HACK!! make flexible for both rslc and gslc
+                nisarqa.gslc.save_gslc_power_image_to_pdf(img_arr=corrected_img,
                                              img=img,
                                              params=params,
                                              report_pdf=report_pdf,
@@ -1014,13 +1018,16 @@ def get_multilooked_power_image(img,
                         f'It is {type(img)}')
 
     # Create the nlooks dataset
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name=dataset_name,
-        ds_data=nlooks,
-        ds_units='unitless',
-        ds_description=f'Number of looks along {axes} axes of '
+    if dataset_name in stats_h5[grp_path]:
+        assert tuple(stats_h5[grp_path][dataset_name][...]) == tuple(nlooks)
+    else:
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name=dataset_name,
+            ds_data=nlooks,
+            ds_units='unitless',
+            ds_description=f'Number of looks along {axes} axes of '
                     f'Frequency {img.freq.upper()} image arrays '
                     'for multilooking the power and browse image.')
 
@@ -1507,6 +1514,7 @@ def prep_arr_for_png_with_transparency(img_arr):
     return out, transparency_value
 
 
+# TODO - move to generic plotting.py
 def img2pdf(img_arr,
              plots_pdf,
              title=None,

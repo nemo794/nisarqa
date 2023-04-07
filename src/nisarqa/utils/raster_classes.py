@@ -125,19 +125,22 @@ class GeoRaster(nisarqa.rslc.SARRaster):
 
         # TODO - Geoff - could you please confirm that these are the
         # correct xml product spec datasets to use?
+
         # From the xml Product Spec, xCoordinateSpacing is the 
         # 'Nominal spacing in meters between consecutive pixels'
         x_spacing = h5_file[freq_path]['xCoordinateSpacing'][...]
 
         # X in meters (units are specified as meters in the product spec)
-        x_start = float(h5_file[grids_path]['xCoordinates'][0])
-        x_stop =  float(h5_file[grids_path]['xCoordinates'][-1])
+        x_start = float(h5_file[freq_path]['xCoordinates'][0])
+        x_stop =  float(h5_file[freq_path]['xCoordinates'][-1])
 
         # From the xml Product Spec, yCoordinateSpacing is the 
         # 'Nominal spacing in meters between consecutive lines'
         y_spacing = h5_file[freq_path]['yCoordinateSpacing'][...]
 
         # Y in meters (units are specified as meters in the product spec)
+        # TODO - Geoff - Are these the correct indices to use for start/stop?
+        # I copied from RSLC, but think they should be reversed.
         y_start = float(h5_file[freq_path]['yCoordinates'][0])
         y_stop = float(h5_file[freq_path]['yCoordinates'][-1])
 

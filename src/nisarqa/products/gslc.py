@@ -1,15 +1,8 @@
-import functools
 import os
-from dataclasses import dataclass, fields
+from dataclasses import fields
 
-import h5py
 import nisarqa
-import numpy as np
-import numpy.typing as npt
-from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.ticker import FuncFormatter
-from PIL import Image
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -35,8 +28,8 @@ def verify_gslc(user_rncfg):
         yaml file and which contains the parameters needed to run its QA SAS.
     '''
 
-    # Build the RSLCRootParamGroup parameters per the runconfig
-    gslc_params = nisarqa.build_root_params(product_type='rslc',
+    # Build the GSLCRootParamGroup parameters per the runconfig
+    gslc_params = nisarqa.build_root_params(product_type='gslc',
                                             user_rncfg=user_rncfg)
     output_dir = gslc_params.prodpath.qa_output_dir
 
@@ -157,5 +150,62 @@ def verify_gslc(user_rncfg):
 
     print('Successful completion. Check log file for validation warnings and errors.')
 
+
+def save_gslc_power_image_to_pdf(img_arr, img, params, report_pdf,
+                                   colorbar_formatter=None):
+    '''
+    Annotate and save a GSLC Power Image to `report_pdf`.
+
+    Parameters
+    ----------
+    img_arr : numpy.ndarray
+        2D image array to be saved. All image correction, multilooking, etc.
+        needs to have previously been applied
+    img : GeoRaster
+        The GeoRaster object that corresponds to `img`. The metadata
+        from this will be used for annotating the image plot.
+    params : SLCPowerImageParams
+        A structure containing the parameters for processing
+        and outputting the power image(s).
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
+    colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
+        Tick formatter function to define how the numeric value 
+        associated with each tick on the colorbar axis is formatted
+        as a string. This function must take exactly two arguments: 
+        `x` for the tick value and `pos` for the tick position,
+        and must return a `str`. The `pos` argument is used
+        internally by matplotlib.
+        If None, then default tick values will be used. Defaults to None.
+        See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
+    '''
+
+    # Plot and Save Power Image to graphical summary pdf
+    title = f'GSLC Multilooked Power ({params.pow_units}%s)\n{img.name}'
+    if params.gamma is None:
+        title = title % ''
+    else:
+        title = title % fr', $\gamma$={params.gamma}'
+
+    # Get y-axis label
+    y_title = f'Latitude (degrees)'
+
+    # Get X axis labels and scale
+    # Also: double-check that start and stop were parsed correctly from the metadata
+
+    x_title = 'Longitude (degrees)'
+
+    # TODO -- how to handle antimeridian crossing??
+
+    nisarqa.rslc.img2pdf(img_arr=img_arr,
+            title=title,
+            ylim=[img.y_start, img.y_stop],
+            xlim=[img.x_start, img.x_stop],
+            colorbar_formatter=colorbar_formatter,
+            ylabel=y_title,
+            xlabel=x_title,
+            plots_pdf=report_pdf
+            )
+    
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

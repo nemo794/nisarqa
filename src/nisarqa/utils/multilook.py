@@ -199,8 +199,10 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
     # Variables
     M = img_shape[0]
     N = img_shape[1]
-    dY = sample_spacing[0]
-    dX = sample_spacing[1]
+
+    # TODO !!! VERY BAD! remove the np.abs(). This is a hack
+    dY = np.abs(sample_spacing[0])
+    dX = np.abs(sample_spacing[1])
     num_Pix = num_mpix * 1e6
 
     # Formula (12) -- see docstring
