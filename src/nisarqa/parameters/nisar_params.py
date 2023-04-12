@@ -452,6 +452,26 @@ class WorkflowsParamGroup(YamlParamGroup):
         if not isinstance(val, bool):
             raise TypeError(f'`{attr_name}` must be of type bool. '
                             f'It is {type(val)}')
+    
+    def at_least_one_wkflw_requested(self):
+        '''
+        Return True if at least one of this instance's workflow attributes
+        (e.g. `validate` or `qa_reports`) is True.
+
+        Returns
+        -------
+        at_least_one_true_wkflw : bool
+            True if at least one of the workflow field attributes in this
+            instance is True. False is all workflows are set to False.
+        '''
+        for field in fields(self):
+            if getattr(self, field.name):
+                # Yep! At least one workflow was set to True
+                return True
+
+        # No workflows were set to True
+        return False
+
 
 @dataclass
 class RootParamGroup(ABC):

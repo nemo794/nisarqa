@@ -976,7 +976,7 @@ def build_root_params(product_type, user_rncfg):
     
     Returns
     -------
-    root_param_group : RSLCRootParamGroup
+    root_params : RSLCRootParamGroup
         *RootParamGroup object for the specified product type. This will be 
         populated with runconfig values where provided,
         and default values for missing runconfig parameters.
@@ -1006,17 +1006,11 @@ def build_root_params(product_type, user_rncfg):
     except KeyError as e:
         raise KeyError('`workflows` group is a required runconfig group') from e
 
-    finally:
-        # If all functionality is off, then exit early.
-        # All workflows default to false. So, we only need to check if
-        # at least one workflows was set to True in the runconfig
-        # to know whether to proceed with QA-SAS.
-        for field in fields(root_inputs['workflows']):
-            if getattr(root_inputs['workflows'], field.name):
-                # Yep! At least one workflow was set to True
-                break
-        else:
-            return
+    # If all functionality is off (i.e. all workflows are set to false),
+    # then exit early. We will not need any of the other runconfig groups.
+    if not root_inputs['workflows'].at_least_one_wkflw_requested():
+        # Construct *RootParamGroup with only the workflows group
+        return root_param_class_obj(**root_inputs)
 
     workflows = root_inputs['workflows']
 
@@ -1053,9 +1047,9 @@ def build_root_params(product_type, user_rncfg):
                     raise e
 
     # Construct *RootParamGroup
-    rslc_params = root_param_class_obj(**root_inputs)
+    root_params = root_param_class_obj(**root_inputs)
 
-    return rslc_params
+    return root_params
 
 
 def _get_param_group_instance_from_runcfg(

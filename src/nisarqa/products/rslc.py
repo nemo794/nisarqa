@@ -36,6 +36,14 @@ def verify_rslc(user_rncfg):
     # Build the RSLCRootParamGroup parameters per the runconfig
     rslc_params = nisarqa.build_root_params(product_type='rslc',
                                             user_rncfg=user_rncfg)
+    
+    # If all workflows are False, return early
+    if not rslc_params.workflows.at_least_one_wkflw_requested():
+        # No workflows were requested. Exit early.
+        print('All workflows were set to False in the runconfig. No QA will be'
+              ' produced. Exiting now.')
+        return
+
     output_dir = rslc_params.prodpath.qa_output_dir
 
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
