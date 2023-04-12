@@ -14,7 +14,7 @@ CUSTOM_CYCLER = (cycler(color=seaborn_colorblind) +
                  cycler(linestyle=['-', '-.', '--', (0, (3, 1, 1, 1)), (0, (3, 5, 1, 5, 1, 5)), ':']) +
                  cycler(lw=np.linspace(3,1,6)))
 
-LIST_OF_NISAR_PRODUCTS = ['rslc', 'gslc', 'gcov', 'rifg',
+LIST_OF_NISAR_PRODUCTS = ['rslc', 'slc', 'gslc', 'gcov', 'rifg',
                           'runw', 'gunw', 'roff', 'goff']
 
 NISAR_BANDS = ('LSAR', 'SSAR')
@@ -42,7 +42,7 @@ def get_possible_pols(product_type):
         raise ValueError(f'input product type is {product_type}, but '
                          f'must be one of: {LIST_OF_NISAR_PRODUCTS}')
     
-    if product_type in ('rslc', 'gslc'):
+    if product_type.endswith('slc'):
         return ('HH', 'VV', 'HV', 'VH', 'RH', 'RV', 'LH', 'LV')
     else:
         raise NotImplementedError
