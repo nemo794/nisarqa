@@ -65,9 +65,8 @@ def verify_gslc(user_rncfg):
     msg = f'Starting Quality Assurance for input file: {input_file}' \
             f'\nOutputs to be generated:'
 
-    if gslc_params.workflows.validate or gslc_params.workflows.qa_reports:
-        summary_file = os.path.join(output_dir, 'SUMMARY.csv')
-        msg += f'\n\tSummary file: {summary_file}'
+    summary_file = os.path.join(output_dir, 'SUMMARY.csv')
+    msg += f'\n\tSummary file: {summary_file}'
 
     if gslc_params.workflows.qa_reports:
         report_file = os.path.join(output_dir, 'REPORT.pdf')
@@ -187,23 +186,15 @@ def save_gslc_power_image_to_pdf(img_arr, img, params, report_pdf,
     else:
         title = title % fr', $\gamma$={params.gamma}'
 
-    # Get y-axis label
-    y_title = f'Latitude (degrees)'
-
-    # Get X axis labels and scale
-    # Also: double-check that start and stop were parsed correctly from the metadata
-
-    x_title = 'Longitude (degrees)'
-
-    # TODO -- how to handle antimeridian crossing??
+    # TODO: double-check that start and stop were parsed correctly from the metadata
 
     nisarqa.rslc.img2pdf(img_arr=img_arr,
             title=title,
-            ylim=[img.y_start, img.y_stop],
-            xlim=[img.x_start, img.x_stop],
+            ylim=[nisarqa.m2km(img.y_start), nisarqa.m2km(img.y_stop)],
+            xlim=[nisarqa.m2km(img.x_start), nisarqa.m2km(img.x_stop)],
             colorbar_formatter=colorbar_formatter,
-            ylabel=y_title,
-            xlabel=x_title,
+            ylabel='Northing (km)',
+            xlabel='Easting (km)',
             plots_pdf=report_pdf
             )
     

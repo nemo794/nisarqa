@@ -883,12 +883,12 @@ def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
 
     Parameters
     ----------
-    pols : nested dict of RadarRaster
-        Nested dict of RadarRaster objects, where each object represents
-        a polarization dataset in `h5_file`.
+    pols : nested dict of RadarRaster or GeoRaster
+        Nested dict of RadarRaster or GeoRaster objects, where each
+        object represents a polarization dataset.
         Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
-                                       in a RadarRaster object
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a
+                                       RadarRaster or GeoRaster object
     params : SLCPowerImageParams
         A dataclass containing the parameters for processing
         and outputting the SLC power image(s) and browse image.
@@ -920,6 +920,11 @@ def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
             for pol in pols[band][freq]:
                 img = pols[band][freq][pol]
 
+                # Input validation
+                if not isinstance(img, (RadarRaster, nisarqa.GeoRaster)):
+                    raise TypeError('`pols` must contain objects of type '
+                        f'RadarRaster or GeoRaster. Current type: {type(img)}')
+
                 multilooked_img = get_multilooked_power_image(
                                             img=img,
                                             params=params,
@@ -942,12 +947,16 @@ def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
                 else:
                     colorbar_formatter = None
 
-                # TODO HACK!! make flexible for both rslc and gslc
-                nisarqa.gslc.save_gslc_power_image_to_pdf(img_arr=corrected_img,
-                                             img=img,
-                                             params=params,
-                                             report_pdf=report_pdf,
-                                             colorbar_formatter=colorbar_formatter)
+                if isinstance(img, RadarRaster):
+                    pow2pdf_cls_obj = save_rslc_power_image_to_pdf
+                else:  # is a GeoRaster
+                    pow2pdf_cls_obj = nisarqa.gslc.save_gslc_power_image_to_pdf
+
+                pow2pdf_cls_obj(img_arr=corrected_img,
+                                img=img,
+                                params=params,
+                                report_pdf=report_pdf,
+                                colorbar_formatter=colorbar_formatter)
 
                 # If this power image is needed to construct the browse image...
                 if band == layers_for_browse['band'] and \
@@ -994,7 +1003,8 @@ def get_multilooked_power_image(img,
 
         nlooks = nisarqa.compute_square_pixel_nlooks(
                     img.data.shape,
-                    sample_spacing=(img.y_axis_spacing, img.x_axis_spacing),
+                    sample_spacing=(np.abs(img.y_axis_spacing),
+                                    np.abs(img.x_axis_spacing)),
                     num_mpix=params.num_mpix)
 
     elif img.freq == 'A':
@@ -1138,15 +1148,12 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
     az_title = f'Zero Doppler Time\n(seconds since {img.epoch})'
 
     # Get Range (x-axis) labels and scale
-    # Convert range from meters to km
-    rng_start_km = img.rng_start/1000.
-    rng_stop_km = img.rng_stop/1000.
     rng_title = 'Slant Range (km)'
 
     img2pdf(img_arr=img_arr,
             title=title,
             ylim=[img.az_start, img.az_stop],
-            xlim=[rng_start_km, rng_stop_km],
+            xlim=[nisarqa.m2km(img.rng_start), nisarqa.m2km(img.rng_stop)],
             colorbar_formatter=colorbar_formatter,
             ylabel=az_title,
             xlabel=rng_title,

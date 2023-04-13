@@ -306,5 +306,9 @@ def get_NISAR_product_type(h5_file):
             raise ValueError('Provided input file does not have a valid'
                              f'NISAR product group under band {band}')
 
+def m2km(m):
+    '''Convert meters to kilometers'''
+    return m/1000.0
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
