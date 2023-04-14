@@ -46,9 +46,8 @@ def parse_cli_args():
     parser.add_argument(
             '-v',
             '--version',
-            dest='version',
-            action='store_true',
-            help='Display nisarqa software version')
+            action='version',
+            version=pkg_resources.require('nisarqa')[0].version)
 
     # create sub-parser
     sub_parsers = parser.add_subparsers(help='sub-command help',
@@ -93,10 +92,6 @@ def dumpconfig(product_type):
 def main():
     # parse the args
     args = parse_cli_args()
-
-    if args.version:
-        print(f'nisarqa v{pkg_resources.require("nisarqa")[0].version}')
-        return
 
     subcommand = args.command
 
