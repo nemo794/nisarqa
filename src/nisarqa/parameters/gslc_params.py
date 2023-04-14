@@ -6,7 +6,7 @@ from nisarqa.parameters.nisar_params import *
 # TODO Remove the rslc_caltools_params imports after re-org of code
 from nisarqa.parameters.rslc_caltools_params import (
     InputFileGroupParamGroup, ProductPathGroupParamGroup,
-    SLCPowerImageParamGroup)
+    SLCHistogramParamGroup, SLCPowerImageParamGroup)
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -41,6 +41,8 @@ class GSLCRootParamGroup(RootParamGroup):
 
     # QA parameters
     power_img: Optional[SLCPowerImageParamGroup] = None
+    histogram: Optional[SLCHistogramParamGroup] = None
+
 
 
     @staticmethod
@@ -61,7 +63,12 @@ class GSLCRootParamGroup(RootParamGroup):
 
             Grp(flag_param_grp_req=workflows.qa_reports, 
                 root_param_grp_attr_name='power_img',
-                param_grp_cls_obj=SLCPowerImageParamGroup)
+                param_grp_cls_obj=SLCPowerImageParamGroup),
+
+            Grp(flag_param_grp_req=workflows.qa_reports, 
+                root_param_grp_attr_name='histogram',
+                param_grp_cls_obj=nisarqa.SLCHistogramParamGroup),
+
             )
 
         return grps_to_parse
@@ -74,7 +81,8 @@ class GSLCRootParamGroup(RootParamGroup):
         return (InputFileGroupParamGroup,
                 ProductPathGroupParamGroup,
                 WorkflowsParamGroup,
-                SLCPowerImageParamGroup
+                SLCPowerImageParamGroup,
+                SLCHistogramParamGroup
                 )
 
 

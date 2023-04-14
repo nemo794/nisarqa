@@ -1711,13 +1711,14 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
 
 def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
     '''
-    Generate the RSLC Power Histograms and save their plots
+    Generate the RSLC or GSLC Power Histograms and save their plots
     to the graphical summary .pdf file.
 
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians, 
     configurable to be computed in degrees by setting
     `params.phs_in_radians` to False.
+    NaN values will be excluded from Histograms.
 
     Parameters
     ----------
@@ -1727,7 +1728,7 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
         Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored 
                                        in a RadarRaster object
-    params : RSLCHistogramParams
+    params : SLCHistogramParams
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
     stats_h5 : h5py.File
@@ -1751,7 +1752,7 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
 def generate_histogram_single_freq(pol, band, freq, 
                                     params, stats_h5, report_pdf):
     '''
-    Generate the RSLC Power Histograms for a single frequency.
+    Generate RSLC or GSLC Power Histograms for a single frequency.
     
     The histograms' plots will be appended to the graphical
     summary file `report_pdf`, and their data will be
@@ -1759,6 +1760,7 @@ def generate_histogram_single_freq(pol, band, freq,
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians, 
     configurable to be computed in degrees.
+    NaN values will be excluded from the histograms.
 
     Parameters
     ----------

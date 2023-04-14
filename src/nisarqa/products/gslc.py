@@ -44,7 +44,8 @@ def verify_gslc(user_rncfg):
         'input_f': 'Input File Group',
         'prodpath': 'Product Path Group',
         'workflows': 'Workflows',
-        'power_img': 'Power Image'
+        'power_img': 'Power Image',
+        'histogram' : 'Histogram'
         }
 
     for params_obj in fields(gslc_params):
@@ -145,6 +146,10 @@ def verify_gslc(user_rncfg):
                                     browse_filename=browse_image)
 
                 # Generate the GSLC Power and Phase Histograms
+                nisarqa.rslc.process_power_and_phase_histograms(pols=pols,
+                                                   params=gslc_params.histogram,
+                                                   stats_h5=stats_h5,
+                                                   report_pdf=report_pdf)
 
                 # Process Interferograms
 

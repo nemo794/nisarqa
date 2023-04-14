@@ -439,7 +439,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
-    Parameters to generate the RSLC Power and Phase Histograms;
+    Parameters to generate the SLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
 
     Parameters
@@ -551,7 +551,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     #     TypeError: 'mappingproxy' object does not support item assignment
     # So, use a lambda function; this can be called to generate the correct
     # HDF5Attrs when needed, and it does not clutter the dataclass much.
-    # Usage: `obj` is an instance of RSLCHistogramParamGroup()
+    # Usage: `obj` is an instance of SLCHistogramParamGroup()
     phs_bin_edges: ArrayLike = field(
         init=False,
         metadata={
@@ -560,10 +560,10 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name='histogramEdgesPhase',
                 units='radians' if obj.phs_in_radians else 'degrees',
                 descr='Bin edges (including endpoint) for phase histogram',
-                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
-            if (isinstance(obj, RSLCHistogramParamGroup)) \
+                path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
+            if (isinstance(obj, SLCHistogramParamGroup)) \
             else nisarqa.raise_(TypeError(
-            f'`obj` is {type(obj)}, but must be type RSLCHistogramParamGroup'))
+            f'`obj` is {type(obj)}, but must be type SLCHistogramParamGroup'))
         })
 
 
@@ -812,8 +812,8 @@ class RSLCRootParamGroup(RootParamGroup):
         Product Path Group parameters for RSLC QA
     power_img : SLCPowerImageParamGroup or None, optional
         Power Image Group parameters for RSLC QA
-    histogram : RSLCHistogramParamGroup or None, optional
-        Histogram Group parameters for RSLC QA
+    histogram : SLCHistogramParamGroup or None, optional
+        Histogram Group parameters for RSLC or GSLC QA
     anc_files : DynamicAncillaryFileParamGroup or None, optional
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
     abs_cal : AbsCalParamGroup or None, optional
@@ -831,7 +831,7 @@ class RSLCRootParamGroup(RootParamGroup):
 
     # QA parameters
     power_img: Optional[SLCPowerImageParamGroup] = None
-    histogram: Optional[RSLCHistogramParamGroup] = None
+    histogram: Optional[SLCHistogramParamGroup] = None
 
     # CalTools parameters
     anc_files: Optional[DynamicAncillaryFileParamGroup] = None
@@ -862,7 +862,7 @@ class RSLCRootParamGroup(RootParamGroup):
 
             Grp(flag_param_grp_req=workflows.qa_reports, 
                 root_param_grp_attr_name='histogram',
-                param_grp_cls_obj=RSLCHistogramParamGroup),
+                param_grp_cls_obj=SLCHistogramParamGroup),
 
             Grp(flag_param_grp_req=workflows.abs_cal, 
                 root_param_grp_attr_name='abs_cal',
@@ -894,7 +894,7 @@ class RSLCRootParamGroup(RootParamGroup):
                 ProductPathGroupParamGroup,
                 RSLCWorkflowsParamGroup,
                 SLCPowerImageParamGroup,
-                RSLCHistogramParamGroup,
+                SLCHistogramParamGroup,
                 AbsCalParamGroup,
                 NESZParamGroup,
                 PointTargetAnalyzerParamGroup
@@ -1006,7 +1006,7 @@ def _get_param_group_instance_from_runcfg(
     ----------
     param_grp_cls_obj : Type[YamlParamGroup]
         A class instance of a subclass of YamlParamGroup.
-        For example, `RSLCHistogramParamGroup`.
+        For example, `SLCHistogramParamGroup`.
     user_rncfg : nested dict, optional
         A dict containing the user's runconfig values that (at minimum)
         correspond to the `param_grp_cls_obj` parameters. (Other values
