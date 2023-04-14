@@ -81,7 +81,7 @@ def normalize_nlooks(nlooks, arr):
     # Normalize `nlooks` into a tuple with length equal to `arr.ndim`. If `nlooks` was a
     # scalar, take the same number of looks along each axis in the array.
     if isinstance(nlooks, int):
-        nlooks = (n,) * arr.ndim
+        nlooks = (nlooks,) * arr.ndim
     else:
         nlooks = tuple([int(n) for n in nlooks])
         if len(nlooks) != arr.ndim:

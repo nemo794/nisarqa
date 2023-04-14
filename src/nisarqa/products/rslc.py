@@ -2,6 +2,7 @@ import functools
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
+from typing import Optional
 
 import h5py
 import nisarqa
@@ -929,11 +930,11 @@ def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
                                             img=img,
                                             params=params,
                                             stats_h5=stats_h5)
-                
+
                 corrected_img, orig_vmin, orig_vmax = \
                     apply_image_correction(img_arr=multilooked_img,
                                            params=params)
-                
+
                 if params.gamma is not None:
                     inverse_func = functools.partial(
                         invert_gamma_correction,
@@ -1082,10 +1083,10 @@ def apply_image_correction(img_arr, params):
         and applied to `img_arr`, this returned array will include that
         image correction.
     vmin, vmax : float
-        The min and max of the image array, as computed after Step 2 but
-        before Step 3. These can be used to set colorbar tick mark values;
-        by computing vmin and vmax prior to gamma correction, the tick marks
-        values retain physical meaning.
+        The min and max of the image array (excluding Nan), as computed
+        after Step 2 but before Step 3. These can be used to set 
+        colorbar tick mark values; by computing vmin and vmax prior to 
+        gamma correction, the tick marks values retain physical meaning.
     '''
 
     # Step 1: Clip the image array's outliers
@@ -1098,8 +1099,8 @@ def apply_image_correction(img_arr, params):
     # Get the vmin and vmax prior to applying gamma correction.
     # These can later be used for setting the colorbar's
     # tick mark values.
-    vmin = np.min(img_arr)
-    vmax = np.max(img_arr)
+    vmin = np.nanmin(img_arr)
+    vmax = np.nanmax(img_arr)
 
     # Step 3: Apply gamma correction
     if params.gamma is not None:
@@ -1164,6 +1165,8 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
 def clip_array(arr, middle_percentile=100.0):
     '''
     Clip input array to the middle percentile.
+    
+    NaN values are excluded from the computation of the middle percentile.
 
     Parameters
     ----------
@@ -1182,6 +1185,7 @@ def clip_array(arr, middle_percentile=100.0):
     '''
     # Clip the image data
     vmin, vmax = calc_vmin_vmax(arr, middle_percentile=middle_percentile)
+
     out_arr = np.clip(arr, a_min=vmin, a_max=vmax)
 
     return out_arr
@@ -1672,7 +1676,7 @@ def img2pdf(img_arr,
 
 def calc_vmin_vmax(data_in, middle_percentile=100.0):
     '''
-    Calculate the values of vmin and vmax for the 
+    Calculate the values of vmin and vmax (excluding NaN) for the 
     input array using the given middle percentile.
 
     For example, if `middle_percentile` is 95.0, then this will
@@ -1692,7 +1696,7 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
     -------
     vmin, vmax : numeric
         The lower and upper values (respectively) of the middle 
-        percentile.
+        percentile, excluding NaN values.
 
     '''
     nisarqa.verify_valid_percentile(middle_percentile)
@@ -1700,7 +1704,7 @@ def calc_vmin_vmax(data_in, middle_percentile=100.0):
     fraction = 0.5*(1.0 - middle_percentile/100.0)
 
     # Get the value of the e.g. 0.025 quantile and the 0.975 quantile
-    vmin, vmax = np.quantile(data_in, [fraction, 1-fraction])
+    vmin, vmax = np.nanquantile(data_in, [fraction, 1-fraction])
 
     return vmin, vmax
 
