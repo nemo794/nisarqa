@@ -52,6 +52,7 @@ def parse_cli_args():
 
     # create sub-parser
     sub_parsers = parser.add_subparsers(help='sub-command help',
+                                        required=True,
                                         dest='command')
 
     # create the parser for the `dumpconfig` sub-command
