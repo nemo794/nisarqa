@@ -173,7 +173,6 @@ def verify_rslc(user_rncfg):
                 save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
 
                 # Generate the RSLC Power Image and Browse Image
-                # Note: the `nlooks*` parameters might be updated. TODO comment better.
                 process_slc_power_images_and_browse(
                                     pols=pols,
                                     params=rslc_params.power_img,
@@ -540,7 +539,7 @@ class RadarRaster(SARRaster):
         # Hardcoded paths to various groups in the NISAR RSLC h5 file.
         # These paths are determined by the RSLC .xml product spec
         swaths_path = f'/science/{band}/{product}/swaths'
-        freq_path = f'{swaths_path}/frequency{freq}/'
+        freq_path = f'{swaths_path}/frequency{freq}'
         pol_path = f'{freq_path}/{pol}'
 
         if pol_path in h5_file:
@@ -582,7 +581,7 @@ class RadarRaster(SARRaster):
         epoch = sec_since_epoch.replace('seconds since ', '').strip()
 
         return cls(data=dataset,
-                   name=f'{band}_{freq}_{pol}',
+                   name=f'{product.upper()}_{band}_{freq}_{pol}',
                    band=band,
                    freq=freq,
                    pol=pol,
@@ -1139,7 +1138,7 @@ def save_rslc_power_image_to_pdf(img_arr, img, params, report_pdf,
     '''
 
     # Plot and Save Power Image to graphical summary pdf
-    title = f'RSLC Multilooked Power ({params.pow_units}%s)\n{img.name}'
+    title = f'Multilooked Power ({params.pow_units}%s)\n{img.name}'
     if params.gamma is None:
         title = title % ''
     else:
@@ -1847,7 +1846,7 @@ def generate_histogram_single_freq(pol, band, freq,
     pow_ax.set_title(title)
 
     pow_ax.legend(loc='upper right')
-    pow_ax.set_xlabel(f'RSLC Power ({pow_units})')
+    pow_ax.set_xlabel(f'Power ({pow_units})')
     pow_ax.set_ylabel(f'Density (1/{pow_units})')
 
     # Per ADT, let the top limit float for Power Spectra
@@ -1857,7 +1856,7 @@ def generate_histogram_single_freq(pol, band, freq,
     # Label the Phase Figure
     phs_ax.set_title(f'{band} Frequency {freq} Phase Histograms')
     phs_ax.legend(loc='upper right')
-    phs_ax.set_xlabel(f'RSLC Phase ({phs_units})')
+    phs_ax.set_xlabel(f'Phase ({phs_units})')
     phs_ax.set_ylabel(f'Density (1/{phs_units})')
     if params.phs_in_radians:
         phs_ax.set_ylim(bottom=0.0, top=0.5)

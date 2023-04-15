@@ -111,7 +111,7 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         # Hardcoded paths to various groups in the NISAR RSLC h5 file.
         # These paths are determined by the .xml product specs
         grids_path = f'/science/{band}/{product}/grids'
-        freq_path = f'{grids_path}/frequency{freq}/'
+        freq_path = f'{grids_path}/frequency{freq}'
         pol_path = f'{freq_path}/{pol}'
 
         if pol_path in h5_file:
@@ -144,8 +144,8 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         y_start = float(h5_file[freq_path]['yCoordinates'][0])
         y_stop = float(h5_file[freq_path]['yCoordinates'][-1])
 
-        return cls(data=h5_file[pol_path],
-                   name=f'{band}_{freq}_{pol}',
+        return cls(data=nisarqa.rslc.ComplexFloat16Decoder(h5_file[pol_path]),
+                   name=f'{product.upper()}_{band}_{freq}_{pol}',
                    band=band,
                    freq=freq,
                    pol=pol,

@@ -137,7 +137,6 @@ def verify_gslc(user_rncfg):
                                     stats_h5=stats_h5, pols=pols)
 
                 # Generate the GSLC Power Image and Browse Image
-                # Note: the `nlooks*` parameters might be updated. TODO comment better.
                 nisarqa.rslc.process_slc_power_images_and_browse(
                                     pols=pols,
                                     params=gslc_params.power_img,
@@ -190,7 +189,7 @@ def save_gslc_power_image_to_pdf(img_arr, img, params, report_pdf,
     '''
 
     # Plot and Save Power Image to graphical summary pdf
-    title = f'GSLC Multilooked Power ({params.pow_units}%s)\n{img.name}'
+    title = f'Multilooked Power ({params.pow_units}%s)\n{img.name}'
     if params.gamma is None:
         title = title % ''
     else:
