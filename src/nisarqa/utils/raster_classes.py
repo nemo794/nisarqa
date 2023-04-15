@@ -139,9 +139,12 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         y_start = float(h5_file[freq_path]['yCoordinates'][0])
         y_stop = float(h5_file[freq_path]['yCoordinates'][-1])
 
+        # Get dataset object
         try:
             # GSLC Product Spec says that NISAR GSLC files should be complex64.
-            # If so, then testing for the dtype should not break anything:
+            # If so, then testing for the dtype should not break anything.
+            # (Other Geocoded products should also be directly readible
+            # by h5py, too.)
             h5_file[pol_path][...].dtype
 
         except TypeError as e:
@@ -150,9 +153,10 @@ class GeoRaster(nisarqa.rslc.SARRaster):
             # with some bits masked out to improve compression.
             # If the input GSLC product has dtype complex32, then we'll need
             # to use ComplexFloat16Decoder.
+            if (product == 'GSLC') \
+                and (str(e) == "data type '<c4' not understood"):
 
-            if str(e) == "data type '<c4' not understood":
-                # The dataset is complex32. Handle accordingly.
+                # The GSLC dataset is complex32. Handle accordingly.
                 dataset = nisarqa.rslc.ComplexFloat16Decoder(h5_file[pol_path])
                 print('(FAIL) PASS/FAIL Check: Product raster dtype conforms'
                       ' to Product Spec dtype of complex64.')
@@ -160,10 +164,17 @@ class GeoRaster(nisarqa.rslc.SARRaster):
                 # A TypeError that is not anticipated was raised. Re-raise it.
                 raise e
         else:
-             # No TypeError was raised, so use h5py's standard reader
+             # Use h5py's standard reader
             dataset = h5_file[pol_path]
-            print('(PASS) PASS/FAIL Check: Product raster dtype conforms'
-                      ' to Product Spec dtype of complex64.')
+
+            if product == 'GSLC':
+                print('(PASS) PASS/FAIL Check: Product raster dtype conforms'
+                        ' to Product Spec dtype of complex64.')
+            else:
+                # TODO - for GCOV, GUNW, and GOFF, confirm that this
+                # next print statement is, in fact, true.
+                print('(PASS) PASS/FAIL Check: Product raster dtype conforms '
+                      f'to {product} Product Spec dtype.')
 
         return cls(data=dataset,
                    name=f'{product.upper()}_{band}_{freq}_{pol}',

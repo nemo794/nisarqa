@@ -557,6 +557,48 @@ class RadarRaster(SARRaster):
         else:
             dataset = h5_file[pol_path]
 
+        # Get dataset object
+        try:
+            # Most Radar Doppler NISAR products should be directly readible
+            # by h5py. The exception is RSLC.
+            # RSLC Product Spec says that NISAR RSLC files should be complex32,
+            # which requires special handling to read and access.
+            # For products that are directly readible by h5py, 
+            # testing for the dtype should not break anything.
+            # But for complex32 products, this will raise an error.
+            h5_file[pol_path][...].dtype
+
+        except TypeError as e:
+            # As of R3.3 the GSLC workflow recently gained the ability
+            # to generate products in complex32 format as well as complex64 
+            # with some bits masked out to improve compression.
+            # If the input GSLC product has dtype complex32, then we'll need
+            # to use ComplexFloat16Decoder.
+            # if product in ('RSLC', 'SLC') \
+            if product in ('RSLC') \
+                and (str(e) == "data type '<c4' not understood"):
+
+                # The RSLC dataset is complex32. Handle accordingly.
+                dataset = nisarqa.rslc.ComplexFloat16Decoder(h5_file[pol_path])
+                print('(PASS) PASS/FAIL Check: Product raster dtype conforms'
+                      ' to RSLC Product Spec dtype of complex32.')
+            else:
+                # A TypeError that is not anticipated was raised. Re-raise it.
+                raise e
+        else:
+             # Use h5py's standard reader
+            dataset = h5_file[pol_path]
+
+            if product == 'SLC':
+                print('(FAIL) PASS/FAIL Check: Product raster dtype conforms '
+                      'to RSLC Product Spec dtype of complex32.')
+            else:
+                # TODO - for RIFG, RUNW, and ROFF, confirm that this
+                # next print statement is, in fact, true.
+                print('(PASS) PASS/FAIL Check: Product raster dtype conforms '
+                      f'to {product} Product Spec dtype.')
+
+
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
         # 'Nominal along track spacing in meters between consecutive lines 
         # near mid swath of the RSLC image.'
