@@ -238,6 +238,13 @@ def compute_multilooked_power_by_tiling(arr,
     # Create an inner function for this use case.
     def calc_power_and_multilook(arr):
 
+        # TODO - Geoff (discuss)
+        # TODO - fix this hack. It allows GSLC datasets to have valid-looking
+        # QA output files, however, it is incorrect from a theory perspective.
+        print("TODO: BAADDDDD This is a hack for GSLC!")
+        arr = np.asarray(arr)
+        arr[arr == 0] = np.nan
+
         # Calc power in linear of array
         out = nisarqa.arr2pow(arr)
 
