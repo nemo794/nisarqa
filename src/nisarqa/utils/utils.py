@@ -298,8 +298,8 @@ def get_NISAR_product_type(h5_file):
                     # only contain 'RSLC' file paths.
                     # Once the test datasets have been updated to 'RSLC', 
                     # then remove this warning, and raise a fatal error.
-                    print('WARNING!! This product uses the deprecated '
-                          '"SLC" group. Update to "RSLC".')
+                    print('(FAIL) PASS/FAIL Check: This product uses the '
+                          'deprecated "SLC" group. Update to "RSLC".')
 
                 return product
         else:

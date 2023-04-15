@@ -123,9 +123,6 @@ class GeoRaster(nisarqa.rslc.SARRaster):
             #                         'Image %s not present' % band_freq_pol_str)
             raise nisarqa.DatasetNotFoundError
 
-        # TODO - Geoff - could you please confirm that these are the
-        # correct xml product spec datasets to use?
-
         # From the xml Product Spec, xCoordinateSpacing is the 
         # 'Nominal spacing in meters between consecutive pixels'
         x_spacing = h5_file[freq_path]['xCoordinateSpacing'][...]
@@ -139,12 +136,36 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         y_spacing = h5_file[freq_path]['yCoordinateSpacing'][...]
 
         # Y in meters (units are specified as meters in the product spec)
-        # TODO - Geoff - Are these the correct indices to use for start/stop?
-        # I copied from RSLC, but think they should be reversed.
         y_start = float(h5_file[freq_path]['yCoordinates'][0])
         y_stop = float(h5_file[freq_path]['yCoordinates'][-1])
 
-        return cls(data=nisarqa.rslc.ComplexFloat16Decoder(h5_file[pol_path]),
+        try:
+            # GSLC Product Spec says that NISAR GSLC files should be complex64.
+            # If so, then testing for the dtype should not break anything:
+            h5_file[pol_path][...].dtype
+
+        except TypeError as e:
+            # As of R3.3 the GSLC workflow recently gained the ability
+            # to generate products in complex32 format as well as complex64 
+            # with some bits masked out to improve compression.
+            # If the input GSLC product has dtype complex32, then we'll need
+            # to use ComplexFloat16Decoder.
+
+            if str(e) == "data type '<c4' not understood":
+                # The dataset is complex32. Handle accordingly.
+                dataset = nisarqa.rslc.ComplexFloat16Decoder(h5_file[pol_path])
+                print('(FAIL) PASS/FAIL Check: Product raster dtype conforms'
+                      ' to Product Spec dtype of complex64.')
+            else:
+                # A TypeError that is not anticipated was raised. Re-raise it.
+                raise e
+        else:
+             # No TypeError was raised, so use h5py's standard reader
+            dataset = h5_file[pol_path]
+            print('(PASS) PASS/FAIL Check: Product raster dtype conforms'
+                      ' to Product Spec dtype of complex64.')
+
+        return cls(data=dataset,
                    name=f'{product.upper()}_{band}_{freq}_{pol}',
                    band=band,
                    freq=freq,
