@@ -153,6 +153,7 @@ class GeoRaster(nisarqa.rslc.SARRaster):
             # with some bits masked out to improve compression.
             # If the input GSLC product has dtype complex32, then we'll need
             # to use ComplexFloat16Decoder.
+            # TODO - Geoff - confirm what is GSLC Product Spec's dtype
             if (product == 'GSLC') \
                 and (str(e) == "data type '<c4' not understood"):
 
