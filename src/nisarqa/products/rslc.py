@@ -37,6 +37,9 @@ def verify_rslc(user_rncfg):
     rslc_params = nisarqa.build_root_params(product_type='rslc',
                                             user_rncfg=user_rncfg)
     
+    # TODO - create custom exception Type, e.g. EarlyExitAlert.
+    # raise that, and if catch, then exit early
+
     # If all workflows are False, return early
     if not rslc_params.workflows.at_least_one_wkflw_requested():
         # No workflows were requested. Exit early.

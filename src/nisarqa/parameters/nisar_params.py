@@ -358,6 +358,7 @@ class HDF5ParamGroup:
                     
                     # Create filler data to stand in for Python's Nonetype.
                     # TODO - Geoff - is 'None' the correct filler value for use in stats.h5?
+                    # TODO - update hdf5 descr to be explicit re: str None vs. float
                     val = 'None' if attr is None else attr
 
                     if 'hdf5_attrs' in field.metadata:
