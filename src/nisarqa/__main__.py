@@ -68,7 +68,6 @@ def parse_cli_args():
     # Add an optional argument to set the indent spacing for dumpconfig
     parser_dumpconfig.add_argument(
             '-i', '--indent',
-            dest='indent',
             default=4,
             type=int,
             help='Indent spacing for the output runconfig yaml')
