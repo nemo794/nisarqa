@@ -68,14 +68,6 @@ class HDF5Attrs:
 class YamlParamGroup(ABC):
     '''Abstract Base Class for creating *Params dataclasses.'''
 
-    @abstractmethod
-    def __post_init__(self):
-        '''
-        Validate all input parameter arguments, and set any auto-generated
-        attributes.
-        '''
-        pass
-
     @staticmethod
     @abstractmethod
     def get_path_to_group_in_runconfig():
@@ -294,14 +286,6 @@ class YamlParamGroup(ABC):
 
 class HDF5ParamGroup:
     '''Class for parameters that will be stored in the output HDF5 file.'''
-
-    def __post_init__(self):
-        '''
-        Validate all input parameter arguments, and set any auto-generated
-        attributes.
-        '''
-        pass
-
 
     def get_units_from_hdf5_metadata(self, attribute_name):
         '''
