@@ -371,11 +371,6 @@ class HDF5ParamGroup:
                         ' or \'hdf5_attrs_func\'')
 
 
-class YamlHDF5ParamGroup(YamlParamGroup, HDF5ParamGroup):
-    '''Abstract Base Class for creating *Params dataclasses.'''
-    pass
-
-
 @dataclass(frozen=True)
 class WorkflowsParamGroup(YamlParamGroup):
     '''

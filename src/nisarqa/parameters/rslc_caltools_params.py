@@ -183,7 +183,7 @@ class ProductPathGroupParamGroup(YamlParamGroup):
 
 
 @dataclass(frozen=True)
-class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
+class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters to generate RSLC Power Images and Browse Image.
     
@@ -429,7 +429,7 @@ class RSLCPowerImageParamGroup(YamlHDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
+class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters to generate the RSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
@@ -629,7 +629,7 @@ class RSLCHistogramParamGroup(YamlHDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class AbsCalParamGroup(YamlHDF5ParamGroup):
+class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters from the QA-CalTools Absolute Calibration Factor
     runconfig group.
@@ -674,7 +674,7 @@ class AbsCalParamGroup(YamlHDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class NESZParamGroup(YamlHDF5ParamGroup):
+class NESZParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters from the QA-CalTools Noise Estimator (NESZ) runconfig group.
 
@@ -739,7 +739,7 @@ class NESZParamGroup(YamlHDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class PointTargetAnalyzerParamGroup(YamlHDF5ParamGroup):
+class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters from the QA-CalTools Point Target Analyzer runconfig group.
 
