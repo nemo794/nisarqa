@@ -57,7 +57,7 @@ class HDF5Attrs:
         Short one-line description of this parameter. Preferably,
         this should meet CF conventions; can be used for the stats.h5 file.
     path : str
-        The HDF5 path to group where this attribute should be stored.
+        The HDF5 path to parent group for the `name` dataset
     '''
     name: str
     units: str
