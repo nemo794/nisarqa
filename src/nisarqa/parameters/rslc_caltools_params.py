@@ -5,7 +5,8 @@ from typing import ClassVar, Iterable, Optional, Type, Union
 
 import nisarqa
 import numpy as np
-from nisarqa.parameters.nisar_params import *
+from nisarqa import (HDF5Attrs, HDF5ParamGroup, RootParamGroup,
+                     WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
 from numpy.typing import ArrayLike
 from ruamel.yaml import YAML
 from ruamel.yaml import CommentedMap as CM
