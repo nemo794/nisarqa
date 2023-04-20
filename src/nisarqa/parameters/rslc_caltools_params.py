@@ -39,25 +39,25 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     '''
 
     abs_cal: bool = field(
-        default=WorkflowsParamGroup.default_val,
+        default=WorkflowsParamGroup._default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='absolute_radiometric_calibration',
-            descr=WorkflowsParamGroup.descr % 'Absolute Radiometric Calibration calibration tool')})
+            descr=WorkflowsParamGroup._descr % 'Absolute Radiometric Calibration calibration tool')})
 
     nesz: bool = field(
-        default=WorkflowsParamGroup.default_val,
+        default=WorkflowsParamGroup._default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='nesz', 
-            descr=WorkflowsParamGroup.descr % 'NESZ calibration tool')})
+            descr=WorkflowsParamGroup._descr % 'NESZ calibration tool')})
 
     point_target: bool = field(
-        default=WorkflowsParamGroup.default_val,
+        default=WorkflowsParamGroup._default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='point_target_analyzer',
-            descr=WorkflowsParamGroup.descr % 'Point Target Analyzer calibration tool')})
+            descr=WorkflowsParamGroup._descr % 'Point Target Analyzer calibration tool')})
 
     def __post_init__(self):
 
@@ -241,7 +241,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 summary PDF. False for decibel units.'''
         )})
 
-    nlooks_descr_template: ClassVar[str] = \
+    _nlooks_descr_template: ClassVar[str] = \
         '''Number of looks along each axis of the Frequency %s
         image arrays for multilooking the power image.
         Format: [<num_rows>, <num_cols>]
@@ -254,7 +254,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
         'yaml_attrs' : YamlAttrs(
             name=f'nlooks_freqa',
-            descr=nlooks_descr_template % 'A'
+            descr=_nlooks_descr_template % 'A'
         )})
 
     nlooks_freqb: Optional[Union[int, Iterable[int]]] = field(
@@ -262,7 +262,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
         'yaml_attrs' : YamlAttrs(
             name='nlooks_freqb',
-            descr=nlooks_descr_template % 'B'
+            descr=_nlooks_descr_template % 'B'
         )})
 
     num_mpix: int = field(
