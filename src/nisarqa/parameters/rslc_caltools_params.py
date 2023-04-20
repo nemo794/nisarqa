@@ -217,8 +217,10 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         If None, then no normalization, no gamma correction will be applied.
         Default: 0.5
     tile_shape : iterable of int, optional
-        Preferred tile shape for processing images by batches.
-        Actual tile shape may be modified by QA-SAS.
+        User-preferred tile shape for processing images by batches.
+        Actual tile shape may be modified by QA to be an integer
+        multiple of the number of looks for multilooking, of the
+        decimation ratio, etc.
         Format: (num_rows, num_cols) 
         -1 to indicate all rows / all columns (respectively).
         Defaults to (1024, 1024).
@@ -320,8 +322,10 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
         'yaml_attrs' : YamlAttrs(
             name='tile_shape',
-            descr='''Preferred tile shape for processing images by batches.
-                Actual tile shape may be modified by QA-SAS.
+            descr='''User-preferred tile shape for processing images by batches.
+                Actual tile shape may be modified by QA to be an integer
+                multiple of the number of looks for multilooking, of the
+                decimation ratio, etc.
                 Format: [<num_rows>, <num_cols>]
                 -1 to indicate all rows / all columns (respectively).'''
             )
@@ -452,8 +456,10 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         True to compute phase in radians units, False for degrees units.
         Defaults to True.
     tile_shape : iterable of int, optional
-        Preferred tile shape for processing images by batches.
-        Actual tile shape may be modified by QA-SAS.
+        User-preferred tile shape for processing images by batches.
+        Actual tile shape may be modified by QA to be an integer
+        multiple of the number of looks for multilooking, of the
+        decimation ratio, etc.
         Format: (num_rows, num_cols) 
         -1 to indicate all rows / all columns (respectively).
 
@@ -513,8 +519,10 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
         'yaml_attrs' : YamlAttrs(
             name='tile_shape',
-            descr='''Preferred tile shape for processing images by batches.
-                Actual tile shape may be modified by QA-SAS.
+            descr='''User-preferred tile shape for processing images by batches.
+                Actual tile shape may be modified by QA to be an integer
+                multiple of the number of looks for multilooking, of the
+                decimation ratio, etc.
                 Format: [<num_rows>, <num_cols>]
                 -1 to indicate all rows / all columns (respectively).'''
             )
