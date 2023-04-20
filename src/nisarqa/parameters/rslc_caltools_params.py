@@ -1014,8 +1014,7 @@ def build_root_params(product_type, user_rncfg):
     # If all functionality is off (i.e. all workflows are set to false),
     # then exit early. We will not need any of the other runconfig groups.
     if not root_inputs['workflows'].at_least_one_wkflw_requested():
-        # Construct *RootParamGroup with only the workflows group
-        return root_param_class_obj(**root_inputs)
+        raise nisarqa.ExitEarly('All `workflows` were set to False.')
 
     workflows = root_inputs['workflows']
 

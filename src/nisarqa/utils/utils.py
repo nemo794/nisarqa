@@ -44,12 +44,20 @@ def open_h5_file(in_file, mode='r'):
 
 
 class DatasetNotFoundError(Exception):
-    '''Custom exception name for when a dataset is
+    '''
+    Custom exception name for when a dataset is
     not found in an e.g. HDF5 file.
     '''
     def __init__(self):
         super().__init__('Dataset not found.')
 
+
+class ExitEarly(Exception):
+    '''
+    Custom exception name for when logic is nominal but the QA-SAS
+    should exit early, such as for when all `workflows` are set to
+    `False` and so no QA processing should be performed.
+    '''
 
 def raise_(exc):
     '''

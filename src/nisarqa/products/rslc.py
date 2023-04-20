@@ -34,17 +34,13 @@ def verify_rslc(user_rncfg):
     '''
 
     # Build the RSLCRootParamGroup parameters per the runconfig
-    rslc_params = nisarqa.build_root_params(product_type='rslc',
-                                            user_rncfg=user_rncfg)
-    
-    # TODO - create custom exception Type, e.g. EarlyExitAlert.
-    # raise that, and if catch, then exit early
-
-    # If all workflows are False, return early
-    if not rslc_params.workflows.at_least_one_wkflw_requested():
+    try:
+        rslc_params = nisarqa.build_root_params(product_type='rslc',
+                                                user_rncfg=user_rncfg)
+    except nisarqa.ExitEarly as e:
         # No workflows were requested. Exit early.
-        print('All workflows were set to False in the runconfig. No QA will be'
-              ' produced. Exiting now.')
+        print('All `workflows` were set to `False` in the runconfig. No QA '
+              'processing will be performed. Exiting...')
         return
 
     output_dir = rslc_params.prodpath.qa_output_dir
