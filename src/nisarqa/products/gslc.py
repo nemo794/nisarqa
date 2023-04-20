@@ -36,6 +36,7 @@ def verify_gslc(user_rncfg):
     # but before merging into develop:
     # Exit early if no workflows are requested.
 
+    # Print final processing parameters that will be used for QA processing
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
 
     gslc_params_names = {
