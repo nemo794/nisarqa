@@ -29,12 +29,14 @@ def verify_gslc(user_rncfg):
     '''
 
     # Build the GSLCRootParamGroup parameters per the runconfig
-    gslc_params = nisarqa.build_root_params(product_type='gslc',
-                                            user_rncfg=user_rncfg)
-    
-    # TODO - must be done after rebasing to update_param_handling branch,
-    # but before merging into develop:
-    # Exit early if no workflows are requested.
+    try:
+        gslc_params = nisarqa.build_root_params(product_type='gslc',
+                                                user_rncfg=user_rncfg)
+    except nisarqa.ExitEarly as e:
+        # No workflows were requested. Exit early.
+        print('All `workflows` were set to `False` in the runconfig. No QA '
+              'processing will be performed. Exiting...')
+        return
 
     # Print final processing parameters that will be used for QA, for debugging
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')

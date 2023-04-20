@@ -100,8 +100,8 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 from .parameters.constants.globals import *
 from .parameters.constants.stub_outputs import *
 # Next import parameters, products, utils, etc.
-from .parameters.gslc_params import *
 from .parameters.nisar_params import *
+from .parameters.gslc_params import *
 from .parameters.rslc_caltools_params import *
 from .products import (caltools, gcov, goff,  # keep in their own namespace
                        gslc, gunw, rifg, roff, rslc, runw)

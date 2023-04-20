@@ -1,14 +1,13 @@
 import collections
 import dataclasses
-import inspect
 import sys
 import warnings
 from abc import ABC, abstractmethod
-from dataclasses import MISSING, dataclass, field, fields
-from typing import ClassVar, Generic, TypeVar
+from dataclasses import dataclass, field, fields
+from typing import ClassVar
 
 import nisarqa
-from ruamel.yaml import CommentedMap, CommentedSeq
+from ruamel.yaml import YAML, CommentedMap, CommentedSeq
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -393,8 +392,8 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={'yaml_attrs': YamlAttrs(
                     name='qa_reports',
                     descr=_descr % '`qa_reports` workflow to generate a\n'
-                    'PDF report, geolocated browse image, and compute\n'
-                    'statistics on the input file')})
+                    'PDF report, geolocated browse image, compute statistics\n'
+                    'on the input file, etc.')})
 
 
     def __post_init__(self):
@@ -574,7 +573,7 @@ class RootParamGroup(ABC):
         # Ref: https://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
         yaml.indent(mapping=indent, sequence=indent, offset=max(indent-2, 0))
 
-        runconfig_cm = CM()
+        runconfig_cm = CommentedMap()
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.

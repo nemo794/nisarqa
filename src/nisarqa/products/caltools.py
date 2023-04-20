@@ -1,5 +1,3 @@
-from dataclasses import fields
-
 import nisarqa
 
 # List of objects from the import statements that

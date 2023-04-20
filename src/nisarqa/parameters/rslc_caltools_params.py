@@ -1,5 +1,4 @@
 import os
-import sys
 from dataclasses import dataclass, field, fields
 from typing import ClassVar, Iterable, Optional, Type, Union
 
@@ -183,7 +182,7 @@ class ProductPathGroupParamGroup(YamlParamGroup):
 
 # TODO - move to generic SLC module
 @dataclass(frozen=True)
-class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
+class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters to generate RSLC or GSLC Power Images and Browse Image.
     
@@ -437,7 +436,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
+class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters to generate the RSLC or GSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
@@ -560,7 +559,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name='histogramEdgesPhase',
                 units='radians' if obj.phs_in_radians else 'degrees',
                 descr='Bin edges (including endpoint) for phase histogram',
-                path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
             if (isinstance(obj, SLCHistogramParamGroup)) \
             else nisarqa.raise_(TypeError(
             f'`obj` is {type(obj)}, but must be type SLCHistogramParamGroup'))
