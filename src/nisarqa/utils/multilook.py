@@ -164,7 +164,7 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
             - N_1 : (int) # X columns
         - sample spacing dX_1 and dY_1
             - dY_1 : (float) distance between samples in Y direction
-            - dX_1 : (float) distance between samples in range direction
+            - dX_1 : (float) distance between samples in X direction
     Number of Looks:
         - These will be Real numbers during the computation, but then
           rounded to the nearest odd integer for final output.
