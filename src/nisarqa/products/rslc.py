@@ -48,7 +48,7 @@ def verify_rslc(user_rncfg):
 
     output_dir = rslc_params.prodpath.qa_output_dir
 
-    # Print final processing parameters that will be used for QA processing
+    # Print final processing parameters that will be used for QA, for debugging
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
 
     rslc_params_names = {
