@@ -156,7 +156,7 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
             - N : (int) # X columns
         - sample spacing dX and dY
             - dY : (float) distance between samples in Y direction
-            - dX : (float) distance between samples in range direction
+            - dX : (float) distance between samples in X direction
     Output Multilooked Image has:
         - Same units as Source Image (e.g. sample spacing is in meters for both)
         - dimensions M_1 x N_1
