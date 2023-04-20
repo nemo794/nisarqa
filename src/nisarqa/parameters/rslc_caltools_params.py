@@ -448,7 +448,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         every 3rd range line will be used to compute the histograms.
         Defaults to (10,10).
         Format: (<azimuth>, <range>)
-    pow_histogram_bin_edges_range : pair of float, optional
+    pow_histogram_bin_edges_range : pair of int or float, optional
         The dB range for the power histogram's bin edges. Endpoint will
         be included. Defaults to [-80.0, 20.0].
         Format: (<starting value>, <endpoint>)
@@ -496,7 +496,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
         )})
 
-    pow_histogram_bin_edges_range: Iterable[float] = field(
+    pow_histogram_bin_edges_range: Iterable[Union[int,float]] = field(
         default=(-80.0,20.0),
         metadata={
         'yaml_attrs' : YamlAttrs(
@@ -587,9 +587,9 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         if not len(val) == 2:
             raise ValueError('`pow_histogram_bin_edges_range` must'
                             f' have a length of two: {val}')
-        if not all(isinstance(e, float) for e in val):
+        if not all(isinstance(e, (int, float)) for e in val):
             raise TypeError('`pow_histogram_bin_edges_range` must'
-                            f' contain only float values: {val}')
+                            f' contain only int or float values: {val}')
         if val[0] >= val[1]:
             raise ValueError(
                 '`pow_histogram_bin_edges_range` has format '
