@@ -439,7 +439,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
-    Parameters to generate the SLC Power and Phase Histograms;
+    Parameters to generate the RSLC or GSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
 
     Parameters
