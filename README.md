@@ -83,7 +83,7 @@ nisarqa dumpconfig rslc > my_rslc_runconfig.yaml  # save runconfig to a file
 nisarqa dumpconfig gcov
 ```
 
-- NOTE: `dumpconfig` has only been implemented for RSLC at this time.
+- NOTE: `dumpconfig` has only been implemented for RSLC and GSLC at this time.
 
 
 ## Expected Outputs

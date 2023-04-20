@@ -6,7 +6,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from PIL import Image
-from ruamel.yaml import YAML
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -190,7 +189,7 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
         with nisarqa.open_h5_file(input_file, mode='r') as in_file, \
             nisarqa.open_h5_file(stats_file, mode='w') as stats_h5:
 
-            for band in nisarqa.BANDS:
+            for band in nisarqa.NISAR_BANDS:
                 grp_path = f'/science/{band}/identification'
 
                 if grp_path in in_file:
