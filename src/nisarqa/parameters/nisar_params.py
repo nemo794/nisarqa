@@ -122,20 +122,6 @@ class YamlParamGroup(ABC):
             return yaml_names
 
 
-        # yaml_names = []
-        # for field in fields(cls):
-        #     if 'yaml_attrs' in field.metadata:
-        #         yaml_names.append(field.metadata['yaml_attrs'].name)
-
-        # if yaml_names:
-        #     return yaml_names
-        # else:
-        #     # Sanity check - list is still empty
-        #     warnings.warn(f'None of the attributes in {cls.__name__}'
-        #                     ' contain info for an YamlAttrs object')
-        #     return yaml_names
-
-
     @classmethod
     def populate_runcfg(cls, runconfig_cm, indent=4):
         '''Update the provided ruamel.yaml object with select attributes
