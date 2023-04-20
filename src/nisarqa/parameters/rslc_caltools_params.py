@@ -31,8 +31,8 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     abs_cal : bool, optional
         True to run the Absolute Radiometric Calibration Factor CalTool workflow
         Default: False
-    nesz : bool, optional
-        True to run the Noise Estimator (NESZ) workflow. Default: False
+    noise_estimation : bool, optional
+        True to run the Noise Estimation Tool workflow. Default: False
     point_target : bool, optional
         True to run the Point Target Analyzer (PTA) workflow. Default: False
     '''
@@ -44,12 +44,12 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
             name='absolute_radiometric_calibration',
             descr=WorkflowsParamGroup._descr % 'Absolute Radiometric Calibration calibration tool')})
 
-    nesz: bool = field(
+    noise_estimation: bool = field(
         default=WorkflowsParamGroup._default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
-            name='nesz', 
-            descr=WorkflowsParamGroup._descr % 'NESZ calibration tool')})
+            name='noise_estimation', 
+            descr=WorkflowsParamGroup._descr % 'Noise Estimator Tool calibration tool')})
 
     point_target: bool = field(
         default=WorkflowsParamGroup._default_val,
@@ -63,7 +63,7 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         # VALIDATE INPUTS
         super().__post_init__()
         self._check_workflows_arg('abs_cal', self.abs_cal)
-        self._check_workflows_arg('nesz', self.nesz)
+        self._check_workflows_arg('noise_estimation', self.noise_estimation)
         self._check_workflows_arg('point_target',
                                     self.point_target)
 
@@ -683,7 +683,7 @@ class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class NESZParamGroup(YamlParamGroup, HDF5ParamGroup):
+class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
     Parameters from the QA-CalTools Noise Estimator (NESZ) runconfig group.
 
@@ -744,7 +744,7 @@ class NESZParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','nesz']
+        return ['runconfig','groups','qa','noise_estimation']
 
 
 @dataclass(frozen=True)
@@ -816,8 +816,8 @@ class RSLCRootParamGroup(RootParamGroup):
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
     abs_cal : AbsCalParamGroup or None, optional
         Absolute Radiometric Calibration group parameters for RSLC QA-Caltools
-    nesz : NESZParamGroup or None, optional
-        NESZ group parameters for RSLC QA-Caltools
+    noise_estimation : NoiseEstimationParamGroup or None, optional
+        Noise Estimation Tool group parameters for RSLC QA-Caltools
     pta : PointTargetAnalyzerParamGroup or None, optional
         Point Target Analyzer group parameters for RSLC QA-Caltools
     '''
@@ -834,7 +834,7 @@ class RSLCRootParamGroup(RootParamGroup):
     # CalTools parameters
     anc_files: Optional[DynamicAncillaryFileParamGroup] = None
     abs_cal: Optional[AbsCalParamGroup] = None
-    nesz: Optional[NESZParamGroup] = None
+    noise_estimation: Optional[NoiseEstimationParamGroup] = None
     pta: Optional[PointTargetAnalyzerParamGroup] = None
 
     def __post_init__(self):
@@ -887,9 +887,9 @@ class RSLCRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name='anc_files',
                 param_grp_cls_obj=DynamicAncillaryFileParamGroup),
 
-            Grp(flag_param_grp_req=workflows.nesz, 
-                root_param_grp_attr_name='nesz',
-                param_grp_cls_obj=NESZParamGroup),
+            Grp(flag_param_grp_req=workflows.noise_estimation, 
+                root_param_grp_attr_name='noise_estimation',
+                param_grp_cls_obj=NoiseEstimationParamGroup),
 
             Grp(flag_param_grp_req=workflows.point_target, 
                 root_param_grp_attr_name='pta',
@@ -938,7 +938,7 @@ class RSLCRootParamGroup(RootParamGroup):
             RSLCPowerImageParamGroup,
             RSLCHistogramParamGroup,
             AbsCalParamGroup,
-            NESZParamGroup,
+            NoiseEstimationParamGroup,
             PointTargetAnalyzerParamGroup
             )
         

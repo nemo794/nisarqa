@@ -55,7 +55,7 @@ def verify_rslc(user_rncfg):
         'power_img': 'Power Image',
         'histogram': 'Histogram',
         'abs_cal': 'Absolute Radiometric Calibration',
-        'nesz': 'NESZ',
+        'noise_estimation': 'Noise Estimation Tool',
         'pta': 'Point Target Analyzer'
         }
 
@@ -87,7 +87,7 @@ def verify_rslc(user_rncfg):
 
     if rslc_params.workflows.qa_reports or \
         rslc_params.workflows.abs_cal or \
-        rslc_params.workflows.nesz or \
+        rslc_params.workflows.noise_estimation or \
         rslc_params.workflows.point_target:
     
         stats_file = os.path.join(output_dir, 'STATS.h5')
@@ -116,7 +116,7 @@ def verify_rslc(user_rncfg):
         # identification group to STATS.h5
         if rslc_params.workflows.qa_reports or \
             rslc_params.workflows.abs_cal or \
-            rslc_params.workflows.nesz or \
+            rslc_params.workflows.noise_estimation or \
             rslc_params.workflows.point_target:
 
             # This is the first time opening the STATS.h5 file for RSLC
@@ -203,13 +203,13 @@ def verify_rslc(user_rncfg):
                                          input_filename=input_file,
                                          stats_filename=stats_file)
 
-    if rslc_params.workflows.nesz:
-        msg = f'Running NESZ CalTool: {input_file}'
+    if rslc_params.workflows.noise_estimation:
+        msg = f'Running Noise Estimation Tool CalTool: {input_file}'
         print(msg)
         # logger.log_message(logging_base.LogFilterInfo, msg)
 
         # Run NESZ tool
-        nisarqa.caltools.run_nesz_tool(params=rslc_params.nesz,
+        nisarqa.caltools.run_noise_estimation_tool(params=rslc_params.noise_estimation,
                                        input_filename=input_file,
                                        stats_filename=stats_file)
 

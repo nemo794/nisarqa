@@ -62,15 +62,15 @@ def run_abscal_tool(abscal_params, dyn_anc_params,
             )
 
 
-def run_nesz_tool(params, input_filename, stats_filename):
+def run_noise_estimation_tool(params, input_filename, stats_filename):
     '''
-    Run the NESZ workflow.
+    Run the Noise Estimation Tool workflow.
 
     Parameters
     ----------
-    params : NESZParams
+    params : NoiseEstimationParamGroup
         A dataclass containing the parameters for processing
-        and outputting the NESZ workflow.
+        and outputting the Noise Estimation Tool workflow.
     input_filename : str
         Filename (with path) for input NISAR Product
     stats_filename : str
@@ -97,11 +97,11 @@ def run_nesz_tool(params, input_filename, stats_filename):
             result = ((12.0 - params.attr1) / params.attr1) * 100.
 
             # Step 2: store the data
-            grp_path = nisarqa.STATS_H5_NESZ_DATA_GROUP % band
+            grp_path = nisarqa.STATS_H5_NOISE_EST_DATA_GROUP % band
             nisarqa.create_dataset_in_h5group(
                     h5_file=stats_h5,
                     grp_path=grp_path,
-                    ds_name='NESZResult',
+                    ds_name='NoiseEstimationToolResult',
                     ds_data=result,
                     ds_description='Percent better than 12.0 parsecs',
                     ds_units='unitless'
