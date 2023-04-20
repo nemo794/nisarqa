@@ -279,6 +279,12 @@ class HDF5ParamGroup:
         attribute_name : str
             Name of the class attribute to parse the HDF5Attrs
             `units` value from
+        
+        Returns
+        -------
+        units : str
+            The value of the `units` attribute of the HDF5Attrs metadata
+            for this instance's attribute `attribute_name`.
         '''
         for field in fields(self):
             if field.name == attribute_name:
