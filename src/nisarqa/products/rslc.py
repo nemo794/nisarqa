@@ -991,11 +991,11 @@ def process_slc_power_images_and_browse(pols, params, stats_h5, report_pdf,
                     colorbar_formatter = None
 
                 if isinstance(img, RadarRaster):
-                    pow2pdf_cls_obj = save_rslc_power_image_to_pdf
+                    pow2pdf_func = save_rslc_power_image_to_pdf
                 else:  # is a GeoRaster
-                    pow2pdf_cls_obj = nisarqa.gslc.save_gslc_power_image_to_pdf
+                    pow2pdf_func = nisarqa.gslc.save_gslc_power_image_to_pdf
 
-                pow2pdf_cls_obj(img_arr=corrected_img,
+                pow2pdf_func(img_arr=corrected_img,
                                 img=img,
                                 params=params,
                                 report_pdf=report_pdf,
