@@ -63,7 +63,7 @@ def verify_gslc(user_rncfg):
     # For now, output the stub log file.
     nisarqa.output_stub_files(output_dir=output_dir, stub_files='log_txt')
 
-    # Create file paths for output files ()
+    # Create file paths for output files
     input_file = gslc_params.input_f.qa_input_file
     msg = f'Starting Quality Assurance for input file: {input_file}' \
             f'\nOutputs to be generated:'
