@@ -36,8 +36,6 @@ def verify_gslc(user_rncfg):
     # but before merging into develop:
     # Exit early if no workflows are requested.
 
-    output_dir = gslc_params.prodpath.qa_output_dir
-
     print('QA Processing parameters, per runconfig and defaults (runconfig has precedence)')
 
     gslc_params_names = {
@@ -57,6 +55,8 @@ def verify_gslc(user_rncfg):
             for param in fields(po):
                 po2 = getattr(po, param.name)
                 print(f'    {param.name}: {po2}')
+
+    output_dir = gslc_params.prodpath.qa_output_dir
 
     # Start logger
     # TODO get logger from Brian's code and implement here

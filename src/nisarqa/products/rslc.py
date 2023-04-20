@@ -75,6 +75,8 @@ def verify_rslc(user_rncfg):
                 else:
                     print(f'    {param.name}: {po2}')
 
+    output_dir = rslc_params.prodpath.qa_output_dir
+
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
