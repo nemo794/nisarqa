@@ -66,9 +66,7 @@ class InvalidNISARProductError(Exception):
     Custom exception name for when an input NISAR product 
     HDF5 file does not match the structure of the product spec.
     '''
-    def __init__(self):
-        super().__init__('Invalid NISAR Product.')
-
+    pass
 
 def raise_(exc):
     '''
