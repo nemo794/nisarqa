@@ -55,13 +55,13 @@ class HDF5Attrs:
     descr : str
         Short one-line description of this parameter. Preferably,
         this should meet CF conventions; can be used for the stats.h5 file.
-    path : str
+    group_path : str
         The HDF5 path to parent group for the `name` dataset
     '''
     name: str
     units: str
     descr: str
-    path: str
+    group_path: str
 
 
 class YamlParamGroup(ABC):
@@ -340,7 +340,7 @@ class HDF5ParamGroup:
 
                     nisarqa.create_dataset_in_h5group(
                         h5_file=h5_file,
-                        grp_path=hdf5_attrs.path % band,
+                        grp_path=hdf5_attrs.group_path % band,
                         ds_name=hdf5_attrs.name,
                         ds_data=val,
                         ds_units=hdf5_attrs.units,

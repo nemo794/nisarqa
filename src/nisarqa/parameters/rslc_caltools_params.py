@@ -287,7 +287,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             units='unitless',
             descr='Middle percentile range of the image array '
                   'that the colormap covers',
-            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )
         })
 
@@ -314,7 +314,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 ' Dataset will be type float if gamma was applied, otherwise it is'
                 ' the string \'None\''
             ),
-            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )
         })
 
@@ -341,7 +341,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name='powerImagePowerUnits',
                 units=None,
                 descr='''Units of the power image.''',
-                path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )
         })
 
@@ -494,7 +494,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             units='unitless',
             descr='Image decimation strides used to compute power'
                   ' and phase histograms. Format: [<azimuth>, <range>]',
-            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
         )})
 
     pow_histogram_bin_edges_range: Iterable[Union[int,float]] = field(
@@ -538,7 +538,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             name='histogramEdgesPower',
             units='dB',
             descr='Bin edges (including endpoint) for power histogram',
-            path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
         )})
 
     # Phase bin edges (generated from `phs_in_radians`)
@@ -558,7 +558,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name='histogramEdgesPhase',
                 units='radians' if obj.phs_in_radians else 'degrees',
                 descr='Bin edges (including endpoint) for phase histogram',
-                path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
             if (isinstance(obj, RSLCHistogramParamGroup)) \
             else nisarqa.raise_(TypeError(
             f'`obj` is {type(obj)}, but must be type RSLCHistogramParamGroup'))
@@ -663,7 +663,7 @@ class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
             name='attribute1',
             units='smoot',
             descr='Description of `attr1` for stats.h5 file',
-            path=nisarqa.STATS_H5_ABSCAL_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_ABSCAL_PROCESSING_GROUP
         )})
 
 
@@ -720,7 +720,7 @@ class NESZParamGroup(YamlParamGroup, HDF5ParamGroup):
             name='attribute2',
             units='parsecs',
             descr='True if K-run was less than 12.0',
-            path=nisarqa.STATS_H5_NESZ_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_NESZ_PROCESSING_GROUP
         )})
 
 
@@ -772,7 +772,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
             name='attribute1',
             units='beard-second',
             descr='Description of `attr1` for stats.h5 file',
-            path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP
         )})
 
 
