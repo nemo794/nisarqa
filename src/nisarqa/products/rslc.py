@@ -531,7 +531,7 @@ class RadarRaster(SARRaster):
         Notes
         -----
         The `name` attribute will be populated with a string
-        of the format: <band>_<freq>_<pol>
+        of the format: <product type>_<band>_<freq>_<pol>
         '''
 
         product = nisarqa.get_NISAR_product_type(h5_file)
@@ -555,12 +555,6 @@ class RadarRaster(SARRaster):
             #                         'Image %s not present' % band_freq_pol_str)
             raise nisarqa.DatasetNotFoundError
 
-        if product in ('RSLC', 'SLC'):
-            # Use special decoder for NISAR RSLC products
-            dataset = ComplexFloat16Decoder(h5_file[pol_path])
-        else:
-            dataset = h5_file[pol_path]
-
         # Get dataset object
         try:
             # Most Radar Doppler NISAR products should be directly readible
@@ -573,16 +567,13 @@ class RadarRaster(SARRaster):
             h5_file[pol_path].dtype
 
         except TypeError as e:
-            # As of R3.3 the GSLC workflow recently gained the ability
-            # to generate products in complex32 format as well as complex64 
-            # with some bits masked out to improve compression.
-            # If the input GSLC product has dtype complex32, then we'll need
+            # If the input RSLC product has dtype complex32, then we'll need
             # to use ComplexFloat16Decoder.
             if product == 'RSLC' \
                 and (str(e) == "data type '<c4' not understood"):
 
                 # The RSLC dataset is complex32. Handle accordingly.
-                dataset = nisarqa.rslc.ComplexFloat16Decoder(h5_file[pol_path])
+                dataset = ComplexFloat16Decoder(h5_file[pol_path])
                 print('(PASS) PASS/FAIL Check: Product raster dtype conforms'
                       ' to RSLC Product Spec dtype of complex32.')
             else:

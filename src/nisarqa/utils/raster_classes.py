@@ -99,7 +99,7 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         Notes
         -----
         The `name` attribute will be populated with a string
-        of the format: <band>_<freq>_<pol>
+        of the format: <product type>_<band>_<freq>_<pol>
         '''
 
         product = nisarqa.get_NISAR_product_type(h5_file)
