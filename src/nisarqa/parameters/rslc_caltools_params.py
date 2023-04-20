@@ -38,21 +38,21 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     '''
 
     abs_cal: bool = field(
-        default=WorkflowsParamGroup.def_val,
+        default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='absolute_calibration_factor',
             descr=WorkflowsParamGroup.descr % 'absolute_calibration_factor')})
 
     nesz: bool = field(
-        default=WorkflowsParamGroup.def_val,
+        default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='nesz', 
             descr=WorkflowsParamGroup.descr % 'nesz')})
 
     point_target: bool = field(
-        default=WorkflowsParamGroup.def_val,
+        default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='point_target_analyzer',
