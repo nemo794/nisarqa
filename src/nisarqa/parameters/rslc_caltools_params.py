@@ -8,8 +8,7 @@ import numpy as np
 from nisarqa import (HDF5Attrs, HDF5ParamGroup, RootParamGroup,
                      WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
 from numpy.typing import ArrayLike
-from ruamel.yaml import YAML
-from ruamel.yaml import CommentedMap as CM
+from ruamel.yaml import YAML, CommentedMap
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -926,7 +925,7 @@ class RSLCRootParamGroup(RootParamGroup):
         # Ref: https://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
         yaml.indent(mapping=indent, sequence=indent, offset=max(indent-2, 0))
 
-        runconfig_cm = CM()
+        runconfig_cm = CommentedMap()
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.

@@ -7,8 +7,7 @@ from dataclasses import MISSING, dataclass, field, fields
 from typing import ClassVar, Generic, TypeVar
 
 import nisarqa
-from ruamel.yaml import CommentedMap as CM
-from ruamel.yaml import CommentedSeq as CS
+from ruamel.yaml import CommentedMap, CommentedSeq
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -143,7 +142,7 @@ class YamlParamGroup(ABC):
         Reference: https://stackoverflow.com/questions/56471040/add-a-comment-in-list-element-in-ruamel-yaml
         '''
         # build yaml params group
-        params_cm = CM()
+        params_cm = CommentedMap()
 
         # Add all attributes from this dataclass to the group
         for field in fields(cls):
@@ -207,7 +206,7 @@ class YamlParamGroup(ABC):
         # use CommentedSeq
         # https://stackoverflow.com/questions/56937691/making-yaml-ruamel-yaml-always-dump-lists-inline
         if isinstance(val, (list, tuple)):
-            seq = CS()
+            seq = CommentedSeq()
             seq.fa.set_flow_style()
             for item in val:
                 seq.append(item)
@@ -255,7 +254,7 @@ class YamlParamGroup(ABC):
         for group in path[:-1]:
             # If group does not exist, create it
             if group not in parent_cm:
-                parent_cm[group] = CM()
+                parent_cm[group] = CommentedMap()
 
                 # For readability, add a newline before this new group
                 parent_cm.yaml_set_comment_before_after_key(group, before='\n')
