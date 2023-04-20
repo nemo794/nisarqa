@@ -412,6 +412,7 @@ def verify_insar(user_rncfg, product):
     # Step 2: If any workflows flags are true, run QA
     if not (validate or qa_reports):
         # Early exit if no workflows are requested
+        print("No `workflows` requested, so no QA outputs will be generated")
         return
 
     # Step 3: "Run QA"
