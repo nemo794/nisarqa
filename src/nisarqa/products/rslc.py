@@ -668,6 +668,7 @@ def get_pols(h5_file):
         raster_cls = nisarqa.GeoRaster
     else:
         # radar domain
+        assert product_type.startswith('R') or (product_type == 'SLC')
         swaths_or_grids = 'swaths'
         raster_cls = RadarRaster
 
