@@ -32,7 +32,7 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         True to run the Absolute Radiometric Calibration Factor CalTool workflow
         Default: False
     noise_estimation : bool, optional
-        True to run the Noise Estimation Tool workflow. Default: False
+        True to run the Noise Estimation Tool (NET) workflow. Default: False
     point_target : bool, optional
         True to run the Point Target Analyzer (PTA) workflow. Default: False
     '''
@@ -685,7 +685,7 @@ class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
-    Parameters from the QA-CalTools Noise Estimator (NESZ) runconfig group.
+    Parameters from the QA-CalTools Noise Estimator (NET) runconfig group.
 
     Parameters
     ----------
@@ -698,7 +698,7 @@ class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
         Placeholder parameter of type bool. This is set based on `attr1`.
     '''
 
-    # Attributes for running the NESZ workflow
+    # Attributes for running the NET workflow
     attr1: float = field(
         default=11.9,
         metadata={
@@ -720,7 +720,7 @@ class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
             name='attribute2',
             units='parsecs',
             descr='True if K-run was less than 12.0',
-            group_path=nisarqa.STATS_H5_NESZ_PROCESSING_GROUP
+            group_path=nisarqa.STATS_H5_NOISE_EST_PROCESSING_GROUP
         )})
 
 

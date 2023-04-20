@@ -208,7 +208,7 @@ def verify_rslc(user_rncfg):
         print(msg)
         # logger.log_message(logging_base.LogFilterInfo, msg)
 
-        # Run NESZ tool
+        # Run NET tool
         nisarqa.caltools.run_noise_estimation_tool(params=rslc_params.noise_estimation,
                                        input_filename=input_file,
                                        stats_filename=stats_file)
