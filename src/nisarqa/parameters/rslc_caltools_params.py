@@ -1,7 +1,7 @@
 import os
 import sys
 from dataclasses import dataclass, field, fields
-from typing import ClassVar, Iterable, List, Optional, Type, Union
+from typing import ClassVar, Iterable, Optional, Type, Union
 
 import nisarqa
 import numpy as np
@@ -318,7 +318,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             )
         })
 
-    tile_shape: List[int] = field(
+    tile_shape: Iterable[int] = field(
         default=(1024,1024),
         metadata={
         'yaml_attrs' : YamlAttrs(
@@ -515,7 +515,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 False for degrees units.'''
         )})
 
-    tile_shape: List[int] = field(
+    tile_shape: Iterable[int] = field(
         default=(1024,-1),
         metadata={
         'yaml_attrs' : YamlAttrs(

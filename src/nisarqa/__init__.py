@@ -15,7 +15,7 @@ def get_all(name, objects_to_skip=None, skip_private=True):
     name : str
         The `__name__` attribute of the calling module.
         (See example below)
-    objects_to_skip : List of strings
+    objects_to_skip : list of strings
         A list of object names to not include when
         forming the list.
         Defaults to None.
