@@ -389,17 +389,22 @@ class WorkflowsParamGroup(YamlParamGroup):
     default_val: ClassVar[bool] = False
 
     # Generic description for all workflows
-    descr: ClassVar[str] = f'Flag to run `%s` workflow.'
+    descr: ClassVar[str] = f'Flag to run %s.'
 
     validate: bool = field(
         default=default_val,
-        metadata={'yaml_attrs': YamlAttrs(name='validate',
-                                          descr=descr % 'validate')})
+        metadata={'yaml_attrs': YamlAttrs(
+                    name='validate',
+                    descr=descr % '`validate` workflow to validate the\n'
+                                  ' input file against its product spec')})
     
     qa_reports: bool = field(
         default=default_val,
-        metadata={'yaml_attrs': YamlAttrs(name='qa_reports',
-                                          descr=descr % 'qa_reports')})
+        metadata={'yaml_attrs': YamlAttrs(
+                    name='qa_reports',
+                    descr=descr % '`qa_reports` workflow to generate a\n'
+                    'PDF report, geolocated browse image, and compute\n'
+                    'statistics on the input file')})
 
 
     def __post_init__(self):

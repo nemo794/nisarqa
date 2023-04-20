@@ -43,21 +43,21 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         metadata={
         'yaml_attrs': YamlAttrs(
             name='absolute_radiometric_calibration',
-            descr=WorkflowsParamGroup.descr % 'absolute_radiometric_calibration calibration tool')})
+            descr=WorkflowsParamGroup.descr % 'Absolute Radiometric Calibration calibration tool')})
 
     nesz: bool = field(
         default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='nesz', 
-            descr=WorkflowsParamGroup.descr % 'nesz calibration tool')})
+            descr=WorkflowsParamGroup.descr % 'NESZ calibration tool')})
 
     point_target: bool = field(
         default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='point_target_analyzer',
-            descr=WorkflowsParamGroup.descr % 'point_target_analyzer calibration tool')})
+            descr=WorkflowsParamGroup.descr % 'Point Target Analyzer calibration tool')})
 
     def __post_init__(self):
 
