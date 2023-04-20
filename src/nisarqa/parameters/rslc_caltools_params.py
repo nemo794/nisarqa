@@ -2,11 +2,12 @@ import os
 from dataclasses import dataclass, field, fields
 from typing import ClassVar, Iterable, Optional, Type, Union
 
-import nisarqa
 import numpy as np
+from numpy.typing import ArrayLike
+
+import nisarqa
 from nisarqa import (HDF5Attrs, HDF5ParamGroup, RootParamGroup,
                      WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
-from numpy.typing import ArrayLike
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -125,7 +126,7 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
             'yaml_attrs' : YamlAttrs(
                 name='corner_reflector_file',
                 descr='''Locations of the corner reflectors in the input product.
-                Only required if `absolute_calibration_factor` or
+                Only required if `absolute_radiometric_calibration` or
                 `point_target_analyzer` runconfig params are set to True for QA.'''
             )})
 
@@ -641,7 +642,7 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
     '''
-    Parameters from the QA-CalTools Absolute Calibration Factor
+    Parameters from the QA-CalTools Absolute Radiometric Calibration
     runconfig group.
 
     Parameters
@@ -680,7 +681,7 @@ class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','absolute_calibration_factor']
+        return ['runconfig','groups','qa','absolute_radiometric_calibration']
 
 
 @dataclass(frozen=True)
@@ -982,8 +983,8 @@ def build_root_params(product_type, user_rncfg):
                     and (param_grp.root_param_grp_attr_name == 'anc_files'):
 
                     raise KeyError('`corner_reflector_file` is a required '
-                            'runconfig parameter for Absolute Calibration '
-                            'Factor or Point Target Analyzer workflows') from e
+                        'runconfig parameter for Absolute Radiometric '
+                        'Calibration or Point Target Analyzer workflows') from e
                 else:
                     raise e
 
