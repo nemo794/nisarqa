@@ -62,7 +62,8 @@ class ExitEarly(Exception):
 
 
 class InvalidNISARProductError(Exception):
-    '''Custom exception name for when an input NISAR product 
+    '''
+    Custom exception name for when an input NISAR product 
     HDF5 file does not match the structure of the product spec.
     '''
     def __init__(self):
