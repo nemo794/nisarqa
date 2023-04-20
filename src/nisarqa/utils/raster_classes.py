@@ -30,15 +30,15 @@ class GeoRaster(nisarqa.rslc.SARRaster):
     x_spacing : float
         X spacing of pixels of input array
     x_start : float
-        The starting X position of the input array
+        The starting (West) X position of the input array
     x_stop : float
-        The stopping X position of the input array
+        The stopping (East) X position of the input array
     y_spacing : float
         Y spacing of pixels of input array
     y_start : float
-        The starting (near) y position of the input array
+        The starting (North) Y position of the input array
     y_stop : float
-        The stopping (far) Y position of the input array
+        The stopping (South) Y position of the input array
 
     Notes
     -----
