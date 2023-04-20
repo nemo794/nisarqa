@@ -309,7 +309,11 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         'hdf5_attrs' : HDF5Attrs(
             name='powerImageGammaCorrection',
             units='unitless',
-            descr='Gamma correction parameter applied to power and browse image(s). Dataset will be type float if gamma was applied, otherwise it is the string \'None\'',
+            descr=(
+                'Gamma correction parameter applied to power and browse image(s).'
+                ' Dataset will be type float if gamma was applied, otherwise it is'
+                ' the string \'None\''
+            ),
             path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
             )
         })
