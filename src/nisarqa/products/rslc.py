@@ -578,8 +578,7 @@ class RadarRaster(SARRaster):
             # with some bits masked out to improve compression.
             # If the input GSLC product has dtype complex32, then we'll need
             # to use ComplexFloat16Decoder.
-            # if product in ('RSLC', 'SLC') \
-            if product in ('RSLC') \
+            if product == 'RSLC' \
                 and (str(e) == "data type '<c4' not understood"):
 
                 # The RSLC dataset is complex32. Handle accordingly.
