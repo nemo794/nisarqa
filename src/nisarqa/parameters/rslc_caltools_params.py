@@ -4,8 +4,9 @@ from typing import ClassVar, Iterable, Optional, Type, Union
 
 import nisarqa
 import numpy as np
-from nisarqa import (HDF5Attrs, HDF5ParamGroup, RootParamGroup,
-                     WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
+from nisarqa import (HDF5Attrs, HDF5ParamGroup, NoiseEstimationParamGroup,
+                     RootParamGroup, WorkflowsParamGroup, YamlAttrs,
+                     YamlParamGroup)
 from numpy.typing import ArrayLike
 
 objects_to_skip = nisarqa.get_all(__name__)
@@ -895,7 +896,7 @@ class RSLCRootParamGroup(RootParamGroup):
                 SLCPowerImageParamGroup,
                 SLCHistogramParamGroup,
                 AbsCalParamGroup,
-                NESZParamGroup,
+                NoiseEstimationParamGroup,
                 PointTargetAnalyzerParamGroup
                 )
 
