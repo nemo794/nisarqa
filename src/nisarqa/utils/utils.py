@@ -52,7 +52,8 @@ class DatasetNotFoundError(Exception):
 
 
 def raise_(exc):
-    '''Wrapper to raise an Exception for use in e.g. lambda functions.
+    '''
+    Wrapper to raise an Exception for use in e.g. lambda functions.
 
     Parameters
     ----------

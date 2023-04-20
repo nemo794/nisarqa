@@ -131,8 +131,6 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
             )})
 
     def __post_init__(self):
-        # VALIDATE INPUTS
-
         nisarqa.validate_is_file(filepath=self.corner_reflector_file, 
                                  parameter_name='corner_reflector_file',
                                  extension='.csv')
@@ -250,7 +248,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         If not provided, the QA code to compute the nlooks values 
         based on `num_mpix`.'''
 
-    nlooks_freqa: Optional[Union[int, Iterable[int]]] = field(
+    nlooks_freqa: Optional[Iterable[int]] = field(
         default=None,
         metadata={
         'yaml_attrs' : YamlAttrs(
@@ -258,7 +256,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             descr=_nlooks_descr_template % 'A'
         )})
 
-    nlooks_freqb: Optional[Union[int, Iterable[int]]] = field(
+    nlooks_freqb: Optional[Iterable[int]] = field(
         default=None,
         metadata={
         'yaml_attrs' : YamlAttrs(
@@ -358,7 +356,7 @@ class RSLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         if not isinstance(self.num_mpix, float):
             raise TypeError(f'`num_mpix` must be a float: {self.num_mpix}')
         if self.num_mpix <= 0.0:
-            raise TypeError(f'`num_mpix` must be >= 0.0: {self.num_mpix}')
+            raise ValueError(f'`num_mpix` must be > 0.0: {self.num_mpix}')
         
         # validate middle_percentile
         if not isinstance(self.middle_percentile, float):
@@ -444,7 +442,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         The step size to decimate the input array for computing
         the power and phase histograms.
         For example, (2,3) means every 2nd azimuth line and
-        every 3rd range line will be used to compute the histograms.
+        every 3rd range sample will be used to compute the histograms.
         Defaults to (10,10).
         Format: (<azimuth>, <range>)
     pow_histogram_bin_edges_range : pair of int or float, optional
@@ -485,7 +483,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             descr='''Step size to decimate the input array for computing
                 the power and phase histograms.
                 For example, [2,3] means every 2nd azimuth line and
-                every 3rd range line will be used to compute the histograms.
+                every 3rd range sample will be used to compute the histograms.
                 Format: [<azimuth>, <range>]'''),
         'hdf5_attrs' : HDF5Attrs(
             name='histogramDecimationRatio',
@@ -625,8 +623,7 @@ class RSLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                                        endpoint=True))
   
         # Set attributes dependent upon phs_in_radians
-        start = -np.pi if self.phs_in_radians else -180
-        stop  =  np.pi if self.phs_in_radians else  180
+        start, stop = (-np.pi, np.pi) if self.phs_in_radians else (-180, 180)
         object.__setattr__(self, 'phs_bin_edges', 
             np.linspace(start=start, stop=stop, num=101, endpoint=True))
 

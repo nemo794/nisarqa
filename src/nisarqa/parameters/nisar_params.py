@@ -112,18 +112,18 @@ class YamlParamGroup(ABC):
             if 'yaml_attrs' in field.metadata:
                 yaml_names[field.name] = field.metadata['yaml_attrs'].name
 
-        if yaml_names:
-            return yaml_names
-        else:
+        if not yaml_names:
             # Sanity check - dict is still empty
             warnings.warn(f'None of the attributes in {cls.__name__}'
                             ' contain info for an YamlAttrs object')
-            return yaml_names
+        
+        return yaml_names
 
 
     @classmethod
     def populate_runcfg(cls, runconfig_cm, indent=4):
-        '''Update the provided ruamel.yaml object with select attributes
+        '''
+        Update the provided ruamel.yaml object with select attributes
         (parameters) of this dataclass object for use in a NISAR product 
         QA runconfig file.
 
@@ -191,8 +191,6 @@ class YamlParamGroup(ABC):
             Parameter name, as it should appear in `params_cm`
         val : Any
             Parameter value, as it should appear in `params_cm`
-        name : str
-            Parameter name, as it should appear in `params_cm`
         comment : str or None, optional
             Parameter comment (description), as it should appear in `params_cm`.
             If None, then no comment will be added. Defaults to None.
@@ -298,7 +296,7 @@ class HDF5ParamGroup:
             f'`{attribute_name}` is not an attribute of this dataclass.')
 
 
-    def write_params_to_h5(self, h5_file, bands=('LSAR')):
+    def write_params_to_h5(self, h5_file, bands=('LSAR',)):
         '''
         Update `h5_file` with the attributes of this dataclass
         that are a subclass of HDF5Param.
@@ -310,7 +308,7 @@ class HDF5ParamGroup:
             should be saved
         bands : iterable of str, optional
             Sequence of the band names. Ex: ('SSAR', 'LSAR')
-            Defaults to ('LSAR')
+            Defaults to ('LSAR',)
         '''
 
         # Flag -- the intention is to help assist developers and ensure
@@ -362,7 +360,7 @@ class WorkflowsParamGroup(YamlParamGroup):
 
     This corresponds to the `workflows` runconfig group.
 
-    Parameters
+    Attributes
     ----------
     validate : bool, optional
         True to run the validate workflow. Default: False
@@ -393,8 +391,6 @@ class WorkflowsParamGroup(YamlParamGroup):
 
 
     def __post_init__(self):
-
-        # VALIDATE INPUTS
         self._check_workflows_arg('validate', self.validate)
         self._check_workflows_arg('qa_reports', self.qa_reports)
 
@@ -433,13 +429,7 @@ class WorkflowsParamGroup(YamlParamGroup):
             True if at least one of the workflow field attributes in this
             instance is True. False is all workflows are set to False.
         '''
-        for field in fields(self):
-            if getattr(self, field.name):
-                # Yep! At least one workflow was set to True
-                return True
-
-        # No workflows were set to True
-        return False
+        return any(getattr(self, field.name) for field in fields(self))
 
 
 @dataclass

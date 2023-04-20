@@ -20,7 +20,7 @@ def verify_gcov(user_rncfg):
     Parameters
     ----------
     user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
+        A nested dict whose structure matches this product's QA runconfig
         yaml file and which contains the parameters needed to run its QA SAS.
     '''
 

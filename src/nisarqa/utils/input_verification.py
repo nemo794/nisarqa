@@ -52,11 +52,11 @@ def validate_is_file(filepath, parameter_name, extension=None):
         raise TypeError(f'`{parameter_name}` must be a str')
 
     if not os.path.isfile(filepath):
-        raise TypeError(
+        raise FileNotFoundError(
             f'`{parameter_name}` is not a valid file: {filepath}')
 
     if (extension is not None) and (not filepath.endswith(extension)):
-        raise TypeError(
+        raise ValueError(
             f'`{parameter_name}` must end with {extension}: {filepath}')
 
 
