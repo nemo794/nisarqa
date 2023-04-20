@@ -56,10 +56,7 @@ def verify_gslc(user_rncfg):
         if po is not None:
             for param in fields(po):
                 po2 = getattr(po, param.name)
-                if isinstance(po2, bool):
-                    print(f'    {param.name}: {po2}')
-                else:
-                    print(f'    {param.name}: {po2}')
+                print(f'    {param.name}: {po2}')
 
     # Start logger
     # TODO get logger from Brian's code and implement here
