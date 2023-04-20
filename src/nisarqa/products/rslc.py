@@ -570,7 +570,7 @@ class RadarRaster(SARRaster):
             # For products that are directly readible by h5py, 
             # testing for the dtype should not break anything.
             # But for complex32 products, this will raise an error.
-            h5_file[pol_path][...].dtype
+            h5_file[pol_path].dtype
 
         except TypeError as e:
             # As of R3.3 the GSLC workflow recently gained the ability

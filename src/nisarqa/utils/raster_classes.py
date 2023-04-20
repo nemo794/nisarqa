@@ -145,7 +145,7 @@ class GeoRaster(nisarqa.rslc.SARRaster):
             # If so, then testing for the dtype should not break anything.
             # (Other Geocoded products should also be directly readible
             # by h5py, too.)
-            h5_file[pol_path][...].dtype
+            h5_file[pol_path].dtype
 
         except TypeError as e:
             # As of R3.3 the GSLC workflow recently gained the ability
