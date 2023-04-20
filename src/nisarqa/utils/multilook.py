@@ -134,7 +134,8 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
         of the source array.
         For radar-domain products, Y direction corresponds to azimuth,
         and X direction corresponds to range.
-        Format: (dY, dX)
+        Only the magnitude (absolute value) of the sample spacing is used.
+        Format: (dy, dx)
     num_mpix : scalar
         The approx. size (in megapixels) for the final multilooked image.
         Defaults to 4.0 MPix.
@@ -143,7 +144,7 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
     -------
     nlooks : pair of int
         The nlooks values for Y direction and X direction.
-        Format: (kY, kX)
+        Format: (ky, kx)
 
     Notes
     -----
@@ -163,36 +164,36 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
             - M_1 : (int) # Y rows
             - N_1 : (int) # X columns
         - sample spacing dX_1 and dY_1
-            - dY_1 : (float) distance between samples in Y direction
-            - dX_1 : (float) distance between samples in X direction
+            - dy_1 : (float) distance between samples in Y direction
+            - dx_1 : (float) distance between samples in X direction
     Number of Looks:
         - These will be Real numbers during the computation, but then
           rounded to the nearest odd integer for final output.
-        - kY : number of looks in the Y direction
-        - kX : number of looks in the X direction
+        - ky : number of looks in the Y direction
+        - kx : number of looks in the X direction
 
     Problem Setup:
-    (1) dY * kY = dY_1                # Y sample spacing is scaled by nlooks
-    (2) dX * kX = dX_1                # X sample spacing is scaled by nlooks
-    (3) M / kY = M_1                  # num Y rows is scaled by nlooks
-    (4) N / kX = N_1                  # num X columns is scaled by nlooks
+    (1) dy * ky = dy_1                # Y sample spacing is scaled by nlooks
+    (2) dx * kx = dx_1                # X sample spacing is scaled by nlooks
+    (3) M / ky = M_1                  # num Y rows is scaled by nlooks
+    (4) N / kx = N_1                  # num X columns is scaled by nlooks
     (5) num_Pix = `num_mpix` * 1e6    # convert Megapixels to pixels
     (6) M_1 * N_1 = num_Pix           # output Multilooked image is `num_mpix` MPix
-    (7) dX_1 = dY_1                   # output Multilooked image should have square pixels
+    (7) dx_1 = dy_1                   # output Multilooked image should have square pixels
 
     Derivation:
-    (8) kX * dX = kY * dY                       # from (7), (1), (2)
-    (9) kX = (kY * dY) / dX                     # rearrange (8)
-    (10) (M / kY) * (N / kX) = num_Pix          # from (6), (3), (4)
-    (11) (M / kY) * ((N * dX) / (kY * dY)) =    # from (10), (9) -- substitute kX
+    (8) kx * dx = ky * dy                       # from (7), (1), (2)
+    (9) kx = (ky * dy) / dx                     # rearrange (8)
+    (10) (M / ky) * (N / kx) = num_Pix          # from (6), (3), (4)
+    (11) (M / ky) * ((N * dx) / (ky * dy)) =    # from (10), (9) -- substitute kX
                             num_Pix
-    (12) kY**2 = (M * N * dX) / (dY * num_Pix)  # rearrange (11)
+    (12) ky**2 = (M * N * dx) / (dy * num_Pix)  # rearrange (11)
 
-    Formula (12) can give the Real-valued kY. This can be used with (8)
-    to compute kX.
+    Formula (12) can give the Real-valued ky. This can be used with (8)
+    to compute kx.
 
     Because it is convenient for nlooks to be odd integer values,
-    by computing kY and kX as Real values instead of integer values,
+    by computing ky and kx as Real values instead of integer values,
     rounding to the nearest odd-valued integers is easily computed.
     '''
 
@@ -200,21 +201,20 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, num_mpix=4.0):
     M = img_shape[0]
     N = img_shape[1]
 
-    # TODO !!! VERY BAD! remove the np.abs(). This is a hack
-    dY = np.abs(sample_spacing[0])
-    dX = np.abs(sample_spacing[1])
+    dy = np.abs(sample_spacing[0])
+    dx = np.abs(sample_spacing[1])
     num_Pix = num_mpix * 1e6
 
     # Formula (12) -- see docstring
-    kY_sqrd = (M * N * dX) / (dY * num_Pix)
+    ky_sqrd = (M * N * dx) / (dy * num_Pix)
 
-    # Get Real-Valued kY and kX
-    kY = np.sqrt(kY_sqrd)
-    kX = (kY * dY) / dX  # Formula (9)
+    # Get Real-Valued ky and kx
+    ky = np.sqrt(ky_sqrd)
+    kx = (ky * dy) / dx  # Formula (9)
 
-    kX = nisarqa.nearest_odd_int(kX)
-    kY = nisarqa.nearest_odd_int(kY)
+    kx = nisarqa.nearest_odd_int(kx)
+    ky = nisarqa.nearest_odd_int(ky)
 
-    return (kY, kX)
+    return (ky, kx)
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
