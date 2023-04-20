@@ -30,7 +30,7 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         True to run the QA Reports workflow. Default: False
         (inherited from WorkflowsParamGroup class)
     abs_cal : bool, optional
-        True to run the Absolute Calibration Factor (AbsCal) workflow.
+        True to run the Absolute Radiometric Calibration Factor CalTool workflow
         Default: False
     nesz : bool, optional
         True to run the Noise Estimator (NESZ) workflow. Default: False
@@ -42,22 +42,22 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
-            name='absolute_calibration_factor',
-            descr=WorkflowsParamGroup.descr % 'absolute_calibration_factor')})
+            name='absolute_radiometric_calibration',
+            descr=WorkflowsParamGroup.descr % 'absolute_radiometric_calibration calibration tool')})
 
     nesz: bool = field(
         default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='nesz', 
-            descr=WorkflowsParamGroup.descr % 'nesz')})
+            descr=WorkflowsParamGroup.descr % 'nesz calibration tool')})
 
     point_target: bool = field(
         default=WorkflowsParamGroup.default_val,
         metadata={
         'yaml_attrs': YamlAttrs(
             name='point_target_analyzer',
-            descr=WorkflowsParamGroup.descr % 'point_target_analyzer')})
+            descr=WorkflowsParamGroup.descr % 'point_target_analyzer calibration tool')})
 
     def __post_init__(self):
 
@@ -807,7 +807,7 @@ class RSLCRootParamGroup(RootParamGroup):
     anc_files : DynamicAncillaryFileParamGroup or None, optional
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
     abs_cal : AbsCalParamGroup or None, optional
-        Absolute Calibration Factor group parameters for RSLC QA-Caltools
+        Absolute Radiometric Calibration group parameters for RSLC QA-Caltools
     nesz : NESZParamGroup or None, optional
         NESZ group parameters for RSLC QA-Caltools
     pta : PointTargetAnalyzerParamGroup or None, optional

@@ -58,7 +58,7 @@ def verify_rslc(user_rncfg):
         'workflows': 'Workflows',
         'power_img': 'Power Image',
         'histogram': 'Histogram',
-        'abs_cal': 'Absolute Calibration Factor',
+        'abs_cal': 'Absolute Radiometric Calibration',
         'nesz': 'NESZ',
         'pta': 'Point Target Analyzer'
         }
@@ -197,11 +197,11 @@ def verify_rslc(user_rncfg):
                 # Compute metrics for stats.h5
 
     if rslc_params.workflows.abs_cal:
-        msg = f'Running Absolute Calibration Factor CalTool: {input_file}'
+        msg = f'Running Absolute Radiometric Calibration CalTool: {input_file}'
         print(msg)
         # logger.log_message(logging_base.LogFilterInfo, msg)
 
-        # Run Absolute Calibration Factor tool
+        # Run Absolute Radiometric Calibration tool
         nisarqa.caltools.run_abscal_tool(abscal_params=rslc_params.abs_cal,
                                          dyn_anc_params=rslc_params.anc_files,
                                          input_filename=input_file,
