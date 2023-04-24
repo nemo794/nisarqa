@@ -1,10 +1,50 @@
 from dataclasses import dataclass
 
+import h5py
+import numpy as np
+
 import nisarqa
 
 # List of objects from the import statements that
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
+
+
+def is_complex32(dataset: h5py.Dataset) -> bool:
+    '''
+    Check if the input dataset is half-precision complex ("complex32").
+
+    Parameters
+    --------
+    dataset : h5py.Dataset
+        The input dataset.
+
+    Returns
+    -------
+    bool
+        True if the input dataset is complex32.
+    
+    Notes
+    -----
+    If a Dataset has dtype complex32, h5py < v3.8 will throw the error 
+    "data type '<c4' not understood" if the Dataset is accessed.
+    h5py 3.8.0 adopted @bhawkins's patch which allows h5py to 
+    recognize the new complex32 datatype that is used for RSLC
+    HDF5 Datasets in R3.2, R3.3, etc. That patch fixes the dtype attribute
+    such that it returns a structured datatype if the data is complex32.
+    '''
+    try:
+        dataset.dtype
+    except TypeError as e:
+        # h5py < v3.8 will throw the error "data type '<c4' not understood"
+        if str(e) == "data type '<c4' not understood":
+            return True
+        else:
+            raise
+    else:
+        # h5py >= v3.8 recognizes the new complex32 datatype
+        complex32 = np.dtype([('r', np.float16), ('i', np.float16)])
+        return dataset.dtype == complex32
 
 
 @dataclass
@@ -140,30 +180,24 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         y_stop = float(h5_file[freq_path]['yCoordinates'][-1])
 
         # Get dataset object
-        try:
-            # GSLC Product Spec says that NISAR GSLC files should be complex64.
-            # If so, then testing for the dtype should not break anything.
-            # (Other Geocoded products should also be directly readible
-            # by h5py, too.)
-            h5_file[pol_path].dtype
-
-        except TypeError as e:
+        if is_complex32(h5_file[pol_path]):
             # As of R3.3 the GSLC workflow recently gained the ability
             # to generate products in complex32 format as well as complex64 
             # with some bits masked out to improve compression.
             # If the input GSLC product has dtype complex32, then we'll need
             # to use ComplexFloat16Decoder.
-            # TODO - Geoff - confirm what is GSLC Product Spec's dtype
-            if (product == 'GSLC') \
-                and (str(e) == "data type '<c4' not understood"):
+            if product == 'GSLC':
 
-                # The GSLC dataset is complex32. Handle accordingly.
+                # The GSLC dataset is complex32. h5py >= 3.8 can read these
+                # but numpy cannot yet. So, use the ComplexFloat16Decoder.
                 dataset = nisarqa.rslc.ComplexFloat16Decoder(h5_file[pol_path])
                 print('(FAIL) PASS/FAIL Check: Product raster dtype conforms'
                       ' to Product Spec dtype of complex64.')
             else:
-                # A TypeError that is not anticipated was raised. Re-raise it.
-                raise e
+                raise TypeError(f'Input dataset is for a {product} product and '
+                                'has dtype complex32. As of R3.3, of the '
+                                'geocoded NISAR products, only GSLC products '
+                                'can have dtype complex32.')
         else:
              # Use h5py's standard reader
             dataset = h5_file[pol_path]

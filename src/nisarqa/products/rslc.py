@@ -6,13 +6,14 @@ from dataclasses import dataclass, fields
 from typing import Optional
 
 import h5py
-import nisarqa
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
 from PIL import Image
+
+import nisarqa
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -556,29 +557,27 @@ class RadarRaster(SARRaster):
             raise nisarqa.DatasetNotFoundError
 
         # Get dataset object
-        try:
-            # Most Radar Doppler NISAR products should be directly readible
-            # by h5py. The exception is RSLC.
-            # RSLC Product Spec says that NISAR RSLC files should be complex32,
-            # which requires special handling to read and access.
-            # For products that are directly readible by h5py, 
-            # testing for the dtype should not break anything.
-            # But for complex32 products, this will raise an error.
-            h5_file[pol_path].dtype
-
-        except TypeError as e:
+        # Most Radar Doppler NISAR products should be directly readible
+        # by h5py, numpy, etc. as complex64, float, etc. The exception is RSLC.
+        # RSLC Product Spec says that NISAR RSLC files should be complex32,
+        # which requires special handling to read and access.
+        # As of h5py 3.8.0, h5py gained the ability to read complex32
+        # datasets, however numpy and other downstream packages do not
+        # necessarily have that flexibility.
+        if nisarqa.is_complex32(h5_file[pol_path]):
             # If the input RSLC product has dtype complex32, then we'll need
             # to use ComplexFloat16Decoder.
-            if product == 'RSLC' \
-                and (str(e) == "data type '<c4' not understood"):
-
-                # The RSLC dataset is complex32. Handle accordingly.
+            if product == 'RSLC':
+                # The RSLC dataset is complex32. h5py >= 3.8 can read these
+                # but numpy cannot yet. So, use the ComplexFloat16Decoder.
                 dataset = ComplexFloat16Decoder(h5_file[pol_path])
                 print('(PASS) PASS/FAIL Check: Product raster dtype conforms'
                       ' to RSLC Product Spec dtype of complex32.')
             else:
-                # A TypeError that is not anticipated was raised. Re-raise it.
-                raise e
+                raise TypeError(f'Input dataset is for a {product} product and '
+                                'has dtype complex32. As of R3.3, of the '
+                                'radar-doppler NISAR products, only RSLC '
+                                'products can have dtype complex32.')
         else:
              # Use h5py's standard reader
             dataset = h5_file[pol_path]
@@ -591,7 +590,6 @@ class RadarRaster(SARRaster):
                 # next print statement is, in fact, true.
                 print('(PASS) PASS/FAIL Check: Product raster dtype conforms '
                       f'to {product} Product Spec dtype.')
-
 
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the 
         # 'Nominal along track spacing in meters between consecutive lines 
