@@ -122,7 +122,7 @@ def compute_square_pixel_nlooks(img_shape,
     Computes the nlooks values required to achieve approx. square pixels
     in a multilooked image.
 
-    Computed `nlooks` values will be odd values to maintain
+    `nlooks` values will be rounded to the nearest odd value to maintain
     the same coordinate grid as the array that will be multilooked.
     Using an even-valued 'look' would cause the multilooked image's 
     coordinates to be shifted a half-pixel from the source image's coordinates.
@@ -131,7 +131,7 @@ def compute_square_pixel_nlooks(img_shape,
     ----------
     img_shape : pair of int
         The M x N dimensions of the source array to be multilooked.
-        Format: (M, N)  <==>  (<az dim>, <range dim>)
+        Format: (M, N)  <==>  (<Y direction>, <X direction>)
     sample_spacing : pair of float
         The Y direction sample spacing and X direction sample spacing
         of the source array.
@@ -147,8 +147,8 @@ def compute_square_pixel_nlooks(img_shape,
     Returns
     -------
     nlooks : pair of int
-        The nlooks values for azimuth and range.
-        Format: (ka, kr)
+        The nlooks values for Y direction and X direction.
+        Format: (ky, kx)
 
     Notes
     -----
@@ -160,50 +160,53 @@ def compute_square_pixel_nlooks(img_shape,
     is increased to be an integer multiple of `longest_side_max`, with the
     shorter dimension increased proportionally.
 
-    Derivation for formulas (does not):
+    Derivation for formulas:
 
     Assumptions and Variable Definitions:
     Source Image has:
         - dimensions M x N
-            - M : (int) # azimuth lines
-            - N : (int) # range samples
-        - sample spacing da and dr
-            - da : (float) distance between samples in azimuth direction
-            - dr : (float) distance between samples in range direction
+            - M : (int) # Y rows
+            - N : (int) # X columns
+        - sample spacing dX and dY
+            - dy : (float) distance between samples in Y direction
+            - dx : (float) distance between samples in X direction
+
     Output Multilooked Image has:
         - Same units as Source Image (e.g. sample spacing is in meters for both)
         - dimensions M_1 x N_1
-            - M_1 : (int) # azimuth lines
-            - N_1 : (int) # range samples
-        - sample spacing da_1 and dr_1
-            - da_1 : (float) distance between samples in azimuth direction
-            - dr_1 : (float) distance between samples in range direction
+            - M_1 : (int) # Y rows
+            - N_1 : (int) # X columns
+        - sample spacing dX_1 and dY_1
+            - dy_1 : (float) distance between samples in Y direction
+            - dx_1 : (float) distance between samples in X direction
     Number of Looks:
-        - ka : number of looks in the azimuth direction for multilooking
-        - kr : number of looks in the range direction for multilooking
+        - These will be Real numbers during the computation, but then
+          rounded to the nearest odd integer for final output.
+        - ky : number of looks in the Y direction
+        - kx : number of looks in the X direction
            
     Problem Setup:
-    (1) da * ka = da_1      # az lines spacing is scaled by nlooks
-    (2) dr * kr = dr_1      # range sample spacing is scaled by nlooks
-    (3) M / ka = M_1        # num az lines is scaled by nlooks
-    (4) N / kr = N_1        # num range lines is scaled by nlooks
-    (5) dr_1 = da_1         # Set equal (the multilooked image will have square pixels)
-    (6) Da = M * da         # total extent of image in y real space coordinates
-    (7) Dr = N * dr         # total extent of image in x real space coordinates
+    (1) dy * ky = dy_1      # Y sample spacing is scaled by nlooks
+    (2) dx * kx = dx_1      # X sample spacing is scaled by nlooks
+    (3) M / ky = M_1        # num Y rows is scaled by nlooks
+    (4) N / kx = N_1        # num X columns is scaled by nlooks
+    (5) dx_1 = dy_1         # Set equal (the multilooked image will have ~square pixels)
+    (6) Dy = M * dy         # total extent of image in y real space coordinates
+    (7) Dx = N * dx         # total extent of image in x real space coordinates
 
     Derivation:
-    (8) WLOG, let Da > Dr                 # Determine via a conditional
-    (9) ka = M / longest_side_max         # By definitions
-    (9.5) ka = next_greater_odd_int(ka)   # round to next greater odd int here
+    (8) WLOG, let Dy > Dx                 # Determine via a conditional
+    (9) ky = M / longest_side_max         # By definitions
+    (9.5) ky = next_greater_odd_int(ky)   # round to next greater odd int here
                                           #    for "square-er" pixels
-    (10) ka * da = kr * dr                # from (5), (1), (2)
-    (11) kr = (ka * da) / dr              # from (10), (9)
-    (11.5) kr = next_greater_odd_int(kr)  # nlooks values are int
+    (10) ky * dy = kx * dx                # from (5), (1), (2)
+    (11) kx = (ky * dy) / dx              # from (10), (9)
+    (11.5) kx = next_greater_odd_int(kx)  # nlooks values are int
 
     ** `longest_side_max` provides an upper limit on the length of the
     longest side of the final multilooked image. So, during 
-    computation of ka and kr, they will be rounded to the nearest
-    odd integer greater than the exact Real solution for ka and kr.
+    computation of ky and kx, they will be rounded to the nearest
+    odd integer greater than the exact Real solution for ky and kx.
     Rounding up will ensure that we do not exceed `longest_side_max`.
     Rounding to odd values will maintain the same coordinate grid
     as the source image array during multilooking.
@@ -215,34 +218,34 @@ def compute_square_pixel_nlooks(img_shape,
                             f'but must be a positive int: {input}')
 
     # Variables
-    M = img_shape[0]  # azimuth dimension
-    N = img_shape[1]  # range dimension
-    da = np.abs(sample_spacing[0])  # azimuth
-    dr = np.abs(sample_spacing[1])  # range
+    M = img_shape[0]  # Y dimension
+    N = img_shape[1]  # X dimension
+    dy = np.abs(sample_spacing[0])  # Y
+    dx = np.abs(sample_spacing[1])  # X
 
-    if M * da >= N * dr:
+    if M * dy >= N * dx:
         # Y (azimuth) extent is longer
-        ka = M / longest_side_max
+        ky = M / longest_side_max
 
-        # Adjust ka to be an odd integer before computing kr. This will
+        # Adjust ky to be an odd integer before computing kx. This will
         # keep the final multilooked pixels closer to being square pixels.
-        ka = nisarqa.next_greater_odd_int(ka)
+        ky = nisarqa.next_greater_odd_int(ky)
 
-        kr = (ka * da) / dr  # Formula (11)
-        kr = nisarqa.next_greater_odd_int(kr)
+        kx = (ky * dy) / dx  # Formula (11)
+        kx = nisarqa.next_greater_odd_int(kx)
 
     else:
         # X (range) ground distance is longer
-        kr = N / longest_side_max
-        kr = nisarqa.next_greater_odd_int(kr)
+        kx = N / longest_side_max
+        kx = nisarqa.next_greater_odd_int(kx)
 
-        ka = (kr * dr) / da  # Formula (11)
-        ka = nisarqa.next_greater_odd_int(ka)
+        ky = (kx * dx) / dy  # Formula (11)
+        ky = nisarqa.next_greater_odd_int(ky)
 
     # Sanity Check
-    assert N // kr <= longest_side_max
-    assert M // ka <= longest_side_max
+    assert N // kx <= longest_side_max
+    assert M // ky <= longest_side_max
 
-    return (ka, kr)
+    return (ky, kx)
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
