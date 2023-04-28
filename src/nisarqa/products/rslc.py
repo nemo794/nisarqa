@@ -453,17 +453,19 @@ class RadarRaster(SARRaster):
     az_spacing : float
         Azimuth spacing of pixels of input array
     az_start : float
-        The start time of the observation for this
-        RSLC Raster
+        The start time of the observation for this RSLC Raster.
+        This corresponds to the upper side of the top pixels.
     az_stop : float
-        The stopping time of the observation for this
-        RSLC Raster
+        The stopping time of the observation for this RSLC Raster.
+        This corresponds to the lower side of the bottom pixels.
     range_spacing : float
         Range spacing of pixels of input array
     rng_start : float
         Start (near) distance of the range of input array
+        This corresponds to the left side of the left-most pixels.
     rng_stop : float
         End (far) distance of the range of input array
+        This corresponds to the right side of the right-most pixels.
     epoch : str
         The start of the epoch for this observation,
         in the format 'YYYY-MM-DD HH:MM:SS'
@@ -598,8 +600,14 @@ class RadarRaster(SARRaster):
 
         # Get Azimuth (y-axis) tick range + label
         # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
-        az_start = float(h5_file[swaths_path]['zeroDopplerTime'][0])
-        az_stop =  float(h5_file[swaths_path]['zeroDopplerTime'][-1])
+        # For NISAR, radar-domain grids are referenced by the center of the
+        # pixel, so +/- half the distance of the pixel's side to capture
+        # the entire range.
+        az_start = float(h5_file[swaths_path]['zeroDopplerTime'][0]) \
+                                                            - 0.5 * az_spacing
+
+        az_stop =  float(h5_file[swaths_path]['zeroDopplerTime'][-1]) \
+                                                            + 0.5 * az_spacing
 
         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the 
         # 'Nominal ground range spacing in meters between consecutive pixels
@@ -607,8 +615,13 @@ class RadarRaster(SARRaster):
         range_spacing = h5_file[freq_path]['sceneCenterGroundRangeSpacing'][...]
 
         # Range in meters (units are specified as meters in the product spec)
-        rng_start = float(h5_file[freq_path]['slantRange'][0])
-        rng_stop = float(h5_file[freq_path]['slantRange'][-1])
+        # For NISAR, radar-domain grids are referenced by the center of the
+        # pixel, so +/- half the distance of the pixel's side to capture
+        # the entire range.
+        rng_start = float(h5_file[freq_path]['slantRange'][0]) \
+                                                        - 0.5 * range_spacing
+        rng_stop = float(h5_file[freq_path]['slantRange'][-1]) \
+                                                        + 0.5 * range_spacing
 
         # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
         sec_since_epoch = h5_file[swaths_path]['zeroDopplerTime'].attrs['units'].decode('utf-8')

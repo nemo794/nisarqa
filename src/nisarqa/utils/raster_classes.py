@@ -71,14 +71,18 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         X spacing of pixels of input array
     x_start : float
         The starting (West) X position of the input array
+        This corresponds to the left side of the left-most pixels.
     x_stop : float
         The stopping (East) X position of the input array
+        This corresponds to the right side of the right-most pixels.
     y_spacing : float
         Y spacing of pixels of input array
     y_start : float
         The starting (North) Y position of the input array
+        This corresponds to the upper side of the top pixels.
     y_stop : float
         The stopping (South) Y position of the input array
+        This corresponds to the lower side of the bottom pixels.
 
     Notes
     -----
@@ -168,16 +172,22 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         x_spacing = h5_file[freq_path]['xCoordinateSpacing'][...]
 
         # X in meters (units are specified as meters in the product spec)
+        # For NISAR, geocoded grids are referenced by the upper-left corner
+        # of the pixel to match GDAL conventions. So add the distance of
+        # the pixel's side to far right side to get the actual stop value.
         x_start = float(h5_file[freq_path]['xCoordinates'][0])
-        x_stop =  float(h5_file[freq_path]['xCoordinates'][-1])
+        x_stop =  float(h5_file[freq_path]['xCoordinates'][-1]) + x_spacing
 
         # From the xml Product Spec, yCoordinateSpacing is the 
         # 'Nominal spacing in meters between consecutive lines'
         y_spacing = h5_file[freq_path]['yCoordinateSpacing'][...]
 
         # Y in meters (units are specified as meters in the product spec)
+        # For NISAR, geocoded grids are referenced by the upper-left corner
+        # of the pixel to match GDAL conventions. So add the distance of
+        # the pixel's side to bottom to get the actual stop value.
         y_start = float(h5_file[freq_path]['yCoordinates'][0])
-        y_stop = float(h5_file[freq_path]['yCoordinates'][-1])
+        y_stop = float(h5_file[freq_path]['yCoordinates'][-1]) + y_spacing
 
         # Get dataset object
         if is_complex32(h5_file[pol_path]):
