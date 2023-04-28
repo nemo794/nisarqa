@@ -243,6 +243,6 @@ def compute_square_pixel_nlooks(img_shape,
     assert N // kr <= longest_side_max
     assert M // ka <= longest_side_max
 
-    return (ky, kx)
+    return (ka, kr)
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

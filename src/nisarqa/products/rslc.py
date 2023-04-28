@@ -1053,7 +1053,7 @@ def get_multilooked_power_image(img,
                     img.data.shape,
                     sample_spacing=(np.abs(img.y_axis_spacing),
                                     np.abs(img.x_axis_spacing)),
-                    longest_side_max=params.longest_side_max.val)
+                    longest_side_max=params.longest_side_max)
 
     elif img.freq == 'A':
         nlooks = nlooks_freqa_arg

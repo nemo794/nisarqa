@@ -249,7 +249,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
         If not provided, the QA code to compute the nlooks values 
-        based on `num_mpix`.'''
+        based on `longest_side_max`.'''
 
     nlooks_freqa: Optional[Iterable[int]] = field(
         default=None,
@@ -433,7 +433,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                         f'nlooks_freq{freq.lower()} must be an int or a '
                         f'sequence of two ints, which are >= 1: {nlooks}')
         elif nlooks is None:
-            # the code will use num_mpix to compute `nlooks` instead.
+            # the code will use `longest_side_max` to compute `nlooks` instead.
             pass
         else:
             raise TypeError('`nlooks` must be of type iterable of int, '
