@@ -454,7 +454,7 @@ class RadarRaster(SARRaster):
         Azimuth spacing of pixels of input array
     az_start : float
         The start time of the observation for this RSLC Raster.
-        This corresponds to the upper side of the top pixels.
+        This corresponds to the upper edge of the top pixels.
     az_stop : float
         The stopping time of the observation for this RSLC Raster.
         This corresponds to the lower side of the bottom pixels.

@@ -79,7 +79,7 @@ class GeoRaster(nisarqa.rslc.SARRaster):
         Y spacing of pixels of input array
     y_start : float
         The starting (North) Y position of the input array
-        This corresponds to the upper side of the top pixels.
+        This corresponds to the upper edge of the top pixels.
     y_stop : float
         The stopping (South) Y position of the input array
         This corresponds to the lower side of the bottom pixels.
