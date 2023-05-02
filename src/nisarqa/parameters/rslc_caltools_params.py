@@ -197,7 +197,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     nlooks_freqa, nlooks_freqb : iterable of int, None, optional
         Number of looks along each axis of the input array 
         for the specified frequency. If None, then nlooks will be computed
-        on-the-fly based on `longest_side_max`.
+        internally based on `longest_side_max`.
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image.
@@ -249,7 +249,8 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
         If not provided, the QA code to compute the nlooks values 
-        based on `longest_side_max`.'''
+        based on `longest_side_max`.
+    '''
 
     nlooks_freqa: Optional[Iterable[int]] = field(
         default=None,
@@ -365,7 +366,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             raise TypeError(
                 f'longest_side_max must be a int: {self.longest_side_max}')
         if self.longest_side_max <= 0:
-            raise TypeError(
+            raise ValueError(
                 f'`longest_side_max` must be positive: {self.longest_side_max}')
         
         # validate middle_percentile
