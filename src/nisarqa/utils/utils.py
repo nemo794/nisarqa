@@ -6,9 +6,10 @@ import numpy as np
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
+
 @contextmanager
-def open_h5_file(in_file, mode='r'):
-    '''
+def open_h5_file(in_file, mode="r"):
+    """
     Open or create a handle for a h5 file.
 
     Parameters
@@ -22,18 +23,18 @@ def open_h5_file(in_file, mode='r'):
         'w'         - Create file, truncate if exists
         'w-' or 'x' - Create file, fail if exists
         'a'         - Read/write if exists, create otherwise
-    
+
     Returns
     -------
     handle : h5py.File
         Handle to `filepath` file
-    '''
+    """
     try:
         input_file = h5py.File(in_file, mode)
-    
+
     # TODO If file is already open, this error is thrown: BlockingIOError
     except (FileNotFoundError, IOError) as e:
-        print('Could not open file. Add logger and remove this print statement.')
+        print("Could not open file. Add logger and remove this print statement.")
         # logger.log_message(logging_base.LogFilterError,
         #                     'File %s has a Fatal Error(s): %s' % (rslc_file, errors))
         raise
@@ -44,32 +45,36 @@ def open_h5_file(in_file, mode='r'):
 
 
 class DatasetNotFoundError(Exception):
-    '''
+    """
     Custom exception name for when a dataset is
     not found in an e.g. HDF5 file.
-    '''
+    """
+
     def __init__(self):
-        super().__init__('Dataset not found.')
+        super().__init__("Dataset not found.")
 
 
 class ExitEarly(Exception):
-    '''
+    """
     Custom exception name for when logic is nominal but the QA-SAS
     should exit early, such as for when all `workflows` are set to
     `False` and so no QA processing should be performed.
-    '''
+    """
+
     pass
 
 
 class InvalidNISARProductError(Exception):
-    '''
-    Custom exception name for when an input NISAR product 
+    """
+    Custom exception name for when an input NISAR product
     HDF5 file does not match the structure of the product spec.
-    '''
+    """
+
     pass
 
+
 def raise_(exc):
-    '''
+    """
     Wrapper to raise an Exception for use in e.g. lambda functions.
 
     Parameters
@@ -84,14 +89,14 @@ def raise_(exc):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 2, in raise_
     Exception: mayday
-    
+
     >>> raise_(TypeError('Input has incorrect type'))
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 2, in raise_
     TypeError: Input has incorrect type
     >>> out = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
-    
+
     >>> my_func = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
     >>> my_func(3)
     4
@@ -101,16 +106,16 @@ def raise_(exc):
       File "<stdin>", line 1, in <lambda>
       File "<stdin>", line 2, in raise_
     Exception: error
-    '''
-    
+    """
+
     raise exc
 
 
-def compute_non_zero_mask(arr, epsilon=1.0E-05):
-    '''
+def compute_non_zero_mask(arr, epsilon=1.0e-05):
+    """
     Create a mask of the non-zero pixels in the input array.
 
-    Elements in the input array that are approximately equal to zero, 
+    Elements in the input array that are approximately equal to zero,
     based on the specified tolerance, are masked out.
     TODO - after development of the RSLC QA code is complete,
     check that this function is used. If not, delete.
@@ -120,22 +125,22 @@ def compute_non_zero_mask(arr, epsilon=1.0E-05):
     arr : array_like
         The input array.
     epsilon : float, optional
-        Absolute tolerance for determining if an element in `arr` 
+        Absolute tolerance for determining if an element in `arr`
         is nearly zero.
 
     Returns
     -------
     mask : Boolean array
         Array with same shape as `arr`.
-        True for non-zero entries. False where the absolute 
+        True for non-zero entries. False where the absolute
         value of the entry is less than `epsilon`.
-    '''
+    """
     zero_real = np.abs(arr) < epsilon
     return ~zero_real
 
 
-def compute_mask_ok(arr, epsilon=1.0E-05):
-    '''
+def compute_mask_ok(arr, epsilon=1.0e-05):
+    """
     Create a mask of the valid (finite, non-zero) pixels in arr.
 
     TODO - after development of the RSLC QA code is complete,
@@ -156,7 +161,7 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
         not approximately equal to zero.
         False for entries that have a nan or inf in either the real
         or imaginary component, or a zero in both real and imag components.
-    '''
+    """
 
     finite_mask = np.isfinite(arr)
     non_zero_mask = compute_non_zero_mask(arr, epsilon)
@@ -165,13 +170,10 @@ def compute_mask_ok(arr, epsilon=1.0E-05):
     return mask_ok
 
 
-def create_dataset_in_h5group(h5_file,
-                              grp_path,
-                              ds_name,
-                              ds_data,
-                              ds_description,
-                              ds_units=None):
-    '''
+def create_dataset_in_h5group(
+    h5_file, grp_path, ds_name, ds_data, ds_description, ds_units=None
+):
+    """
     Add a dataset with attributes to the provided group.
 
     Parameters
@@ -199,24 +201,24 @@ def create_dataset_in_h5group(h5_file,
               then set `ds_units` to None so that no units attribute
               is created.
         Defaults to None (no units attribute will be created)
-    '''
+    """
 
     grp = h5_file.require_group(grp_path)
 
     ds = grp.create_dataset(ds_name, data=ds_data)
 
     if ds_units is not None:
-        ds.attrs.create(name='units', data=ds_units,
-                            dtype=f'<S{len(ds_units)}')
+        ds.attrs.create(name="units", data=ds_units, dtype=f"<S{len(ds_units)}")
 
-    ds.attrs.create(name='description', data=ds_description, 
-                        dtype=f'<S{len(ds_description)}')
+    ds.attrs.create(
+        name="description", data=ds_description, dtype=f"<S{len(ds_description)}"
+    )
 
 
 def multi_line_string_iter(multiline_str):
-    '''
+    """
     Iterator for a multi-line string.
-    
+
     Strips leading and trailing whitespace, and returns one line at a time.
 
     Parameters
@@ -229,12 +231,12 @@ def multi_line_string_iter(multiline_str):
     line : str
         The next line in `multiline_str`, with the leading and trailing
         whitespace stripped.
-    '''
+    """
     return (x.strip() for x in multiline_str.splitlines())
 
 
 def get_nested_element_in_dict(source_dict, path_to_element):
-    '''
+    """
     Returns the value of the last key in the `path_to_element`.
 
     Parameters
@@ -244,7 +246,7 @@ def get_nested_element_in_dict(source_dict, path_to_element):
     path_to_element : sequence
         Sequence which define a nested path in `source_dict` to
         the desired value.
-    
+
     Returns
     -------
     element : Any
@@ -259,7 +261,7 @@ def get_nested_element_in_dict(source_dict, path_to_element):
     >>> path = ['b', 'toy']
     >>> get_nested_element_in_dict(src, path)
     'mouse'
-    '''
+    """
     element = source_dict
     for nested_dict in path_to_element:
         element = element[nested_dict]
@@ -267,47 +269,51 @@ def get_nested_element_in_dict(source_dict, path_to_element):
 
 
 def get_NISAR_product_type(h5_file):
-    '''
+    """
     Returns the product type for the provided NISAR HDF5 product file.
 
     Parameters
     ----------
     h5_file : h5py.File
         File handle to a valid NISAR RSLC hdf5 file.
-        Product name must be located in the h5 file in the path: 
+        Product name must be located in the h5 file in the path:
         /science/<band>/<product type> or a ValueError will be raised.
 
     Returns
     -------
     product_type : str
-        One of: 'RSLC', 'SLC', 'GSLC', 'GCOV', 'RIFG', 'RUNW', 'GUNW', 
+        One of: 'RSLC', 'SLC', 'GSLC', 'GCOV', 'RIFG', 'RUNW', 'GUNW',
                 'ROFF', or 'GOFF'
-    '''
+    """
 
     nisar_products = [p.upper() for p in nisarqa.LIST_OF_NISAR_PRODUCTS]
-    nisar_products.append('SLC')
+    nisar_products.append("SLC")
 
-    for band in h5_file['/science']:
-
+    for band in h5_file["/science"]:
         for product in nisar_products:
-            if product in h5_file[f'/science/{band}']:
-                if product == 'SLC':
-                    # TODO - The UAVSAR test datasets were created with 
-                    # only the 'SLC' filepath. New NISAR RSLC Products should 
+            if product in h5_file[f"/science/{band}"]:
+                if product == "SLC":
+                    # TODO - The UAVSAR test datasets were created with
+                    # only the 'SLC' filepath. New NISAR RSLC Products should
                     # only contain 'RSLC' file paths.
-                    # Once the test datasets have been updated to 'RSLC', 
+                    # Once the test datasets have been updated to 'RSLC',
                     # then remove this warning, and raise a fatal error.
-                    print('(FAIL) PASS/FAIL Check: This product uses the '
-                          'deprecated "SLC" group. Update to "RSLC".')
+                    print(
+                        "(FAIL) PASS/FAIL Check: This product uses the "
+                        'deprecated "SLC" group. Update to "RSLC".'
+                    )
 
                 return product
         else:
-            raise ValueError('Provided input file does not have a valid'
-                             f'NISAR product group under band {band}')
+            raise ValueError(
+                "Provided input file does not have a valid"
+                f"NISAR product group under band {band}"
+            )
+
 
 def m2km(m):
-    '''Convert meters to kilometers'''
-    return m/1000.0
+    """Convert meters to kilometers"""
+    return m / 1000.0
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

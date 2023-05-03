@@ -4,13 +4,14 @@ import nisarqa
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
 
+
 def verify_runw(user_rncfg):
-    '''
+    """
     Verify an RUNW product based on the input file, parameters, etc.
     specified in the input runconfig file.
 
     This is the main function for running the entire QA workflow for this
-    product. It will run based on the options supplied in the 
+    product. It will run based on the options supplied in the
     input runconfig file.
     The input runconfig file must follow the standard QA runconfig format
     for this product. Run the command line command:
@@ -22,9 +23,9 @@ def verify_runw(user_rncfg):
     user_rncfg : dict
         A dictionary whose structure matches an this product's QA runconfig
         yaml file and which contains the parameters needed to run its QA SAS.
-    '''
+    """
 
-    nisarqa.verify_insar(user_rncfg,'runw')
+    nisarqa.verify_insar(user_rncfg, "runw")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -9,7 +9,7 @@ from PIL import Image
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
-LOG_TXT = '''PLACEHOLDER FILE ONLY -- NOT ACTUAL LOG OUTPUTS
+LOG_TXT = """PLACEHOLDER FILE ONLY -- NOT ACTUAL LOG OUTPUTS
 2022-05-02 18:51:40,466, INFO, QA, misc, 100000 '/projects/QualityAssurance/verify_rslc.py':73, "N/A: Successfully parsed XML file /projects/QualityAssurance/xml/nisar_L1_RSLC.xml"
 2022-05-02 18:51:40,469, INFO, QA, misc, 100000 '/projects/QualityAssurance/verify_rslc.py':79, "N/A: Opening file /home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5 with xml spec /projects/QualityAssurance/xml/nisar_L1_RSLC.xml"
 2022-05-02 18:51:40,472, INFO, QA, misc, 100000 '/projects/QualityAssurance/quality/NISARFile.py':37, "N/A: Opening file /home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5"
@@ -85,9 +85,9 @@ LOG_TXT = '''PLACEHOLDER FILE ONLY -- NOT ACTUAL LOG OUTPUTS
 2022-05-02 19:42:09,117, INFO, QA, misc, 100000 '/projects/QualityAssurance/quality/SLCFile.py':376, "N/A: File stats.h5 mode r+"
 2022-05-02 19:42:09,972, INFO, QA, misc, 100000 '/projects/QualityAssurance/verify_rslc.py':143, "N/A: Runtime = 1068 seconds"
 PLACEHOLDER FILE ONLY -- NOT ACTUAL LOG OUTPUTS
-'''
+"""
 
-SUMMARY_CSV = '''Tool,Check Description,Result,Threshold,Actual,Notes
+SUMMARY_CSV = """Tool,Check Description,Result,Threshold,Actual,Notes
 QA,Able to open NISAR input file?,PASS,,,PLACEHOLDER
 QA,Input file validation successful?,FAIL,,,PLACEHOLDER Invalid Start/End Time(s).
 QA,0 missing fields per product spec?,FAIL,0,4,PLACEHOLDER Missing: "/science/LSAR/RSLC/swaths/frequencyA/validSamplesSubSwath3".
@@ -98,9 +98,9 @@ QA,Contains 4 subswath bounds for FreqA?,FAIL,4,3,PLACEHOLDER
 QA,Contains 4 subswath bounds for FreqB?,PASS,n/a,n/a,PLACEHOLDER FreqB not present in file.
 QA,% invalid pixels < 80%?,PASS,80%,1.7%,PLACEHOLDER # invalid pixels: 250/15000.
 QA,% zero pixels < 98%?,FAIL,98%,93.9%,PLACEHOLDER # zero pixels: 14090/15000.
-'''
+"""
 
-KML_FILE = '''<?xml version="1.0" encoding="UTF-8"?>
+KML_FILE = """<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns:gx="http://www.google.com/kml/ext/2.2">
   <Document>
     <name>PLACEHOLDER ONLY</name>
@@ -118,11 +118,12 @@ KML_FILE = '''<?xml version="1.0" encoding="UTF-8"?>
     </Folder>
   </Document>
 </kml>
-'''
+"""
 
-def output_stub_files(output_dir, stub_files='all', input_file=None):
-    '''This function outputs stub files for the NISAR QA L1/L2 products.
-    
+
+def output_stub_files(output_dir, stub_files="all", input_file=None):
+    """This function outputs stub files for the NISAR QA L1/L2 products.
+
     Parameters
     ----------
     output_dir : str
@@ -137,7 +138,7 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
             'report_pdf'
             'all'
         If 'all' is selected, then all six of the stub files will be generated
-        and saved. If a single string is provided, only that file will be 
+        and saved. If a single string is provided, only that file will be
         output. To save a subset of the available stub files, provide them
         as a list of strings.
         Ex: 'all', 'browse_png', or ['summary_csv', 'log_txt'] are valid inputs
@@ -145,52 +146,64 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
         The input NISAR product HDF5 file. Only required/used for saving
         the stub stats_h5 file.
 
-    '''
+    """
     ## Validate inputs
-    opts = ['browse_png', 'browse_kml', 'summary_csv', 'log_txt', 
-            'stats_h5', 'report_pdf']
-    if stub_files == 'all':
+    opts = [
+        "browse_png",
+        "browse_kml",
+        "summary_csv",
+        "log_txt",
+        "stats_h5",
+        "report_pdf",
+    ]
+    if stub_files == "all":
         stub_files = opts
 
     if isinstance(stub_files, str):
         stub_files = [stub_files]
 
     # ensure that the inputs are a subset of the valid options
-    assert set(stub_files) <= set(opts), 'invalid input for argument `stub_files`'
+    assert set(stub_files) <= set(opts), "invalid input for argument `stub_files`"
 
-    if 'stats_h5' in stub_files:
-        assert input_file is not None, 'to generate a stub STATS.h5, a valid NISAR product input file must be provided.'
-        assert os.path.isfile(input_file), f'`input_file` is not a valid file: {input_file}'
-        assert input_file.endswith('.h5'), f'`input_file` must have the extension .h5: {input_file}'
+    if "stats_h5" in stub_files:
+        assert (
+            input_file is not None
+        ), "to generate a stub STATS.h5, a valid NISAR product input file must be provided."
+        assert os.path.isfile(
+            input_file
+        ), f"`input_file` is not a valid file: {input_file}"
+        assert input_file.endswith(
+            ".h5"
+        ), f"`input_file` must have the extension .h5: {input_file}"
 
     # If output directory does not exist, make it.
     os.makedirs(output_dir, exist_ok=True)
 
     ## Save stub files
     # Save geolocation stub file
-    if 'browse_kml' in stub_files:
-        with open(os.path.join(output_dir, 'BROWSE.kml'), 'w') as f:
+    if "browse_kml" in stub_files:
+        with open(os.path.join(output_dir, "BROWSE.kml"), "w") as f:
             f.write(KML_FILE)
 
     # Save summary.csv stub file
-    if 'summary_csv' in stub_files:
-        with open(os.path.join(output_dir, 'SUMMARY.csv'), 'w') as f:
+    if "summary_csv" in stub_files:
+        with open(os.path.join(output_dir, "SUMMARY.csv"), "w") as f:
             f.write(SUMMARY_CSV)
 
     # Save Log file stub file
-    if 'log_txt' in stub_files:
-        with open(os.path.join(output_dir, 'LOG.txt'), 'w') as f:
+    if "log_txt" in stub_files:
+        with open(os.path.join(output_dir, "LOG.txt"), "w") as f:
             f.write(LOG_TXT)
 
     # Save stats.h5 stub file
-    if 'stats_h5' in stub_files:
-        stats_file = os.path.join(output_dir, 'STATS.h5')
+    if "stats_h5" in stub_files:
+        stats_file = os.path.join(output_dir, "STATS.h5")
 
-        with nisarqa.open_h5_file(input_file, mode='r') as in_file, \
-            nisarqa.open_h5_file(stats_file, mode='w') as stats_h5:
-
+        with nisarqa.open_h5_file(
+            input_file, mode="r"
+        ) as in_file, nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
             for band in nisarqa.NISAR_BANDS:
-                grp_path = f'/science/{band}/identification'
+                grp_path = f"/science/{band}/identification"
 
                 if grp_path in in_file:
                     # Copy identification metadata from input file to stats.h5
@@ -200,27 +213,26 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
     # Create a roughly 2048x2048 pixels^2 RGB image
     # (ASF allows for in-exact dimensions, so let's test that.)
     # (Current plan is for all NISAR products to generate RGBA browse images)
-    imarray = np.random.randint(low=0, high=256, 
-                                size=(1800,2000,4), dtype=np.uint8)
+    imarray = np.random.randint(low=0, high=256, size=(1800, 2000, 4), dtype=np.uint8)
 
     # Make all pixels opaque by setting the alpha channel to 255
-    imarray[:,:,3] = 255
+    imarray[:, :, 3] = 255
 
     # Make a subset of the pixels transparent by setting alpha channel to 0
-    imarray[500:900,500:900,3] = 0
+    imarray[500:900, 500:900, 3] = 0
 
-    if 'browse_png' in stub_files:
-        im = Image.fromarray(imarray).convert('RGBA')
+    if "browse_png" in stub_files:
+        im = Image.fromarray(imarray).convert("RGBA")
         datas = im.getdata()
         newData = []
         for item in datas:
             newData.append(item)
         im.putdata(newData)
-        im.save(os.path.join(output_dir, 'BROWSE.png'))
+        im.save(os.path.join(output_dir, "BROWSE.png"))
 
-    if 'report_pdf' in stub_files:
+    if "report_pdf" in stub_files:
         # Save image into a .pdf
-        with PdfPages(os.path.join(output_dir, 'REPORT.pdf')) as f:
+        with PdfPages(os.path.join(output_dir, "REPORT.pdf")) as f:
             # Instantiate the figure object
             fig = plt.figure()
             ax = plt.gca()
@@ -229,9 +241,9 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
             ax_img = ax.imshow(X=imarray, cmap=plt.cm.ocean)
             plt.colorbar(ax_img, ax=ax)
 
-            plt.xlabel('Placeholder x-axis label')
-            plt.ylabel('Placeholder y-axis label')
-            plt.title('PLACEHOLDER IMAGE - NOT REPRESENTATIVE OF ACTUAL NISAR PRODUCT')
+            plt.xlabel("Placeholder x-axis label")
+            plt.ylabel("Placeholder y-axis label")
+            plt.title("PLACEHOLDER IMAGE - NOT REPRESENTATIVE OF ACTUAL NISAR PRODUCT")
 
             # Make sure axes labels do not get cut off
             fig.tight_layout()
@@ -243,10 +255,10 @@ def output_stub_files(output_dir, stub_files='all', input_file=None):
             plt.close(fig)
 
 
-def get_input_file(user_rncfg, in_file_param='qa_input_file'):
-    '''
+def get_input_file(user_rncfg, in_file_param="qa_input_file"):
+    """
     Parse input file name from the given runconfig.
-    
+
     Parameters
     ----------
     user_rncfg : dict
@@ -257,26 +269,24 @@ def get_input_file(user_rncfg, in_file_param='qa_input_file'):
     Returns
     -------
     input_file : str
-        The argument value of the `in_file_param` in `user_rncfg`. 
-    '''
+        The argument value of the `in_file_param` in `user_rncfg`.
+    """
 
-    rncfg_path=('runconfig','groups','input_file_group')
+    rncfg_path = ("runconfig", "groups", "input_file_group")
     try:
-        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg,
-                                                            rncfg_path)
+        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
     except KeyError as e:
-        raise KeyError('`input_file_group` is a required runconfig group') from e
+        raise KeyError("`input_file_group` is a required runconfig group") from e
     try:
         input_file = params_dict[in_file_param]
     except KeyError as e:
-        raise KeyError(f'`{in_file_param}` '
-                        'is a required parameter for QA') from e
-    
+        raise KeyError(f"`{in_file_param}` " "is a required parameter for QA") from e
+
     return input_file
 
 
 def get_output_dir(user_rncfg):
-    '''Parse output directory from the given runconfig.
+    """Parse output directory from the given runconfig.
 
     Parameters
     ----------
@@ -288,33 +298,35 @@ def get_output_dir(user_rncfg):
     output_dir : str
         The argument value of the `product_path_group > qa_output_dir` parameter
         in `user_rncfg`. If a value is not found, will default to './qa'
-    '''
+    """
 
-    rncfg_path=('runconfig','groups','product_path_group')
-    output_dir = './qa'
+    rncfg_path = ("runconfig", "groups", "product_path_group")
+    output_dir = "./qa"
 
     try:
-        params_dict = nisarqa.get_nested_element_in_dict(
-                                user_rncfg, rncfg_path)
+        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
     except KeyError:
         # group not found in runconfig. Use defaults.
-        warnings.warn('`product_path_group` not found in runconfig. '
-                      'Using default output directory.')
+        warnings.warn(
+            "`product_path_group` not found in runconfig. "
+            "Using default output directory."
+        )
     else:
         try:
-            output_dir = params_dict['qa_output_dir']
+            output_dir = params_dict["qa_output_dir"]
 
         except KeyError:
             # parameter not found in runconfig. Use defaults.
-            warnings.warn('`qa_output_dir` not found in runconfig. '
-                        'Using default output directory.')
+            warnings.warn(
+                "`qa_output_dir` not found in runconfig. "
+                "Using default output directory."
+            )
 
     return output_dir
 
 
-def get_workflows(user_rncfg,
-                  rncfg_path=('runconfig','groups','qa','workflows')):
-    '''
+def get_workflows(user_rncfg, rncfg_path=("runconfig", "groups", "qa", "workflows")):
+    """
     Parse workflows group from the given runconfig path.
 
     Parameters
@@ -333,38 +345,40 @@ def get_workflows(user_rncfg,
     qa_reports : bool
         The argument value of the `workflows > qa_reports` parameter
         in `user_rncfg`.
-    '''
+    """
 
     validate = False
     qa_reports = False
     try:
-        params_dict = nisarqa.get_nested_element_in_dict(
-                                user_rncfg, rncfg_path)
+        params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
     except KeyError:
         # group not found in runconfig. Use defaults.
-        warnings.warn('`workflows` not found in runconfig. '
-                      'Using defaults.')
+        warnings.warn("`workflows` not found in runconfig. " "Using defaults.")
     else:
         try:
-            validate = params_dict['validate']
+            validate = params_dict["validate"]
         except KeyError:
             # parameter not found in runconfig. Use default.
-            warnings.warn('`validate` not found in runconfig. '
-                        'Using default `validate` setting.')
+            warnings.warn(
+                "`validate` not found in runconfig. "
+                "Using default `validate` setting."
+            )
         try:
-            qa_reports = params_dict['qa_reports']
+            qa_reports = params_dict["qa_reports"]
         except KeyError:
             # parameter not found in runconfig. Use default.
-            warnings.warn('`qa_reports` not found in runconfig. '
-                        'Using default `qa_reports` setting.')
+            warnings.warn(
+                "`qa_reports` not found in runconfig. "
+                "Using default `qa_reports` setting."
+            )
 
     return validate, qa_reports
 
 
 def verify_gslc_gcov_stub(user_rncfg):
-    '''
+    """
     Parse the runconfig and generate stub outputs for GSLC or GCOV products.
-    
+
     GSLC and GCOV stub outputs are identical, so there is no need for a
     parameter that specifies which product type it is.
 
@@ -373,24 +387,22 @@ def verify_gslc_gcov_stub(user_rncfg):
     user_rncfg : dict
         A dictionary whose structure matches an this product's QA runconfig
         yaml file and which contains the parameters needed to run its QA SAS.
-    '''
+    """
 
     input_file = get_input_file(user_rncfg)
     output_dir = get_output_dir(user_rncfg)
     validate, qa_reports = get_workflows(user_rncfg)
 
     if qa_reports:
-        output_stub_files(output_dir, 
-                          stub_files='all',
-                          input_file=input_file)
+        output_stub_files(output_dir, stub_files="all", input_file=input_file)
     elif validate:
-        output_stub_files(output_dir, 
-                          stub_files=['summary_csv','log_txt'],
-                          input_file=input_file)
+        output_stub_files(
+            output_dir, stub_files=["summary_csv", "log_txt"], input_file=input_file
+        )
 
 
 def verify_insar(user_rncfg, product):
-    '''
+    """
     Parse the runconfig and generate stub outputs for InSAR products.
 
     Parameters
@@ -401,13 +413,13 @@ def verify_insar(user_rncfg, product):
     product : str
         InSAR product name
         Options: 'rifg','runw','gunw','roff','goff'
-    '''
+    """
 
-    assert product in ('rifg','runw','gunw','roff','goff')
+    assert product in ("rifg", "runw", "gunw", "roff", "goff")
 
     # Step 1: Get workflows flags for the requested product
-    wkflw_path = ('runconfig','groups','qa', product,'workflows')
-    validate, qa_reports = get_workflows(user_rncfg,rncfg_path=wkflw_path)
+    wkflw_path = ("runconfig", "groups", "qa", product, "workflows")
+    validate, qa_reports = get_workflows(user_rncfg, rncfg_path=wkflw_path)
 
     # Step 2: If any workflows flags are true, run QA
     if not (validate or qa_reports):
@@ -416,7 +428,7 @@ def verify_insar(user_rncfg, product):
         return
 
     # Step 3: "Run QA"
-    in_file_param = f'qa_{product}_input_file'
+    in_file_param = f"qa_{product}_input_file"
     input_file = get_input_file(user_rncfg, in_file_param=in_file_param)
     output_dir = get_output_dir(user_rncfg)
 
@@ -425,13 +437,11 @@ def verify_insar(user_rncfg, product):
 
     if qa_reports:
         # output stub files
-        output_stub_files(output_dir, 
-                        stub_files='all',
-                        input_file=input_file)
+        output_stub_files(output_dir, stub_files="all", input_file=input_file)
     elif validate:
-        output_stub_files(output_dir, 
-                        stub_files=['summary_csv','log_txt'],
-                        input_file=input_file)
+        output_stub_files(
+            output_dir, stub_files=["summary_csv", "log_txt"], input_file=input_file
+        )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

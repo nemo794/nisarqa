@@ -6,15 +6,21 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 import nisarqa
-from nisarqa import (HDF5Attrs, HDF5ParamGroup, RootParamGroup,
-                     WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
+from nisarqa import (
+    HDF5Attrs,
+    HDF5ParamGroup,
+    RootParamGroup,
+    WorkflowsParamGroup,
+    YamlAttrs,
+    YamlParamGroup,
+)
 
 objects_to_skip = nisarqa.get_all(__name__)
 
 
 @dataclass(frozen=True)
 class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
-    '''
+    """
     The parameters specifying which RSLC-Caltools QA workflows should be run.
 
     This corresponds to the `qa: workflows` runconfig group.
@@ -34,43 +40,53 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         True to run the Noise Estimation Tool (NET) workflow. Default: False
     point_target : bool, optional
         True to run the Point Target Analyzer (PTA) workflow. Default: False
-    '''
+    """
 
     abs_cal: bool = field(
         default=WorkflowsParamGroup._default_val,
         metadata={
-        'yaml_attrs': YamlAttrs(
-            name='absolute_radiometric_calibration',
-            descr=WorkflowsParamGroup._descr % 'Absolute Radiometric Calibration calibration tool')})
+            "yaml_attrs": YamlAttrs(
+                name="absolute_radiometric_calibration",
+                descr=WorkflowsParamGroup._descr
+                % "Absolute Radiometric Calibration calibration tool",
+            )
+        },
+    )
 
     noise_estimation: bool = field(
         default=WorkflowsParamGroup._default_val,
         metadata={
-        'yaml_attrs': YamlAttrs(
-            name='noise_estimation', 
-            descr=WorkflowsParamGroup._descr % 'Noise Estimator Tool calibration tool')})
+            "yaml_attrs": YamlAttrs(
+                name="noise_estimation",
+                descr=WorkflowsParamGroup._descr
+                % "Noise Estimator Tool calibration tool",
+            )
+        },
+    )
 
     point_target: bool = field(
         default=WorkflowsParamGroup._default_val,
         metadata={
-        'yaml_attrs': YamlAttrs(
-            name='point_target_analyzer',
-            descr=WorkflowsParamGroup._descr % 'Point Target Analyzer calibration tool')})
+            "yaml_attrs": YamlAttrs(
+                name="point_target_analyzer",
+                descr=WorkflowsParamGroup._descr
+                % "Point Target Analyzer calibration tool",
+            )
+        },
+    )
 
     def __post_init__(self):
-
         # VALIDATE INPUTS
         super().__post_init__()
-        self._check_workflows_arg('abs_cal', self.abs_cal)
-        self._check_workflows_arg('noise_estimation', self.noise_estimation)
-        self._check_workflows_arg('point_target',
-                                    self.point_target)
+        self._check_workflows_arg("abs_cal", self.abs_cal)
+        self._check_workflows_arg("noise_estimation", self.noise_estimation)
+        self._check_workflows_arg("point_target", self.point_target)
 
 
 # TODO - move to generic NISAR module (InSAR will need more thought)
 @dataclass(frozen=True)
 class InputFileGroupParamGroup(YamlParamGroup):
-    '''
+    """
     Parameters from the Input File Group runconfig group.
 
     This corresponds to the `groups: input_file_group` runconfig group.
@@ -79,34 +95,37 @@ class InputFileGroupParamGroup(YamlParamGroup):
     ----------
     qa_input_file : str
         The input NISAR product file name (with path).
-    '''
+    """
 
     # Required parameter - do not set a default
     qa_input_file: str = field(
-        metadata={'yaml_attrs': 
-            YamlAttrs(
-                name='qa_input_file',
-                descr='''Filename of the input file for QA.
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="qa_input_file",
+                descr="""Filename of the input file for QA.
                 REQUIRED for QA. NOT REQUIRED if only running Product SAS.
                 If Product SAS and QA SAS are run back-to-back,
                 this field should be identical to `sas_output_file`.
                 Otherwise, this field should contain the filename of the single
-                NISAR product for QA to process.''')})
+                NISAR product for QA to process.""",
+            )
+        }
+    )
 
     def __post_init__(self):
         # VALIDATE INPUTS
-        nisarqa.validate_is_file(filepath=self.qa_input_file, 
-                                 parameter_name='qa_input_file',
-                                 extension='.h5')
+        nisarqa.validate_is_file(
+            filepath=self.qa_input_file, parameter_name="qa_input_file", extension=".h5"
+        )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','input_file_group']
+        return ["runconfig", "groups", "input_file_group"]
 
 
 @dataclass(frozen=True)
 class DynamicAncillaryFileParamGroup(YamlParamGroup):
-    '''
+    """
     The parameters from the QA Dynamic Ancillary File runconfig group.
 
     This corresponds to the `groups: dynamic_ancillary_file_group`
@@ -118,33 +137,36 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
         The input corner reflector file's file name (with path).
         Required for the Absolute Calibration Factor and Point Target
         Analyzer workflows.
-    '''
+    """
 
     # Required parameter
     corner_reflector_file: str = field(
         metadata={
-            'yaml_attrs' : YamlAttrs(
-                name='corner_reflector_file',
-                descr='''Locations of the corner reflectors in the input product.
+            "yaml_attrs": YamlAttrs(
+                name="corner_reflector_file",
+                descr="""Locations of the corner reflectors in the input product.
                 Only required if `absolute_radiometric_calibration` or
-                `point_target_analyzer` runconfig params are set to True for QA.'''
-            )})
+                `point_target_analyzer` runconfig params are set to True for QA.""",
+            )
+        }
+    )
 
     def __post_init__(self):
-        nisarqa.validate_is_file(filepath=self.corner_reflector_file, 
-                                 parameter_name='corner_reflector_file',
-                                 extension='.csv')
-
+        nisarqa.validate_is_file(
+            filepath=self.corner_reflector_file,
+            parameter_name="corner_reflector_file",
+            extension=".csv",
+        )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','dynamic_ancillary_file_group']
+        return ["runconfig", "groups", "dynamic_ancillary_file_group"]
 
 
 # TODO - move to generic NISAR module (InSAR will need more thought)
 @dataclass(frozen=True)
 class ProductPathGroupParamGroup(YamlParamGroup):
-    '''
+    """
     Parameters from the Product Path Group runconfig group.
 
     This corresponds to the `groups: product_path_group` runconfig group.
@@ -154,39 +176,40 @@ class ProductPathGroupParamGroup(YamlParamGroup):
     qa_output_dir : str, optional
         Filepath to the output directory to store NISAR QA output files.
         Defaults to './qa'
-    '''
+    """
 
     qa_output_dir: str = field(
-        default='./qa',
-        metadata={'yaml_attrs' : YamlAttrs(
-            name='qa_output_dir',
-            descr='''Output directory to store all QA output files.'''
-        )}
+        default="./qa",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="qa_output_dir",
+                descr="""Output directory to store all QA output files.""",
+            )
+        },
     )
 
     def __post_init__(self):
         # VALIDATE INPUTS
 
         if not isinstance(self.qa_output_dir, str):
-            raise TypeError(f'`qa_output_dir` must be a str')
+            raise TypeError(f"`qa_output_dir` must be a str")
 
         # If this directory does not exist, make it.
         if not os.path.isdir(self.qa_output_dir):
-            print(f'Creating QA output directory: {self.qa_output_dir}')
+            print(f"Creating QA output directory: {self.qa_output_dir}")
             os.makedirs(self.qa_output_dir, exist_ok=True)
-
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','product_path_group']
+        return ["runconfig", "groups", "product_path_group"]
 
 
 # TODO - move to generic SLC module
 @dataclass(frozen=True)
 class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
-    '''
+    """
     Parameters to generate RSLC or GSLC Power Images and Browse Image.
-    
+
     This corresponds to the `qa_reports: power_image` runconfig group.
 
     Parameters
@@ -195,7 +218,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         True to compute power image in linear units, False for decibel units.
         Defaults to True.
     nlooks_freqa, nlooks_freqb : iterable of int, None, optional
-        Number of looks along each axis of the input array 
+        Number of looks along each axis of the input array
         for the specified frequency. If None, then nlooks will be computed
         internally based on `longest_side_max`.
     longest_side_max : int, optional
@@ -211,7 +234,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         Gamma will be applied as follows:
             array_out = normalized_array ^ gamma
         where normalized_array is a copy of the image with values
-        scaled to the range [0,1]. 
+        scaled to the range [0,1].
         The image colorbar will be defined with respect to the input
         image values prior to normalization and gamma correction.
         If None, then no normalization, no gamma correction will be applied.
@@ -221,7 +244,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         Actual tile shape may be modified by QA to be an integer
         multiple of the number of looks for multilooking, of the
         decimation ratio, etc.
-        Format: (num_rows, num_cols) 
+        Format: (num_rows, num_cols)
         -1 to indicate all rows / all columns (respectively).
         Defaults to (1024, 1024).
 
@@ -231,219 +254,233 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         Units of the power image.
         If `linear_units` is True, this will be set to 'linear'.
         If `linear_units` is False, this will be set to 'dB'.
-    '''
+    """
 
     linear_units: bool = field(
         default=True,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='linear_units',
-            descr='''True to compute power in linear units when generating 
+            "yaml_attrs": YamlAttrs(
+                name="linear_units",
+                descr="""True to compute power in linear units when generating 
                 the power image for the browse images and graphical
-                summary PDF. False for decibel units.'''
-        )})
+                summary PDF. False for decibel units.""",
+            )
+        },
+    )
 
-    _nlooks_descr_template: ClassVar[str] = \
-        '''Number of looks along each axis of the Frequency %s
+    _nlooks_descr_template: ClassVar[
+        str
+    ] = """Number of looks along each axis of the Frequency %s
         image arrays for multilooking the power image.
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
         If not provided, the QA code to compute the nlooks values 
         based on `longest_side_max`.
-    '''
+    """
 
     nlooks_freqa: Optional[Iterable[int]] = field(
         default=None,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name=f'nlooks_freqa',
-            descr=_nlooks_descr_template % 'A'
-        )})
+            "yaml_attrs": YamlAttrs(
+                name=f"nlooks_freqa", descr=_nlooks_descr_template % "A"
+            )
+        },
+    )
 
     nlooks_freqb: Optional[Iterable[int]] = field(
         default=None,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='nlooks_freqb',
-            descr=_nlooks_descr_template % 'B'
-        )})
+            "yaml_attrs": YamlAttrs(
+                name="nlooks_freqb", descr=_nlooks_descr_template % "B"
+            )
+        },
+    )
 
     longest_side_max: int = field(
         default=2048,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='longest_side_max',
-            descr='''The maximum number of pixels allowed for the longest side
+            "yaml_attrs": YamlAttrs(
+                name="longest_side_max",
+                descr="""The maximum number of pixels allowed for the longest side
                 of the final 2D multilooked browse image. Defaults to 2048.
                 If `nlooks_freq*` parameter(s) is not None, nlooks
-                values will take precedence.'''
-        )})
-    
+                values will take precedence.""",
+            )
+        },
+    )
+
     middle_percentile: float = field(
         default=90.0,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='middle_percentile',
-            descr='''The middle percentile range of the image array
-                that the colormap covers. Must be in the range [0.0, 100.0].'''
+            "yaml_attrs": YamlAttrs(
+                name="middle_percentile",
+                descr="""The middle percentile range of the image array
+                that the colormap covers. Must be in the range [0.0, 100.0].""",
             ),
-        'hdf5_attrs' : HDF5Attrs(
-            name='powerImageMiddlePercentile',
-            units='unitless',
-            descr='Middle percentile range of the image array '
-                  'that the colormap covers',
-            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-            )
-        })
+            "hdf5_attrs": HDF5Attrs(
+                name="powerImageMiddlePercentile",
+                units="unitless",
+                descr="Middle percentile range of the image array "
+                "that the colormap covers",
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
 
     gamma: Optional[float] = field(
         default=0.5,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='gamma',
-            descr=\
-            '''Gamma correction parameter applied to power and browse image(s).
+            "yaml_attrs": YamlAttrs(
+                name="gamma",
+                descr="""Gamma correction parameter applied to power and browse image(s).
             Gamma will be applied as follows:
                 array_out = normalized_array ^ gamma
             where normalized_array is a copy of the image with values
             scaled to the range [0,1]. 
             The image colorbar will be defined with respect to the input
             image values prior to normalization and gamma correction.
-            If None, then no normalization and no gamma correction will be applied.'''
+            If None, then no normalization and no gamma correction will be applied.""",
             ),
-        'hdf5_attrs' : HDF5Attrs(
-            name='powerImageGammaCorrection',
-            units='unitless',
-            descr=(
-                'Gamma correction parameter applied to power and browse image(s).'
-                ' Dataset will be type float if gamma was applied, otherwise it is'
-                ' the string \'None\''
+            "hdf5_attrs": HDF5Attrs(
+                name="powerImageGammaCorrection",
+                units="unitless",
+                descr=(
+                    "Gamma correction parameter applied to power and browse image(s)."
+                    " Dataset will be type float if gamma was applied, otherwise it is"
+                    " the string 'None'"
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
-            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-            )
-        })
+        },
+    )
 
     tile_shape: Iterable[int] = field(
-        default=(1024,1024),
+        default=(1024, 1024),
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='tile_shape',
-            descr='''User-preferred tile shape for processing images by batches.
+            "yaml_attrs": YamlAttrs(
+                name="tile_shape",
+                descr="""User-preferred tile shape for processing images by batches.
                 Actual tile shape may be modified by QA to be an integer
                 multiple of the number of looks for multilooking, of the
                 decimation ratio, etc.
                 Format: [<num_rows>, <num_cols>]
-                -1 to indicate all rows / all columns (respectively).'''
+                -1 to indicate all rows / all columns (respectively).""",
             )
-        })
+        },
+    )
 
     # Auto-generated attributes, so set init=False and have no default.
     # `pow_units` is determined by the `linear_units` attribute.
     pow_units: str = field(
         init=False,
         metadata={
-            'hdf5_attrs' : HDF5Attrs(
-                name='powerImagePowerUnits',
+            "hdf5_attrs": HDF5Attrs(
+                name="powerImagePowerUnits",
                 units=None,
-                descr='''Units of the power image.''',
-                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+                descr="""Units of the power image.""",
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             )
-        })
+        },
+    )
 
     def __post_init__(self):
         # VALIDATE INPUTS
 
         # validate linear_units
         if not isinstance(self.linear_units, bool):
-            raise TypeError(f'`linear_units` must be bool: {self.linear_units}')
+            raise TypeError(f"`linear_units` must be bool: {self.linear_units}")
 
         # validate nlooks_freq*
-        self._validate_nlooks(self.nlooks_freqa, 'A')
-        self._validate_nlooks(self.nlooks_freqa, 'B')
+        self._validate_nlooks(self.nlooks_freqa, "A")
+        self._validate_nlooks(self.nlooks_freqa, "B")
 
         # validate longest_side_max
         if not isinstance(self.longest_side_max, int):
-            raise TypeError(
-                f'longest_side_max must be a int: {self.longest_side_max}')
+            raise TypeError(f"longest_side_max must be a int: {self.longest_side_max}")
         if self.longest_side_max <= 0:
             raise ValueError(
-                f'`longest_side_max` must be positive: {self.longest_side_max}')
-        
+                f"`longest_side_max` must be positive: {self.longest_side_max}"
+            )
+
         # validate middle_percentile
         if not isinstance(self.middle_percentile, float):
             raise TypeError(
-                f'`middle_percentile` must be float: {self.middle_percentile}')
+                f"`middle_percentile` must be float: {self.middle_percentile}"
+            )
 
         if self.middle_percentile < 0.0 or self.middle_percentile > 100.0:
-            raise TypeError('`middle_percentile` is '
-                f'{self.middle_percentile}, must be in range [0.0, 100.0]')
+            raise TypeError(
+                "`middle_percentile` is "
+                f"{self.middle_percentile}, must be in range [0.0, 100.0]"
+            )
 
         # validate gamma
         if isinstance(self.gamma, float):
-            if (self.gamma < 0.0):
-                raise ValueError('If `gamma` is a float, it must be'
-                                f' non-negative: {self.gamma}')
+            if self.gamma < 0.0:
+                raise ValueError(
+                    "If `gamma` is a float, it must be" f" non-negative: {self.gamma}"
+                )
         elif self.gamma is not None:
-            raise TypeError('`gamma` must be a float or None. '
-                            f'Value: {self.gamma}, Type: {type(self.gamma)}')
+            raise TypeError(
+                "`gamma` must be a float or None. "
+                f"Value: {self.gamma}, Type: {type(self.gamma)}"
+            )
 
         # validate tile_shape
         val = self.tile_shape
         if not isinstance(val, (list, tuple)):
-            raise TypeError(f'`tile_shape` must be a list or tuple: {val}')
+            raise TypeError(f"`tile_shape` must be a list or tuple: {val}")
         if not len(val) == 2:
-            raise TypeError(f'`tile_shape` must have a length of two: {val}')
+            raise TypeError(f"`tile_shape` must have a length of two: {val}")
         if not all(isinstance(e, int) for e in val):
-            raise TypeError(f'`tile_shape` must contain only integers: {val}')
+            raise TypeError(f"`tile_shape` must contain only integers: {val}")
         if any(e < -1 for e in val):
-            raise TypeError(f'Values in `tile_shape` must be >= -1: {val}')
-
+            raise TypeError(f"Values in `tile_shape` must be >= -1: {val}")
 
         # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
-        # This dataclass is frozen to ensure that all inputs are validated, 
+        # This dataclass is frozen to ensure that all inputs are validated,
         # so we need to use object.__setattr__()
 
         # use linear_units to set pow_units
-        object.__setattr__(self, 'pow_units',
-                                 'linear' if self.linear_units else 'dB')
-
+        object.__setattr__(self, "pow_units", "linear" if self.linear_units else "dB")
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','qa_reports','power_image']
-
+        return ["runconfig", "groups", "qa", "qa_reports", "power_image"]
 
     @staticmethod
     def _validate_nlooks(nlooks, freq):
-        '''
+        """
         Raise exception if `nlooks` is not a valid input.
 
         Parameters
         ----------
         nlooks : iterable of int or None
-            Number of looks along each axis of the input array 
+            Number of looks along each axis of the input array
             for the specified frequency.
         freq : str
             The frequency to assign this number of looks to.
             Options: 'A' or 'B'
-        '''
+        """
         if isinstance(nlooks, (list, tuple)):
             if all(isinstance(e, int) for e in nlooks):
                 if any((e < 1) for e in nlooks) or not len(nlooks) == 2:
                     raise TypeError(
-                        f'nlooks_freq{freq.lower()} must be an int or a '
-                        f'sequence of two ints, which are >= 1: {nlooks}')
+                        f"nlooks_freq{freq.lower()} must be an int or a "
+                        f"sequence of two ints, which are >= 1: {nlooks}"
+                    )
         elif nlooks is None:
             # the code will use `longest_side_max` to compute `nlooks` instead.
             pass
         else:
-            raise TypeError('`nlooks` must be of type iterable of int, '
-                            f'or None: {nlooks}')
+            raise TypeError(
+                "`nlooks` must be of type iterable of int, " f"or None: {nlooks}"
+            )
 
 
 @dataclass(frozen=True)
 class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
-    '''
+    """
     Parameters to generate the RSLC or GSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
 
@@ -468,7 +505,7 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         Actual tile shape may be modified by QA to be an integer
         multiple of the number of looks for multilooking, of the
         decimation ratio, etc.
-        Format: (num_rows, num_cols) 
+        Format: (num_rows, num_cols)
         -1 to indicate all rows / all columns (respectively).
 
     Attributes
@@ -480,78 +517,88 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     phs_bin_edges : numpy.ndarray
         The bin edges (including endpoint) to use when computing
         the phase histograms.
-        If `phs_in_radians` is True, this will be set to 100 
+        If `phs_in_radians` is True, this will be set to 100
         uniformly-spaced bins in range [-pi,pi], including endpoint.
         If `phs_in_radians` is False, this will be set to 100
         uniformly-spaced bins in range [-180,180], including endpoint.
-    '''
+    """
 
     decimation_ratio: Iterable[int] = field(
-        default=(10,10),
+        default=(10, 10),
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='decimation_ratio',
-            descr='''Step size to decimate the input array for computing
+            "yaml_attrs": YamlAttrs(
+                name="decimation_ratio",
+                descr="""Step size to decimate the input array for computing
                 the power and phase histograms.
                 For example, [2,3] means every 2nd azimuth line and
                 every 3rd range sample will be used to compute the histograms.
-                Format: [<azimuth>, <range>]'''),
-        'hdf5_attrs' : HDF5Attrs(
-            name='histogramDecimationRatio',
-            units='unitless',
-            descr='Image decimation strides used to compute power'
-                  ' and phase histograms. Format: [<azimuth>, <range>]',
-            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-        )})
+                Format: [<azimuth>, <range>]""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="histogramDecimationRatio",
+                units="unitless",
+                descr="Image decimation strides used to compute power"
+                " and phase histograms. Format: [<azimuth>, <range>]",
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
 
-    pow_histogram_bin_edges_range: Iterable[Union[int,float]] = field(
-        default=(-80.0,20.0),
+    pow_histogram_bin_edges_range: Iterable[Union[int, float]] = field(
+        default=(-80.0, 20.0),
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='pow_histogram_bin_edges_range',
-            descr='''Range in dB for the power histogram's bin edges. Endpoint will
-                be included. Format: [<starting value>, <endpoint>]'''
-        )})
+            "yaml_attrs": YamlAttrs(
+                name="pow_histogram_bin_edges_range",
+                descr="""Range in dB for the power histogram's bin edges. Endpoint will
+                be included. Format: [<starting value>, <endpoint>]""",
+            )
+        },
+    )
 
     phs_in_radians: bool = field(
         default=True,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='phs_in_radians',
-            descr='''True to compute phase histogram in radians units,
-                False for degrees units.'''
-        )})
+            "yaml_attrs": YamlAttrs(
+                name="phs_in_radians",
+                descr="""True to compute phase histogram in radians units,
+                False for degrees units.""",
+            )
+        },
+    )
 
     tile_shape: Iterable[int] = field(
-        default=(1024,-1),
+        default=(1024, -1),
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='tile_shape',
-            descr='''User-preferred tile shape for processing images by batches.
+            "yaml_attrs": YamlAttrs(
+                name="tile_shape",
+                descr="""User-preferred tile shape for processing images by batches.
                 Actual tile shape may be modified by QA to be an integer
                 multiple of the number of looks for multilooking, of the
                 decimation ratio, etc.
                 Format: [<num_rows>, <num_cols>]
-                -1 to indicate all rows / all columns (respectively).'''
+                -1 to indicate all rows / all columns (respectively).""",
             )
-        })
+        },
+    )
 
     # Auto-generated attributes
     # Power Bin Edges (generated from `pow_histogram_bin_edges_range`)
     pow_bin_edges: ArrayLike = field(
         init=False,
         metadata={
-        'hdf5_attrs' : HDF5Attrs(
-            name='histogramEdgesPower',
-            units='dB',
-            descr='Bin edges (including endpoint) for power histogram',
-            group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-        )})
+            "hdf5_attrs": HDF5Attrs(
+                name="histogramEdgesPower",
+                units="dB",
+                descr="Bin edges (including endpoint) for power histogram",
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            )
+        },
+    )
 
     # Phase bin edges (generated from `phs_in_radians`)
     # Note: `phs_bin_edges` is dependent upon `phs_in_radians` being set
     # first. The value of `phs_bin_edges` can be set in __post_init__,
-    # but the contents of the field metadata cannot be modified 
+    # but the contents of the field metadata cannot be modified
     # after initialization. It raises this error:
     #     TypeError: 'mappingproxy' object does not support item assignment
     # So, use a lambda function; this can be called to generate the correct
@@ -560,17 +607,20 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     phs_bin_edges: ArrayLike = field(
         init=False,
         metadata={
-        'hdf5_attrs_func' : 
-            lambda obj : HDF5Attrs(
-                name='histogramEdgesPhase',
-                units='radians' if obj.phs_in_radians else 'degrees',
-                descr='Bin edges (including endpoint) for phase histogram',
-                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP) \
-            if (isinstance(obj, SLCHistogramParamGroup)) \
-            else nisarqa.raise_(TypeError(
-            f'`obj` is {type(obj)}, but must be type SLCHistogramParamGroup'))
-        })
-
+            "hdf5_attrs_func": lambda obj: HDF5Attrs(
+                name="histogramEdgesPhase",
+                units="radians" if obj.phs_in_radians else "degrees",
+                descr="Bin edges (including endpoint) for phase histogram",
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            )
+            if (isinstance(obj, SLCHistogramParamGroup))
+            else nisarqa.raise_(
+                TypeError(
+                    f"`obj` is {type(obj)}, but must be type SLCHistogramParamGroup"
+                )
+            )
+        },
+    )
 
     def __post_init__(self):
         # VALIDATE INPUTS
@@ -578,75 +628,85 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         # validate decimation_ratio
         val = self.decimation_ratio
         if not isinstance(val, (list, tuple)):
-            raise TypeError(f'`decimation_ratio` must be list or tuple: {val}')
+            raise TypeError(f"`decimation_ratio` must be list or tuple: {val}")
         if not len(val) == 2:
-            raise ValueError(f'`decimation_ratio` must have length of 2: {val}')
+            raise ValueError(f"`decimation_ratio` must have length of 2: {val}")
         if not all(isinstance(e, int) for e in val):
-            raise TypeError(f'`decimation_ratio` must contain integers: {val}')
+            raise TypeError(f"`decimation_ratio` must contain integers: {val}")
         if any(e <= 0 for e in val):
-            raise ValueError(
-                f'`decimation_ratio` must contain positive values: {val}')
+            raise ValueError(f"`decimation_ratio` must contain positive values: {val}")
 
         # Validate pow_histogram_bin_edges_range
         val = self.pow_histogram_bin_edges_range
         if not isinstance(val, (list, tuple)):
-            raise TypeError('`pow_histogram_bin_edges_range` must'
-                            f' be a list or tuple: {val}')
+            raise TypeError(
+                "`pow_histogram_bin_edges_range` must" f" be a list or tuple: {val}"
+            )
         if not len(val) == 2:
-            raise ValueError('`pow_histogram_bin_edges_range` must'
-                            f' have a length of two: {val}')
+            raise ValueError(
+                "`pow_histogram_bin_edges_range` must" f" have a length of two: {val}"
+            )
         if not all(isinstance(e, (int, float)) for e in val):
-            raise TypeError('`pow_histogram_bin_edges_range` must'
-                            f' contain only int or float values: {val}')
+            raise TypeError(
+                "`pow_histogram_bin_edges_range` must"
+                f" contain only int or float values: {val}"
+            )
         if val[0] >= val[1]:
             raise ValueError(
-                '`pow_histogram_bin_edges_range` has format '
-                f'[<starting value>, <endpoint>] where <starting value> '
-                f'must be less than <ending value>: {val}')
+                "`pow_histogram_bin_edges_range` has format "
+                f"[<starting value>, <endpoint>] where <starting value> "
+                f"must be less than <ending value>: {val}"
+            )
 
         # validate phs_in_radians
         if not isinstance(self.phs_in_radians, bool):
-            raise TypeError(f'phs_in_radians` must be bool: {val}')
+            raise TypeError(f"phs_in_radians` must be bool: {val}")
 
         # validate tile_shape
         val = self.tile_shape
         if not isinstance(val, (list, tuple)):
-            raise TypeError(f'`tile_shape` must be a list or tuple: {val}')
+            raise TypeError(f"`tile_shape` must be a list or tuple: {val}")
         if not len(val) == 2:
-            raise TypeError(f'`tile_shape` must have a length of two: {val}')
+            raise TypeError(f"`tile_shape` must have a length of two: {val}")
         if not all(isinstance(e, int) for e in val):
-            raise TypeError(f'`tile_shape` must contain only integers: {val}')
+            raise TypeError(f"`tile_shape` must contain only integers: {val}")
         if any(e < -1 for e in val):
-            raise TypeError(f'Values in `tile_shape` must be >= -1: {val}')
-
+            raise TypeError(f"Values in `tile_shape` must be >= -1: {val}")
 
         # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
-        # This dataclass is frozen to ensure that all inputs are validated, 
+        # This dataclass is frozen to ensure that all inputs are validated,
         # so we need to use object.__setattr__()
 
         # Set attributes dependent upon pow_histogram_bin_edges_range
         # Power Bin Edges - hardcode to be in decibels
         # 101 bin edges => 100 bins
-        object.__setattr__(self, 'pow_bin_edges',
-                           np.linspace(self.pow_histogram_bin_edges_range[0],
-                                       self.pow_histogram_bin_edges_range[1],
-                                       num=101,
-                                       endpoint=True))
-  
+        object.__setattr__(
+            self,
+            "pow_bin_edges",
+            np.linspace(
+                self.pow_histogram_bin_edges_range[0],
+                self.pow_histogram_bin_edges_range[1],
+                num=101,
+                endpoint=True,
+            ),
+        )
+
         # Set attributes dependent upon phs_in_radians
         start, stop = (-np.pi, np.pi) if self.phs_in_radians else (-180, 180)
-        object.__setattr__(self, 'phs_bin_edges', 
-            np.linspace(start=start, stop=stop, num=101, endpoint=True))
-
+        object.__setattr__(
+            self,
+            "phs_bin_edges",
+            np.linspace(start=start, stop=stop, num=101, endpoint=True),
+        )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','qa_reports','histogram']
+        return ["runconfig", "groups", "qa", "qa_reports", "histogram"]
 
 
 @dataclass(frozen=True)
 class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
-    '''
+    """
     Parameters from the QA-CalTools Absolute Radiometric Calibration
     runconfig group.
 
@@ -654,44 +714,44 @@ class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
     ----------
     attr1 : float, optional
         Placeholder Attribute 1.
-    '''
-    
+    """
+
     # Attributes
     attr1: float = field(
         default=2.3,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='attr1',
-            descr='''Placeholder: Attribute 1 description for runconfig.
+            "yaml_attrs": YamlAttrs(
+                name="attr1",
+                descr="""Placeholder: Attribute 1 description for runconfig.
             Each new line of text will be a separate line in the runconfig
-            template. `attr1` is a non-negative float value.'''
-        ),
-        'hdf5_attrs' : HDF5Attrs(
-            name='attribute1',
-            units='smoot',
-            descr='Description of `attr1` for stats.h5 file',
-            group_path=nisarqa.STATS_H5_ABSCAL_PROCESSING_GROUP
-        )})
-
+            template. `attr1` is a non-negative float value.""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="attribute1",
+                units="smoot",
+                descr="Description of `attr1` for stats.h5 file",
+                group_path=nisarqa.STATS_H5_ABSCAL_PROCESSING_GROUP,
+            ),
+        },
+    )
 
     def __post_init__(self):
         # validate all attributes in __post_init__
 
         # validate attr1
         if not isinstance(self.attr1, float):
-            raise TypeError(f'`attr1` must be a float: {self.attr1}')
+            raise TypeError(f"`attr1` must be a float: {self.attr1}")
         if self.attr1 < 0:
-            raise TypeError(f'`attr1` must be positive: {self.attr1}')
-
+            raise TypeError(f"`attr1` must be positive: {self.attr1}")
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','absolute_radiometric_calibration']
+        return ["runconfig", "groups", "qa", "absolute_radiometric_calibration"]
 
 
 @dataclass(frozen=True)
 class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
-    '''
+    """
     Parameters from the QA-CalTools Noise Estimator (NET) runconfig group.
 
     Parameters
@@ -703,108 +763,110 @@ class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
     ----------
     attr2 : Param
         Placeholder parameter of type bool. This is set based on `attr1`.
-    '''
+    """
 
     # Attributes for running the NET workflow
     attr1: float = field(
         default=11.9,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='attr1',
-            descr=f'''Placeholder: Attribute 1 description for runconfig.
+            "yaml_attrs": YamlAttrs(
+                name="attr1",
+                descr=f"""Placeholder: Attribute 1 description for runconfig.
             Each new line of text will be a separate line in the runconfig
             template. The Default value will be auto-appended to this
             description by the QA code during generation of the template.
-            `attr1` is a positive float value.'''
-        )})
+            `attr1` is a positive float value.""",
+            )
+        },
+    )
 
     # Auto-generated attributes. Set init=False for auto-generated attributes.
     # attr2 is dependent upon attr1
     attr2: bool = field(
         init=False,
         metadata={
-        'hdf5_attrs' : HDF5Attrs(
-            name='attribute2',
-            units='parsecs',
-            descr='True if K-run was less than 12.0',
-            group_path=nisarqa.STATS_H5_NOISE_EST_PROCESSING_GROUP
-        )})
-
+            "hdf5_attrs": HDF5Attrs(
+                name="attribute2",
+                units="parsecs",
+                descr="True if K-run was less than 12.0",
+                group_path=nisarqa.STATS_H5_NOISE_EST_PROCESSING_GROUP,
+            )
+        },
+    )
 
     def __post_init__(self):
         # VALIDATE INPUTS
 
         # Validate attr1
         if not isinstance(self.attr1, float):
-            raise TypeError(f'`attr1` must be a float: {self.attr1}')
+            raise TypeError(f"`attr1` must be a float: {self.attr1}")
         if self.attr1 < 0.0:
-            raise TypeError(f'`attr1` must be postive: {self.attr1}')
-
+            raise TypeError(f"`attr1` must be postive: {self.attr1}")
 
         # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
-        # This dataclass is frozen to ensure that all inputs are validated, 
+        # This dataclass is frozen to ensure that all inputs are validated,
         # so we need to use object.__setattr__()
 
         # set attr2 based on attr1
-        object.__setattr__(self, 'attr2', (self.attr1 < 12.0))
-
+        object.__setattr__(self, "attr2", (self.attr1 < 12.0))
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','noise_estimation']
+        return ["runconfig", "groups", "qa", "noise_estimation"]
 
 
 @dataclass(frozen=True)
 class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
-    '''
+    """
     Parameters from the QA-CalTools Point Target Analyzer runconfig group.
 
     Parameters
     ----------
     attr1 : float, optional
         Placeholder Attribute 1.
-    '''
+    """
 
     attr1: float = field(
         default=2300.5,
         metadata={
-        'yaml_attrs' : YamlAttrs(
-            name='attr1',
-            descr='''Placeholder: Attribute 1 description for runconfig.
+            "yaml_attrs": YamlAttrs(
+                name="attr1",
+                descr="""Placeholder: Attribute 1 description for runconfig.
             Each new line of text will be a separate line in the runconfig
             template.
-            `attr1` is a non-negative float value.'''
-        ),
-        'hdf5_attrs' : HDF5Attrs(
-            name='attribute1',
-            units='beard-second',
-            descr='Description of `attr1` for stats.h5 file',
-            group_path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP
-        )})
-
+            `attr1` is a non-negative float value.""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="attribute1",
+                units="beard-second",
+                descr="Description of `attr1` for stats.h5 file",
+                group_path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP,
+            ),
+        },
+    )
 
     def __post_init__(self):
         # validate attr1
         if not isinstance(self.attr1, float):
-            raise TypeError(f'`attr1` must be a float: {self.attr1}')
+            raise TypeError(f"`attr1` must be a float: {self.attr1}")
         if self.attr1 < 0.0:
-            raise TypeError(f'`attr1` must be non-negative: {self.attr1}')
+            raise TypeError(f"`attr1` must be non-negative: {self.attr1}")
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ['runconfig','groups','qa','point_target_analyzer']
+        return ["runconfig", "groups", "qa", "point_target_analyzer"]
 
 
 @dataclass
 class RSLCRootParamGroup(RootParamGroup):
-    '''
+    """
     Dataclass of all *ParamGroup objects to process QA for NISAR RSLC products.
 
     `workflows` is the only required parameter; this *ParamGroup contains
     boolean attributes that indicate which QA workflows to run.
-    
+
     All other parameters are optional, but they each correspond to (at least)
-    one of the QA workflows. Based on the workflows set to True in 
+    one of the QA workflows. Based on the workflows set to True in
     `workflows`, certain others of these parameters will become required.
 
     Parameters
@@ -827,7 +889,7 @@ class RSLCRootParamGroup(RootParamGroup):
         Noise Estimation Tool group parameters for RSLC QA-Caltools
     pta : PointTargetAnalyzerParamGroup or None, optional
         Point Target Analyzer group parameters for RSLC QA-Caltools
-    '''
+    """
 
     # Shared parameters
     workflows: RSLCWorkflowsParamGroup  # overwrite parent's `workflows` b/c new type
@@ -844,73 +906,81 @@ class RSLCRootParamGroup(RootParamGroup):
     noise_estimation: Optional[NoiseEstimationParamGroup] = None
     pta: Optional[PointTargetAnalyzerParamGroup] = None
 
-
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
         Grp = RootParamGroup.ReqParamGrp  # class object for our named tuple
 
-        flag_any_workflows_true = any([getattr(workflows, field.name) \
-                            for field in fields(workflows)])
+        flag_any_workflows_true = any(
+            [getattr(workflows, field.name) for field in fields(workflows)]
+        )
 
         grps_to_parse = (
-            Grp(flag_param_grp_req=flag_any_workflows_true, 
-                root_param_grp_attr_name='input_f',
-                param_grp_cls_obj=InputFileGroupParamGroup),
-
-            Grp(flag_param_grp_req=flag_any_workflows_true, 
-                root_param_grp_attr_name='prodpath',
-                param_grp_cls_obj=ProductPathGroupParamGroup),
-
-            Grp(flag_param_grp_req=workflows.qa_reports, 
-                root_param_grp_attr_name='power_img',
-                param_grp_cls_obj=SLCPowerImageParamGroup),
-
-            Grp(flag_param_grp_req=workflows.qa_reports, 
-                root_param_grp_attr_name='histogram',
-                param_grp_cls_obj=SLCHistogramParamGroup),
-
-            Grp(flag_param_grp_req=workflows.abs_cal, 
-                root_param_grp_attr_name='abs_cal',
-                param_grp_cls_obj=AbsCalParamGroup),
-
-            Grp(flag_param_grp_req= \
-                    workflows.abs_cal or workflows.point_target, 
-                root_param_grp_attr_name='anc_files',
-                param_grp_cls_obj=DynamicAncillaryFileParamGroup),
-
-            Grp(flag_param_grp_req=workflows.noise_estimation, 
-                root_param_grp_attr_name='noise_estimation',
-                param_grp_cls_obj=NoiseEstimationParamGroup),
-
-            Grp(flag_param_grp_req=workflows.point_target, 
-                root_param_grp_attr_name='pta',
-                param_grp_cls_obj=PointTargetAnalyzerParamGroup)
-            )
+            Grp(
+                flag_param_grp_req=flag_any_workflows_true,
+                root_param_grp_attr_name="input_f",
+                param_grp_cls_obj=InputFileGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=flag_any_workflows_true,
+                root_param_grp_attr_name="prodpath",
+                param_grp_cls_obj=ProductPathGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="power_img",
+                param_grp_cls_obj=SLCPowerImageParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="histogram",
+                param_grp_cls_obj=SLCHistogramParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.abs_cal,
+                root_param_grp_attr_name="abs_cal",
+                param_grp_cls_obj=AbsCalParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.abs_cal or workflows.point_target,
+                root_param_grp_attr_name="anc_files",
+                param_grp_cls_obj=DynamicAncillaryFileParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.noise_estimation,
+                root_param_grp_attr_name="noise_estimation",
+                param_grp_cls_obj=NoiseEstimationParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.point_target,
+                root_param_grp_attr_name="pta",
+                param_grp_cls_obj=PointTargetAnalyzerParamGroup,
+            ),
+        )
 
         return grps_to_parse
-
 
     @staticmethod
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (InputFileGroupParamGroup,
-                DynamicAncillaryFileParamGroup,
-                ProductPathGroupParamGroup,
-                RSLCWorkflowsParamGroup,
-                SLCPowerImageParamGroup,
-                SLCHistogramParamGroup,
-                AbsCalParamGroup,
-                NoiseEstimationParamGroup,
-                PointTargetAnalyzerParamGroup
-                )
+        return (
+            InputFileGroupParamGroup,
+            DynamicAncillaryFileParamGroup,
+            ProductPathGroupParamGroup,
+            RSLCWorkflowsParamGroup,
+            SLCPowerImageParamGroup,
+            SLCHistogramParamGroup,
+            AbsCalParamGroup,
+            NoiseEstimationParamGroup,
+            PointTargetAnalyzerParamGroup,
+        )
 
 
 # TODO - move to nisar_params.py module
 def build_root_params(product_type, user_rncfg):
-    '''
+    """
     Build the *RootParamGroup object for the specified product type.
-    
+
     Parameters
     ----------
     product_type : str
@@ -918,78 +988,82 @@ def build_root_params(product_type, user_rncfg):
     root_param_group : dict
         A dictionary of parameters; the structure if this dict must match
         the QA runconfig file for the specified `product_type`.
-    
+
     Returns
     -------
     root_params : RSLCRootParamGroup
-        *RootParamGroup object for the specified product type. This will be 
+        *RootParamGroup object for the specified product type. This will be
         populated with runconfig values where provided,
         and default values for missing runconfig parameters.
-    '''
+    """
     if product_type not in nisarqa.LIST_OF_NISAR_PRODUCTS:
-        raise ValueError(f'`product_type` is {product_type}; must one of:'
-                         f' {nisarqa.LIST_OF_NISAR_PRODUCTS}')
+        raise ValueError(
+            f"`product_type` is {product_type}; must one of:"
+            f" {nisarqa.LIST_OF_NISAR_PRODUCTS}"
+        )
 
-    if product_type == 'rslc':
+    if product_type == "rslc":
         workflows_param_cls_obj = RSLCWorkflowsParamGroup
         root_param_class_obj = RSLCRootParamGroup
-    elif product_type == 'gslc':
+    elif product_type == "gslc":
         workflows_param_cls_obj = WorkflowsParamGroup
         root_param_class_obj = nisarqa.GSLCRootParamGroup
     else:
-        raise NotImplementedError(
-            f'{product_type} code not implemented yet.')
-        
+        raise NotImplementedError(f"{product_type} code not implemented yet.")
+
     # Dictionary to hold the *ParamGroup objects. Will be used as
     # kwargs for the *RootParamGroup instance.
     root_inputs = {}
 
     # Construct *WorkflowsParamGroup dataclass (necessary for all workflows)
     try:
-        root_inputs['workflows'] = \
-            _get_param_group_instance_from_runcfg(
-                param_grp_cls_obj=workflows_param_cls_obj,
-                user_rncfg=user_rncfg)
+        root_inputs["workflows"] = _get_param_group_instance_from_runcfg(
+            param_grp_cls_obj=workflows_param_cls_obj, user_rncfg=user_rncfg
+        )
 
     except KeyError as e:
-        raise KeyError('`workflows` group is a required runconfig group') from e
+        raise KeyError("`workflows` group is a required runconfig group") from e
 
     # If all functionality is off (i.e. all workflows are set to false),
     # then exit early. We will not need any of the other runconfig groups.
-    if not root_inputs['workflows'].at_least_one_wkflw_requested():
-        raise nisarqa.ExitEarly('All `workflows` were set to False.')
+    if not root_inputs["workflows"].at_least_one_wkflw_requested():
+        raise nisarqa.ExitEarly("All `workflows` were set to False.")
 
-    workflows = root_inputs['workflows']
+    workflows = root_inputs["workflows"]
 
-    wkflws2params_mapping = \
-        root_param_class_obj.get_mapping_of_workflows2param_grps(
-                                                        workflows=workflows)
+    wkflws2params_mapping = root_param_class_obj.get_mapping_of_workflows2param_grps(
+        workflows=workflows
+    )
 
     for param_grp in wkflws2params_mapping:
         if param_grp.flag_param_grp_req:
             try:
-                root_inputs[param_grp.root_param_grp_attr_name] = \
-                    _get_param_group_instance_from_runcfg(
-                        param_grp_cls_obj=param_grp.param_grp_cls_obj,
-                        user_rncfg=user_rncfg)
+                root_inputs[
+                    param_grp.root_param_grp_attr_name
+                ] = _get_param_group_instance_from_runcfg(
+                    param_grp_cls_obj=param_grp.param_grp_cls_obj, user_rncfg=user_rncfg
+                )
 
             # Some custom exception handling, such as to help make errors
             # from missing required input files less cryptic.
             except KeyError as e:
-                if (product_type == 'rslc') \
-                    and (param_grp.root_param_grp_attr_name == 'input_f'):
-
+                if (product_type == "rslc") and (
+                    param_grp.root_param_grp_attr_name == "input_f"
+                ):
                     raise KeyError(
-                    '`*qa_input_file` is a required runconfig parameter') from e
+                        "`*qa_input_file` is a required runconfig parameter"
+                    ) from e
                 else:
                     raise e
             except TypeError as e:
-                if (product_type == 'rslc') \
-                    and (param_grp.root_param_grp_attr_name == 'anc_files'):
-
-                    raise KeyError('`corner_reflector_file` is a required '
-                        'runconfig parameter for Absolute Radiometric '
-                        'Calibration or Point Target Analyzer workflows') from e
+                if (product_type == "rslc") and (
+                    param_grp.root_param_grp_attr_name == "anc_files"
+                ):
+                    raise KeyError(
+                        "`corner_reflector_file` is a required "
+                        "runconfig parameter for Absolute Radiometric "
+                        "Calibration or Point Target Analyzer workflows"
+                    ) from e
                 else:
                     raise e
 
@@ -1001,12 +1075,12 @@ def build_root_params(product_type, user_rncfg):
 
 # TODO - move to generic NISAR module
 def _get_param_group_instance_from_runcfg(
-        param_grp_cls_obj: Type[YamlParamGroup],
-        user_rncfg: Optional[dict] = None):
-    '''
+    param_grp_cls_obj: Type[YamlParamGroup], user_rncfg: Optional[dict] = None
+):
+    """
     Generate an instance of a YamlParamGroup subclass) object
     where the values from a user runconfig take precedence.
-    
+
     Parameters
     ----------
     param_grp_cls_obj : Type[YamlParamGroup]
@@ -1019,7 +1093,7 @@ def _get_param_group_instance_from_runcfg(
         into a dict would be a perfect input for `user_rncfg`.
         The nested structure of `user_rncfg` must match the structure
         of the QA runconfig yaml file for this parameter group.
-        To see the expected yaml structure for e.g. RSLC, run  
+        To see the expected yaml structure for e.g. RSLC, run
         `nisarqa dumpconfig rslc` from the command line.
         If `user_rncfg` contains entries that do not correspond to attributes
         in `param_grp_cls_obj`, they will be ignored.
@@ -1034,7 +1108,7 @@ def _get_param_group_instance_from_runcfg(
         An instance of `param_grp_cls_obj` that is fully instantiated
         using default values and the arguments provided in `user_rncfg`.
         The values in `user_rncfg` have precedence over the defaults.
-    '''
+    """
 
     if not user_rncfg:
         # If user_rncfg is None or is an empty dict, then return the default
@@ -1044,8 +1118,7 @@ def _get_param_group_instance_from_runcfg(
     rncfg_path = param_grp_cls_obj.get_path_to_group_in_runconfig()
 
     try:
-        runcfg_grp_dict = nisarqa.get_nested_element_in_dict(user_rncfg, 
-                                                            rncfg_path)
+        runcfg_grp_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
     except KeyError:
         # Group was not found, so construct an instance using all defaults.
         # If a dataclass has a required parameter, this will (correctly)
@@ -1058,10 +1131,11 @@ def _get_param_group_instance_from_runcfg(
         # prune extraneous fields from the runconfig group
         # (aka keep only the runconfig fields that are relevant to QA)
         # The "if..." logic will allow us to skip missing runconfig fields.
-        user_input_args = \
-            {cls_attr_name : runcfg_grp_dict[yaml_name] \
-                for cls_attr_name, yaml_name in yaml_names.items() 
-                    if yaml_name in runcfg_grp_dict}
+        user_input_args = {
+            cls_attr_name: runcfg_grp_dict[yaml_name]
+            for cls_attr_name, yaml_name in yaml_names.items()
+            if yaml_name in runcfg_grp_dict
+        }
 
         return param_grp_cls_obj(**user_input_args)
 

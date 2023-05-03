@@ -6,25 +6,26 @@ import nisarqa
 
 objects_to_skip = nisarqa.get_all(__name__)
 
+
 def multilook(arr, nlooks):
-    '''
+    """
     Multilook an array by simple averaging.
-    
+
     Performs spatial averaging and decimation. Each element in the output array is the
     arithmetic mean of neighboring cells in the input array.
 
     Parameters
     ----------
-    arr : numpy.ndarray 
+    arr : numpy.ndarray
         1D or 2D Input array with a dtype of float. Invalid values should be np.nan.
     nlooks : int or iterable of int
         Number of looks along each axis of the input array.
-    
+
     Returns
     -------
     out : numpy.ndarray
         Multilooked array.
-    
+
     Notes
     -----
     If the length of the input array along a given axis is not evenly divisible by the
@@ -33,11 +34,11 @@ def multilook(arr, nlooks):
 
     If a cell in the input array is nan (invalid), then the corresponding cell in the
     output array will also be nan.
-    '''
+    """
 
     # Step 1: Prepare and validate the inputs
     if arr.ndim not in (1, 2):
-        raise ValueError(f'Input array has {arr.ndim} but must be 1D or 2D.')
+        raise ValueError(f"Input array has {arr.ndim} but must be 1D or 2D.")
     nisarqa.verify_real_or_complex_dtype(arr)
     nlooks = normalize_nlooks(nlooks, arr)
     validate_nlooks(nlooks, arr)
@@ -50,10 +51,10 @@ def multilook(arr, nlooks):
     # cells within each multilook window.
 
     # Step 3.1: take a view without the 'uneven edges' beyond even multiples of nlooks
-    valid_portion = arr[:out_shape[0]*nlooks[0], : out_shape[1]*nlooks[1]]
+    valid_portion = arr[: out_shape[0] * nlooks[0], : out_shape[1] * nlooks[1]]
 
     # Step 3.2: sum across Axis 1 first. (Idea: collapsing vertical blinds).
-    # This takes advantage of numpy's row-major order and vectorization 
+    # This takes advantage of numpy's row-major order and vectorization
     # to get a performance boost.
 
     # Step 3.2.1: Create a list of axis 1 indices at the start of each multilook window
@@ -87,8 +88,8 @@ def normalize_nlooks(nlooks, arr):
         nlooks = tuple([int(n) for n in nlooks])
         if len(nlooks) != arr.ndim:
             raise ValueError(
-                f'length mismatch: length of nlooks ({len(nlooks)}) must match input'
-                f' array rank ({arr.ndim})'
+                f"length mismatch: length of nlooks ({len(nlooks)}) must match input"
+                f" array rank ({arr.ndim})"
             )
 
     return nlooks
@@ -99,32 +100,30 @@ def validate_nlooks(nlooks, arr):
     # along the corresponding axis.
     for m, n in zip(arr.shape, nlooks):
         if n < 1:
-            raise ValueError('number of looks must be >= 1')
+            raise ValueError("number of looks must be >= 1")
         elif n > m:
-            raise ValueError('number of looks should not exceed array shape')
+            raise ValueError("number of looks should not exceed array shape")
 
     # Warn if the array shape is not an integer multiple of `nlooks`. Warn at most once
     # (even if multiple axes have this issue).
     for m, n in zip(arr.shape, nlooks):
         if m % n != 0:
             warnings.warn(
-                'input array shape is not an integer multiple of nlooks -- remainder'
-                ' samples will be excluded from output',
+                "input array shape is not an integer multiple of nlooks -- remainder"
+                " samples will be excluded from output",
                 RuntimeWarning,
             )
             break
 
 
-def compute_square_pixel_nlooks(img_shape,
-                                sample_spacing,
-                                longest_side_max=2048):
-    '''
+def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048):
+    """
     Computes the nlooks values required to achieve approx. square pixels
     in a multilooked image.
 
     `nlooks` values will be rounded to the nearest odd value to maintain
     the same coordinate grid as the array that will be multilooked.
-    Using an even-valued 'look' would cause the multilooked image's 
+    Using an even-valued 'look' would cause the multilooked image's
     coordinates to be shifted a half-pixel from the source image's coordinates.
 
     Parameters
@@ -184,7 +183,7 @@ def compute_square_pixel_nlooks(img_shape,
           rounded to the nearest odd integer for final output.
         - ky : number of looks in the Y direction
         - kx : number of looks in the X direction
-           
+
     Problem Setup:
     (1) dy * ky = dy_1      # Y sample spacing is scaled by nlooks
     (2) dx * kx = dx_1      # X sample spacing is scaled by nlooks
@@ -204,18 +203,19 @@ def compute_square_pixel_nlooks(img_shape,
     (11.5) kx = next_greater_odd_int(kx)  # nlooks values are int
 
     ** `longest_side_max` provides an upper limit on the length of the
-    longest side of the final multilooked image. So, during 
+    longest side of the final multilooked image. So, during
     computation of ky and kx, they will be rounded to the nearest
     odd integer greater than the exact Real solution for ky and kx.
     Rounding up will ensure that we do not exceed `longest_side_max`.
     Rounding to odd values will maintain the same coordinate grid
     as the source image array during multilooking.
-    '''
+    """
 
     for input in (img_shape[0], img_shape[1], longest_side_max):
         if (not isinstance(input, int)) or (input < 1):
-            raise TypeError(f'`Input is type {type(input)} '
-                            f'but must be a positive int: {input}')
+            raise TypeError(
+                f"`Input is type {type(input)} " f"but must be a positive int: {input}"
+            )
 
     # Variables
     M = img_shape[0]  # Y dimension
@@ -247,5 +247,6 @@ def compute_square_pixel_nlooks(img_shape,
     assert M // ky <= longest_side_max
 
     return (ky, kx)
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
