@@ -16,7 +16,6 @@ Python 3.7
 setuptools
 numpy
 matplotlib
-scipy
 h5py
 pillow
 ruamel.yaml

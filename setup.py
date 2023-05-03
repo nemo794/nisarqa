@@ -61,7 +61,6 @@ setup(
         "yamale",
         "cycler",
         "matplotlib",
-        "scipy",
     ],
     cmdclass={
         "clean": CleanCommand,
