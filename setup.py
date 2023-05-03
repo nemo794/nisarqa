@@ -55,13 +55,15 @@ setup(
         "setuptools",
         "numpy",
         "h5py",
-        "pytest",
         "pillow",
         "ruamel.yaml",
         "yamale",
         "cycler",
         "matplotlib",
     ],
+    extras_require={
+        "test": ["pytest"],
+    },
     cmdclass={
         "clean": CleanCommand,
     },
