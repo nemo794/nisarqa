@@ -1,0 +1,5 @@
+# Run this command to always ignore formatting commits in `git blame`
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# Reformatted with Black.
+9323320de3c42ca4903e29ff00ec6484ead3d101
