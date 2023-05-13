@@ -762,7 +762,7 @@ def get_pols(h5_file):
     return pols
 
 
-def _select_layers_for_browse(pols):
+def _select_layers_for_slc_browse(pols):
     """
     Assign the polarization layers in the input file to grayscale or
     RGBA channels for the Browse Image.
@@ -972,6 +972,294 @@ def _select_layers_for_browse(pols):
         )
 
     return layers_for_browse
+
+
+def _select_layers_for_gcov_browse(pols):
+    """
+    Assign the polarization layers in the input file to grayscale or
+    RGBA channels for the GCOV Browse Image.
+
+    Only on-diagonal terms will be used to create the browse image.
+    See `Notes` for details on the possible NISAR modes and assigned channels
+    for LSAR band.
+    SSAR is currently only minimally supported, so only a grayscale image
+    will be created. Prioritization order to select the freq/pol to use:
+        For frequency: Freq A then Freq B.
+        For polarization: 'HHHH', then 'VVVV', then the first polarization found.
+
+
+    Parameters
+    ----------
+    pols : nested dict of GeoRaster
+        Nested dict of GeoRaster objects, where each object represents
+        a polarization dataset in `h5_file`.
+        Format: pols[<band>][<freq>][<pol>] -> a GeoRaster
+        Ex: pols['LSAR']['A']['HHHH'] -> the HHHH dataset, stored
+                                       in a GeoRaster object
+
+    Returns
+    -------
+    layers_for_browse : dict
+        A dictionary containing the channel assignments.
+        For GCOV, either `layers_for_browse['A']` or `layers_for_browse['B']`
+        will exist, but not both. Its structure is:
+
+        layers_for_browse['band']  : str
+                                        Either 'LSAR' or 'SSAR'
+        layers_for_browse['A']     : list of str, optional
+                                        List of the Freq A polarization(s)
+                                        required to create the browse image.
+                                        A subset of:
+                                           nisarqa.GCOV_DIAG_POLS
+        layers_for_browse['B']     : list of str, optional
+                                        List of the Freq B polarizations
+                                        required to create the browse image.
+                                        A subset of nisarqa.GCOV_DIAG_POLS
+
+    Notes
+    -----
+    Unlike RSLC products, the polarizations contained within a GCOV product
+    do not map to the NISAR mode table. For GCOV, The user selects a subset
+    of polarizations of the RSLC to process. With that subset, the GCOV
+    SAS workflow verifies if it should symmetrize the cross-polarimetric
+    channels (HV and VH) into a single cross-polarimetric channel (HV),
+    and also verifies if it should generate the full covariance or only
+    the diagonal terms.
+
+    Usually polarimetric symmetrization is applied; symmetrization
+    joins HV and VH into a single polarimetric channel HV.
+
+    Channel selection:
+    If only one polarization, make that into grayscale.
+    Otherwise, generate an RGB color composition:
+          Red: first available co-pol of the list [HHHH, VVVV]
+          Green: first cross-pol of the list [HVHV, VHVH]
+          Blue: last co-pol of the list [HHHH, VVVV]
+
+    GCOV and RTC-S1 pixels are square on the ground, so the multilooking factor
+    is the same in both directions, depending only in the expected output dimensions.
+
+    """
+
+    layers_for_browse = {}
+
+    # Determine which band to use. LSAR has priority over SSAR.
+    bands = list(pols)
+    if "LSAR" in bands:
+        layers_for_browse["band"] = "LSAR"
+    elif "SSAR" in bands:
+        layers_for_browse["band"] = "SSAR"
+    else:
+        raise ValueError(f'Only "LSAR" and "SSAR" bands are supported: {band}')
+
+    band = bands[0]
+
+    # Check that the correct frequencies are available
+    if not set(pols[band].keys()).issubset({"A", "B"}):
+        raise ValueError(
+            f"`pols['{band}']` contains {set(pols[band].keys())}"
+            ", but must be a subset of {'A', 'B'}"
+        )
+
+    # Get the frequency sub-band containing science mode data.
+    # This is always frequency A if present, otherwise B.
+    freq = "A" if ("A" in pols[band]) else "B"
+
+    # SSAR is not fully supported by QA, so just make a simple grayscale
+    if band == "SSAR":
+        # Prioritize Co-Pol
+        if "HHHH" in pols[band][freq]:
+            layers_for_browse[freq] = ["HHHH"]
+        elif "VVVV" in pols[band][freq]:
+            layers_for_browse[freq] = ["VVVV"]
+        else:
+            # Take the first available on-diagonal term
+            for pol in nisarqa.GCOV_DIAG_POLS:
+                if pol in pols[band][freq]:
+                    layers_for_browse[freq] = [pol]
+                break
+            else:
+                # Take first available pol, even if it is an off-diagonal term
+                layers_for_browse[freq] = [pols[band][freq][0]]
+
+        return layers_for_browse
+
+    # The input file contains LSAR data. Will need to make
+    # grayscale/RGB channel assignments
+
+    # Get the available polarizations
+    available_pols = list(pols[band][freq])
+
+    # Keep only the on-diagonal polarizations
+    # (On-diagonal terms have the same first two letters as second two letters,
+    # e.g. HVHV or VVVV.)
+    available_pols = [p for p in available_pols if (p[0:2] == p[2:4])]
+    n_pols = len(available_pols)
+
+    # Sanity check: There should always be on-diag pols for GCOV
+    if n_pols == 0:
+        raise ValueError("No on-diagonal polarizations found in input GCOV.")
+
+    # Sanity Check - make sure all on-diag terms from the input products
+    # are listed in the nisarqa.GCOV_DIAG_TERMS constant
+    assert all((p in nisarqa.GCOV_DIAG_POLS) for p in available_pols)
+
+    if n_pols == 1:
+        # Only one image; it will be grayscale
+        layers_for_browse[freq] = available_pols
+
+    elif all(p.startswith(("R", "L")) for p in available_pols):
+        # Only compact pol(s) are available. Create grayscale.
+        # Per the Prioritization Order, use first available polarization
+        for pol in ("RHRH", "RVRV", "LHLH", "LVLV"):
+            if pol in available_pols:
+                layers_for_browse[freq] = [pol]
+                break
+        else:
+            # Use first available pol
+            layers_for_browse[freq] = [available_pols[0]]
+
+        assert len(layers_for_browse[freq]) == 1
+
+    else:
+        # Only keep "HHHH", "HVHV", "VHVH", "VVVV".
+        # (This will implicitly remove any extraneous e.g. compact pol terms.)
+        keep = [p for p in available_pols if (p in ("HHHH", "HVHV", "VHVH", "VVVV"))]
+
+        # Sanity Check
+        assert len(keep) >= 1
+
+        # If both cross-pol terms are available, only keep one
+        if ("HVHV" in keep) and ("VHVH" in keep):
+            if ("VVVV" in keep) and not ("HHHH" in keep):
+                # Only VVVV is in keep, and not HHHH. So, prioritize
+                # keeping VHVH with VVVV.
+                keep.remove("HVHV")
+            else:
+                # prioritize keeping "HVHV"
+                keep.remove("VHVH")
+
+        layers_for_browse[freq] = keep
+
+    # Sanity Checks
+    if ("A" not in layers_for_browse) and ("B" not in layers_for_browse):
+        raise ValueError(
+            "Input file must contain either Frequency A or Frequency B iamges."
+        )
+
+    if len(layers_for_browse[freq]) == 0:
+        raise ValueError(
+            f"The input file's Frequency {freq} group does not contain "
+            "the expected polarization names."
+        )
+
+    return layers_for_browse
+
+
+def _save_gcov_browse_img(pol_imgs, filepath):
+    """
+    Save the given polarization images to a RGB or Grayscale PNG with
+    transparency.
+
+    Output browse image will be keep the same pixel dimensions as the
+    input polarization image(s). Non-finite values will be made transparent.
+
+    Color Channels will be assigned per the following pseudocode:
+
+        If pol_imgs.keys() contains only one image, then:
+            grayscale = <that image>
+
+        Else:
+            Red: first available co-pol of the list [HHHH, VVVV]
+            Green: first of the list [HVHV, VHVH, VVVV]
+            if Green is VVVV:
+                Blue: HHHH
+            else:
+                Blue: first co-pol of the list [VVVV, HHHH]
+
+    Parameters
+    ----------
+    pol_imgs : dict of numpy.ndarray
+        Dictionary of 2D array(s) that will be mapped to specific color
+        channel(s) for the output browse PNG.
+        If there are multiple image arrays, they must have identical shape.
+        Format of dictionary:
+            pol_imgs[<polarization>] : <2D numpy.ndarray image>, where
+                <polarization> is a subset of: 'HHHH', 'HVHV', 'VVVV', 'VHVH',
+                                               'RHRH', 'RVRV', 'LVLV', 'LHLH'
+        Example:
+            pol_imgs['HHHH'] : <2D numpy.ndarray image>
+            pol_imgs['VVVV'] : <2D numpy.ndarray image>
+    filepath : str
+        Full filepath for where to save the browse image PNG.
+
+    Notes
+    -----
+    Provided image array(s) must previously be image-corrected. This
+    function will take the image array(s) as-is and will not apply additional
+    image correction processing to them. This function directly combines
+    the image(s) into a single browse image.
+
+    If there are multiple input images, they must be thoughtfully prepared and
+    standardized relative to each other prior to use by this function.
+    For example, trying to combine a Freq A 20 MHz image
+    and a Freq B 5 MHz image into the same output browse image might not go
+    well, unless the image arrays were properly prepared and standardized
+    in advance.
+    """
+
+    # WLOG, get the shape of the image arrays
+    # They should all be the same shape; the check for this is below.
+    first_img = next(iter(pol_imgs.values()))
+    img_2D_shape = np.shape(first_img)
+    for img in pol_imgs.values():
+        # Input validation check
+        if np.shape(img) != img_2D_shape:
+            raise ValueError("All image arrays in `pol_imgs` must have the same shape.")
+
+    # Assign channels
+
+    if len(pol_imgs) == 1:
+        # Single pol. Make a grayscale image.
+        plot_to_grayscale_png(img_arr=first_img, filepath=filepath)
+
+        # Return early, so that we do not try to plot to RGB
+        return
+
+    # Set flags to ensure that each RGB channel has an image assigned to it.
+    red, green, blue = False, False, False
+
+    for pol in ["HHHH", "VVVV"]:
+        red = pol_imgs[pol]
+        break
+
+    for pol in ["HVHV", "VHVH", "VVVV"]:
+        green = pol_imgs[pol]
+
+        if pol == "VVVV":
+            blue = pol_imgs["HHHH"]
+        else:
+            for pol2 in ["VVVV", "HHHH"]:
+                blue = pol_imgs[pol2]
+                break
+        break
+
+    # Sanity Check
+    if not all(red, green, blue):
+        # If we get here, then the images provided are not one of the
+        # expected cases. WLOG plot one of the image(s) in `pol_imgs`.
+        warnings.warn(
+            f"The images provided are not one of the expected cases to form "
+            "the GCOV browse image. Grayscale image will be created by default."
+        )
+
+        for gray_img in pol_imgs.values():
+            plot_to_grayscale_png(img_arr=gray_img, filepath=filepath)
+
+        # Return early, so that we do not try to plot to RGB
+        return
+
+    plot_to_rgb_png(red=red, green=green, blue=blue, filepath=filepath)
 
 
 def process_slc_power_images_and_browse(

@@ -36,6 +36,9 @@ NISAR_BANDS = ("LSAR", "SSAR")
 
 NISAR_FREQS = ("A", "B")
 
+GCOV_DIAG_POLS = ("HHHH", "HVHV", "VHVH", "VVVV", "RHRH", "RVRV")
+GCOV_OFF_DIAG_POLS = ("HHHV", "HHVH", "HHVV", "HVVH", "HVVV", "VHVV", "RHRV", "RVRH")
+
 
 def get_possible_pols(product_type):
     """
@@ -61,6 +64,8 @@ def get_possible_pols(product_type):
 
     if product_type.endswith("slc"):
         return ("HH", "VV", "HV", "VH", "RH", "RV", "LH", "LV")
+    elif product_type == "gcov":
+        return GCOV_DIAG_POLS + GCOV_OFF_DIAG_POLS
     else:
         raise NotImplementedError
 
@@ -106,6 +111,8 @@ __all__ = [
     "LIST_OF_NISAR_PRODUCTS",
     "NISAR_BANDS",
     "NISAR_FREQS",
+    "GCOV_DIAG_POLS",
+    "GCOV_OFF_DIAG_POLS",
     "get_possible_pols",
     "STATS_H5_BASE_GROUP",
     "STATS_H5_IDENTIFICATION_GROUP",
