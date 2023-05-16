@@ -113,6 +113,7 @@ from .parameters.constants.stub_outputs import *
 from .parameters.nisar_params import *
 from .parameters.rslc_caltools_params import *
 from .parameters.gslc_params import *
+from .parameters.gcov_params import *
 
 # keep individual products in their own namespace
 from .products import (

@@ -128,6 +128,26 @@ class YamlParamGroup(ABC):
         return yaml_names
 
     @classmethod
+    def get_attribute_metadata(cls, attribute_name):
+        """
+        Get the attribute's field metadata.
+
+        Returns
+        -------
+        metadata : dict
+            Dict mapping class attribute names to runconfig yaml names.
+            Format: {<class_attribute_name> : <YamlAttrs object .name>}
+            Types:  {<str> : <str>}
+        """
+        for field in fields(cls):
+            if attribute_name == field.name:
+                return field.metadata
+        else:
+            raise ValueError(
+                f"{attribute_name=} is not an attribute in {cls.__name__}"
+            )
+
+    @classmethod
     def populate_runcfg(cls, runconfig_cm, indent=4):
         """
         Update the provided ruamel.yaml object with select attributes
@@ -643,7 +663,7 @@ class RootParamGroup(ABC):
             DynamicAncillaryFileParamGroup,
             ProductPathGroupParamGroup,
             RSLCWorkflowsParamGroup,
-            SLCPowerImageParamGroup,
+            PowerImageParamGroup,
             RSLCHistogramParamGroup,
             AbsCalParamGroup,
             NESZParamGroup,

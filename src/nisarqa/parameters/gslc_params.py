@@ -11,8 +11,10 @@ from nisarqa import (
 
 # TODO Remove the rslc_caltools_params imports after re-org of code
 from nisarqa.parameters.rslc_caltools_params import (
-    SLCHistogramParamGroup,
-    SLCPowerImageParamGroup,
+    HistogramParamGroup,
+    InputFileGroupParamGroup,
+    PowerImageParamGroup,
+    ProductPathGroupParamGroup,
 )
 
 objects_to_skip = nisarqa.get_all(__name__)
@@ -38,15 +40,15 @@ class GSLCRootParamGroup(RootParamGroup):
         Input File Group parameters for QA
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for QA
-    power_img : SLCPowerImageParamGroup or None, optional
+    power_img : PowerImageParamGroup or None, optional
         Power Image Group parameters for SLC QA
     histogram : SLCHistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     """
 
     # QA parameters
-    power_img: Optional[SLCPowerImageParamGroup] = None
-    histogram: Optional[SLCHistogramParamGroup] = None
+    power_img: Optional[PowerImageParamGroup] = None
+    histogram: Optional[HistogramParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -70,12 +72,12 @@ class GSLCRootParamGroup(RootParamGroup):
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="power_img",
-                param_grp_cls_obj=SLCPowerImageParamGroup,
+                param_grp_cls_obj=PowerImageParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="histogram",
-                param_grp_cls_obj=nisarqa.SLCHistogramParamGroup,
+                param_grp_cls_obj=nisarqa.HistogramParamGroup,
             ),
         )
 
@@ -89,8 +91,8 @@ class GSLCRootParamGroup(RootParamGroup):
             InputFileGroupParamGroup,
             ProductPathGroupParamGroup,
             WorkflowsParamGroup,
-            SLCPowerImageParamGroup,
-            SLCHistogramParamGroup,
+            PowerImageParamGroup,
+            HistogramParamGroup,
         )
 
 

@@ -1,7 +1,8 @@
 import warnings
 
-import nisarqa
 import numpy as np
+
+import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -164,7 +165,9 @@ def process_arr_by_tiles(
 ###############################################
 
 
-def compute_multilooked_power_by_tiling(arr, nlooks, tile_shape=(512, -1)):
+def compute_multilooked_power_by_tiling(
+    arr, nlooks, square_the_arr_values=False, tile_shape=(512, -1)
+):
     """
     Compute the multilooked power array (linear units) by tiling.
 
@@ -176,6 +179,16 @@ def compute_multilooked_power_by_tiling(arr, nlooks, tile_shape=(512, -1)):
         Number of looks along each axis of the input array to be
         averaged during multilooking.
         Format: (num_rows, num_cols)
+    square_the_arr_values : bool
+        True to square each element in `arr` before multilooking.
+        False to multilook each element as-is.
+        Example: RSLC raster arrays contain values that correspond to
+        magnitude, so `square_the_arr_values` should be set to `True`
+        so that the elements are squared to represent power. In contrast,
+        GCOV raster arrays already represent power (their elements were
+        squared during the formation of the GCOV datasets), so this
+        should be set to `False`.
+        Defaults to `False`.
     tile_shape : tuple of ints
         Shape of each tile to be processed. If `tile_shape` is
         larger than the shape of `arr`, or if the dimensions of `arr`
@@ -253,8 +266,9 @@ def compute_multilooked_power_by_tiling(arr, nlooks, tile_shape=(512, -1)):
 
     # Create an inner function for this use case.
     def calc_power_and_multilook(arr):
-        # Calc power in linear of array
-        out = nisarqa.arr2pow(arr)
+        # square the pixel values (e.g to convert from magnitude to power),
+        # if requested
+        out = nisarqa.arr2pow(arr) if square_the_arr_values else arr
 
         # Multilook
         out = nisarqa.multilook(out, nlooks)

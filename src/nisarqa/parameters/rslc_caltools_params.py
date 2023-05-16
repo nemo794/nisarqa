@@ -9,8 +9,6 @@ import nisarqa
 from nisarqa import (
     HDF5Attrs,
     HDF5ParamGroup,
-    InputFileGroupParamGroup,
-    ProductPathGroupParamGroup,
     RootParamGroup,
     WorkflowsParamGroup,
     YamlAttrs,
@@ -127,7 +125,7 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
 
 # TODO - move to generic SLC module
 @dataclass(frozen=True)
-class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
+class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters to generate RSLC or GSLC Power Images and Browse Image.
 
@@ -146,10 +144,10 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image.
         Superseded by nlooks_freq* parameters. Defaults to 2048 pixels.
-    middle_percentile : float, optional
-        Defines the middle percentile range of the image array
-        that the colormap covers. Must be in the range [0.0, 100.0].
-        Defaults to 90.0.
+    percentile_for_clipping : float, optional
+        Defines the percentile range that the image array will be clipped to
+        and that the colormap covers. Must be in the range [0.0, 100.0].
+        Defaults to [5.0, 95.0].
     gamma : float, None, optional
         The gamma correction parameter.
         Gamma will be applied as follows:
@@ -230,19 +228,19 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
-    middle_percentile: float = field(
-        default=90.0,
+    percentile_for_clipping: float = field(
+        default=(5.0, 95.0),
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="middle_percentile",
-                descr="""The middle percentile range of the image array
-                that the colormap covers. Must be in the range [0.0, 100.0].""",
+                name="percentile_for_clipping",
+                descr="""Percentile range that the image array will be clipped to
+                    and that the colormap covers. Must be in range [0.0, 100.0].""",
             ),
             "hdf5_attrs": HDF5Attrs(
-                name="powerImageMiddlePercentile",
+                name="powerImagePercentileClipped",
                 units="unitless",
-                descr="Middle percentile range of the image array "
-                "that the colormap covers",
+                descr="Percentile range that the image array was clipped to"
+                " and that the colormap covers",
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
         },
@@ -327,22 +325,34 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 f"`longest_side_max` must be positive: {self.longest_side_max}"
             )
 
-        # validate middle_percentile
-        if not isinstance(self.middle_percentile, float):
+        # validate percentile_for_clipping
+        val = self.percentile_for_clipping
+        if not isinstance(val, (list, tuple)):
             raise TypeError(
-                f"`middle_percentile` must be float: {self.middle_percentile}"
+                f"{self.percentile_for_clipping=}, must be a list or tuple."
             )
-
-        if self.middle_percentile < 0.0 or self.middle_percentile > 100.0:
+        if not len(val) == 2:
+            raise ValueError(
+                f"{self.percentile_for_clipping=} must have a length of two."
+            )
+        if not all(isinstance(e, float) for e in val):
             raise TypeError(
-                f"{self.middle_percentile=}, must be in range [0.0, 100.0]"
+                f"{self.percentile_for_clipping=} must contain only float."
+            )
+        if any((e < 0.0 or e > 100.0) for e in val):
+            raise ValueError(
+                f"{self.percentile_for_clipping=}, must be in range [0.0, 100.0]"
+            )
+        if self.percentile_for_clipping[0] >= self.percentile_for_clipping[1]:
+            raise ValueError(
+                f"{self.percentile_for_clipping=}; values must appear in increasing order."
             )
 
         # validate gamma
         if isinstance(self.gamma, float):
             if self.gamma < 0.0:
                 raise ValueError(
-                    "If `gamma` is a float, it must be non-negative: {self.gamma}"
+                    f"If `gamma` is a float, it must be non-negative: {self.gamma}"
                 )
         elif self.gamma is not None:
             raise TypeError(
@@ -405,7 +415,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
+class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters to generate the RSLC or GSLC Power and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
@@ -529,7 +539,7 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     #     TypeError: 'mappingproxy' object does not support item assignment
     # So, use a lambda function; this can be called to generate the correct
     # HDF5Attrs when needed, and it does not clutter the dataclass much.
-    # Usage: `obj` is an instance of SLCHistogramParamGroup()
+    # Usage: `obj` is an instance of HistogramParamGroup()
     phs_bin_edges: ArrayLike = field(
         init=False,
         metadata={
@@ -539,10 +549,10 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 descr="Bin edges (including endpoint) for phase histogram",
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             )
-            if (isinstance(obj, SLCHistogramParamGroup))
+            if (isinstance(obj, HistogramParamGroup))
             else nisarqa.raise_(
                 TypeError(
-                    f"`obj` is {type(obj)}, but must be type SLCHistogramParamGroup"
+                    f"`obj` is {type(obj)}, but must be type HistogramParamGroup"
                 )
             )
         },
@@ -812,9 +822,9 @@ class RSLCRootParamGroup(RootParamGroup):
         Input File Group parameters for RSLC QA
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for RSLC QA
-    power_img : SLCPowerImageParamGroup or None, optional
+    power_img : PowerImageParamGroup or None, optional
         Power Image Group parameters for RSLC QA
-    histogram : SLCHistogramParamGroup or None, optional
+    histogram : HistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     anc_files : DynamicAncillaryFileParamGroup or None, optional
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
@@ -830,8 +840,8 @@ class RSLCRootParamGroup(RootParamGroup):
     workflows: RSLCWorkflowsParamGroup  # overwrite parent's `workflows` b/c new type
 
     # QA parameters
-    power_img: Optional[SLCPowerImageParamGroup] = None
-    histogram: Optional[SLCHistogramParamGroup] = None
+    power_img: Optional[PowerImageParamGroup] = None
+    histogram: Optional[HistogramParamGroup] = None
 
     # CalTools parameters
     anc_files: Optional[DynamicAncillaryFileParamGroup] = None
@@ -861,12 +871,12 @@ class RSLCRootParamGroup(RootParamGroup):
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="power_img",
-                param_grp_cls_obj=SLCPowerImageParamGroup,
+                param_grp_cls_obj=PowerImageParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="histogram",
-                param_grp_cls_obj=SLCHistogramParamGroup,
+                param_grp_cls_obj=HistogramParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.abs_cal,
@@ -901,8 +911,8 @@ class RSLCRootParamGroup(RootParamGroup):
             DynamicAncillaryFileParamGroup,
             ProductPathGroupParamGroup,
             RSLCWorkflowsParamGroup,
-            SLCPowerImageParamGroup,
-            SLCHistogramParamGroup,
+            PowerImageParamGroup,
+            HistogramParamGroup,
             AbsCalParamGroup,
             NoiseEstimationParamGroup,
             PointTargetAnalyzerParamGroup,
@@ -931,7 +941,7 @@ def build_root_params(product_type, user_rncfg):
     """
     if product_type not in nisarqa.LIST_OF_NISAR_PRODUCTS:
         raise ValueError(
-            f"`product_type` is {product_type}; must one of:"
+            f"{product_type=} but must one of:"
             f" {nisarqa.LIST_OF_NISAR_PRODUCTS}"
         )
 
@@ -941,6 +951,9 @@ def build_root_params(product_type, user_rncfg):
     elif product_type == "gslc":
         workflows_param_cls_obj = WorkflowsParamGroup
         root_param_class_obj = nisarqa.GSLCRootParamGroup
+    elif product_type == "gcov":
+        workflows_param_cls_obj = WorkflowsParamGroup
+        root_param_class_obj = nisarqa.GCOVRootParamGroup
     else:
         raise NotImplementedError(f"{product_type} code not implemented yet.")
 
@@ -998,7 +1011,7 @@ def _get_param_group_instance_from_runcfg(
     ----------
     param_grp_cls_obj : Type[YamlParamGroup]
         A class instance of a subclass of YamlParamGroup.
-        For example, `SLCHistogramParamGroup`.
+        For example, `HistogramParamGroup`.
     user_rncfg : nested dict, optional
         A dict containing the user's runconfig values that (at minimum)
         correspond to the `param_grp_cls_obj` parameters. (Other values

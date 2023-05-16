@@ -185,11 +185,11 @@ def verify_gslc(user_rncfg):
     )
 
 
-def save_gslc_power_image_to_pdf(
+def save_geocoded_power_image_to_pdf(
     img_arr, img, params, report_pdf, colorbar_formatter=None
 ):
     """
-    Annotate and save a GSLC Power Image to `report_pdf`.
+    Annotate and save a Geocoded Power Image to `report_pdf`.
 
     Parameters
     ----------
@@ -199,7 +199,7 @@ def save_gslc_power_image_to_pdf(
     img : GeoRaster
         The GeoRaster object that corresponds to `img`. The metadata
         from this will be used for annotating the image plot.
-    params : SLCPowerImageParams
+    params : PowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
     report_pdf : PdfPages

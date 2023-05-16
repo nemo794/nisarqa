@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import functools
+import numbers
 import os
 from abc import ABC, abstractmethod
+<<<<<<< HEAD
 from dataclasses import dataclass
+=======
+from dataclasses import dataclass, fields
+>>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
 import h5py
 import numpy as np
@@ -163,6 +168,7 @@ def verify_rslc(user_rncfg):
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
+<<<<<<< HEAD
         with nisarqa.open_h5_file(
             input_file, mode="r"
         ) as in_file, nisarqa.open_h5_file(
@@ -174,6 +180,16 @@ def verify_rslc(user_rncfg):
             # All processing with `pols` must be done within this context manager,
             # or the references will be closed and inaccessible.
             pols = nisarqa.rslc.get_pols(in_file)
+=======
+                # Generate the RSLC Power Image and Browse Image
+                process_power_images_and_browse(
+                    pols=pols,
+                    params=rslc_params.power_img,
+                    stats_h5=stats_h5,
+                    report_pdf=report_pdf,
+                    browse_filename=browse_image,
+                )
+>>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
             # Save frequency/polarization info to stats file
             save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
@@ -1226,9 +1242,6 @@ def _save_gcov_browse_img(pol_imgs, filepath):
         # Return early, so that we do not try to plot to RGB
         return
 
-    # Set flags to ensure that each RGB channel has an image assigned to it.
-    red, green, blue = False, False, False
-
     for pol in ["HHHH", "VVVV"]:
         red = pol_imgs[pol]
         break
@@ -1245,7 +1258,7 @@ def _save_gcov_browse_img(pol_imgs, filepath):
         break
 
     # Sanity Check
-    if not all(red, green, blue):
+    if not all([isinstance(arr, np.ndarray) for arr in (red, green, blue)]):
         # If we get here, then the images provided are not one of the
         # expected cases. WLOG plot one of the image(s) in `pol_imgs`.
         warnings.warn(
@@ -1262,14 +1275,12 @@ def _save_gcov_browse_img(pol_imgs, filepath):
     plot_to_rgb_png(red=red, green=green, blue=blue, filepath=filepath)
 
 
-def process_slc_power_images_and_browse(
-    pols, params, stats_h5, report_pdf, browse_filename="BROWSE.png"
+def process_power_images_and_browse(
+    pols, params, stats_h5, report_pdf, product_type, browse_filename="BROWSE.png"
 ):
     """
-    Generate SLC Power Image plots for the `report_pdf` and
+    Generate Power Image plots for the `report_pdf` and
     corresponding browse image product.
-
-    Can be used for both RSLC and GSLC datasets.
 
     Parameters
     ----------
@@ -1279,17 +1290,37 @@ def process_slc_power_images_and_browse(
         Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a
                                        RadarRaster or GeoRaster object
-    params : SLCPowerImageParams
+    params : PowerImageParams
         A dataclass containing the parameters for processing
-        and outputting the SLC power image(s) and browse image.
+        and outputting power image(s) and browse image.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
+    product_type : str
+        One of "rslc", "gslc", "slc", or "gcov".
     browse_filename : str, optional
         Filename (with path) for the browse image PNG.
         Defaults to 'BROWSE.png'
     """
+
+    if product_type.endswith("slc"):
+        layers_for_browse_func = _select_layers_for_slc_browse
+        save_browse_img_func = _save_slc_browse_img
+
+        # Will need to convert from magnitude to power for SLCs
+        square_the_arr_values = True
+
+    elif product_type == "gcov":
+        layers_for_browse_func = _select_layers_for_gcov_browse
+        save_browse_img_func = _save_gcov_browse_img
+
+        # GCOV rasters already represent power (where power is magnitude
+        # squared); no need to square the pixel values a second time.
+        square_the_arr_values = False
+
+    else:
+        raise NotImplementedError(f"{product_type=} not implemented")
 
     # Select which layers will be needed for the browse image.
     # Multilooking takes a long time, but each multilooked polarization image
@@ -1297,7 +1328,7 @@ def process_slc_power_images_and_browse(
     # so it's ok to store the necessary multilooked Power Images in memory.
     # to combine them later into the Browse image. The memory costs are
     # less than the costs for re-computing the multilooking.
-    layers_for_browse = _select_layers_for_browse(pols)
+    layers_for_browse = layers_for_browse_func(pols)
 
     # At the end of the loop below, the keys of this dict should exactly
     # match the set of TxRx polarizations needed to form the browse image
@@ -1318,7 +1349,10 @@ def process_slc_power_images_and_browse(
                     )
 
                 multilooked_img = get_multilooked_power_image(
-                    img=img, params=params, stats_h5=stats_h5
+                    img=img,
+                    params=params,
+                    square_the_arr_values=square_the_arr_values,
+                    stats_h5=stats_h5,
                 )
 
                 corrected_img, orig_vmin, orig_vmax = apply_image_correction(
@@ -1343,7 +1377,7 @@ def process_slc_power_images_and_browse(
                 if isinstance(img, RadarRaster):
                     pow2pdf_func = save_rslc_power_image_to_pdf
                 else:  # is a GeoRaster
-                    pow2pdf_func = nisarqa.gslc.save_gslc_power_image_to_pdf
+                    pow2pdf_func = nisarqa.gslc.save_geocoded_power_image_to_pdf
 
                 pow2pdf_func(
                     img_arr=corrected_img,
@@ -1363,26 +1397,40 @@ def process_slc_power_images_and_browse(
                     pol_imgs_for_browse[pol] = corrected_img
 
     # Construct the browse image
+<<<<<<< HEAD
     _save_slc_browse_img(
         pol_imgs=pol_imgs_for_browse, filepath=browse_filename
     )
+=======
+    save_browse_img_func(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
+>>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
 
 # TODO - move to generic location
-def get_multilooked_power_image(img, params, stats_h5):
+def get_multilooked_power_image(img, params, stats_h5, square_the_arr_values=False):
     """
-    Generate the multilooked SLC Power Image array for a single RSLC or GSLC
+    Generate the multilooked Power Image array for a single
     polarization image.
 
     Parameters
     ----------
     img : RadarRaster or GeoRaster
-        The RSLC or GSLC raster to be processed
-    params : SLCPowerImageParams
+        The raster to be processed
+    params : PowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
+    square_the_arr_values : bool
+        True to square each element in input image before multilooking.
+        False to multilook each element as-is.
+        Example: RSLC raster arrays contain values that correspond to
+        magnitude, so `square_the_arr_values` should be set to `True`
+        so that the elements are squared to represent power. In contrast,
+        GCOV raster arrays already represent power (their elements were
+        squared during the formation of the GCOV datasets), so this
+        should be set to `False`.
+        Defaults to `False`.
 
     Returns
     -------
@@ -1412,8 +1460,12 @@ def get_multilooked_power_image(img, params, stats_h5):
         nlooks = nlooks_freqb_arg
     else:
         raise ValueError(
+<<<<<<< HEAD
             f'frequency is "{img.freq}", but only "A" or "B" '
             "are valid options."
+=======
+            f"frequency is '{img.freq}', but only 'A' or 'B' are valid options."
+>>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
         )
 
     # Save the final nlooks to the HDF5 dataset
@@ -1442,7 +1494,7 @@ def get_multilooked_power_image(img, params, stats_h5):
             ds_units="unitless",
             ds_description=f"Number of looks along {axes} axes of "
             f"Frequency {img.freq.upper()} image arrays "
-            "for multilooking the power and browse image.",
+            "for multilooking the power and browse images.",
         )
 
     print(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
@@ -1452,7 +1504,10 @@ def get_multilooked_power_image(img, params, stats_h5):
 
     # Multilook
     out_img = nisarqa.compute_multilooked_power_by_tiling(
-        arr=img.data, nlooks=nlooks, tile_shape=params.tile_shape
+        arr=img.data,
+        nlooks=nlooks,
+        square_the_arr_values=square_the_arr_values,
+        tile_shape=params.tile_shape,
     )
 
     print(f"Multilooking Complete. Multilooked image shape: {out_img.shape}")
@@ -1465,7 +1520,7 @@ def apply_image_correction(img_arr, params):
     Apply image correction in `img_arr` as specified in `params`.
 
     Image correction is applied in the following order:
-        Step 1: Per `params.middle_percentile`, clip the image array's outliers
+        Step 1: Per `params.percentile_for_clipping`, clip the image array's outliers
         Step 2: Per `params.linear_units`, convert from linear units to dB
         Step 3: Per `params.gamma`, apply gamma correction
 
@@ -1474,7 +1529,7 @@ def apply_image_correction(img_arr, params):
     img_arr : numpy.ndarray
         2D image array to have image correction applied to.
         For example, for RSLC this is the multilooked image array.
-    params : SLCPowerImageParams
+    params : PowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
 
@@ -1492,7 +1547,7 @@ def apply_image_correction(img_arr, params):
     """
 
     # Step 1: Clip the image array's outliers
-    img_arr = clip_array(img_arr, middle_percentile=params.middle_percentile)
+    img_arr = clip_array(img_arr, percentile_range=params.percentile_for_clipping)
 
     # Step 2: Convert from linear units to dB
     if not params.linear_units:
@@ -1525,7 +1580,7 @@ def save_rslc_power_image_to_pdf(
     img : RadarRaster
         The RadarRaster object that corresponds to `img`. The metadata
         from this will be used for annotating the image plot.
-    params : SLCPowerImageParams
+    params : PowerImageParams
         A structure containing the parameters for processing
         and outputting the power image(s).
     report_pdf : PdfPages
@@ -1566,33 +1621,38 @@ def save_rslc_power_image_to_pdf(
     )
 
 
-def clip_array(arr, middle_percentile=100.0):
+def clip_array(arr, percentile_range=(0.0, 100.0)):
     """
-    Clip input array to the middle percentile.
+    Clip input array to the provided percentile range.
 
-    NaN values are excluded from the computation of the middle percentile.
+    NaN values are excluded from the computation of the percentile.
 
     Parameters
     ----------
     arr : array_like
         Input array
-    middle_percentile : numeric, optional
-        Defines the middle percentile range of the `arr`
-        that the colormap covers. Must be in the range [0, 100].
-        Defaults to 100.0.
+    percentile_range : numeric, optional
+        Defines the percentile range of the `arr`
+        that the colormap covers. Must be in the range [0.0, 100.0],
+        inclusive.
+        Defaults to (0.0, 100.0) (no clipping).
 
     Returns
     -------
     out_img : numpy.ndarray
         A copy of the input array with the values outside of the
-        range defined by `middle_percentile` clipped.
+        range defined by `percentile_range` clipped.
     """
-    # Clip the image data
-    vmin, vmax = calc_vmin_vmax(arr, middle_percentile=middle_percentile)
+    for p in percentile_range:
+        nisarqa.verify_valid_percentile(p)
+    if len(percentile_range) != 2:
+        raise ValueError(f"{percentile_range=} must have length of 2")
 
-    out_arr = np.clip(arr, a_min=vmin, a_max=vmax)
+    # Get the value of the e.g. 5th percentile and the 95th percentile
+    vmin, vmax = np.nanpercentile(arr, percentile_range)
 
-    return out_arr
+    # Clip the image data and return
+    return np.clip(arr, a_min=vmin, a_max=vmax)
 
 
 def apply_gamma_correction(img_arr, gamma):
@@ -2077,44 +2137,9 @@ def img2pdf(
     plt.close(f)
 
 
-def calc_vmin_vmax(data_in, middle_percentile=100.0):
-    """
-    Calculate the values of vmin and vmax (excluding NaN) for the
-    input array using the given middle percentile.
-
-    For example, if `middle_percentile` is 95.0, then this will
-    return the value of the 2.5th percentile and the 97.5th
-    percentile.
-
-    Parameters
-    ----------
-    data_in : array_like
-        Input array
-    middle_percentile : numeric
-        Defines the middle percentile range of the `data_in`.
-        Must be in the range [0, 100].
-        Defaults to 100.0.
-
-    Returns
-    -------
-    vmin, vmax : numeric
-        The lower and upper values (respectively) of the middle
-        percentile, excluding NaN values.
-
-    """
-    nisarqa.verify_valid_percentile(middle_percentile)
-
-    fraction = 0.5 * (1.0 - middle_percentile / 100.0)
-
-    # Get the value of the e.g. 0.025 quantile and the 0.975 quantile
-    vmin, vmax = np.nanquantile(data_in, [fraction, 1 - fraction])
-
-    return vmin, vmax
-
-
 def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
     """
-    Generate the RSLC or GSLC Power Histograms and save their plots
+    Generate the Power and Phase Histograms and save their plots
     to the graphical summary .pdf file.
 
     Power histogram will be computed in decibel units.
@@ -2125,10 +2150,10 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
 
     Parameters
     ----------
-    pols : nested dict of RadarRaster
-        Nested dict of RadarRaster objects, where each object represents
+    pols : nested dict of RadarRaster or GeoRaster
+        Nested dict of *Raster objects, where each object represents
         a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
+        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster or GeoRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
                                        in a RadarRaster object
     params : SLCHistogramParams
@@ -2157,32 +2182,34 @@ def generate_histogram_single_freq(
     pol, band, freq, params, stats_h5, report_pdf
 ):
     """
-    Generate RSLC or GSLC Power Histograms for a single frequency.
+    Generate Power and Phase Histograms for a single frequency.
 
     The histograms' plots will be appended to the graphical
     summary file `report_pdf`, and their data will be
     stored in the statistics .h5 file `stats_h5`.
     Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians,
-    configurable to be computed in degrees.
+    configurable to be computed in degrees per `params.phs_in_radians`.
+    NOTE: Only if the dtype of a polarization raster is complex-valued
+    (e.g. complex32) will it be included in the Phase histogram(s).
     NaN values will be excluded from the histograms.
 
     Parameters
     ----------
-    pol : dict of RadarRaster
-        dict of RadarRaster objects for the given `band`
+    pol : dict of RadarRaster or GeoRaster
+        dict of *Raster objects for the given `band`
         and `freq`. Each key is a polarization (e.g. 'HH'
         or 'HV'), and each key's item is the corresponding
         RadarRaster instance.
         Ex: pol['HH'] -> the HH dataset, stored
-                         in a RadarRaster object
+                         in a RadarRaster or GeoRaster object
     band : str
         Band name for the histograms to be processed,
         e.g. 'LSAR'
     freq : str
         Frequency name for the histograms to be processed,
         e.g. 'A' or 'B'
-    params : RSLCHistogramParams
+    params : HistogramParams
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
     stats_h5 : h5py.File
@@ -2190,6 +2217,13 @@ def generate_histogram_single_freq(
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
     """
+
+    # flag for if any phase histogram densities were generated
+    # (We expect this flag to be set to True any polarization contains
+    # phase information. But for example, if a GCOV product only has
+    # on-diagonal terms which are real-valued and lack phase information,
+    # this will remain False.)
+    phase_generated = False
 
     print(f"Generating Histograms for Frequency {freq}...")
 
@@ -2219,12 +2253,17 @@ def generate_histogram_single_freq(
         )
 
         # Save to stats.h5 file
+<<<<<<< HEAD
         grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (
             band,
             freq,
         )
+=======
+        grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (band, freq)
+
+        # Handle Power Histograms
+>>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
         pow_units = params.get_units_from_hdf5_metadata("pow_bin_edges")
-        phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,
@@ -2235,16 +2274,7 @@ def generate_histogram_single_freq(
             ds_description="Normalized density of the power histogram",
         )
 
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name="phaseHistogramDensity",
-            ds_data=phs_hist_density,
-            ds_units=f"1/{phs_units}",
-            ds_description="Normalized density of the phase histogram",
-        )
-
-        # Add these densities to the figures
+        # Add power histogram density to the figure
         add_hist_to_axis(
             pow_ax,
             counts=pow_hist_density,
@@ -2252,12 +2282,40 @@ def generate_histogram_single_freq(
             label=pol_name,
         )
 
+<<<<<<< HEAD
         add_hist_to_axis(
             phs_ax,
             counts=phs_hist_density,
             edges=params.phs_bin_edges,
             label=pol_name,
         )
+=======
+        # Handle Phase Histogram
+
+        # Only create phase histograms for complex datasets. Examples of
+        # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
+        if np.issubdtype(pol_data.data.dtype, numbers.Complex):
+            phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
+
+            nisarqa.create_dataset_in_h5group(
+                h5_file=stats_h5,
+                grp_path=grp_path,
+                ds_name="phaseHistogramDensity",
+                ds_data=phs_hist_density,
+                ds_units=f"1/{phs_units}",
+                ds_description="Normalized density of the phase histogram",
+            )
+
+            # Add phase histogram density to the figure
+            add_hist_to_axis(
+                phs_ax,
+                counts=phs_hist_density,
+                edges=params.phs_bin_edges,
+                label=pol_name,
+            )
+
+            phase_generated = True
+>>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
     # Label the Power Figure
     title = f"{band} Frequency {freq} Power Histograms"
@@ -2271,24 +2329,29 @@ def generate_histogram_single_freq(
     pow_ax.set_ylim(bottom=0.0)
     pow_ax.grid()
 
-    # Label the Phase Figure
-    phs_ax.set_title(f"{band} Frequency {freq} Phase Histograms")
-    phs_ax.legend(loc="upper right")
-    phs_ax.set_xlabel(f"Phase ({phs_units})")
-    phs_ax.set_ylabel(f"Density (1/{phs_units})")
-    if params.phs_in_radians:
-        phs_ax.set_ylim(bottom=0.0, top=0.5)
-    else:
-        phs_ax.set_ylim(bottom=0.0, top=0.01)
-    phs_ax.grid()
-
     # Save complete plots to graphical summary pdf file
     report_pdf.savefig(pow_fig)
-    report_pdf.savefig(phs_fig)
 
-    # Close all figures
+    # Close figure
     plt.close(pow_fig)
-    plt.close(phs_fig)
+
+    # Label and output the Phase Histogram Figure
+    if phase_generated:
+        phs_ax.set_title(f"{band} Frequency {freq} Phase Histograms")
+        phs_ax.legend(loc="upper right")
+        phs_ax.set_xlabel(f"Phase ({phs_units})")
+        phs_ax.set_ylabel(f"Density (1/{phs_units})")
+        if params.phs_in_radians:
+            phs_ax.set_ylim(bottom=0.0, top=0.5)
+        else:
+            phs_ax.set_ylim(bottom=0.0, top=0.01)
+        phs_ax.grid()
+
+        # Save complete plots to graphical summary pdf file
+        report_pdf.savefig(phs_fig)
+
+        # Close figure
+        plt.close(phs_fig)
 
     print(f"Histograms for Frequency {freq} complete.")
 
