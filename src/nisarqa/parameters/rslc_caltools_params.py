@@ -522,7 +522,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         default=False,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="linear_units",
+                name="input_raster_represents_power",
                 descr= \
         """The input dataset rasters associated with these histogram parameters
         should have their pixel values represent either magnitude or power,
