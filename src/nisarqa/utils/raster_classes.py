@@ -212,18 +212,32 @@ class GeoRaster(nisarqa.rslc.SARRaster):
             # Use h5py's standard reader
             dataset = h5_file[pol_path]
 
+            msg = "(%s) PASS/FAIL Check: Product raster dtype conforms" + \
+                    " to Product Spec dtype of %s."
+
             if product == "GSLC":
-                print(
-                    "(PASS) PASS/FAIL Check: Product raster dtype conforms"
-                    " to Product Spec dtype of complex64."
-                )
+                pass_fail = "PASS"
+                dtype = "complex64"
+
+            elif product == "GCOV":
+                if pol[0:2] == pol[2:4]:
+                    # on-diagonal term dataset. These are float32 as of May 2023.
+                    dtype = "float32"
+                    pass_fail = "PASS" if (dataset.dtype == np.float32) else "FAIL"
+                else:
+                    # off-diagonal term dataset. These are complex64 as of May 2023.
+                    dtype = "complex64"
+                    pass_fail = "PASS" if (dataset.dtype == np.complex64) else "FAIL"
             else:
-                # TODO - for GCOV, GUNW, and GOFF, confirm that this
+                # TODO - for GUNW, and GOFF, confirm that this
                 # next print statement is, in fact, true.
-                print(
-                    "(PASS) PASS/FAIL Check: Product raster dtype conforms "
-                    f"to {product} Product Spec dtype."
-                )
+                pass_fail = "PASS"
+                dtype = "float32"
+
+                if not (dataset.dtype == np.float32):
+                    warnings.warn(f"Double-check {product=} Product Spec dtype")
+
+            print(msg % (pass_fail, dtype))
 
         return cls(
             data=dataset,

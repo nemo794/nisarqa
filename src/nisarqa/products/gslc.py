@@ -153,6 +153,7 @@ def verify_gslc(user_rncfg):
             nisarqa.rslc.process_slc_power_images_and_browse(
                 pols=pols,
                 params=root_params.power_img,
+                product_type="gslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 browse_filename=browse_file_png,

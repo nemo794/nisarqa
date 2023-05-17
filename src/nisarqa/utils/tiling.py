@@ -166,7 +166,7 @@ def process_arr_by_tiles(
 
 
 def compute_multilooked_power_by_tiling(
-    arr, nlooks, square_the_arr_values=False, tile_shape=(512, -1)
+    arr, input_raster_represents_power, nlooks, tile_shape=(512, -1)
 ):
     """
     Compute the multilooked power array (linear units) by tiling.
@@ -175,20 +175,19 @@ def compute_multilooked_power_by_tiling(
     ----------
     arr : array_like
         The input 2D array
+    input_raster_represents_power : bool
+        False to square each element in `arr` before multilooking.
+        True to multilook the magnitude of each element as-is.
+        Example: RSLC and GSLC raster arrays contain values that correspond to
+        magnitude, so `input_raster_represents_power` should be set to `False`
+        so that the elements are squared to represent power. In contrast,
+        GCOV raster arrays already represent power (their elements were
+        squared during the formation of the GCOV datasets), so this
+        should be set to `True`.
     nlooks : tuple of ints
         Number of looks along each axis of the input array to be
         averaged during multilooking.
         Format: (num_rows, num_cols)
-    square_the_arr_values : bool
-        True to square each element in `arr` before multilooking.
-        False to multilook each element as-is.
-        Example: RSLC raster arrays contain values that correspond to
-        magnitude, so `square_the_arr_values` should be set to `True`
-        so that the elements are squared to represent power. In contrast,
-        GCOV raster arrays already represent power (their elements were
-        squared during the formation of the GCOV datasets), so this
-        should be set to `False`.
-        Defaults to `False`.
     tile_shape : tuple of ints
         Shape of each tile to be processed. If `tile_shape` is
         larger than the shape of `arr`, or if the dimensions of `arr`
@@ -267,8 +266,10 @@ def compute_multilooked_power_by_tiling(
     # Create an inner function for this use case.
     def calc_power_and_multilook(arr):
         # square the pixel values (e.g to convert from magnitude to power),
-        # if requested
-        out = nisarqa.arr2pow(arr) if square_the_arr_values else arr
+        # if requested.
+        # Otherwise, take the absolute value to ensure we're using the
+        # magnitude for either real or complex values
+        out = np.abs(arr) if input_raster_represents_power else nisarqa.arr2pow(arr)
 
         # Multilook
         out = nisarqa.multilook(out, nlooks)
@@ -293,6 +294,7 @@ def compute_multilooked_power_by_tiling(
 
 def compute_power_and_phase_histograms_by_tiling(
     arr,
+    input_raster_represents_power,
     pow_bin_edges,
     phs_bin_edges,
     phs_in_radians=True,
@@ -311,6 +313,15 @@ def compute_power_and_phase_histograms_by_tiling(
     ----------
     arr : array_like
         The input array
+    input_raster_represents_power : bool
+        False to square each element in `arr` before multilooking.
+        True to multilook the magnitude of each element as-is.
+        Example: RSLC and GSLC raster arrays contain values that correspond to
+        magnitude, so `input_raster_represents_power` should be set to `False`
+        so that the elements are squared to represent power. In contrast,
+        GCOV raster arrays already represent power (their elements were
+        squared during the formation of the GCOV datasets), so this
+        should be set to `True`.
     pow_bin_edges : numpy.ndarray, optional
         The bin edges to use for the power histogram
     phs_bin_edges : numpy.ndarray, optional
@@ -393,9 +404,9 @@ def compute_power_and_phase_histograms_by_tiling(
         arr_slice = arr_slice[np.isfinite(arr_slice)]
 
         # Compute Power Histograms
-        # TODO - should zeros be ignored when computing Power Histogram?
-        # For Power Histogram, do not mask out zeros. BUT ASK BRIAN.
-        power = nisarqa.arr2pow(arr_slice)
+        # For Power Histogram, do not mask out zeros.
+        power = np.abs(arr_slice) if input_raster_represents_power \
+                    else nisarqa.arr2pow(arr_slice)
         power = nisarqa.pow2db(power)
 
         # Clip the array so that it falls within the bounds of the histogram

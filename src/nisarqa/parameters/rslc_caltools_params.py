@@ -136,6 +136,15 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     linear_units : bool, optional
         True to compute power image in linear units, False for decibel units.
         Defaults to True.
+    input_raster_represents_power : bool, optional
+        The input dataset rasters associated with these histogram parameters
+        should have their pixel values represent either magnitude or power,
+        with terms defined as power = magnitude^2 .
+        (In practice, this is computed as power = abs(<pixel value>)^2 .)
+        If `input_raster_represents_power` is `True`, then QA SAS assumes
+        that the input data already has already been squared.
+        If `False`, then QA SAS will handle the full computation to power.
+        Defaults to False.
     nlooks_freqa, nlooks_freqb : iterable of int, None, optional
         Number of looks along each axis of the input array
         for the specified frequency. If None, then nlooks will be computed
@@ -185,6 +194,21 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 summary PDF. False for decibel units.""",
             )
         },
+    )
+
+    input_raster_represents_power: bool = field(
+        default=False,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="input_raster_represents_power",
+                descr= \
+        """The input dataset rasters associated with these histogram parameters
+        should have their pixel values represent either magnitude or power,
+        with terms defined as power = magnitude^2 .
+        (In practice, this is computed as power = abs(<pixel value>)^2 .)
+        If `input_raster_represents_power` is `True`, then QA SAS assumes
+        that the input data already has already been squared.
+        If `False`, then QA SAS will handle the full computation to power.""")}
     )
 
     _nlooks_descr_template: ClassVar[
@@ -311,6 +335,11 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 f"`linear_units` must be bool: {self.linear_units}"
             )
 
+        # validate input_raster_represents_power
+        if not isinstance(self.input_raster_represents_power, bool):
+            raise TypeError("`input_raster_represents_power` must be bool: "
+                            f"{self.input_raster_represents_power}")
+
         # validate nlooks_freq*
         self._validate_nlooks(self.nlooks_freqa, "A")
         self._validate_nlooks(self.nlooks_freqa, "B")
@@ -429,6 +458,15 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         every 3rd range sample will be used to compute the histograms.
         Defaults to (10,10).
         Format: (<azimuth>, <range>)
+    input_raster_represents_power : bool, optional
+        The input dataset rasters associated with these histogram parameters
+        should have their pixel values represent either magnitude or power,
+        with terms defined as power = magnitude^2 .
+        (In practice, this is computed as power = abs(<pixel value>)^2 .)
+        If `input_raster_represents_power` is `True`, then QA SAS assumes
+        that the input data already has already been squared.
+        If `False`, then QA SAS will handle the full computation to power.
+        Defaults to False.
     pow_histogram_bin_edges_range : pair of int or float, optional
         The dB range for the power histogram's bin edges. Endpoint will
         be included. Defaults to [-80.0, 20.0].
@@ -478,6 +516,21 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
         },
+    )
+
+    input_raster_represents_power: bool = field(
+        default=False,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="linear_units",
+                descr= \
+        """The input dataset rasters associated with these histogram parameters
+        should have their pixel values represent either magnitude or power,
+        with terms defined as power = magnitude^2 .
+        (In practice, this is computed as power = abs(<pixel value>)^2 .)
+        If `input_raster_represents_power` is `True`, then QA SAS assumes
+        that the input data already has already been squared.
+        If `False`, then QA SAS will handle the full computation to power.""")}
     )
 
     pow_histogram_bin_edges_range: Iterable[Union[int, float]] = field(
@@ -575,6 +628,11 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             raise ValueError(
                 f"`decimation_ratio` must contain positive values: {val}"
             )
+
+        # validate input_raster_represents_power
+        if not isinstance(self.input_raster_represents_power, bool):
+            raise TypeError("`input_raster_represents_power` must be bool: "
+                            f"{self.input_raster_represents_power}")
 
         # Validate pow_histogram_bin_edges_range
         val = self.pow_histogram_bin_edges_range

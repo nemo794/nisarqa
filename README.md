@@ -161,3 +161,19 @@ Data Size: Small
 
 Hawaii (Big Island)
 `/home/niemoell/dat/UAVSAR_RSLC_testdata_09222022/BigIsl_32905_10003_012_100106_L090_CX_143_02.h5`
+
+## Test GCOV Data
+Here are paths on nisar-adt-dev-3 to various test data sets.
+These path will need to be copied into the `qa_input_file` parameter in
+the runconfig.
+
+Los Angeles
+`/home/niemoell/dat/gcov_test_data/may2023/L2_GCOV_LA.h5`
+
+Peru - Only On-Diagonal Terms
+`/home/niemoell/dat/gcov_test_data/may2023/L2_GCOV_s1_peru.h5`
+
+Full-Covariance Datasets (includes off-diagonal terms)
+The PDF output should include phase histograms for the off-diag terms only
+`/home/niemoell/dat/gcov_test_data/may2023/L2_GCOV_FULL_COV_s1_peru.h5`
+

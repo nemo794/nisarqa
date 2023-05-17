@@ -3,12 +3,9 @@ from __future__ import annotations
 import functools
 import numbers
 import os
+import warnings
 from abc import ABC, abstractmethod
-<<<<<<< HEAD
 from dataclasses import dataclass
-=======
-from dataclasses import dataclass, fields
->>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
 import h5py
 import numpy as np
@@ -168,7 +165,6 @@ def verify_rslc(user_rncfg):
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
-<<<<<<< HEAD
         with nisarqa.open_h5_file(
             input_file, mode="r"
         ) as in_file, nisarqa.open_h5_file(
@@ -180,24 +176,15 @@ def verify_rslc(user_rncfg):
             # All processing with `pols` must be done within this context manager,
             # or the references will be closed and inaccessible.
             pols = nisarqa.rslc.get_pols(in_file)
-=======
-                # Generate the RSLC Power Image and Browse Image
-                process_power_images_and_browse(
-                    pols=pols,
-                    params=rslc_params.power_img,
-                    stats_h5=stats_h5,
-                    report_pdf=report_pdf,
-                    browse_filename=browse_image,
-                )
->>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
             # Save frequency/polarization info to stats file
             save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
 
             # Generate the RSLC Power Image and Browse Image
-            process_slc_power_images_and_browse(
+            process_power_images_and_browse(
                 pols=pols,
                 params=root_params.power_img,
+                product_type="rslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 browse_filename=browse_file_png,
@@ -209,6 +196,7 @@ def verify_rslc(user_rncfg):
             process_power_and_phase_histograms(
                 pols=pols,
                 params=root_params.histogram,
+                product_type="rslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
             )
@@ -1025,12 +1013,11 @@ def _select_layers_for_gcov_browse(pols):
         layers_for_browse['A']     : list of str, optional
                                         List of the Freq A polarization(s)
                                         required to create the browse image.
-                                        A subset of:
-                                           nisarqa.GCOV_DIAG_POLS
+                                        Warning: Only on-diag terms supported.
         layers_for_browse['B']     : list of str, optional
                                         List of the Freq B polarizations
                                         required to create the browse image.
-                                        A subset of nisarqa.GCOV_DIAG_POLS
+                                        Warning: Only on-diag terms supported.
 
     Notes
     -----
@@ -1090,8 +1077,8 @@ def _select_layers_for_gcov_browse(pols):
             layers_for_browse[freq] = ["VVVV"]
         else:
             # Take the first available on-diagonal term
-            for pol in nisarqa.GCOV_DIAG_POLS:
-                if pol in pols[band][freq]:
+            for pol in pols[band][freq]:
+                if pol[0:2] == pol[2:4]:
                     layers_for_browse[freq] = [pol]
                 break
             else:
@@ -1116,11 +1103,7 @@ def _select_layers_for_gcov_browse(pols):
     if n_pols == 0:
         raise ValueError("No on-diagonal polarizations found in input GCOV.")
 
-    # Sanity Check - make sure all on-diag terms from the input products
-    # are listed in the nisarqa.GCOV_DIAG_TERMS constant
-    assert all((p in nisarqa.GCOV_DIAG_POLS) for p in available_pols)
-
-    if n_pols == 1:
+    elif n_pols == 1:
         # Only one image; it will be grayscale
         layers_for_browse[freq] = available_pols
 
@@ -1140,7 +1123,11 @@ def _select_layers_for_gcov_browse(pols):
     else:
         # Only keep "HHHH", "HVHV", "VHVH", "VVVV".
         # (This will implicitly remove any extraneous e.g. compact pol terms.)
-        keep = [p for p in available_pols if (p in ("HHHH", "HVHV", "VHVH", "VVVV"))]
+        keep = [
+            p
+            for p in available_pols
+            if (p in ("HHHH", "HVHV", "VHVH", "VVVV"))
+        ]
 
         # Sanity Check
         assert len(keep) >= 1
@@ -1222,6 +1209,10 @@ def _save_gcov_browse_img(pol_imgs, filepath):
     and a Freq B 5 MHz image into the same output browse image might not go
     well, unless the image arrays were properly prepared and standardized
     in advance.
+
+    See Also
+    --------
+    _select_layers_for_gcov_browse : Function to select the layers
     """
 
     # WLOG, get the shape of the image arrays
@@ -1231,7 +1222,9 @@ def _save_gcov_browse_img(pol_imgs, filepath):
     for img in pol_imgs.values():
         # Input validation check
         if np.shape(img) != img_2D_shape:
-            raise ValueError("All image arrays in `pol_imgs` must have the same shape.")
+            raise ValueError(
+                "All image arrays in `pol_imgs` must have the same shape."
+            )
 
     # Assign channels
 
@@ -1243,21 +1236,35 @@ def _save_gcov_browse_img(pol_imgs, filepath):
         return
 
     for pol in ["HHHH", "VVVV"]:
-        red = pol_imgs[pol]
-        break
+        if pol in pol_imgs:
+            red = pol_imgs[pol]
+            break
+
+    # There should only be one cross-pol in the input
+    if ("HVHV" in pol_imgs) and ("VHVH" in pol_imgs):
+        raise ValueError(
+            "`pol_imgs` should only contain one cross-pol image."
+            f"It contains {pol_imgs.keys()}. Please update logic in "
+            "`_select_layers_for_gcov_browse()`"
+        )
 
     for pol in ["HVHV", "VHVH", "VVVV"]:
-        green = pol_imgs[pol]
+        if pol in pol_imgs:
+            green = pol_imgs[pol]
 
-        if pol == "VVVV":
-            blue = pol_imgs["HHHH"]
-        else:
-            for pol2 in ["VVVV", "HHHH"]:
-                blue = pol_imgs[pol2]
-                break
-        break
+            if pol == "VVVV":
+                # If we get here, this means two things:
+                #   1: no cross-pol images were available
+                #   2: only HHHH and VVVV are available
+                # So, final assignment should be R: HHHH, G: VVVV, B: HHHH
+                blue = pol_imgs["HHHH"]
+            else:
+                for pol2 in ["VVVV", "HHHH"]:
+                    blue = pol_imgs[pol2]
+                    break
+            break
 
-    # Sanity Check
+    # Sanity Check, and catch-all logic to make a browse image
     if not all([isinstance(arr, np.ndarray) for arr in (red, green, blue)]):
         # If we get here, then the images provided are not one of the
         # expected cases. WLOG plot one of the image(s) in `pol_imgs`.
@@ -1269,14 +1276,18 @@ def _save_gcov_browse_img(pol_imgs, filepath):
         for gray_img in pol_imgs.values():
             plot_to_grayscale_png(img_arr=gray_img, filepath=filepath)
 
-        # Return early, so that we do not try to plot to RGB
-        return
-
-    plot_to_rgb_png(red=red, green=green, blue=blue, filepath=filepath)
+    else:
+        # Output the RGB Browse Image
+        plot_to_rgb_png(red=red, green=green, blue=blue, filepath=filepath)
 
 
 def process_power_images_and_browse(
-    pols, params, stats_h5, report_pdf, product_type, browse_filename="BROWSE.png"
+    pols,
+    params,
+    stats_h5,
+    report_pdf,
+    product_type,
+    browse_filename="BROWSE.png",
 ):
     """
     Generate Power Image plots for the `report_pdf` and
@@ -1307,18 +1318,9 @@ def process_power_images_and_browse(
     if product_type.endswith("slc"):
         layers_for_browse_func = _select_layers_for_slc_browse
         save_browse_img_func = _save_slc_browse_img
-
-        # Will need to convert from magnitude to power for SLCs
-        square_the_arr_values = True
-
     elif product_type == "gcov":
         layers_for_browse_func = _select_layers_for_gcov_browse
         save_browse_img_func = _save_gcov_browse_img
-
-        # GCOV rasters already represent power (where power is magnitude
-        # squared); no need to square the pixel values a second time.
-        square_the_arr_values = False
-
     else:
         raise NotImplementedError(f"{product_type=} not implemented")
 
@@ -1351,7 +1353,6 @@ def process_power_images_and_browse(
                 multilooked_img = get_multilooked_power_image(
                     img=img,
                     params=params,
-                    square_the_arr_values=square_the_arr_values,
                     stats_h5=stats_h5,
                 )
 
@@ -1368,7 +1369,7 @@ def process_power_images_and_browse(
                     )
 
                     colorbar_formatter = FuncFormatter(
-                        lambda x, pos: "{:.2f}".format(inverse_func(x))
+                        lambda x, pos: "{:.3f}".format(inverse_func(x))
                     )
 
                 else:
@@ -1377,7 +1378,9 @@ def process_power_images_and_browse(
                 if isinstance(img, RadarRaster):
                     pow2pdf_func = save_rslc_power_image_to_pdf
                 else:  # is a GeoRaster
-                    pow2pdf_func = nisarqa.gslc.save_geocoded_power_image_to_pdf
+                    pow2pdf_func = (
+                        nisarqa.gslc.save_geocoded_power_image_to_pdf
+                    )
 
                 pow2pdf_func(
                     img_arr=corrected_img,
@@ -1397,17 +1400,13 @@ def process_power_images_and_browse(
                     pol_imgs_for_browse[pol] = corrected_img
 
     # Construct the browse image
-<<<<<<< HEAD
-    _save_slc_browse_img(
+    save_browse_img_func(
         pol_imgs=pol_imgs_for_browse, filepath=browse_filename
     )
-=======
-    save_browse_img_func(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
->>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
 
 # TODO - move to generic location
-def get_multilooked_power_image(img, params, stats_h5, square_the_arr_values=False):
+def get_multilooked_power_image(img, params, stats_h5):
     """
     Generate the multilooked Power Image array for a single
     polarization image.
@@ -1421,16 +1420,6 @@ def get_multilooked_power_image(img, params, stats_h5, square_the_arr_values=Fal
         and outputting the power image(s).
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
-    square_the_arr_values : bool
-        True to square each element in input image before multilooking.
-        False to multilook each element as-is.
-        Example: RSLC raster arrays contain values that correspond to
-        magnitude, so `square_the_arr_values` should be set to `True`
-        so that the elements are squared to represent power. In contrast,
-        GCOV raster arrays already represent power (their elements were
-        squared during the formation of the GCOV datasets), so this
-        should be set to `False`.
-        Defaults to `False`.
 
     Returns
     -------
@@ -1460,12 +1449,7 @@ def get_multilooked_power_image(img, params, stats_h5, square_the_arr_values=Fal
         nlooks = nlooks_freqb_arg
     else:
         raise ValueError(
-<<<<<<< HEAD
-            f'frequency is "{img.freq}", but only "A" or "B" '
-            "are valid options."
-=======
             f"frequency is '{img.freq}', but only 'A' or 'B' are valid options."
->>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
         )
 
     # Save the final nlooks to the HDF5 dataset
@@ -1505,8 +1489,8 @@ def get_multilooked_power_image(img, params, stats_h5, square_the_arr_values=Fal
     # Multilook
     out_img = nisarqa.compute_multilooked_power_by_tiling(
         arr=img.data,
+        input_raster_represents_power=params.input_raster_represents_power,
         nlooks=nlooks,
-        square_the_arr_values=square_the_arr_values,
         tile_shape=params.tile_shape,
     )
 
@@ -1547,7 +1531,9 @@ def apply_image_correction(img_arr, params):
     """
 
     # Step 1: Clip the image array's outliers
-    img_arr = clip_array(img_arr, percentile_range=params.percentile_for_clipping)
+    img_arr = clip_array(
+        img_arr, percentile_range=params.percentile_for_clipping
+    )
 
     # Step 2: Convert from linear units to dB
     if not params.linear_units:
@@ -2209,7 +2195,7 @@ def generate_histogram_single_freq(
     freq : str
         Frequency name for the histograms to be processed,
         e.g. 'A' or 'B'
-    params : HistogramParams
+    params : HistogramParamGroup
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
     stats_h5 : h5py.File
@@ -2244,6 +2230,7 @@ def generate_histogram_single_freq(
             phs_hist_density,
         ) = nisarqa.compute_power_and_phase_histograms_by_tiling(
             arr=pol_data.data,
+            input_raster_represents_power=params.input_raster_represents_power,
             pow_bin_edges=params.pow_bin_edges,
             phs_bin_edges=params.phs_bin_edges,
             phs_in_radians=params.phs_in_radians,
@@ -2253,16 +2240,10 @@ def generate_histogram_single_freq(
         )
 
         # Save to stats.h5 file
-<<<<<<< HEAD
-        grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (
-            band,
-            freq,
-        )
-=======
-        grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (band, freq)
+        freq_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq)
+        grp_path = f"{freq_path}/{pol_name}/"
 
         # Handle Power Histograms
->>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
         pow_units = params.get_units_from_hdf5_metadata("pow_bin_edges")
 
         nisarqa.create_dataset_in_h5group(
@@ -2282,19 +2263,11 @@ def generate_histogram_single_freq(
             label=pol_name,
         )
 
-<<<<<<< HEAD
-        add_hist_to_axis(
-            phs_ax,
-            counts=phs_hist_density,
-            edges=params.phs_bin_edges,
-            label=pol_name,
-        )
-=======
         # Handle Phase Histogram
 
         # Only create phase histograms for complex datasets. Examples of
         # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
-        if np.issubdtype(pol_data.data.dtype, numbers.Complex):
+        if np.iscomplexobj(pol_data.data):
             phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
 
             nisarqa.create_dataset_in_h5group(
@@ -2315,7 +2288,6 @@ def generate_histogram_single_freq(
             )
 
             phase_generated = True
->>>>>>> db391ee (GCOV integrated and works. Outputs correctly. Code needs polish.)
 
     # Label the Power Figure
     title = f"{band} Frequency {freq} Power Histograms"
@@ -2352,6 +2324,20 @@ def generate_histogram_single_freq(
 
         # Close figure
         plt.close(phs_fig)
+
+    else:
+        # Remove unused dataset from STATS.h5 because no phase histogram was
+        # generated.
+
+        # TODO Comment better
+        metadata = nisarqa.HistogramParamGroup.get_attribute_metadata(
+            "phs_bin_edges"
+        )
+        hdf5_attrs_instance = metadata["hdf5_attrs_func"](params)
+        path = hdf5_attrs_instance.group_path % band
+        path += f"/{hdf5_attrs_instance.name}"
+
+        del stats_h5[path]
 
     print(f"Histograms for Frequency {freq} complete.")
 
