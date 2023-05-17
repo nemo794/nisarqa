@@ -9,6 +9,8 @@ from dataclasses import dataclass, fields
 from typing import Optional
 
 import h5py
+import isce3
+import nisar
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -43,86 +45,25 @@ def verify_rslc(user_rncfg):
 
     # Build the RSLCRootParamGroup parameters per the runconfig
     try:
-        rslc_params = nisarqa.build_root_params(
+        root_params = nisarqa.build_root_params(
             product_type="rslc", user_rncfg=user_rncfg
         )
     except nisarqa.ExitEarly as e:
         # No workflows were requested. Exit early.
         print(
-            "All `workflows` were set to `False` in the runconfig. No QA "
-            "processing will be performed. Exiting..."
+            "Succesful Completion. All `workflows` set to `False` in "
+            "the runconfig, so no QA processing will be performed."
         )
         return
-
-    output_dir = rslc_params.prodpath.qa_output_dir
-
-    # Print final processing parameters that will be used for QA, for debugging
-    print(
-        "QA Processing parameters, per runconfig and defaults (runconfig has precedence)"
-    )
-
-    rslc_params_names = {
-        "input_f": "Input File Group",
-        "prodpath": "Product Path Group",
-        "anc_files": "Dynamic Ancillary File",
-        "workflows": "Workflows",
-        "power_img": "Power Image",
-        "histogram": "Histogram",
-        "abs_cal": "Absolute Radiometric Calibration",
-        "noise_estimation": "Noise Estimation Tool",
-        "pta": "Point Target Analyzer",
-    }
-
-    for params_obj in fields(rslc_params):
-        grp_name = rslc_params_names[params_obj.name]
-        print(f"  {grp_name} Input Parameters:")
-
-        po = getattr(rslc_params, params_obj.name)
-        if po is not None:
-            for param in fields(po):
-                po2 = getattr(po, param.name)
-                if isinstance(po2, bool):
-                    print(f"    {param.name}: {po2}")
-                else:
-                    print(f"    {param.name}: {po2}")
-
-    output_dir = rslc_params.prodpath.qa_output_dir
 
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
+    output_dir = root_params.prodpath.qa_output_dir
     nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
 
-    # Create file paths for output files ()
-    input_file = rslc_params.input_f.qa_input_file
-    msg = (
-        f"Starting Quality Assurance for input file: {input_file}"
-        f"\nOutputs to be generated:"
-    )
-    if rslc_params.workflows.validate or rslc_params.workflows.qa_reports:
-        summary_file = os.path.join(output_dir, "SUMMARY.csv")
-        msg += f"\n\tSummary file: {summary_file}"
-
-    if (
-        rslc_params.workflows.qa_reports
-        or rslc_params.workflows.abs_cal
-        or rslc_params.workflows.noise_estimation
-        or rslc_params.workflows.point_target
-    ):
-        stats_file = os.path.join(output_dir, "STATS.h5")
-        msg += f"\n\tMetrics file: {stats_file}"
-
-    if rslc_params.workflows.qa_reports:
-        report_file = os.path.join(output_dir, "REPORT.pdf")
-        browse_image = os.path.join(output_dir, "BROWSE.png")
-        browse_kml = os.path.join(output_dir, "BROWSE.kml")
-
-        msg += (
-            f"\n\tReport file: {report_file}"
-            f"\n\tBrowse Image: {browse_image}"
-            f"\n\tBrowse Image Geolocation file: {browse_kml}"
-        )
-    print(msg)
+    input_file = root_params.input_f.qa_input_file
+    print(f"Starting Quality Assurance for input file: {input_file}")
 
     # Begin QA workflows
     with nisarqa.open_h5_file(input_file, mode="r") as in_file:
@@ -134,29 +75,38 @@ def verify_rslc(user_rncfg):
         # If running these workflows, save the processing parameters and
         # identification group to STATS.h5
         if (
-            rslc_params.workflows.qa_reports
-            or rslc_params.workflows.abs_cal
-            or rslc_params.workflows.noise_estimation
-            or rslc_params.workflows.point_target
+            root_params.workflows.qa_reports
+            or root_params.workflows.abs_cal
+            or root_params.workflows.noise_estimation
+            or root_params.workflows.point_target
         ):
             # This is the first time opening the STATS.h5 file for RSLC
             # workflow, so open in 'w' mode.
             # After this, always open STATS.h5 in 'r+' mode.
-            with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
+            with nisarqa.open_h5_file(
+                root_params.get_stats_h5_filename(), mode="w"
+            ) as stats_h5:
                 # Save the processing parameters to the stats.h5 file
                 # Note: If only the validate workflow is requested,
                 # this will do nothing.
-                rslc_params.save_params_to_stats_file(
+                root_params.save_params_to_stats_file(
                     h5_file=stats_h5, bands=tuple(pols.keys())
+                )
+                print(
+                    f"QA Processing Parameters saved to {root_params.get_stats_h5_filename()}"
                 )
 
                 # Copy the Product identification group to STATS.h5
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                     nisar_h5=in_file, stats_h5=stats_h5
                 )
+                print(
+                    f"Input file Identification group copied to {root_params.get_stats_h5_filename()}"
+                )
 
         # Run the requested workflows
-        if rslc_params.workflows.validate:
+        if root_params.workflows.validate:
+            print(f"Beginning input file validation...")
             # TODO Validate file structure
             # (After this, we can assume the file structure for all
             # subsequent accesses to it)
@@ -168,41 +118,77 @@ def verify_rslc(user_rncfg):
 
             # These reports will be saved to the SUMMARY.csv file.
             # For now, output the stub file
-            nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
+            nisarqa.output_stub_files(
+                output_dir=output_dir, stub_files="summary_csv"
+            )
 
     if rslc_params.workflows.qa_reports:
         # TODO qa_reports will add to the SUMMARY.csv file.
         # For now, make sure that the stub file is output
         if not os.path.isfile(summary_file):
-            nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
+            nisarqa.output_stub_files(
+                output_dir=output_dir, stub_files="summary_csv"
+            )
 
         nisarqa.write_latlonquad_to_kml(nisarqa.get_latlonquad(input_file), output_dir)
 
         with nisarqa.open_h5_file(input_file, mode="r") as in_file:
             pols = nisarqa.rslc.get_pols(in_file)
+            print(
+                f"Input file validation PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}"
+            )
+            print(f"Input file validation complete.")
 
-            with nisarqa.open_h5_file(stats_file, mode="r+") as stats_h5, PdfPages(
-                report_file
+        if root_params.workflows.qa_reports:
+            print(f"Beginning `qa_reports` processing...")
+            # TODO qa_reports will add to the SUMMARY.csv file.
+            # For now, make sure that the stub file is output
+            if not os.path.isfile(root_params.get_summary_csv_filename()):
+                nisarqa.output_stub_files(
+                    output_dir=output_dir, stub_files="summary_csv"
+                )
+
+            # TODO qa_reports will create the BROWSE.kml file.
+            # For now, make sure that the stub file is output
+            nisarqa.output_stub_files(
+                output_dir=output_dir, stub_files="browse_kml"
+            )
+            print("Processing of browse image kml complete.")
+            print(
+                f"Browse image kml file saved to {root_params.get_kml_browse_filename()}"
+            )
+
+            with nisarqa.open_h5_file(
+                root_params.get_stats_h5_filename(), mode="r+"
+            ) as stats_h5, PdfPages(
+                root_params.get_report_pdf_filename()
             ) as report_pdf:
+                print("Beginning processing of `qa_reports` items...")
+
                 # Save frequency/polarization info to stats file
                 save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
 
                 # Generate the RSLC Power Image and Browse Image
                 process_slc_power_images_and_browse(
                     pols=pols,
-                    params=rslc_params.power_img,
+                    params=root_params.power_img,
                     stats_h5=stats_h5,
                     report_pdf=report_pdf,
-                    browse_filename=browse_image,
+                    browse_filename=root_params.get_browse_png_filename(),
+                )
+                print("Processing of power images complete.")
+                print(
+                    f"Browse image PNG file saved to {root_params.get_browse_png_filename()}"
                 )
 
                 # Generate the RSLC Power and Phase Histograms
                 process_power_and_phase_histograms(
                     pols=pols,
-                    params=rslc_params.histogram,
+                    params=root_params.histogram,
                     stats_h5=stats_h5,
                     report_pdf=report_pdf,
                 )
+                print("Processing of power and phase histograms complete.")
 
                 # Process Interferograms
 
@@ -212,45 +198,64 @@ def verify_rslc(user_rncfg):
 
                 # Compute metrics for stats.h5
 
-    if rslc_params.workflows.abs_cal:
-        msg = f"Running Absolute Radiometric Calibration CalTool: {input_file}"
-        print(msg)
-        # logger.log_message(logging_base.LogFilterInfo, msg)
+                print(
+                    f"PDF reports saved to {root_params.get_report_pdf_filename()}"
+                )
+                print(
+                    f"HDF5 statistics saved to {root_params.get_stats_h5_filename()}"
+                )
+                print(
+                    f"CSV Summary PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}"
+                )
+                print("`qa_reports` processing complete.")
+
+    if root_params.workflows.abs_cal:
+        print("Beginning Absolute Radiometric Calibration CalTool...")
 
         # Run Absolute Radiometric Calibration tool
         nisarqa.caltools.run_abscal_tool(
-            abscal_params=rslc_params.abs_cal,
-            dyn_anc_params=rslc_params.anc_files,
+            abscal_params=root_params.abs_cal,
+            dyn_anc_params=root_params.anc_files,
             input_filename=input_file,
-            stats_filename=stats_file,
+            stats_filename=root_params.get_stats_h5_filename(),
         )
+        print(
+            f"Absolute Radiometric Calibration CalTool results saved to {root_params.get_stats_h5_filename()}"
+        )
+        print("Absolute Radiometric Calibration CalTool complete.")
 
-    if rslc_params.workflows.noise_estimation:
-        msg = f"Running Noise Estimation Tool CalTool: {input_file}"
-        print(msg)
-        # logger.log_message(logging_base.LogFilterInfo, msg)
+    if root_params.workflows.noise_estimation:
+        print("Beginning Noise Estimation Tool CalTool...")
 
         # Run NET tool
         nisarqa.caltools.run_noise_estimation_tool(
-            params=rslc_params.noise_estimation,
+            params=root_params.noise_estimation,
             input_filename=input_file,
-            stats_filename=stats_file,
+            stats_filename=root_params.get_stats_h5_filename(),
         )
+        print(
+            f"Noise Estimation Tool CalTool results saved to {root_params.get_stats_h5_filename()}"
+        )
+        print("Noise Estimation Tool CalTool complete.")
 
-    if rslc_params.workflows.point_target:
-        msg = f"Running Point Target Analyzer CalTool: {input_file}"
-        print(msg)
-        # logger.log_message(logging_base.LogFilterInfo, msg)
+    if root_params.workflows.point_target:
+        print("Beginning Point Target Analyzer CalTool...")
 
         # Run Point Target Analyzer tool
         nisarqa.caltools.run_pta_tool(
-            pta_params=rslc_params.pta,
-            dyn_anc_params=rslc_params.anc_files,
+            pta_params=root_params.pta,
+            dyn_anc_params=root_params.anc_files,
             input_filename=input_file,
-            stats_filename=stats_file,
+            stats_filename=root_params.get_stats_h5_filename(),
         )
+        print(
+            f"Point Target Analyzer CalTool results saved to {root_params.get_stats_h5_filename()}"
+        )
+        print("Point Target Analyzer CalTool complete.")
 
-    print("Successful completion. Check log file for validation warnings and errors.")
+    print(
+        "Successful completion of QA SAS. Check log file for validation warnings and errors."
+    )
 
 
 # TODO - move to generic NISAR module
@@ -627,25 +632,39 @@ class RadarRaster(SARRaster):
         # For NISAR, radar-domain grids are referenced by the center of the
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
-        az_start = float(h5_file[swaths_path]["zeroDopplerTime"][0]) - 0.5 * az_spacing
+        az_start = (
+            float(h5_file[swaths_path]["zeroDopplerTime"][0])
+            - 0.5 * az_spacing
+        )
 
-        az_stop = float(h5_file[swaths_path]["zeroDopplerTime"][-1]) + 0.5 * az_spacing
+        az_stop = (
+            float(h5_file[swaths_path]["zeroDopplerTime"][-1])
+            + 0.5 * az_spacing
+        )
 
         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
         # 'Nominal ground range spacing in meters between consecutive pixels
         # near mid swath of the RSLC image.'
-        range_spacing = h5_file[freq_path]["sceneCenterGroundRangeSpacing"][...]
+        range_spacing = h5_file[freq_path]["sceneCenterGroundRangeSpacing"][
+            ...
+        ]
 
         # Range in meters (units are specified as meters in the product spec)
         # For NISAR, radar-domain grids are referenced by the center of the
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
-        rng_start = float(h5_file[freq_path]["slantRange"][0]) - 0.5 * range_spacing
-        rng_stop = float(h5_file[freq_path]["slantRange"][-1]) + 0.5 * range_spacing
+        rng_start = (
+            float(h5_file[freq_path]["slantRange"][0]) - 0.5 * range_spacing
+        )
+        rng_stop = (
+            float(h5_file[freq_path]["slantRange"][-1]) + 0.5 * range_spacing
+        )
 
         # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
         sec_since_epoch = (
-            h5_file[swaths_path]["zeroDopplerTime"].attrs["units"].decode("utf-8")
+            h5_file[swaths_path]["zeroDopplerTime"]
+            .attrs["units"]
+            .decode("utf-8")
         )
         epoch = sec_since_epoch.replace("seconds since ", "").strip()
 
@@ -873,7 +892,9 @@ def _select_layers_for_browse(pols):
         layers_for_browse["B"] = available_pols
 
     else:  # freq A exists
-        if available_pols[0].startswith("R") or available_pols[0].startswith("L"):
+        if available_pols[0].startswith("R") or available_pols[0].startswith(
+            "L"
+        ):
             # Compact Pol. This is not a planned mode for LSAR,
             # and there is no test data, so simply make a grayscale image.
 
@@ -1056,7 +1077,9 @@ def process_slc_power_images_and_browse(
                     pol_imgs_for_browse[pol] = corrected_img
 
     # Construct the browse image
-    _save_slc_browse_img(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
+    _save_slc_browse_img(
+        pol_imgs=pol_imgs_for_browse, filepath=browse_filename
+    )
 
 
 # TODO - move to generic location
@@ -1090,7 +1113,10 @@ def get_multilooked_power_image(img, params, stats_h5):
     ):
         nlooks = nisarqa.compute_square_pixel_nlooks(
             img.data.shape,
-            sample_spacing=(np.abs(img.y_axis_spacing), np.abs(img.x_axis_spacing)),
+            sample_spacing=(
+                np.abs(img.y_axis_spacing),
+                np.abs(img.x_axis_spacing),
+            ),
             longest_side_max=params.longest_side_max,
         )
 
@@ -1100,7 +1126,8 @@ def get_multilooked_power_image(img, params, stats_h5):
         nlooks = nlooks_freqb_arg
     else:
         raise ValueError(
-            f'frequency is "{img.freq}", but only "A" or "B" ' "are valid options."
+            f'frequency is "{img.freq}", but only "A" or "B" '
+            "are valid options."
         )
 
     # Save the final nlooks to the HDF5 dataset
@@ -1113,7 +1140,8 @@ def get_multilooked_power_image(img, params, stats_h5):
         axes = "[<Y direction>,<X direction>]"
     else:
         raise TypeError(
-            "Input `img` must be RadarRaster or GeoRaster. " f"It is {type(img)}"
+            "Input `img` must be RadarRaster or GeoRaster. "
+            f"It is {type(img)}"
         )
 
     # Create the nlooks dataset
@@ -1426,7 +1454,9 @@ def _save_slc_browse_img(pol_imgs, filepath):
     for img in pol_imgs.values():
         # Input validation check
         if np.shape(img) != img_2D_shape:
-            raise ValueError("All image arrays in `pol_imgs` must have the same shape.")
+            raise ValueError(
+                "All image arrays in `pol_imgs` must have the same shape."
+            )
 
     # Assign color channels
     set_of_pol_imgs = set(pol_imgs)
@@ -1537,7 +1567,9 @@ def plot_to_rgb_png(red, green, blue, filepath):
 
     # transparency_val will be the same from all calls to this function;
     # only need to capture it once.
-    rgb_arr[:, :, 0], transparency_val = prep_arr_for_png_with_transparency(red)
+    rgb_arr[:, :, 0], transparency_val = prep_arr_for_png_with_transparency(
+        red
+    )
     rgb_arr[:, :, 1] = prep_arr_for_png_with_transparency(green)[0]
     rgb_arr[:, :, 2] = prep_arr_for_png_with_transparency(blue)[0]
 
@@ -1835,7 +1867,9 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf):
             )
 
 
-def generate_histogram_single_freq(pol, band, freq, params, stats_h5, report_pdf):
+def generate_histogram_single_freq(
+    pol, band, freq, params, stats_h5, report_pdf
+):
     """
     Generate RSLC or GSLC Power Histograms for a single frequency.
 
@@ -1899,7 +1933,10 @@ def generate_histogram_single_freq(pol, band, freq, params, stats_h5, report_pdf
         )
 
         # Save to stats.h5 file
-        grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (band, freq)
+        grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (
+            band,
+            freq,
+        )
         pow_units = params.get_units_from_hdf5_metadata("pow_bin_edges")
         phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
 
@@ -1923,11 +1960,17 @@ def generate_histogram_single_freq(pol, band, freq, params, stats_h5, report_pdf
 
         # Add these densities to the figures
         add_hist_to_axis(
-            pow_ax, counts=pow_hist_density, edges=params.pow_bin_edges, label=pol_name
+            pow_ax,
+            counts=pow_hist_density,
+            edges=params.pow_bin_edges,
+            label=pol_name,
         )
 
         add_hist_to_axis(
-            phs_ax, counts=phs_hist_density, edges=params.phs_bin_edges, label=pol_name
+            phs_ax,
+            counts=phs_hist_density,
+            edges=params.phs_bin_edges,
+            label=pol_name,
         )
 
     # Label the Power Figure

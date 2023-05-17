@@ -1,8 +1,9 @@
 from contextlib import contextmanager
 
 import h5py
-import nisarqa
 import numpy as np
+
+import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 

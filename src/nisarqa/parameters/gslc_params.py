@@ -2,15 +2,11 @@ from dataclasses import dataclass, fields
 from typing import Optional
 
 import nisarqa
-from nisarqa.parameters.nisar_params import *
-
+from nisarqa import (InputFileGroupParamGroup, ProductPathGroupParamGroup,
+                     RootParamGroup, WorkflowsParamGroup)
 # TODO Remove the rslc_caltools_params imports after re-org of code
-from nisarqa.parameters.rslc_caltools_params import (
-    InputFileGroupParamGroup,
-    ProductPathGroupParamGroup,
-    SLCHistogramParamGroup,
-    SLCPowerImageParamGroup,
-)
+from nisarqa.parameters.rslc_caltools_params import (SLCHistogramParamGroup,
+                                                     SLCPowerImageParamGroup)
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -37,11 +33,9 @@ class GSLCRootParamGroup(RootParamGroup):
         Product Path Group parameters for QA
     power_img : SLCPowerImageParamGroup or None, optional
         Power Image Group parameters for SLC QA
+    histogram : SLCHistogramParamGroup or None, optional
+        Histogram Group parameters for RSLC or GSLC QA
     """
-
-    # Shared parameters
-    input_f: Optional[InputFileGroupParamGroup] = None
-    prodpath: Optional[ProductPathGroupParamGroup] = None
 
     # QA parameters
     power_img: Optional[SLCPowerImageParamGroup] = None

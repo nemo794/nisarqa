@@ -6,14 +6,9 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 import nisarqa
-from nisarqa import (
-    HDF5Attrs,
-    HDF5ParamGroup,
-    RootParamGroup,
-    WorkflowsParamGroup,
-    YamlAttrs,
-    YamlParamGroup,
-)
+from nisarqa import (HDF5Attrs, HDF5ParamGroup, InputFileGroupParamGroup,
+                     ProductPathGroupParamGroup, RootParamGroup,
+                     WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -83,46 +78,6 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         self._check_workflows_arg("point_target", self.point_target)
 
 
-# TODO - move to generic NISAR module (InSAR will need more thought)
-@dataclass(frozen=True)
-class InputFileGroupParamGroup(YamlParamGroup):
-    """
-    Parameters from the Input File Group runconfig group.
-
-    This corresponds to the `groups: input_file_group` runconfig group.
-
-    Parameters
-    ----------
-    qa_input_file : str
-        The input NISAR product file name (with path).
-    """
-
-    # Required parameter - do not set a default
-    qa_input_file: str = field(
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="qa_input_file",
-                descr="""Filename of the input file for QA.
-                REQUIRED for QA. NOT REQUIRED if only running Product SAS.
-                If Product SAS and QA SAS are run back-to-back,
-                this field should be identical to `sas_output_file`.
-                Otherwise, this field should contain the filename of the single
-                NISAR product for QA to process.""",
-            )
-        }
-    )
-
-    def __post_init__(self):
-        # VALIDATE INPUTS
-        nisarqa.validate_is_file(
-            filepath=self.qa_input_file, parameter_name="qa_input_file", extension=".h5"
-        )
-
-    @staticmethod
-    def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "input_file_group"]
-
-
 @dataclass(frozen=True)
 class DynamicAncillaryFileParamGroup(YamlParamGroup):
     """
@@ -161,47 +116,6 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "dynamic_ancillary_file_group"]
-
-
-# TODO - move to generic NISAR module (InSAR will need more thought)
-@dataclass(frozen=True)
-class ProductPathGroupParamGroup(YamlParamGroup):
-    """
-    Parameters from the Product Path Group runconfig group.
-
-    This corresponds to the `groups: product_path_group` runconfig group.
-
-    Parameters
-    ----------
-    qa_output_dir : str, optional
-        Filepath to the output directory to store NISAR QA output files.
-        Defaults to './qa'
-    """
-
-    qa_output_dir: str = field(
-        default="./qa",
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="qa_output_dir",
-                descr="""Output directory to store all QA output files.""",
-            )
-        },
-    )
-
-    def __post_init__(self):
-        # VALIDATE INPUTS
-
-        if not isinstance(self.qa_output_dir, str):
-            raise TypeError(f"`qa_output_dir` must be a str")
-
-        # If this directory does not exist, make it.
-        if not os.path.isdir(self.qa_output_dir):
-            print(f"Creating QA output directory: {self.qa_output_dir}")
-            os.makedirs(self.qa_output_dir, exist_ok=True)
-
-    @staticmethod
-    def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "product_path_group"]
 
 
 # TODO - move to generic SLC module
@@ -893,8 +807,6 @@ class RSLCRootParamGroup(RootParamGroup):
 
     # Shared parameters
     workflows: RSLCWorkflowsParamGroup  # overwrite parent's `workflows` b/c new type
-    input_f: Optional[InputFileGroupParamGroup] = None
-    prodpath: Optional[ProductPathGroupParamGroup] = None
 
     # QA parameters
     power_img: Optional[SLCPowerImageParamGroup] = None
@@ -1023,7 +935,7 @@ def build_root_params(product_type, user_rncfg):
 
     except KeyError as e:
         raise KeyError("`workflows` group is a required runconfig group") from e
-
+    
     # If all functionality is off (i.e. all workflows are set to false),
     # then exit early. We will not need any of the other runconfig groups.
     if not root_inputs["workflows"].at_least_one_wkflw_requested():
@@ -1037,38 +949,42 @@ def build_root_params(product_type, user_rncfg):
 
     for param_grp in wkflws2params_mapping:
         if param_grp.flag_param_grp_req:
-            try:
-                root_inputs[
-                    param_grp.root_param_grp_attr_name
-                ] = _get_param_group_instance_from_runcfg(
-                    param_grp_cls_obj=param_grp.param_grp_cls_obj, user_rncfg=user_rncfg
-                )
+            populated_rncfg_group = \
+                _get_param_group_instance_from_runcfg(
+                    param_grp_cls_obj=param_grp.param_grp_cls_obj,
+                    user_rncfg=user_rncfg
+            )
 
-            # Some custom exception handling, such as to help make errors
-            # from missing required input files less cryptic.
-            except KeyError as e:
-                if (product_type == "rslc") and (
-                    param_grp.root_param_grp_attr_name == "input_f"
-                ):
-                    raise KeyError(
-                        "`*qa_input_file` is a required runconfig parameter"
-                    ) from e
-                else:
-                    raise e
-            except TypeError as e:
-                if (product_type == "rslc") and (
-                    param_grp.root_param_grp_attr_name == "anc_files"
-                ):
-                    raise KeyError(
-                        "`corner_reflector_file` is a required "
-                        "runconfig parameter for Absolute Radiometric "
-                        "Calibration or Point Target Analyzer workflows"
-                    ) from e
-                else:
-                    raise e
+            root_inputs[param_grp.root_param_grp_attr_name] = populated_rncfg_group
 
     # Construct *RootParamGroup
     root_param_group = root_param_class_obj(**root_inputs)
+
+    # Log the final parameters that will be used for QA processing
+    print(
+        "Final QA processing parameters, per runconfig and defaults (runconfig has precedence)"
+    )
+
+    # Iterate through each *ParamGroup attribute in the *RootParamGroup
+    for root_group_attr in fields(root_param_group):
+        param_group_obj = getattr(root_param_group, root_group_attr.name)
+
+        # Iterate through each attribute in the *ParamGroup
+        if param_group_obj is not None:
+            # One of the `workflows` set to `True` required this group,
+            # so this *ParamGroup was instantiated and its values logged.
+
+            # Use the path in the runconfig to identify the group
+            rncfg_grp_path = param_group_obj.get_path_to_group_in_runconfig()
+            rncfg_grp_path = "/".join(rncfg_grp_path)
+            print(f"  Final Input Parameters corresponding to Runconfig group: ", rncfg_grp_path)
+
+            # Show the final value assigned to the parameter
+            for param in fields(param_group_obj):
+                po2 = getattr(param_group_obj, param.name)
+                print(f"    {param.name}: {po2}")
+        else:
+            print(f"  Per `workflows`, runconfig group for {param_grp} not required.")
 
     return root_param_group
 

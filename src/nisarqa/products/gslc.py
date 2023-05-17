@@ -1,8 +1,9 @@
 import os
 from dataclasses import fields
 
-import nisarqa
 from matplotlib.backends.backend_pdf import PdfPages
+
+import nisarqa
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -31,71 +32,25 @@ def verify_gslc(user_rncfg):
 
     # Build the GSLCRootParamGroup parameters per the runconfig
     try:
-        gslc_params = nisarqa.build_root_params(
+        root_params = nisarqa.build_root_params(
             product_type="gslc", user_rncfg=user_rncfg
         )
     except nisarqa.ExitEarly as e:
         # No workflows were requested. Exit early.
         print(
-            "All `workflows` were set to `False` in the runconfig. No QA "
-            "processing will be performed. Exiting..."
+            "Succesful Completion. All `workflows` set to `False` in "
+            "the runconfig, so no QA processing will be performed."
         )
         return
-
-    # Print final processing parameters that will be used for QA, for debugging
-    print(
-        "QA Processing parameters, per runconfig and defaults (runconfig has precedence)"
-    )
-
-    gslc_params_names = {
-        "input_f": "Input File Group",
-        "prodpath": "Product Path Group",
-        "workflows": "Workflows",
-        "power_img": "Power Image",
-        "histogram": "Histogram",
-    }
-
-    for params_obj in fields(gslc_params):
-        grp_name = gslc_params_names[params_obj.name]
-        print(f"  {grp_name} Input Parameters:")
-
-        po = getattr(gslc_params, params_obj.name)
-        if po is not None:
-            for param in fields(po):
-                po2 = getattr(po, param.name)
-                print(f"    {param.name}: {po2}")
-
-    output_dir = gslc_params.prodpath.qa_output_dir
 
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
+    output_dir = root_params.prodpath.qa_output_dir
     nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
 
-    # Create file paths for output files
-    input_file = gslc_params.input_f.qa_input_file
-    msg = (
-        f"Starting Quality Assurance for input file: {input_file}"
-        f"\nOutputs to be generated:"
-    )
-
-    summary_file = os.path.join(output_dir, "SUMMARY.csv")
-    msg += f"\n\tSummary file: {summary_file}"
-
-    if gslc_params.workflows.qa_reports:
-        report_file = os.path.join(output_dir, "REPORT.pdf")
-        browse_image = os.path.join(output_dir, "BROWSE.png")
-        browse_kml = os.path.join(output_dir, "BROWSE.kml")
-        stats_file = os.path.join(output_dir, "STATS.h5")
-
-        msg += (
-            f"\n\tReport file: {report_file}"
-            f"\n\tMetrics file: {stats_file}"
-            f"\n\tBrowse Image: {browse_image}"
-            f"\n\tBrowse Image Geolocation file: {browse_kml}"
-        )
-
-    print(msg)
+    input_file = root_params.input_f.qa_input_file
+    print(f"Starting Quality Assurance for input file: {input_file}")
 
     with nisarqa.open_h5_file(input_file, mode="r") as in_file:
         # Note: `pols` contains references to datasets in the open input file.
@@ -104,7 +59,9 @@ def verify_gslc(user_rncfg):
         pols = nisarqa.rslc.get_pols(in_file)
 
         # Run the requested workflows
-        if gslc_params.workflows.validate:
+        if root_params.workflows.validate:
+            print(f"Beginning input file validation...")
+
             # TODO Validate file structure
             # (After this, we can assume the file structure for all
             # subsequent accesses to it)
@@ -115,10 +72,15 @@ def verify_gslc(user_rncfg):
             # For now, output the stub file
             nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
 
-        if gslc_params.workflows.qa_reports:
+            print(f"Input file validation PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}")
+            print(f"Input file validation complete.")
+
+        if root_params.workflows.qa_reports:
+            print(f"Beginning `qa_reports` processing...")
+
             # TODO qa_reports will add to the SUMMARY.csv file.
             # For now, make sure that the stub file is output
-            if not os.path.isfile(summary_file):
+            if not os.path.isfile(root_params.get_summary_csv_filename()):
                 nisarqa.output_stub_files(
                     output_dir=output_dir, stub_files="summary_csv"
                 )
@@ -126,12 +88,16 @@ def verify_gslc(user_rncfg):
             # TODO qa_reports will create the BROWSE.kml file.
             # For now, make sure that the stub file is output
             nisarqa.output_stub_files(output_dir=output_dir, stub_files="browse_kml")
+            print("Processing of browse image kml complete.")
+            print(f"Browse image kml file saved to {root_params.get_kml_browse_filename()}")
 
-            with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5, PdfPages(
-                report_file
-            ) as report_pdf:
+            with nisarqa.open_h5_file(root_params.get_stats_h5_filename(), mode="w") as stats_h5, \
+                PdfPages(root_params.get_report_pdf_filename()) as report_pdf:
+
+                print("Beginning processing of `qa_reports` items...")
+
                 # Save the processing parameters to the stats.h5 file
-                gslc_params.save_params_to_stats_file(
+                root_params.save_params_to_stats_file(
                     h5_file=stats_h5, bands=tuple(pols.keys())
                 )
 
@@ -139,28 +105,33 @@ def verify_gslc(user_rncfg):
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                     nisar_h5=in_file, stats_h5=stats_h5
                 )
+                print(f"QA Processing Parameters saved to {root_params.get_stats_h5_filename()}")
 
                 # Save frequency/polarization info to stats file
                 nisarqa.rslc.save_nisar_freq_metadata_to_h5(
                     stats_h5=stats_h5, pols=pols
                 )
+                print(f"Input file Identification group copied to {root_params.get_stats_h5_filename()}")
 
                 # Generate the GSLC Power Image and Browse Image
                 nisarqa.rslc.process_slc_power_images_and_browse(
                     pols=pols,
-                    params=gslc_params.power_img,
+                    params=root_params.power_img,
                     stats_h5=stats_h5,
                     report_pdf=report_pdf,
-                    browse_filename=browse_image,
+                    browse_filename=root_params.get_browse_png_filename(),
                 )
+                print("Processing of power images complete.")
+                print(f"Browse image PNG file saved to {root_params.get_browse_png_filename()}")
 
                 # Generate the GSLC Power and Phase Histograms
                 nisarqa.rslc.process_power_and_phase_histograms(
                     pols=pols,
-                    params=gslc_params.histogram,
+                    params=root_params.histogram,
                     stats_h5=stats_h5,
                     report_pdf=report_pdf,
                 )
+                print("Processing of power and phase histograms complete.")
 
                 # Process Interferograms
 
@@ -168,7 +139,12 @@ def verify_gslc(user_rncfg):
 
                 # Compute metrics for stats.h5
 
-    print("Successful completion. Check log file for validation warnings and errors.")
+                print(f"PDF reports saved to {root_params.get_report_pdf_filename()}")
+                print(f"HDF5 statistics saved to {root_params.get_stats_h5_filename()}")
+                print(f"CSV Summary PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}")
+                print("`qa_reports` processing complete.")
+
+    print("Successful completion of QA SAS. Check log file for validation warnings and errors.")
 
 
 def save_gslc_power_image_to_pdf(

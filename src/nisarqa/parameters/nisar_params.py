@@ -1,13 +1,15 @@
 import collections
 import dataclasses
+import os
 import sys
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
-from typing import ClassVar
+from typing import ClassVar, Optional
+
+from ruamel.yaml import YAML, CommentedMap, CommentedSeq
 
 import nisarqa
-from ruamel.yaml import YAML, CommentedMap, CommentedSeq
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -452,12 +454,96 @@ class WorkflowsParamGroup(YamlParamGroup):
         """
         return any(getattr(self, field.name) for field in fields(self))
 
+# TODO - Geoff - this class was moved from a different module.
+# No changes to code. Please delete this comment during your review. Thanks!
+@dataclass(frozen=True)
+class InputFileGroupParamGroup(YamlParamGroup):
+    """
+    Parameters from the Input File Group runconfig group.
+
+    This corresponds to the `groups: input_file_group` runconfig group.
+
+    Parameters
+    ----------
+    qa_input_file : str
+        The input NISAR product file name (with path).
+    """
+
+    # Required parameter - do not set a default
+    qa_input_file: str = field(
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="qa_input_file",
+                descr="""Filename of the input file for QA.
+                REQUIRED for QA. NOT REQUIRED if only running Product SAS.
+                If Product SAS and QA SAS are run back-to-back,
+                this field should be identical to `sas_output_file`.
+                Otherwise, this field should contain the filename of the single
+                NISAR product for QA to process.""",
+            )
+        }
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+        nisarqa.validate_is_file(
+            filepath=self.qa_input_file, parameter_name="qa_input_file", extension=".h5"
+        )
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "input_file_group"]
+
+
+# TODO - Geoff - this class was moved from a different module.
+# No changes to code. Please delete this comment during your review. Thanks!
+@dataclass(frozen=True)
+class ProductPathGroupParamGroup(YamlParamGroup):
+    """
+    Parameters from the Product Path Group runconfig group.
+
+    This corresponds to the `groups: product_path_group` runconfig group.
+
+    Parameters
+    ----------
+    qa_output_dir : str, optional
+        Filepath to the output directory to store NISAR QA output files.
+        Defaults to './qa'
+    """
+
+    qa_output_dir: str = field(
+        default="./qa",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="qa_output_dir",
+                descr="""Output directory to store all QA output files.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        if not isinstance(self.qa_output_dir, str):
+            raise TypeError(f"`qa_output_dir` must be a str")
+
+        # If this directory does not exist, make it.
+        if not os.path.isdir(self.qa_output_dir):
+            print(f"Creating QA output directory: {self.qa_output_dir}")
+            os.makedirs(self.qa_output_dir, exist_ok=True)
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "product_path_group"]
+
 
 @dataclass
 class RootParamGroup(ABC):
     """Abstract Base Class for all NISAR Products' *RootParamGroup"""
 
     workflows: WorkflowsParamGroup
+    input_f: Optional[InputFileGroupParamGroup] = None
+    prodpath: Optional[ProductPathGroupParamGroup] = None
 
     # Create a namedtuple which maps the workflows requested
     # in `workflows` to their corresponding *RootParamGroup attribute(s)
@@ -626,6 +712,83 @@ class RootParamGroup(ABC):
             if po is not None:
                 if issubclass(type(po), HDF5ParamGroup):
                     po.write_params_to_h5(h5_file, bands=bands)
+
+
+    def _get_output_filepath_with_prefix(self):
+        if self.prodpath is None:
+            raise ValueError("Output directory not provided via runconfig.")
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # if self.input_f is None:
+        #     raise ValueError("Input file not provided via runconfig.")
+        # prefix = os.path.basename(self.input_f.qa_input_file)
+        # # remove the extension
+        # prefix = os.path.splitext(prefix)[0]
+        # return os.path.join(self.prodpath.qa_output_dir, prefix)
+
+        return self.prodpath.qa_output_dir
+
+    def get_browse_png_filename(self):
+        prefix = self._get_output_filepath_with_prefix()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return prefix + ".png"
+
+        return os.path.join(prefix, "BROWSE.png")
+
+    def get_kml_browse_filename(self):
+        prefix = self._get_output_filepath_with_prefix()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return prefix + ".kml"
+
+        return os.path.join(prefix, "BROWSE.kml")
+
+    def get_summary_csv_filename(self):
+        prefix = self._get_output_filepath_with_prefix()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return prefix + "_QA_SUMMARY.csv"
+
+        return os.path.join(prefix, "SUMMARY.csv")
+
+    def get_report_pdf_filename(self):
+        prefix = self._get_output_filepath_with_prefix()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return prefix + "_QA_REPORT.pdf"
+
+        return os.path.join(prefix, "REPORT.pdf")
+
+    def get_stats_h5_filename(self):
+        prefix = self._get_output_filepath_with_prefix()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return prefix + "_QA_STATS.h5"
+
+        return os.path.join(prefix, "STATS.h5")
+
+    def get_log_filename(self):
+        prefix = self._get_output_filepath_with_prefix()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return prefix + "_QA_LOG.txt"
+
+        return os.path.join(prefix, "LOG.txt")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
