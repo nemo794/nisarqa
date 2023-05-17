@@ -1,11 +1,12 @@
 import os
 import warnings
 
-import nisarqa
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from PIL import Image
+
+import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -373,32 +374,6 @@ def get_workflows(user_rncfg, rncfg_path=("runconfig", "groups", "qa", "workflow
             )
 
     return validate, qa_reports
-
-
-def verify_gslc_gcov_stub(user_rncfg):
-    """
-    Parse the runconfig and generate stub outputs for GSLC or GCOV products.
-
-    GSLC and GCOV stub outputs are identical, so there is no need for a
-    parameter that specifies which product type it is.
-
-    Parameters
-    ----------
-    user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
-    """
-
-    input_file = get_input_file(user_rncfg)
-    output_dir = get_output_dir(user_rncfg)
-    validate, qa_reports = get_workflows(user_rncfg)
-
-    if qa_reports:
-        output_stub_files(output_dir, stub_files="all", input_file=input_file)
-    elif validate:
-        output_stub_files(
-            output_dir, stub_files=["summary_csv", "log_txt"], input_file=input_file
-        )
 
 
 def verify_insar(user_rncfg, product):
