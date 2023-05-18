@@ -150,7 +150,7 @@ def verify_gslc(user_rncfg):
             print(f"QA Processing Parameters saved to {stats_file}")
 
             # Generate the GSLC Power Image and Browse Image
-            nisarqa.rslc.process_slc_power_images_and_browse(
+            nisarqa.rslc.process_power_images_and_browse(
                 pols=pols,
                 params=root_params.power_img,
                 product_type="gslc",
