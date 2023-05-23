@@ -98,6 +98,11 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 # Note: Keep each NISAR product in a unique namespace, due to a higher
 # potential for overlapping function names
 
+# Toggle isort off so that the imports occur in the correct order.
+# Example: if `.parameters.gslc_params` is imported before
+# `.parameters.nisar_params`, then an error is raised
+# isort: off
+
 # Import Globals first (these must be imported before the parameters)
 from .parameters.constants.globals import *
 from .parameters.constants.stub_outputs import *
@@ -106,10 +111,11 @@ from .parameters.constants.stub_outputs import *
 from .parameters.nisar_params import *
 from .parameters.gslc_params import *
 from .parameters.rslc_caltools_params import *
+# keep individual products in their own namespace
 from .products import (
     caltools,
     gcov,
-    goff,  # keep in their own namespace
+    goff,
     gslc,
     gunw,
     rifg,
@@ -123,3 +129,5 @@ from .utils.multilook import *
 from .utils.raster_classes import *
 from .utils.tiling import *
 from .utils.utils import *
+
+# isort: on
