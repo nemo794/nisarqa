@@ -3,6 +3,7 @@ import sys
 
 __version__ = "3.0.0"
 
+
 def get_all(name, objects_to_skip=None, skip_private=True):
     """Return a list of all functions and classes in a module
     up to the point in the module when this is called.
