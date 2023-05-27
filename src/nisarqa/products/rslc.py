@@ -2405,7 +2405,9 @@ def generate_phase_histogram_single_freq(
     for pol_name, pol_data in pol.items():
         # Only create phase histograms for complex datasets. Examples of
         # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
-        if not np.iscomplexobj(pol_data.data):
+        # Note: Need to use `np.issubdtype` instead of `np.iscomplexobj`
+        # due to e.g. RSLC and GSLC datasets of type ComplexFloat16Decoder.
+        if not np.issubdtype(pol_data.data, np.complexfloating):
             continue
 
         save_phase_histogram = True
