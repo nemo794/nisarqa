@@ -3,18 +3,12 @@ from typing import Optional
 
 import nisarqa
 from nisarqa import (
-    InputFileGroupParamGroup,
-    ProductPathGroupParamGroup,
-    RootParamGroup,
-    WorkflowsParamGroup,
-)
-
-# TODO Remove the rslc_caltools_params imports after re-org of code
-from nisarqa.parameters.rslc_caltools_params import (
     BackscatterImageParamGroup,
     HistogramParamGroup,
     InputFileGroupParamGroup,
     ProductPathGroupParamGroup,
+    RootParamGroup,
+    WorkflowsParamGroup,
 )
 
 objects_to_skip = nisarqa.get_all(__name__)
@@ -41,7 +35,7 @@ class GSLCRootParamGroup(RootParamGroup):
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for QA
     backscatter_img : BackscatterImageParamGroup or None, optional
-        Power Image Group parameters for SLC QA
+        Backscatter Image Group parameters for SLC QA
     histogram : SLCHistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     """

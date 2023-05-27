@@ -150,6 +150,9 @@ def verify_gslc(user_rncfg):
             print(f"QA Processing Parameters saved to {stats_file}")
 
             input_raster_represents_power = False
+            name_of_backscatter_content = (
+                "GSLC Backscatter Coefficient (beta0)"
+            )
 
             # Generate the GSLC Power Image and Browse Image
             nisarqa.rslc.process_backscatter_imgs_and_browse(
@@ -158,6 +161,7 @@ def verify_gslc(user_rncfg):
                 product_type="gslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
+                plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
                 browse_filename=browse_file_png,
             )
@@ -191,10 +195,15 @@ def verify_gslc(user_rncfg):
 
 
 def save_geocoded_backscatter_img_to_pdf(
-    img_arr, img, params, report_pdf, colorbar_formatter=None
+    img_arr,
+    img,
+    params,
+    report_pdf,
+    plot_title_prefix="Backscatter Coefficient",
+    colorbar_formatter=None,
 ):
     """
-    Annotate and save a Geocoded Power Image to `report_pdf`.
+    Annotate and save a Geocoded Backscatter Image to `report_pdf`.
 
     Parameters
     ----------
@@ -209,6 +218,11 @@ def save_geocoded_backscatter_img_to_pdf(
         and outputting the backscatter image(s).
     report_pdf : PdfPages
         The output pdf file to append the backscatter image plot to
+    plot_title_prefix : str
+        Prefix for the title of the backscatter plots.
+        Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
+        "GCOV Backscatter Coefficient (gamma-0)"
+        Defaults to "Backscatter Coefficient"
     colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
         Tick formatter function to define how the numeric value
         associated with each tick on the colorbar axis is formatted
@@ -220,12 +234,12 @@ def save_geocoded_backscatter_img_to_pdf(
         See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
     """
 
-    # Plot and Save Power Image to graphical summary pdf
-    title = f"Multilooked Power ({params.backscatter_units}%s)\n{img.name}"
+    # Plot and Save Backscatter Image to graphical summary pdf
+    title = f"{plot_title_prefix}\n({params.backscatter_units}%s)\n{img.name}"
     if params.gamma is None:
         title = title % ""
     else:
-        title = title % rf", $\gamma$={params.gamma}"
+        title = title % rf", $\gamma$-correction={params.gamma}"
 
     # TODO: double-check that start and stop were parsed correctly from the metadata
 

@@ -127,7 +127,7 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
 @dataclass(frozen=True)
 class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to generate RSLC or GSLC Power Images and Browse Image.
+    Parameters to generate RSLC or GSLC Backscatter Images and Browse Image.
 
     This corresponds to the `qa_reports: backscatter_img` runconfig group.
 
@@ -417,7 +417,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to generate the RSLC or GSLC Power and Phase Histograms;
+    Parameters to generate the RSLC or GSLC Backscatter and Phase Histograms;
     this corresponds to the `qa_reports: histogram` runconfig group.
 
     Parameters
@@ -518,12 +518,12 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     )
 
     # Auto-generated attributes
-    # Power Bin Edges (generated from `backscatter_histogram_bin_edges_range`)
+    # Backscatter Bin Edges (generated from `backscatter_histogram_bin_edges_range`)
     backscatter_bin_edges: ArrayLike = field(
         init=False,
         metadata={
             "hdf5_attrs": HDF5Attrs(
-                name="histogramEdgesPower",
+                name="histogramEdgesBackscatter",
                 units="dB",
                 descr="Bin edges (including endpoint) for backscatter histogram",
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
@@ -620,7 +620,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         # so we need to use object.__setattr__()
 
         # Set attributes dependent upon backscatter_histogram_bin_edges_range
-        # Power Bin Edges - hardcode to be in decibels
+        # Backscatter Bin Edges - hardcode to be in decibels
         # 101 bin edges => 100 bins
         object.__setattr__(
             self,
@@ -825,7 +825,7 @@ class RSLCRootParamGroup(RootParamGroup):
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for RSLC QA
     backscatter_img : BackscatterImageParamGroup or None, optional
-        Power Image Group parameters for RSLC QA
+        Backscatter Image Group parameters for RSLC QA
     histogram : HistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     anc_files : DynamicAncillaryFileParamGroup or None, optional

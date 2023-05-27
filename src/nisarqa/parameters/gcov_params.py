@@ -14,7 +14,7 @@ objects_to_skip = nisarqa.get_all(__name__)
 @dataclass(frozen=True)
 class GCOVBackscatterImageParamGroup(BackscatterImageParamGroup):
     """
-    Parameters to generate RSLC or GSLC Power Images and Browse Image.
+    Parameters to generate RSLC or GSLC Backscatter Images and Browse Image.
 
     This corresponds to the `qa_reports: backscatter_img` runconfig group.
 
