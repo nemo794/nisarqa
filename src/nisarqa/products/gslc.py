@@ -149,6 +149,8 @@ def verify_gslc(user_rncfg):
             )
             print(f"QA Processing Parameters saved to {stats_file}")
 
+            input_raster_represents_power = False
+
             # Generate the GSLC Power Image and Browse Image
             nisarqa.rslc.process_power_images_and_browse(
                 pols=pols,
@@ -156,6 +158,7 @@ def verify_gslc(user_rncfg):
                 product_type="gslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
+                input_raster_represents_power=input_raster_represents_power,
                 browse_filename=browse_file_png,
             )
             print("Processing of power images complete.")
@@ -167,6 +170,7 @@ def verify_gslc(user_rncfg):
                 params=root_params.histogram,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
+                input_raster_represents_power=input_raster_represents_power,
             )
             print("Processing of power and phase histograms complete.")
 

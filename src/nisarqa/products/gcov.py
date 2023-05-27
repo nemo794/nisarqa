@@ -158,6 +158,8 @@ def verify_gcov(user_rncfg):
             # For now, make sure that the stub file is output
             nisarqa.output_stub_files(output_dir=output_dir, stub_files="browse_kml")
 
+            input_raster_represents_power = True
+
             # Generate the Power Image and Browse Image
             nisarqa.rslc.process_power_images_and_browse(
                 pols=pols,
@@ -165,6 +167,7 @@ def verify_gcov(user_rncfg):
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 product_type="gcov",
+                input_raster_represents_power=input_raster_represents_power,
                 browse_filename=browse_image,
             )
 
@@ -174,6 +177,7 @@ def verify_gcov(user_rncfg):
                 params=gcov_params.histogram,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
+                input_raster_represents_power=input_raster_represents_power,
             )
 
             # Check for invalid values
