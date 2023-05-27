@@ -1286,17 +1286,13 @@ def _save_gcov_browse_img(pol_imgs, filepath):
 
 
 def process_power_images_and_browse(
-<<<<<<< HEAD
     pols,
     params,
     stats_h5,
     report_pdf,
     product_type,
+    input_raster_represents_power=False,
     browse_filename="BROWSE.png",
-=======
-    pols, params, stats_h5, report_pdf, product_type, 
-    input_raster_represents_power=False, browse_filename="BROWSE.png"
->>>>>>> 1bb45a6 (remove input_raster_represents_power from runconfig parameter groups)
 ):
     """
     Generate Power Image plots for the `report_pdf` and
@@ -1322,10 +1318,11 @@ def process_power_images_and_browse(
     input_raster_represents_power : bool, optional
         The input dataset rasters associated with these histogram parameters
         should have their pixel values represent either power or root power.
-        If `input_raster_represents_power` is `True`, then QA SAS assumes
-        that the input data already has already been squared.
-        If `False`, then QA SAS will handle the full computation to power,
-        using the formula:  power = abs(<root power>)^2 .
+        If `True`, then QA SAS assumes the input data already represents
+        power and uses the pixels' magnitudes for computations.
+        If `False`, then QA SAS assumes that the input data represents
+        root power, will handle the full computation to power using
+        the formula:  power = abs(<root power>)^2 .
         Defaults to False (root power).
     browse_filename : str, optional
         Filename (with path) for the browse image PNG.
@@ -1371,7 +1368,7 @@ def process_power_images_and_browse(
                     img=img,
                     params=params,
                     stats_h5=stats_h5,
-                    input_raster_represents_power=input_raster_represents_power
+                    input_raster_represents_power=input_raster_represents_power,
                 )
 
                 corrected_img, orig_vmin, orig_vmax = apply_image_correction(
@@ -1424,8 +1421,9 @@ def process_power_images_and_browse(
 
 
 # TODO - move to generic location
-def get_multilooked_power_image(img, params, stats_h5,
-                                input_raster_represents_power=False):
+def get_multilooked_power_image(
+    img, params, stats_h5, input_raster_represents_power=False
+):
     """
     Generate the multilooked Power Image array for a single
     polarization image.
@@ -1442,10 +1440,11 @@ def get_multilooked_power_image(img, params, stats_h5,
     input_raster_represents_power : bool, optional
         The input dataset rasters associated with these histogram parameters
         should have their pixel values represent either power or root power.
-        If `input_raster_represents_power` is `True`, then QA SAS assumes
-        that the input data already has already been squared.
-        If `False`, then QA SAS will handle the full computation to power,
-        using the formula:  power = abs(<root power>)^2 .
+        If `True`, then QA SAS assumes the input data already represents
+        power and uses the pixels' magnitudes for computations.
+        If `False`, then QA SAS assumes that the input data represents
+        root power, will handle the full computation to power using
+        the formula:  power = abs(<root power>)^2 .
         Defaults to False (root power).
 
     Returns
@@ -2150,8 +2149,9 @@ def img2pdf(
     plt.close(f)
 
 
-def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf,
-                                       input_raster_represents_power=False):
+def process_power_and_phase_histograms(
+    pols, params, stats_h5, report_pdf, input_raster_represents_power=False
+):
     """
     Generate the Power and Phase Histograms and save their plots
     to the graphical summary .pdf file.
@@ -2170,7 +2170,7 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf,
         Format: pols[<band>][<freq>][<pol>] -> a RadarRaster or GeoRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
                                        in a RadarRaster object
-    params : SLCHistogramParams
+    params : HistogramParams
         A structure containing the parameters for processing
         and outputting the power and phase histograms.
     stats_h5 : h5py.File
@@ -2180,43 +2180,171 @@ def process_power_and_phase_histograms(pols, params, stats_h5, report_pdf,
     input_raster_represents_power : bool, optional
         The input dataset rasters associated with these histogram parameters
         should have their pixel values represent either power or root power.
-        If `input_raster_represents_power` is `True`, then QA SAS assumes
-        that the input data already has already been squared.
-        If `False`, then QA SAS will handle the full computation to power,
-        using the formula:  power = abs(<root power>)^2 .
+        If `True`, then QA SAS assumes the input data already represents
+        power and uses the pixels' magnitudes for computations.
+        If `False`, then QA SAS assumes that the input data represents
+        root power, will handle the full computation to power using
+        the formula:  power = abs(<root power>)^2 .
         Defaults to False (root power).
     """
 
     # Generate and store the histograms
     for band in pols:
         for freq in pols[band]:
-            generate_histogram_single_freq(
+            generate_backscatter_image_histogram_single_freq(
                 pol=pols[band][freq],
                 band=band,
                 freq=freq,
                 params=params,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
-                input_raster_represents_power=False
+                input_raster_represents_power=input_raster_represents_power,
+            )
+
+            generate_phase_histogram_single_freq(
+                pol=pols[band][freq],
+                band=band,
+                freq=freq,
+                params=params,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
             )
 
 
-<<<<<<< HEAD
-def generate_histogram_single_freq(
+def generate_backscatter_image_histogram_single_freq(
+    pol,
+    band,
+    freq,
+    params,
+    stats_h5,
+    report_pdf,
+    input_raster_represents_power=False,
+):
+    """
+    Generate Backscatter Image Histogram for a single frequency.
+
+    The histogram's plot will be appended to the graphical
+    summary file `report_pdf`, and its data will be
+    stored in the statistics .h5 file `stats_h5`.
+    Backscatter histogram will be computed in decibel units.
+
+    Parameters
+    ----------
+    pol : dict of RadarRaster or GeoRaster
+        dict of *Raster objects for the given `band`
+        and `freq`. Each key is a polarization (e.g. 'HH'
+        or 'HV'), and each key's item is the corresponding
+        RadarRaster instance.
+        Ex: pol['HH'] -> the HH dataset, stored
+                         in a RadarRaster or GeoRaster object
+    band : str
+        Band name for the histograms to be processed,
+        e.g. 'LSAR'
+    freq : str
+        Frequency name for the histograms to be processed,
+        e.g. 'A' or 'B'
+    params : HistogramParamGroup
+        A structure containing the parameters for processing
+        and outputting the histograms.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to
+    report_pdf : PdfPages
+        The output pdf file to append the power image plot to
+    input_raster_represents_power : bool, optional
+        The input dataset rasters associated with these histogram parameters
+        should have their pixel values represent either power or root power.
+        If `True`, then QA SAS assumes the input data already represents
+        power and uses the pixels' magnitudes for computations.
+        If `False`, then QA SAS assumes that the input data represents
+        root power, will handle the full computation to power using
+        the formula:  power = abs(<root power>)^2 .
+        Defaults to False (root power).
+    """
+
+    print(f"Generating Backscatter Image Histograms for Frequency {freq}...")
+
+    # Open one figure+axes.
+    # Each band+frequency will have a distinct plot, with all of the
+    # polarization images for that setup plotted together on the same plot.
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+
+    # Use custom cycler for accessibility
+    ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+
+    def img_prep(arr):
+        # For Power Histogram, do not mask out zeros.
+        power = (
+            np.abs(arr)
+            if input_raster_represents_power
+            else nisarqa.arr2pow(arr)
+        )
+
+        return nisarqa.pow2db(power)
+
+    for pol_name, pol_data in pol.items():
+        # Get histogram probability density
+        hist_density = nisarqa.compute_histogram_by_tiling(
+            arr=pol_data.data,
+            bin_edges=params.pow_bin_edges,
+            data_prep_func=img_prep,
+            density=True,
+            decimation_ratio=params.decimation_ratio,
+            tile_shape=params.tile_shape,
+        )
+
+        # Save to stats.h5 file
+        grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (
+            band,
+            freq,
+        )
+
+        # Save Backscatter Histogram Counts to HDF5 file
+        pow_units = params.get_units_from_hdf5_metadata("pow_bin_edges")
+
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name="backscatterHistogramDensity",
+            ds_data=hist_density,
+            ds_units=f"1/{pow_units}",
+            ds_description="Normalized density of the backscatter image histogram",
+        )
+
+        # Add power histogram density to the figure
+        add_hist_to_axis(
+            ax, counts=hist_density, edges=params.pow_bin_edges, label=pol_name
+        )
+
+    # Label the Backscatter Image Figure
+    title = f"{band} Frequency {freq} Backscatter Histograms"
+    ax.set_title(title)
+
+    ax.legend(loc="upper right")
+    ax.set_xlabel(f"Backscatter ({pow_units})")
+    ax.set_ylabel(f"Density (1/{pow_units})")
+
+    # Per ADT, let the top limit float for Power Spectra
+    ax.set_ylim(bottom=0.0)
+    ax.grid()
+
+    # Save complete plots to graphical summary pdf file
+    report_pdf.savefig(fig)
+
+    # Close figure
+    plt.close(fig)
+
+    print(f"Backscatter Image Histograms for Frequency {freq} complete.")
+
+
+def generate_phase_histogram_single_freq(
     pol, band, freq, params, stats_h5, report_pdf
 ):
-=======
-def generate_histogram_single_freq(pol, band, freq, params, stats_h5, report_pdf,
-                                    input_raster_represents_power=False):
-
->>>>>>> 1bb45a6 (remove input_raster_represents_power from runconfig parameter groups)
     """
-    Generate Power and Phase Histograms for a single frequency.
+    Generate Phase Histograms for a single frequency.
 
     The histograms' plots will be appended to the graphical
     summary file `report_pdf`, and their data will be
     stored in the statistics .h5 file `stats_h5`.
-    Power histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians,
     configurable to be computed in degrees per `params.phs_in_radians`.
     NOTE: Only if the dtype of a polarization raster is complex-valued
@@ -2245,159 +2373,111 @@ def generate_histogram_single_freq(pol, band, freq, params, stats_h5, report_pdf
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
         The output pdf file to append the power image plot to
-    input_raster_represents_power : bool, optional
-        The input dataset rasters associated with these histogram parameters
-        should have their pixel values represent either power or root power.
-        If `input_raster_represents_power` is `True`, then QA SAS assumes
-        that the input data already has already been squared.
-        If `False`, then QA SAS will handle the full computation to power,
-        using the formula:  power = abs(<root power>)^2 .
-        Defaults to False (root power).
     """
 
     # flag for if any phase histogram densities are generated
-    # (We expect this flag to be set to True any polarization contains
+    # (We expect this flag to be set to True if any polarization contains
     # phase information. But for example, if a GCOV product only has
     # on-diagonal terms which are real-valued and lack phase information,
     # this will remain False.)
     save_phase_histogram = False
 
-    print(f"Generating Histograms for Frequency {freq}...")
+    print(f"Generating Phase Histograms for Frequency {freq}...")
 
-    # Open separate figures for each of the power and phase histograms.
+    # Open one figure+axes.
     # Each band+frequency will have a distinct plot, with all of the
     # polarization images for that setup plotted together on the same plot.
-    pow_fig, pow_ax = plt.subplots(nrows=1, ncols=1)
-    phs_fig, phs_ax = plt.subplots(nrows=1, ncols=1)
+    fig, ax = plt.subplots(nrows=1, ncols=1)
 
     # Use custom cycler for accessibility
-    pow_ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
-    phs_ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+    ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+
+    def img_prep(arr):
+        # Remove zero values (and nans) in case of 0 magnitude vectors, etc.
+        # Note: There will be no need to clip phase values; the output of
+        # np.angle() is always in the range (-pi, pi] (or (-180, 180]).
+        if params.phs_in_radians:
+            return np.angle(arr[np.abs(arr) >= 1.0e-05], deg=False)
+        else:
+            # phase in degrees
+            return np.angle(arr[np.abs(arr) >= 1.0e-05], deg=True)
 
     for pol_name, pol_data in pol.items():
+        # Only create phase histograms for complex datasets. Examples of
+        # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
+        if not np.iscomplexobj(pol_data.data):
+            continue
+
+        save_phase_histogram = True
+
         # Get histogram probability densities
-        (
-            pow_hist_density,
-            phs_hist_density,
-        ) = nisarqa.compute_power_and_phase_histograms_by_tiling(
+        hist_density = nisarqa.compute_histogram_by_tiling(
             arr=pol_data.data,
-            input_raster_represents_power=input_raster_represents_power,
-            pow_bin_edges=params.pow_bin_edges,
-            phs_bin_edges=params.phs_bin_edges,
-            phs_in_radians=params.phs_in_radians,
+            bin_edges=params.phs_bin_edges,
+            data_prep_func=img_prep,
+            density=True,
             decimation_ratio=params.decimation_ratio,
             tile_shape=params.tile_shape,
-            density=True,
         )
 
         # Save to stats.h5 file
         freq_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq)
         grp_path = f"{freq_path}/{pol_name}/"
 
-        # Handle Power Histograms
-        pow_units = params.get_units_from_hdf5_metadata("pow_bin_edges")
+        phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,
             grp_path=grp_path,
-            ds_name="powerHistogramDensity",
-            ds_data=pow_hist_density,
-            ds_units=f"1/{pow_units}",
-            ds_description="Normalized density of the power histogram",
+            ds_name="phaseHistogramDensity",
+            ds_data=hist_density,
+            ds_units=f"1/{phs_units}",
+            ds_description="Normalized density of the phase histogram",
         )
 
-        # Add power histogram density to the figure
+        # Add phase histogram density to the figure
         add_hist_to_axis(
-            pow_ax,
-            counts=pow_hist_density,
-            edges=params.pow_bin_edges,
+            ax,
+            counts=hist_density,
+            edges=params.phs_bin_edges,
             label=pol_name,
         )
 
-        # Handle Phase Histogram
-
-        # Only create phase histograms for complex datasets. Examples of
-        # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
-        if np.iscomplexobj(pol_data.data):
-            phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
-
-            nisarqa.create_dataset_in_h5group(
-                h5_file=stats_h5,
-                grp_path=grp_path,
-                ds_name="phaseHistogramDensity",
-                ds_data=phs_hist_density,
-                ds_units=f"1/{phs_units}",
-                ds_description="Normalized density of the phase histogram",
-            )
-
-            # Add phase histogram density to the figure
-            add_hist_to_axis(
-                phs_ax,
-                counts=phs_hist_density,
-                edges=params.phs_bin_edges,
-                label=pol_name,
-            )
-
-            save_phase_histogram = True
-
-    # Label the Power Figure
-    title = f"{band} Frequency {freq} Power Histograms"
-    pow_ax.set_title(title)
-
-    pow_ax.legend(loc="upper right")
-    pow_ax.set_xlabel(f"Power ({pow_units})")
-    pow_ax.set_ylabel(f"Density (1/{pow_units})")
-
-    # Per ADT, let the top limit float for Power Spectra
-    pow_ax.set_ylim(bottom=0.0)
-    pow_ax.grid()
-
-    # Save complete plots to graphical summary pdf file
-    report_pdf.savefig(pow_fig)
-
-    # Close figure
-    plt.close(pow_fig)
-
     # Label and output the Phase Histogram Figure
     if save_phase_histogram:
-        phs_ax.set_title(f"{band} Frequency {freq} Phase Histograms")
-        phs_ax.legend(loc="upper right")
-        phs_ax.set_xlabel(f"Phase ({phs_units})")
-        phs_ax.set_ylabel(f"Density (1/{phs_units})")
+        ax.set_title(f"{band} Frequency {freq} Phase Histograms")
+        ax.legend(loc="upper right")
+        ax.set_xlabel(f"Phase ({phs_units})")
+        ax.set_ylabel(f"Density (1/{phs_units})")
         if params.phs_in_radians:
-            phs_ax.set_ylim(bottom=0.0, top=0.5)
+            ax.set_ylim(bottom=0.0, top=0.5)
         else:
-            phs_ax.set_ylim(bottom=0.0, top=0.01)
-        phs_ax.grid()
+            ax.set_ylim(bottom=0.0, top=0.01)
+        ax.grid()
 
         # Save complete plots to graphical summary pdf file
-        report_pdf.savefig(phs_fig)
+        report_pdf.savefig(fig)
 
         # Close figure
-        plt.close(phs_fig)
+        plt.close(fig)
 
     else:
         # Remove unused dataset from STATS.h5 because no phase histogram was
         # generated.
 
-<<<<<<< HEAD
-        # TODO Comment better
+        # Get param attribute for the extraneous group
         metadata = nisarqa.HistogramParamGroup.get_attribute_metadata(
             "phs_bin_edges"
         )
-=======
-        # Get param attribute for the extraneous group
-        metadata = nisarqa.HistogramParamGroup.get_attribute_metadata("phs_bin_edges")
 
         # Get the instance of the HDF5Attrs object for this parameter
->>>>>>> 1bb45a6 (remove input_raster_represents_power from runconfig parameter groups)
         hdf5_attrs_instance = metadata["hdf5_attrs_func"](params)
 
         # Form the path in output STATS.h5 file to the group to be deleted
         path = hdf5_attrs_instance.group_path % band
         path += f"/{hdf5_attrs_instance.name}"
 
-        # Delete the unnecessary group
+        # Delete the unnecessary dataset
         if path in stats_h5:
             del stats_h5[path]
 

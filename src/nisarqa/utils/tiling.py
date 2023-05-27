@@ -175,15 +175,15 @@ def compute_multilooked_power_by_tiling(
     ----------
     arr : array_like
         The input 2D array
-    input_raster_represents_power : bool
-        False to square each element in `arr` before multilooking.
-        True to multilook the magnitude of each element as-is.
-        Example: RSLC and GSLC raster arrays contain values that correspond to
-        magnitude, so `input_raster_represents_power` should be set to `False`
-        so that the elements are squared to represent power. In contrast,
-        GCOV raster arrays already represent power (their elements were
-        squared during the formation of the GCOV datasets), so this
-        should be set to `True`.
+    input_raster_represents_power : bool, optional
+        The input dataset rasters associated with these histogram parameters
+        should have their pixel values represent either power or root power.
+        If `True`, then QA SAS assumes the input data already represents
+        power and uses the pixels' magnitudes for computations.
+        If `False`, then QA SAS assumes that the input data represents 
+        root power, will handle the full computation to power using
+        the formula:  power = abs(<root power>)^2 .
+        Defaults to False (root power).
     nlooks : tuple of ints
         Number of looks along each axis of the input array to be
         averaged during multilooking.
@@ -292,43 +292,35 @@ def compute_multilooked_power_by_tiling(
     return multilook_img
 
 
-def compute_power_and_phase_histograms_by_tiling(
+def compute_histogram_by_tiling(
     arr,
-    input_raster_represents_power,
-    pow_bin_edges,
-    phs_bin_edges,
-    phs_in_radians=True,
+    bin_edges,
+    data_prep_func=None,
+    density=False,
     decimation_ratio=(1, 1),
     tile_shape=(512, -1),
-    density=False,
 ):
     """
-    Compute the decimated power and phase histograms by tiling.
-
-    Power histogram will be computed in decibel units.
-    Phase histogram defaults to being computed in radians,
-    configurable to be computed in degrees.
+    Compute decimated histograms by tiling.
 
     Parameters
     ----------
     arr : array_like
         The input array
-    input_raster_represents_power : bool
-        False to square each element in `arr` before multilooking.
-        True to multilook the magnitude of each element as-is.
-        Example: RSLC and GSLC raster arrays contain values that correspond to
-        magnitude, so `input_raster_represents_power` should be set to `False`
-        so that the elements are squared to represent power. In contrast,
-        GCOV raster arrays already represent power (their elements were
-        squared during the formation of the GCOV datasets), so this
-        should be set to `True`.
-    pow_bin_edges : numpy.ndarray, optional
-        The bin edges to use for the power histogram
-    phs_bin_edges : numpy.ndarray, optional
-        The bin edges to use for the phase histogram
-    phs_in_radians : bool, optional
-        True to compute phase in radians units, False for degrees units.
-        Defaults to True.
+    bin_edges : numpy.ndarray
+        The bin edges to use for the histogram
+    data_prep_func : Function, optional
+        Function to process each tile of data through before computing
+        the histogram counts.
+        If `None`, then histogram will be computed on `arr` as-is,
+        and no pre-processing of the data will occur.
+    density : bool, optional
+        If True, return probability densities for histograms:
+        Each bin will display the bin's raw count divided by the
+        total number of counts and the bin width
+        (density = counts / (sum(counts) * np.diff(bins))),
+        so that the area under the histogram integrates to 1
+        (np.sum(density * np.diff(bins)) == 1).
     decimation_ratio : pair of int, optional
         The step size to decimate the input array for computations.
         For example, (2,3) means every 2nd azimuth line and
@@ -344,18 +336,11 @@ def compute_power_and_phase_histograms_by_tiling(
         Format: (num_rows, num_cols)
         Defaults to (512,-1) to use all columns (i.e. full rows of data)
         and leverage Python's row-major ordering.
-    density : bool, optional
-        If True, return probability densities for power and phase:
-        Each bin will display the bin's raw count divided by the
-        total number of counts and the bin width
-        (density = counts / (sum(counts) * np.diff(bins))),
-        so that the area under the histogram integrates to 1
-        (np.sum(density * np.diff(bins)) == 1).
 
     Returns
     -------
-    pow_hist_counts, phs_hist_counts : tuple of numpy.ndarray
-        The power histogram counts and phase histogram counts.
+    hist_counts : numpy.ndarray
+        The histogram counts.
         If `density` is True, then the power and phase histogram
         densities (respectively) will be returned instead.
 
@@ -391,8 +376,7 @@ def compute_power_and_phase_histograms_by_tiling(
     # Use dtype of int to avoid floating point errors
     # (The '- 1' is because the final entry in the *_bin_edges array
     # is the endpoint, which is not considered a bin itself.)
-    pow_hist_counts = np.zeros((len(pow_bin_edges) - 1,), dtype=int)
-    phs_hist_counts = np.zeros((len(phs_bin_edges) - 1,), dtype=int)
+    hist_counts = np.zeros((len(bin_edges) - 1,), dtype=int)
 
     # Do calculation and accumulate the counts
     for tile_slice in input_iter:
@@ -403,43 +387,25 @@ def compute_power_and_phase_histograms_by_tiling(
         # original shape of the array.
         arr_slice = arr_slice[np.isfinite(arr_slice)]
 
-        # Compute Power Histograms
-        # For Power Histogram, do not mask out zeros.
-        power = np.abs(arr_slice) if input_raster_represents_power \
-                    else nisarqa.arr2pow(arr_slice)
-        power = nisarqa.pow2db(power)
+        # Prep the data
+        if data_prep_func is not None:
+            arr_slice = data_prep_func(arr_slice)
 
         # Clip the array so that it falls within the bounds of the histogram
-        power = np.clip(power, a_min=pow_bin_edges[0], a_max=pow_bin_edges[-1])
+        arr_slice = np.clip(arr_slice, a_min=bin_edges[0], a_max=bin_edges[-1])
 
         # Accumulate the counts
-        pow_counts, _ = np.histogram(power, bins=pow_bin_edges)
-        pow_hist_counts += pow_counts
-
-        # Compute Phase Histogram
-        # Remove zero values (and nans) in case of 0 magnitude vectors, etc.
-        # Note: There will be no need to clip phase values; the output of
-        # np.angle() is always in the range (-pi, pi] (or (-180, 180]).
-        if phs_in_radians:
-            phase = np.angle(arr_slice[np.abs(arr_slice) >= 1.0e-05], deg=False)
-        else:
-            # phase in degrees
-            phase = np.angle(arr_slice[np.abs(arr_slice) >= 1.0e-05], deg=True)
-
-        # Accumulate the counts
-        phs_counts, _ = np.histogram(phase, bins=phs_bin_edges)
-        phs_hist_counts += phs_counts
+        counts, _ = np.histogram(arr_slice, bins=bin_edges)
+        hist_counts += counts
 
     if density:
         # Change dtype to float
-        pow_hist_counts = pow_hist_counts.astype(float)
-        phs_hist_counts = phs_hist_counts.astype(float)
+        hist_counts = hist_counts.astype(float)
 
-        # Compute densities
-        pow_hist_counts = nisarqa.counts2density(pow_hist_counts, pow_bin_edges)
-        phs_hist_counts = nisarqa.counts2density(phs_hist_counts, phs_bin_edges)
+        # Compute density
+        hist_counts = nisarqa.counts2density(hist_counts, bin_edges)
 
-    return (pow_hist_counts, phs_hist_counts)
+    return hist_counts
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

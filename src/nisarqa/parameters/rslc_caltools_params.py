@@ -480,21 +480,6 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
-    input_raster_represents_power: bool = field(
-        default=False,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="input_raster_represents_power",
-                descr= \
-        """The input dataset rasters associated with these histogram parameters
-        should have their pixel values represent either magnitude or power,
-        with terms defined as power = magnitude^2 .
-        (In practice, this is computed as power = abs(<pixel value>)^2 .)
-        If `input_raster_represents_power` is `True`, then QA SAS assumes
-        that the input data already has already been squared.
-        If `False`, then QA SAS will handle the full computation to power.""")}
-    )
-
     pow_histogram_bin_edges_range: Iterable[Union[int, float]] = field(
         default=(-80.0, 20.0),
         metadata={
@@ -590,11 +575,6 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             raise ValueError(
                 f"`decimation_ratio` must contain positive values: {val}"
             )
-
-        # validate input_raster_represents_power
-        if not isinstance(self.input_raster_represents_power, bool):
-            raise TypeError("`input_raster_represents_power` must be bool: "
-                            f"{self.input_raster_represents_power}")
 
         # Validate pow_histogram_bin_edges_range
         val = self.pow_histogram_bin_edges_range
