@@ -1629,7 +1629,7 @@ def save_rslc_backscatter_img_to_pdf(
     """
 
     # Plot and Save Backscatter Image to graphical summary pdf
-    title = f"{plot_title_prefix}\n({params.backscatter_units}%s)\n{img.name}"
+    title = f"{plot_title_prefix}\n(scale={params.backscatter_units}%s)\n{img.name}"
     if params.gamma is None:
         title = title % ""
     else:

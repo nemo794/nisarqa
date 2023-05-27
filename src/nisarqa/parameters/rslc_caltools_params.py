@@ -294,7 +294,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         init=False,
         metadata={
             "hdf5_attrs": HDF5Attrs(
-                name="backscatterImagePowerUnits",
+                name="backscatterImageUnits",
                 units=None,
                 descr="""Units of the backscatter image.""",
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
