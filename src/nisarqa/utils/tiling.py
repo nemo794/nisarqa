@@ -165,11 +165,11 @@ def process_arr_by_tiles(
 ###############################################
 
 
-def compute_multilooked_power_by_tiling(
+def compute_multilooked_backscatter_by_tiling(
     arr, input_raster_represents_power, nlooks, tile_shape=(512, -1)
 ):
     """
-    Compute the multilooked power array (linear units) by tiling.
+    Compute the multilooked backscatter array (linear units) by tiling.
 
     Parameters
     ----------
@@ -180,9 +180,9 @@ def compute_multilooked_power_by_tiling(
         should have their pixel values represent either power or root power.
         If `True`, then QA SAS assumes the input data already represents
         power and uses the pixels' magnitudes for computations.
-        If `False`, then QA SAS assumes that the input data represents 
-        root power, will handle the full computation to power using
-        the formula:  power = abs(<root power>)^2 .
+        If `False`, then QA SAS assumes the input data represents root power
+        aka magnitude and will handle the full computation to power using
+        the formula:  power = abs(<magnitude>)^2 .
         Defaults to False (root power).
     nlooks : tuple of ints
         Number of looks along each axis of the input array to be
@@ -201,7 +201,7 @@ def compute_multilooked_power_by_tiling(
     Returns
     -------
     multilook_img : numpy.ndarray
-        The multilooked power image in linear units
+        The multilooked backscatter image in linear units
 
     Notes
     -----
@@ -264,7 +264,7 @@ def compute_multilooked_power_by_tiling(
     )
 
     # Create an inner function for this use case.
-    def calc_power_and_multilook(arr):
+    def calc_backscatter_and_multilook(arr):
         # square the pixel values (e.g to convert from magnitude to power),
         # if requested.
         # Otherwise, take the absolute value to ensure we're using the
@@ -284,7 +284,7 @@ def compute_multilooked_power_by_tiling(
     process_arr_by_tiles(
         arr,
         multilook_img,
-        calc_power_and_multilook,
+        calc_backscatter_and_multilook,
         input_batches=input_iter,
         output_batches=out_iter,
     )
@@ -341,14 +341,14 @@ def compute_histogram_by_tiling(
     -------
     hist_counts : numpy.ndarray
         The histogram counts.
-        If `density` is True, then the power and phase histogram
+        If `density` is True, then the backscatter and phase histogram
         densities (respectively) will be returned instead.
 
     Notes
     -----
     If a cell in the input array is non-finite (invalid),
     then it will not be included in the counts for either
-    power nor phase.
+    backscatter nor phase.
 
     If a cell in the input array is almost zero, then it will not
     be included in the counts for phase.

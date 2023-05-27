@@ -125,16 +125,16 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
 
 # TODO - move to generic SLC module
 @dataclass(frozen=True)
-class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
+class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters to generate RSLC or GSLC Power Images and Browse Image.
 
-    This corresponds to the `qa_reports: power_image` runconfig group.
+    This corresponds to the `qa_reports: backscatter_img` runconfig group.
 
     Parameters
     ----------
     linear_units : bool, optional
-        True to compute power image in linear units, False for decibel units.
+        True to compute backscatter image in linear units, False for decibel units.
         Defaults to True.
     nlooks_freqa, nlooks_freqb : iterable of int, None, optional
         Number of looks along each axis of the input array
@@ -169,8 +169,8 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     Attributes
     ----------
-    pow_units : Param
-        Units of the power image.
+    backscatter_units : Param
+        Units of the backscatter image.
         If `linear_units` is True, this will be set to 'linear'.
         If `linear_units` is False, this will be set to 'dB'.
     """
@@ -180,8 +180,8 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="linear_units",
-                descr="""True to compute power in linear units when generating 
-                the power image for the browse images and graphical
+                descr="""True to compute backscatter in linear units when generating 
+                the backscatter image for the browse images and graphical
                 summary PDF. False for decibel units.""",
             )
         },
@@ -190,7 +190,7 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     _nlooks_descr_template: ClassVar[
         str
     ] = """Number of looks along each axis of the Frequency %s
-        image arrays for multilooking the power image.
+        image arrays for multilooking the backscatter image.
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
         If not provided, the QA code to compute the nlooks values 
@@ -237,7 +237,7 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                     and that the colormap covers. Must be in range [0.0, 100.0].""",
             ),
             "hdf5_attrs": HDF5Attrs(
-                name="powerImagePercentileClipped",
+                name="backscatterImagePercentileClipped",
                 units="unitless",
                 descr="Percentile range that the image array was clipped to"
                 " and that the colormap covers",
@@ -251,7 +251,7 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="gamma",
-                descr="""Gamma correction parameter applied to power and browse image(s).
+                descr="""Gamma correction parameter applied to backscatter and browse image(s).
             Gamma will be applied as follows:
                 array_out = normalized_array ^ gamma
             where normalized_array is a copy of the image with values
@@ -261,10 +261,10 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             If None, then no normalization and no gamma correction will be applied.""",
             ),
             "hdf5_attrs": HDF5Attrs(
-                name="powerImageGammaCorrection",
+                name="backscatterImageGammaCorrection",
                 units="unitless",
                 descr=(
-                    "Gamma correction parameter applied to power and browse image(s)."
+                    "Gamma correction parameter applied to backscatter and browse image(s)."
                     " Dataset will be type float if gamma was applied, otherwise it is"
                     " the string 'None'"
                 ),
@@ -289,14 +289,14 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     )
 
     # Auto-generated attributes, so set init=False and have no default.
-    # `pow_units` is determined by the `linear_units` attribute.
-    pow_units: str = field(
+    # `backscatter_units` is determined by the `linear_units` attribute.
+    backscatter_units: str = field(
         init=False,
         metadata={
             "hdf5_attrs": HDF5Attrs(
-                name="powerImagePowerUnits",
+                name="backscatterImagePowerUnits",
                 units=None,
-                descr="""Units of the power image.""",
+                descr="""Units of the backscatter image.""",
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             )
         },
@@ -375,14 +375,14 @@ class PowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         # This dataclass is frozen to ensure that all inputs are validated,
         # so we need to use object.__setattr__()
 
-        # use linear_units to set pow_units
+        # use linear_units to set backscatter_units
         object.__setattr__(
-            self, "pow_units", "linear" if self.linear_units else "dB"
+            self, "backscatter_units", "linear" if self.linear_units else "dB"
         )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "qa_reports", "power_image"]
+        return ["runconfig", "groups", "qa", "qa_reports", "backscatter_img"]
 
     @staticmethod
     def _validate_nlooks(nlooks, freq):
@@ -424,13 +424,13 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     ----------
     decimation_ratio : pair of int, optional
         The step size to decimate the input array for computing
-        the power and phase histograms.
+        the backscatter and phase histograms.
         For example, (2,3) means every 2nd azimuth line and
         every 3rd range sample will be used to compute the histograms.
         Defaults to (10,10).
         Format: (<azimuth>, <range>)
-    pow_histogram_bin_edges_range : pair of int or float, optional
-        The dB range for the power histogram's bin edges. Endpoint will
+    backscatter_histogram_bin_edges_range : pair of int or float, optional
+        The dB range for the backscatter histogram's bin edges. Endpoint will
         be included. Defaults to [-80.0, 20.0].
         Format: (<starting value>, <endpoint>)
     phs_in_radians : bool, optional
@@ -446,10 +446,10 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     Attributes
     ----------
-    pow_bin_edges : numpy.ndarray
+    backscatter_bin_edges : numpy.ndarray
         The bin edges (including endpoint) to use when computing
-        the power histograms. Will be set to 100 uniformly-spaced bins
-        in range `pow_histogram_bin_edges_range`, including endpoint.
+        the backscatter histograms. Will be set to 100 uniformly-spaced bins
+        in range `backscatter_histogram_bin_edges_range`, including endpoint.
     phs_bin_edges : numpy.ndarray
         The bin edges (including endpoint) to use when computing
         the phase histograms.
@@ -465,7 +465,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="decimation_ratio",
                 descr="""Step size to decimate the input array for computing
-                the power and phase histograms.
+                the backscatter and phase histograms.
                 For example, [2,3] means every 2nd azimuth line and
                 every 3rd range sample will be used to compute the histograms.
                 Format: [<azimuth>, <range>]""",
@@ -473,19 +473,19 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             "hdf5_attrs": HDF5Attrs(
                 name="histogramDecimationRatio",
                 units="unitless",
-                descr="Image decimation strides used to compute power"
+                descr="Image decimation strides used to compute backscatter"
                 " and phase histograms. Format: [<azimuth>, <range>]",
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
         },
     )
 
-    pow_histogram_bin_edges_range: Iterable[Union[int, float]] = field(
+    backscatter_histogram_bin_edges_range: Iterable[Union[int, float]] = field(
         default=(-80.0, 20.0),
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="pow_histogram_bin_edges_range",
-                descr="""Range in dB for the power histogram's bin edges. Endpoint will
+                name="backscatter_histogram_bin_edges_range",
+                descr="""Range in dB for the backscatter histogram's bin edges. Endpoint will
                 be included. Format: [<starting value>, <endpoint>]""",
             )
         },
@@ -518,14 +518,14 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     )
 
     # Auto-generated attributes
-    # Power Bin Edges (generated from `pow_histogram_bin_edges_range`)
-    pow_bin_edges: ArrayLike = field(
+    # Power Bin Edges (generated from `backscatter_histogram_bin_edges_range`)
+    backscatter_bin_edges: ArrayLike = field(
         init=False,
         metadata={
             "hdf5_attrs": HDF5Attrs(
                 name="histogramEdgesPower",
                 units="dB",
-                descr="Bin edges (including endpoint) for power histogram",
+                descr="Bin edges (including endpoint) for backscatter histogram",
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             )
         },
@@ -576,24 +576,26 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 f"`decimation_ratio` must contain positive values: {val}"
             )
 
-        # Validate pow_histogram_bin_edges_range
-        val = self.pow_histogram_bin_edges_range
+        # Validate backscatter_histogram_bin_edges_range
+        val = self.backscatter_histogram_bin_edges_range
         if not isinstance(val, (list, tuple)):
             raise TypeError(
-                f"`pow_histogram_bin_edges_range` must be a list or tuple: {val}"
+                "`backscatter_histogram_bin_edges_range` must"
+                f" be a list or tuple: {val}"
             )
         if not len(val) == 2:
             raise ValueError(
-                f"`pow_histogram_bin_edges_range` must have a length of two: {val}"
+                "`backscatter_histogram_bin_edges_range` must"
+                f" have a length of two: {val}"
             )
         if not all(isinstance(e, (int, float)) for e in val):
             raise TypeError(
-                "`pow_histogram_bin_edges_range` must contain only int or "
-                f"float values: {val}"
+                "`backscatter_histogram_bin_edges_range` must"
+                f" contain only int or float values: {val}"
             )
         if val[0] >= val[1]:
             raise ValueError(
-                "`pow_histogram_bin_edges_range` has format "
+                "`backscatter_histogram_bin_edges_range` has format "
                 f"[<starting value>, <endpoint>] where <starting value> "
                 f"must be less than <ending value>: {val}"
             )
@@ -617,15 +619,15 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         # This dataclass is frozen to ensure that all inputs are validated,
         # so we need to use object.__setattr__()
 
-        # Set attributes dependent upon pow_histogram_bin_edges_range
+        # Set attributes dependent upon backscatter_histogram_bin_edges_range
         # Power Bin Edges - hardcode to be in decibels
         # 101 bin edges => 100 bins
         object.__setattr__(
             self,
-            "pow_bin_edges",
+            "backscatter_bin_edges",
             np.linspace(
-                self.pow_histogram_bin_edges_range[0],
-                self.pow_histogram_bin_edges_range[1],
+                self.backscatter_histogram_bin_edges_range[0],
+                self.backscatter_histogram_bin_edges_range[1],
                 num=101,
                 endpoint=True,
             ),
@@ -822,7 +824,7 @@ class RSLCRootParamGroup(RootParamGroup):
         Input File Group parameters for RSLC QA
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for RSLC QA
-    power_img : PowerImageParamGroup or None, optional
+    backscatter_img : BackscatterImageParamGroup or None, optional
         Power Image Group parameters for RSLC QA
     histogram : HistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
@@ -840,7 +842,7 @@ class RSLCRootParamGroup(RootParamGroup):
     workflows: RSLCWorkflowsParamGroup  # overwrite parent's `workflows` b/c new type
 
     # QA parameters
-    power_img: Optional[PowerImageParamGroup] = None
+    backscatter_img: Optional[BackscatterImageParamGroup] = None
     histogram: Optional[HistogramParamGroup] = None
 
     # CalTools parameters
@@ -870,8 +872,8 @@ class RSLCRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="power_img",
-                param_grp_cls_obj=PowerImageParamGroup,
+                root_param_grp_attr_name="backscatter_img",
+                param_grp_cls_obj=BackscatterImageParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
@@ -911,7 +913,7 @@ class RSLCRootParamGroup(RootParamGroup):
             DynamicAncillaryFileParamGroup,
             ProductPathGroupParamGroup,
             RSLCWorkflowsParamGroup,
-            PowerImageParamGroup,
+            BackscatterImageParamGroup,
             HistogramParamGroup,
             AbsCalParamGroup,
             NoiseEstimationParamGroup,

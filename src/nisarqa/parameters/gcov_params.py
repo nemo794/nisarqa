@@ -5,23 +5,23 @@ import nisarqa
 from nisarqa.parameters.nisar_params import *
 # TODO Remove the rslc_caltools_params imports after re-org of code
 from nisarqa.parameters.rslc_caltools_params import (
-    HistogramParamGroup, InputFileGroupParamGroup, PowerImageParamGroup,
+    BackscatterImageParamGroup, HistogramParamGroup, InputFileGroupParamGroup,
     ProductPathGroupParamGroup)
 
 objects_to_skip = nisarqa.get_all(__name__)
 
 
 @dataclass(frozen=True)
-class GCOVPowerImageParamGroup(PowerImageParamGroup):
+class GCOVBackscatterImageParamGroup(BackscatterImageParamGroup):
     """
     Parameters to generate RSLC or GSLC Power Images and Browse Image.
 
-    This corresponds to the `qa_reports: power_image` runconfig group.
+    This corresponds to the `qa_reports: backscatter_img` runconfig group.
 
     Parameters
     ----------
     linear_units : bool, optional
-        True to compute power image in linear units, False for decibel units.
+        True to compute backscatter image in linear units, False for decibel units.
         Defaults to True.
     nlooks_freqa, nlooks_freqb : iterable of int, None, optional
         Number of looks along each axis of the input array
@@ -56,15 +56,15 @@ class GCOVPowerImageParamGroup(PowerImageParamGroup):
 
     Attributes
     ----------
-    pow_units : Param
-        Units of the power image.
+    backscatter_units : Param
+        Units of the backscatter image.
         If `linear_units` is True, this will be set to 'linear'.
         If `linear_units` is False, this will be set to 'dB'.
     """
 
     percentile_for_clipping: float = field(
         default=(0.0, 95.0),  # overwrite parent class' default value
-        metadata=PowerImageParamGroup.get_attribute_metadata(
+        metadata=BackscatterImageParamGroup.get_attribute_metadata(
             attribute_name="percentile_for_clipping"
         ),
     )
@@ -90,7 +90,7 @@ class GCOVRootParamGroup(RootParamGroup):
         Input File Group parameters for QA
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for QA
-    power_img : GCOVPowerImageParamGroup or None, optional
+    backscatter_img : GCOVBackscatterImageParamGroup or None, optional
         Covariance Term Magnitude Image Group parameters for GCOV QA
     histogram : GCOVHistogramParamGroup or None, optional
         Histogram Group parameters for GCOV QA
@@ -101,7 +101,7 @@ class GCOVRootParamGroup(RootParamGroup):
     prodpath: Optional[ProductPathGroupParamGroup] = None
 
     # QA parameters
-    power_img: Optional[GCOVPowerImageParamGroup] = None
+    backscatter_img: Optional[GCOVBackscatterImageParamGroup] = None
     histogram: Optional[HistogramParamGroup] = None
 
     @staticmethod
@@ -125,8 +125,8 @@ class GCOVRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="power_img",
-                param_grp_cls_obj=GCOVPowerImageParamGroup,
+                root_param_grp_attr_name="backscatter_img",
+                param_grp_cls_obj=GCOVBackscatterImageParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
@@ -145,7 +145,7 @@ class GCOVRootParamGroup(RootParamGroup):
             InputFileGroupParamGroup,
             ProductPathGroupParamGroup,
             WorkflowsParamGroup,
-            GCOVPowerImageParamGroup,
+            GCOVBackscatterImageParamGroup,
             HistogramParamGroup,
         )
 

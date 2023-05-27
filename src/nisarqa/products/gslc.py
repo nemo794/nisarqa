@@ -152,9 +152,9 @@ def verify_gslc(user_rncfg):
             input_raster_represents_power = False
 
             # Generate the GSLC Power Image and Browse Image
-            nisarqa.rslc.process_power_images_and_browse(
+            nisarqa.rslc.process_backscatter_imgs_and_browse(
                 pols=pols,
-                params=root_params.power_img,
+                params=root_params.backscatter_img,
                 product_type="gslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
@@ -165,7 +165,7 @@ def verify_gslc(user_rncfg):
             print(f"Browse image PNG file saved to {browse_file_png}")
 
             # Generate the GSLC Power and Phase Histograms
-            nisarqa.rslc.process_power_and_phase_histograms(
+            nisarqa.rslc.process_backscatter_and_phase_histograms(
                 pols=pols,
                 params=root_params.histogram,
                 stats_h5=stats_h5,
@@ -190,7 +190,7 @@ def verify_gslc(user_rncfg):
     )
 
 
-def save_geocoded_power_image_to_pdf(
+def save_geocoded_backscatter_img_to_pdf(
     img_arr, img, params, report_pdf, colorbar_formatter=None
 ):
     """
@@ -204,11 +204,11 @@ def save_geocoded_power_image_to_pdf(
     img : GeoRaster
         The GeoRaster object that corresponds to `img`. The metadata
         from this will be used for annotating the image plot.
-    params : PowerImageParams
+    params : BackscatterImageParamGroup
         A structure containing the parameters for processing
-        and outputting the power image(s).
+        and outputting the backscatter image(s).
     report_pdf : PdfPages
-        The output pdf file to append the power image plot to
+        The output pdf file to append the backscatter image plot to
     colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
         Tick formatter function to define how the numeric value
         associated with each tick on the colorbar axis is formatted
@@ -221,7 +221,7 @@ def save_geocoded_power_image_to_pdf(
     """
 
     # Plot and Save Power Image to graphical summary pdf
-    title = f"Multilooked Power ({params.pow_units}%s)\n{img.name}"
+    title = f"Multilooked Power ({params.backscatter_units}%s)\n{img.name}"
     if params.gamma is None:
         title = title % ""
     else:

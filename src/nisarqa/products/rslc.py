@@ -183,9 +183,9 @@ def verify_rslc(user_rncfg):
             input_raster_represents_power = False
 
             # Generate the RSLC Power Image and Browse Image
-            process_power_images_and_browse(
+            process_backscatter_imgs_and_browse(
                 pols=pols,
-                params=root_params.power_img,
+                params=root_params.backscatter_img,
                 product_type="rslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
@@ -196,10 +196,9 @@ def verify_rslc(user_rncfg):
             print(f"Browse image PNG file saved to {browse_file_png}")
 
             # Generate the RSLC Power and Phase Histograms
-            process_power_and_phase_histograms(
+            process_backscatter_and_phase_histograms(
                 pols=pols,
                 params=root_params.histogram,
-                product_type="rslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 input_raster_represents_power=input_raster_represents_power,
@@ -1285,7 +1284,7 @@ def _save_gcov_browse_img(pol_imgs, filepath):
         plot_to_rgb_png(red=red, green=green, blue=blue, filepath=filepath)
 
 
-def process_power_images_and_browse(
+def process_backscatter_imgs_and_browse(
     pols,
     params,
     stats_h5,
@@ -1306,13 +1305,13 @@ def process_power_images_and_browse(
         Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
         Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a
                                        RadarRaster or GeoRaster object
-    params : PowerImageParams
+    params : BackscatterImageParamGroup
         A dataclass containing the parameters for processing
-        and outputting power image(s) and browse image.
+        and outputting backscatter image(s) and browse image.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
-        The output pdf file to append the power image plot to
+        The output pdf file to append the backscatter image plot to
     product_type : str
         One of "rslc", "gslc", "slc", or "gcov".
     input_raster_represents_power : bool, optional
@@ -1320,9 +1319,9 @@ def process_power_images_and_browse(
         should have their pixel values represent either power or root power.
         If `True`, then QA SAS assumes the input data already represents
         power and uses the pixels' magnitudes for computations.
-        If `False`, then QA SAS assumes that the input data represents
-        root power, will handle the full computation to power using
-        the formula:  power = abs(<root power>)^2 .
+        If `False`, then QA SAS assumes the input data represents root power
+        aka magnitude and will handle the full computation to power using
+        the formula:  power = abs(<magnitude>)^2 .
         Defaults to False (root power).
     browse_filename : str, optional
         Filename (with path) for the browse image PNG.
@@ -1364,7 +1363,7 @@ def process_power_images_and_browse(
                         f"RadarRaster or GeoRaster. Current type: {type(img)}"
                     )
 
-                multilooked_img = get_multilooked_power_image(
+                multilooked_img = get_multilooked_backscatter_img(
                     img=img,
                     params=params,
                     stats_h5=stats_h5,
@@ -1391,13 +1390,13 @@ def process_power_images_and_browse(
                     colorbar_formatter = None
 
                 if isinstance(img, RadarRaster):
-                    pow2pdf_func = save_rslc_power_image_to_pdf
+                    img2pdf_func = save_rslc_backscatter_img_to_pdf
                 else:  # is a GeoRaster
-                    pow2pdf_func = (
-                        nisarqa.gslc.save_geocoded_power_image_to_pdf
+                    img2pdf_func = (
+                        nisarqa.gslc.save_geocoded_backscatter_img_to_pdf
                     )
 
-                pow2pdf_func(
+                img2pdf_func(
                     img_arr=corrected_img,
                     img=img,
                     params=params,
@@ -1405,7 +1404,7 @@ def process_power_images_and_browse(
                     colorbar_formatter=colorbar_formatter,
                 )
 
-                # If this power image is needed to construct the browse image...
+                # If this backscatter image is needed to construct the browse image...
                 if (
                     band == layers_for_browse["band"]
                     and freq in layers_for_browse
@@ -1421,7 +1420,7 @@ def process_power_images_and_browse(
 
 
 # TODO - move to generic location
-def get_multilooked_power_image(
+def get_multilooked_backscatter_img(
     img, params, stats_h5, input_raster_represents_power=False
 ):
     """
@@ -1432,9 +1431,9 @@ def get_multilooked_power_image(
     ----------
     img : RadarRaster or GeoRaster
         The raster to be processed
-    params : PowerImageParams
+    params : BackscatterImageParamGroup
         A structure containing the parameters for processing
-        and outputting the power image(s).
+        and outputting the backscatter image(s).
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     input_raster_represents_power : bool, optional
@@ -1442,9 +1441,9 @@ def get_multilooked_power_image(
         should have their pixel values represent either power or root power.
         If `True`, then QA SAS assumes the input data already represents
         power and uses the pixels' magnitudes for computations.
-        If `False`, then QA SAS assumes that the input data represents
-        root power, will handle the full computation to power using
-        the formula:  power = abs(<root power>)^2 .
+        If `False`, then QA SAS assumes the input data represents root power
+        aka magnitude and will handle the full computation to power using
+        the formula:  power = abs(<magnitude>)^2 .
         Defaults to False (root power).
 
     Returns
@@ -1480,7 +1479,7 @@ def get_multilooked_power_image(
 
     # Save the final nlooks to the HDF5 dataset
     grp_path = nisarqa.STATS_H5_QA_PROCESSING_GROUP % img.band
-    dataset_name = f"powerImageNlooksFreq{img.freq.upper()}"
+    dataset_name = f"backscatterImageNlooksFreq{img.freq.upper()}"
 
     if isinstance(img, RadarRaster):
         axes = "[<azimuth>,<range>]"
@@ -1504,7 +1503,7 @@ def get_multilooked_power_image(
             ds_units="unitless",
             ds_description=f"Number of looks along {axes} axes of "
             f"Frequency {img.freq.upper()} image arrays "
-            "for multilooking the power and browse images.",
+            "for multilooking the backscatter and browse images.",
         )
 
     print(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
@@ -1513,7 +1512,7 @@ def get_multilooked_power_image(
     print("Beginning Multilooking with nlooks window shape: ", nlooks)
 
     # Multilook
-    out_img = nisarqa.compute_multilooked_power_by_tiling(
+    out_img = nisarqa.compute_multilooked_backscatter_by_tiling(
         arr=img.data,
         input_raster_represents_power=input_raster_represents_power,
         nlooks=nlooks,
@@ -1539,9 +1538,9 @@ def apply_image_correction(img_arr, params):
     img_arr : numpy.ndarray
         2D image array to have image correction applied to.
         For example, for RSLC this is the multilooked image array.
-    params : PowerImageParams
+    params : BackscatterImageParamGroup
         A structure containing the parameters for processing
-        and outputting the power image(s).
+        and outputting the backscatter image(s).
 
     Returns
     -------
@@ -1578,7 +1577,7 @@ def apply_image_correction(img_arr, params):
     return img_arr, vmin, vmax
 
 
-def save_rslc_power_image_to_pdf(
+def save_rslc_backscatter_img_to_pdf(
     img_arr, img, params, report_pdf, colorbar_formatter=None
 ):
     """
@@ -1592,11 +1591,11 @@ def save_rslc_power_image_to_pdf(
     img : RadarRaster
         The RadarRaster object that corresponds to `img`. The metadata
         from this will be used for annotating the image plot.
-    params : PowerImageParams
+    params : BackscatterImageParamGroup
         A structure containing the parameters for processing
-        and outputting the power image(s).
+        and outputting the backscatter image(s).
     report_pdf : PdfPages
-        The output pdf file to append the power image plot to
+        The output pdf file to append the backscatter image plot to
     colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
         Tick formatter function to define how the numeric value
         associated with each tick on the colorbar axis is formatted
@@ -1609,7 +1608,7 @@ def save_rslc_power_image_to_pdf(
     """
 
     # Plot and Save Power Image to graphical summary pdf
-    title = f"Multilooked Power ({params.pow_units}%s)\n{img.name}"
+    title = f"Multilooked Power ({params.backscatter_units}%s)\n{img.name}"
     if params.gamma is None:
         title = title % ""
     else:
@@ -2019,7 +2018,7 @@ def img2pdf(
     img_arr : array_like
         Image to plot in grayscale
     plots_pdf : PdfPages
-        The output pdf file to append the power image plot to
+        The output pdf file to append the backscatter image plot to
     title : str, optional
         The full title for the plot
     xlim, ylim : sequence of numeric, optional
@@ -2149,43 +2148,49 @@ def img2pdf(
     plt.close(f)
 
 
-def process_power_and_phase_histograms(
+def process_backscatter_and_phase_histograms(
     pols, params, stats_h5, report_pdf, input_raster_represents_power=False
 ):
     """
-    Generate the Power and Phase Histograms and save their plots
-    to the graphical summary .pdf file.
+        Generate the Power and Phase Histograms and save their plots
+        to the graphical summary .pdf file.
 
-    Power histogram will be computed in decibel units.
-    Phase histogram defaults to being computed in radians,
-    configurable to be computed in degrees by setting
-    `params.phs_in_radians` to False.
-    NaN values will be excluded from Histograms.
+        Power histogram will be computed in decibel units.
+        Phase histogram defaults to being computed in radians,
+        configurable to be computed in degrees by setting
+        `params.phs_in_radians` to False.
+        NaN values will be excluded from Histograms.
 
-    Parameters
-    ----------
-    pols : nested dict of RadarRaster or GeoRaster
-        Nested dict of *Raster objects, where each object represents
-        a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster or GeoRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
-                                       in a RadarRaster object
-    params : HistogramParams
-        A structure containing the parameters for processing
-        and outputting the power and phase histograms.
-    stats_h5 : h5py.File
-        The output file to save QA metrics, etc. to
-    report_pdf : PdfPages
-        The output pdf file to append the power image plot to
-    input_raster_represents_power : bool, optional
-        The input dataset rasters associated with these histogram parameters
-        should have their pixel values represent either power or root power.
-        If `True`, then QA SAS assumes the input data already represents
-        power and uses the pixels' magnitudes for computations.
-        If `False`, then QA SAS assumes that the input data represents
-        root power, will handle the full computation to power using
-        the formula:  power = abs(<root power>)^2 .
-        Defaults to False (root power).
+        Parameters
+        ----------
+        pols : nested dict of RadarRaster or GeoRaster
+            Nested dict of *Raster objects, where each object represents
+            a polarization dataset in `h5_file`.
+            Format: pols[<band>][<freq>][<pol>] -> a RadarRaster or GeoRaster
+            Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
+                                           in a RadarRaster object
+        params : HistogramParams
+            A structure containing the parameters for processing
+            and outputting the backscatter and phase histograms.
+        stats_h5 : h5py.File
+            The output file to save QA metrics, etc. to
+        report_pdf : PdfPages
+            The output pdf file to append the backscatter image plot to
+        input_raster_represents_power : bool, optional
+            The input dataset rasters associated with these histogram parameters
+            should have their pixel values represent either power or root power.
+            If `True`, then QA SAS assumes the input data already represents
+            power and uses the pixels' magnitudes for computations.
+    <<<<<<< HEAD
+            If `False`, then QA SAS assumes that the input data represents
+            root power, will handle the full computation to power using
+            the formula:  power = abs(<root power>)^2 .
+    =======
+            If `False`, then QA SAS assumes the input data represents root power
+            aka magnitude and will handle the full computation to power using
+            the formula:  power = abs(<magnitude>)^2 .
+    >>>>>>> 234278e (update the name power to backscatter)
+            Defaults to False (root power).
     """
 
     # Generate and store the histograms
@@ -2221,44 +2226,50 @@ def generate_backscatter_image_histogram_single_freq(
     input_raster_represents_power=False,
 ):
     """
-    Generate Backscatter Image Histogram for a single frequency.
+        Generate Backscatter Image Histogram for a single frequency.
 
-    The histogram's plot will be appended to the graphical
-    summary file `report_pdf`, and its data will be
-    stored in the statistics .h5 file `stats_h5`.
-    Backscatter histogram will be computed in decibel units.
+        The histogram's plot will be appended to the graphical
+        summary file `report_pdf`, and its data will be
+        stored in the statistics .h5 file `stats_h5`.
+        Backscatter histogram will be computed in decibel units.
 
-    Parameters
-    ----------
-    pol : dict of RadarRaster or GeoRaster
-        dict of *Raster objects for the given `band`
-        and `freq`. Each key is a polarization (e.g. 'HH'
-        or 'HV'), and each key's item is the corresponding
-        RadarRaster instance.
-        Ex: pol['HH'] -> the HH dataset, stored
-                         in a RadarRaster or GeoRaster object
-    band : str
-        Band name for the histograms to be processed,
-        e.g. 'LSAR'
-    freq : str
-        Frequency name for the histograms to be processed,
-        e.g. 'A' or 'B'
-    params : HistogramParamGroup
-        A structure containing the parameters for processing
-        and outputting the histograms.
-    stats_h5 : h5py.File
-        The output file to save QA metrics, etc. to
-    report_pdf : PdfPages
-        The output pdf file to append the power image plot to
-    input_raster_represents_power : bool, optional
-        The input dataset rasters associated with these histogram parameters
-        should have their pixel values represent either power or root power.
-        If `True`, then QA SAS assumes the input data already represents
-        power and uses the pixels' magnitudes for computations.
-        If `False`, then QA SAS assumes that the input data represents
-        root power, will handle the full computation to power using
-        the formula:  power = abs(<root power>)^2 .
-        Defaults to False (root power).
+        Parameters
+        ----------
+        pol : dict of RadarRaster or GeoRaster
+            dict of *Raster objects for the given `band`
+            and `freq`. Each key is a polarization (e.g. 'HH'
+            or 'HV'), and each key's item is the corresponding
+            RadarRaster instance.
+            Ex: pol['HH'] -> the HH dataset, stored
+                             in a RadarRaster or GeoRaster object
+        band : str
+            Band name for the histograms to be processed,
+            e.g. 'LSAR'
+        freq : str
+            Frequency name for the histograms to be processed,
+            e.g. 'A' or 'B'
+        params : HistogramParamGroup
+            A structure containing the parameters for processing
+            and outputting the histograms.
+        stats_h5 : h5py.File
+            The output file to save QA metrics, etc. to
+        report_pdf : PdfPages
+            The output pdf file to append the backscatter image plot to
+        input_raster_represents_power : bool, optional
+            The input dataset rasters associated with these histogram parameters
+            should have their pixel values represent either power or root power.
+            If `True`, then QA SAS assumes the input data already represents
+            power and uses the pixels' magnitudes for computations.
+    <<<<<<< HEAD
+            If `False`, then QA SAS assumes that the input data represents
+            root power, will handle the full computation to power using
+            the formula:  power = abs(<root power>)^2 .
+    =======
+            If `False`, then QA SAS assumes the input data represents root power
+            aka magnitude and will handle the full computation to power using
+            the formula:  power = abs(<magnitude>)^2 .
+    >>>>>>> 234278e (update the name power to backscatter)
+            Defaults to False (root power).
     """
 
     print(f"Generating Backscatter Image Histograms for Frequency {freq}...")
@@ -2285,7 +2296,7 @@ def generate_backscatter_image_histogram_single_freq(
         # Get histogram probability density
         hist_density = nisarqa.compute_histogram_by_tiling(
             arr=pol_data.data,
-            bin_edges=params.pow_bin_edges,
+            bin_edges=params.backscatter_bin_edges,
             data_prep_func=img_prep,
             density=True,
             decimation_ratio=params.decimation_ratio,
@@ -2299,20 +2310,25 @@ def generate_backscatter_image_histogram_single_freq(
         )
 
         # Save Backscatter Histogram Counts to HDF5 file
-        pow_units = params.get_units_from_hdf5_metadata("pow_bin_edges")
+        backscatter_units = params.get_units_from_hdf5_metadata(
+            "backscatter_bin_edges"
+        )
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,
             grp_path=grp_path,
             ds_name="backscatterHistogramDensity",
             ds_data=hist_density,
-            ds_units=f"1/{pow_units}",
+            ds_units=f"1/{backscatter_units}",
             ds_description="Normalized density of the backscatter image histogram",
         )
 
-        # Add power histogram density to the figure
+        # Add backscatter histogram density to the figure
         add_hist_to_axis(
-            ax, counts=hist_density, edges=params.pow_bin_edges, label=pol_name
+            ax,
+            counts=hist_density,
+            edges=params.backscatter_bin_edges,
+            label=pol_name,
         )
 
     # Label the Backscatter Image Figure
@@ -2320,8 +2336,8 @@ def generate_backscatter_image_histogram_single_freq(
     ax.set_title(title)
 
     ax.legend(loc="upper right")
-    ax.set_xlabel(f"Backscatter ({pow_units})")
-    ax.set_ylabel(f"Density (1/{pow_units})")
+    ax.set_xlabel(f"Backscatter ({backscatter_units})")
+    ax.set_ylabel(f"Density (1/{backscatter_units})")
 
     # Per ADT, let the top limit float for Power Spectra
     ax.set_ylim(bottom=0.0)
@@ -2368,11 +2384,11 @@ def generate_phase_histogram_single_freq(
         e.g. 'A' or 'B'
     params : HistogramParamGroup
         A structure containing the parameters for processing
-        and outputting the power and phase histograms.
+        and outputting the backscatter and phase histograms.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
-        The output pdf file to append the power image plot to
+        The output pdf file to append the backscatter image plot to
     """
 
     # flag for if any phase histogram densities are generated

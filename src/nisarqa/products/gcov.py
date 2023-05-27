@@ -54,7 +54,7 @@ def verify_gcov(user_rncfg):
         "input_f": "Input File Group",
         "prodpath": "Product Path Group",
         "workflows": "Workflows",
-        "power_img": "Power Image",
+        "backscatter_img": "Power Image",
         "histogram": "Histogram",
     }
 
@@ -161,9 +161,9 @@ def verify_gcov(user_rncfg):
             input_raster_represents_power = True
 
             # Generate the Power Image and Browse Image
-            nisarqa.rslc.process_power_images_and_browse(
+            nisarqa.rslc.process_backscatter_imgs_and_browse(
                 pols=pols,
-                params=gcov_params.power_img,
+                params=gcov_params.backscatter_img,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 product_type="gcov",
@@ -172,7 +172,7 @@ def verify_gcov(user_rncfg):
             )
 
             # Generate the Power and Phase Histograms
-            nisarqa.rslc.process_power_and_phase_histograms(
+            nisarqa.rslc.process_backscatter_and_phase_histograms(
                 pols=pols,
                 params=gcov_params.histogram,
                 stats_h5=stats_h5,

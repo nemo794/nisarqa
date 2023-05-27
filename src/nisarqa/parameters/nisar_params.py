@@ -663,7 +663,7 @@ class RootParamGroup(ABC):
             DynamicAncillaryFileParamGroup,
             ProductPathGroupParamGroup,
             RSLCWorkflowsParamGroup,
-            PowerImageParamGroup,
+            BackscatterImageParamGroup,
             RSLCHistogramParamGroup,
             AbsCalParamGroup,
             NESZParamGroup,

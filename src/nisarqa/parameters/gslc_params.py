@@ -11,9 +11,9 @@ from nisarqa import (
 
 # TODO Remove the rslc_caltools_params imports after re-org of code
 from nisarqa.parameters.rslc_caltools_params import (
+    BackscatterImageParamGroup,
     HistogramParamGroup,
     InputFileGroupParamGroup,
-    PowerImageParamGroup,
     ProductPathGroupParamGroup,
 )
 
@@ -40,14 +40,14 @@ class GSLCRootParamGroup(RootParamGroup):
         Input File Group parameters for QA
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for QA
-    power_img : PowerImageParamGroup or None, optional
+    backscatter_img : BackscatterImageParamGroup or None, optional
         Power Image Group parameters for SLC QA
     histogram : SLCHistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     """
 
     # QA parameters
-    power_img: Optional[PowerImageParamGroup] = None
+    backscatter_img: Optional[BackscatterImageParamGroup] = None
     histogram: Optional[HistogramParamGroup] = None
 
     @staticmethod
@@ -71,8 +71,8 @@ class GSLCRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="power_img",
-                param_grp_cls_obj=PowerImageParamGroup,
+                root_param_grp_attr_name="backscatter_img",
+                param_grp_cls_obj=BackscatterImageParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
@@ -91,7 +91,7 @@ class GSLCRootParamGroup(RootParamGroup):
             InputFileGroupParamGroup,
             ProductPathGroupParamGroup,
             WorkflowsParamGroup,
-            PowerImageParamGroup,
+            BackscatterImageParamGroup,
             HistogramParamGroup,
         )
 
