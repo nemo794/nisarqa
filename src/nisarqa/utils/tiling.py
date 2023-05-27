@@ -309,11 +309,14 @@ def compute_histogram_by_tiling(
         The input array
     bin_edges : numpy.ndarray
         The bin edges to use for the histogram
-    data_prep_func : Function, optional
+    data_prep_func : Function or None, optional
         Function to process each tile of data through before computing
-        the histogram counts.
+        the histogram counts. For example, this function can be used
+        to convert the values in each tile of raw data to backscatter, 
+        dB scale, etc. before taking the histogram.
         If `None`, then histogram will be computed on `arr` as-is,
         and no pre-processing of the data will occur.
+        Defaults to None.
     density : bool, optional
         If True, return probability densities for histograms:
         Each bin will display the bin's raw count divided by the
