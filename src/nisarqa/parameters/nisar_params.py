@@ -5,6 +5,7 @@ import sys
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
+from pathlib import Path
 from typing import ClassVar, Optional
 
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
@@ -714,81 +715,150 @@ class RootParamGroup(ABC):
                     po.write_params_to_h5(h5_file, bands=bands)
 
 
-    def _get_output_filepath_with_prefix(self):
+    def log_parameters(self):
+        """
+        Log the parameter values for this instance of *RootParamGroup.
+
+        Currently, will output each value to stdout. In the future, will
+        log via a proper logger.
+        """
+        print(
+            "QA processing parameters, per runconfig and defaults (runconfig has precedence)"
+        )
+
+        # Iterate through each *ParamGroup attribute in the *RootParamGroup
+        for root_group_attr in fields(self):
+            param_group_obj = getattr(self, root_group_attr.name)
+
+            # Iterate through each attribute in the *ParamGroup
+            if param_group_obj is not None:
+                # One of the `workflows` set to `True` required this group,
+                # so this *ParamGroup was instantiated and its values logged.
+
+                # Use the path in the runconfig to identify the group
+                rncfg_grp_path = param_group_obj.get_path_to_group_in_runconfig()
+                rncfg_grp_path = "/".join(rncfg_grp_path)
+                print(f"  Final Input Parameters corresponding to Runconfig group: ", rncfg_grp_path)
+
+                # Show the final value assigned to the parameter
+                for param in fields(param_group_obj):
+                    po2 = getattr(param_group_obj, param.name)
+                    print(f"    {param.name}: {po2}")
+            else:
+                print(f"  Per `workflows`, runconfig group for {root_group_attr.name} not required.")
+
+
+    def _get_output_dir(self) -> Path:
+        """
+        Returns the filepath to the output directory.
+        
+        Returns
+        -------
+        filepath : Path
+            The filepath to the QA output directory.
+        """
         if self.prodpath is None:
             raise ValueError("Output directory not provided via runconfig.")
 
-        # # For R3.3, QA should not use the input filename for the output files.
-        # # However, if/when this change occurs, here is the new code to use:
-        # 
-        # if self.input_f is None:
-        #     raise ValueError("Input file not provided via runconfig.")
-        # prefix = os.path.basename(self.input_f.qa_input_file)
-        # # remove the extension
-        # prefix = os.path.splitext(prefix)[0]
-        # return os.path.join(self.prodpath.qa_output_dir, prefix)
+        return Path(self.prodpath.qa_output_dir)
 
-        return self.prodpath.qa_output_dir
+    def _get_input_file_basename_stripped(self) -> str:
+        """
+        Returns the input file's basename with the extension stripped.
 
-    def get_browse_png_filename(self):
-        prefix = self._get_output_filepath_with_prefix()
+        This can be used for creating the QA output filenames.
+        
+        Returns
+        -------
+        basename : str
+            The input file's basename with the extension removed.
+            For example, if the input filename is "/home/qa/my_goff.h5", 
+            then `basename` will be "my_goff".
+        """
+        if self.input_f is None:
+            raise ValueError("Input filename not provided via runconfig.")
 
-        # # For R3.3, QA should not use the input filename for the output files.
-        # # However, if/when this change occurs, here is the new code to use:
-        # 
-        # return prefix + ".png"
-
-        return os.path.join(prefix, "BROWSE.png")
-
-    def get_kml_browse_filename(self):
-        prefix = self._get_output_filepath_with_prefix()
-
-        # # For R3.3, QA should not use the input filename for the output files.
-        # # However, if/when this change occurs, here is the new code to use:
-        # 
-        # return prefix + ".kml"
-
-        return os.path.join(prefix, "BROWSE.kml")
-
-    def get_summary_csv_filename(self):
-        prefix = self._get_output_filepath_with_prefix()
+        return self.input_f.qa_input_file
+    
+    def get_browse_png_filename(self) -> Path:
+        """Returns the browse image filename with path as a Path object.
+        """
+        
+        output_dir = self._get_output_dir()
 
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return prefix + "_QA_SUMMARY.csv"
+        # return output_dir / f{self._get_input_file_basename_stripped}.png"
 
-        return os.path.join(prefix, "SUMMARY.csv")
+        return output_dir / "BROWSE.png"
 
-    def get_report_pdf_filename(self):
-        prefix = self._get_output_filepath_with_prefix()
+    def get_kml_browse_filename(self) -> Path:
+        """Returns the browse kml filename with path as a Path object.
+        """
 
-        # # For R3.3, QA should not use the input filename for the output files.
-        # # However, if/when this change occurs, here is the new code to use:
-        # 
-        # return prefix + "_QA_REPORT.pdf"
-
-        return os.path.join(prefix, "REPORT.pdf")
-
-    def get_stats_h5_filename(self):
-        prefix = self._get_output_filepath_with_prefix()
+        output_dir = self._get_output_dir()
 
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return prefix + "_QA_STATS.h5"
+        # return output_dir / f{self._get_input_file_basename_stripped}.kml"
 
-        return os.path.join(prefix, "STATS.h5")
+        return output_dir / "BROWSE.kml"
 
-    def get_log_filename(self):
-        prefix = self._get_output_filepath_with_prefix()
+    def get_summary_csv_filename(self) -> Path:
+        """Returns the Pass/Fail checks summary csv filename with path 
+        as a Path object.
+        """
+
+        output_dir = self._get_output_dir()
 
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return prefix + "_QA_LOG.txt"
+        # return output_dir / f{self._get_input_file_basename_stripped}_QA_SUMMARY.csv"
 
-        return os.path.join(prefix, "LOG.txt")
+        return output_dir / "SUMMARY.csv"
+
+
+    def get_report_pdf_filename(self) -> Path:
+        """Returns the reports pdf filename with path as a Path object.
+        """
+
+        output_dir = self._get_output_dir()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return output_dir / f{self._get_input_file_basename_stripped}_QA_REPORT.pdf"
+
+        return output_dir / "REPORT.pdf"
+
+    def get_stats_h5_filename(self) -> Path:
+        """Returns the stats HDF5 filename with path as a Path object.
+        """
+
+        output_dir = self._get_output_dir()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return output_dir / f{self._get_input_file_basename_stripped}_QA_STATS.h5"
+
+        return output_dir / "STATS.h5"
+    
+    def get_log_filename(self) -> Path:
+        """Returns the log TXT filename with path as a Path object.
+        """
+
+        output_dir = self._get_output_dir()
+
+        # # For R3.3, QA should not use the input filename for the output files.
+        # # However, if/when this change occurs, here is the new code to use:
+        # 
+        # return output_dir / f{self._get_input_file_basename_stripped}_QA_LOG.txt"
+
+        return output_dir / "LOG.txt"
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

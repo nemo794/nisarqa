@@ -49,6 +49,11 @@ def verify_gslc(user_rncfg):
     output_dir = root_params.prodpath.qa_output_dir
     nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
 
+    # Log the values of the parameters.
+    # Currently, this prints to stdout. Once the logger is implemented, 
+    # it should log the values directly to the log file.
+    root_params.log_parameters()
+
     input_file = root_params.input_f.qa_input_file
     print(f"Starting Quality Assurance for input file: {input_file}")
 

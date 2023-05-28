@@ -897,13 +897,13 @@ def build_root_params(product_type, user_rncfg):
     ----------
     product_type : str
         One of: 'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', 'goff'
-    root_param_group : dict
-        A dictionary of parameters; the structure if this dict must match
-        the QA runconfig file for the specified `product_type`.
+    user_rncfg : dict
+        A dictionary whose structure matches `product_type`'s QA runconfig
+        yaml file and which contains the parameters needed to run its QA SAS.
 
     Returns
     -------
-    root_params : RSLCRootParamGroup
+    root_param_group : RSLCRootParamGroup
         *RootParamGroup object for the specified product type. This will be
         populated with runconfig values where provided,
         and default values for missing runconfig parameters.
@@ -957,36 +957,8 @@ def build_root_params(product_type, user_rncfg):
 
             root_inputs[param_grp.root_param_grp_attr_name] = populated_rncfg_group
 
-    # Construct *RootParamGroup
-    root_param_group = root_param_class_obj(**root_inputs)
-
-    # Log the final parameters that will be used for QA processing
-    print(
-        "Final QA processing parameters, per runconfig and defaults (runconfig has precedence)"
-    )
-
-    # Iterate through each *ParamGroup attribute in the *RootParamGroup
-    for root_group_attr in fields(root_param_group):
-        param_group_obj = getattr(root_param_group, root_group_attr.name)
-
-        # Iterate through each attribute in the *ParamGroup
-        if param_group_obj is not None:
-            # One of the `workflows` set to `True` required this group,
-            # so this *ParamGroup was instantiated and its values logged.
-
-            # Use the path in the runconfig to identify the group
-            rncfg_grp_path = param_group_obj.get_path_to_group_in_runconfig()
-            rncfg_grp_path = "/".join(rncfg_grp_path)
-            print(f"  Final Input Parameters corresponding to Runconfig group: ", rncfg_grp_path)
-
-            # Show the final value assigned to the parameter
-            for param in fields(param_group_obj):
-                po2 = getattr(param_group_obj, param.name)
-                print(f"    {param.name}: {po2}")
-        else:
-            print(f"  Per `workflows`, runconfig group for {param_grp} not required.")
-
-    return root_param_group
+    # Construct and return *RootParamGroup
+    return root_param_class_obj(**root_inputs)
 
 
 # TODO - move to generic NISAR module
