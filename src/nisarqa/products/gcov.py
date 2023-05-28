@@ -2,6 +2,7 @@ import os
 import warnings
 from dataclasses import fields
 
+import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa

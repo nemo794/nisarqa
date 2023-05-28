@@ -1040,9 +1040,9 @@ def process_backscatter_imgs_and_browse(
         save_browse_img_func = save_slc_browse_img
     elif product_type == "gcov":
         layers_for_browse_func = (
-            nisarqa.products.gcov._select_layers_for_gcov_browse
+            nisarqa.products.gcov.select_layers_for_gcov_browse
         )
-        save_browse_img_func = nisarqa.products.gcov_save_gcov_browse_img
+        save_browse_img_func = nisarqa.products.gcov.save_gcov_browse_img
     else:
         raise NotImplementedError(f"{product_type=} not implemented")
 
