@@ -1,0 +1,15 @@
+name: qa
+channels:
+    - conda-forge
+    - nodefaults  # force everything to come from conda-forge channel
+dependencies:
+    - python>=3.8
+    - setuptools
+    - numpy
+    - h5py
+    - pillow
+    - ruamel.yaml
+    - yamale
+    - cycler
+    - matplotlib
+

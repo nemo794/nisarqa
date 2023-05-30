@@ -12,23 +12,29 @@ produced one at a time. For each product, the QA code can:
 
 # Minimum PreRequisites:
 ```
-Python 3.7
-setuptools
-numpy
-matplotlib
-h5py
-pillow
-ruamel.yaml
-yamale
-cycler
+see `environment.yaml` for required packages.
 ```
 
 # Operating Instructions:
 
 ## Installation
 
-Clone the repo and `cd` into the top level directory.
+Step 1) Install the conda package manager.
 
+Step 2) Create a conda environment with the correct packages for QA.
+By creating a new environment using the `environment.yaml` file, the required packages and their versions will all be resolved by conda from the conda-forge channel, and thus remain consistent with each other. (Mixing package managers has led to import errors during testing.) The `environment.yaml` defaults to naming the new conda environment `qa`.
+```
+conda env create -f environment.yaml
+conda activate qa  # activate the new environment
+```
+
+Step 3) Clone the `QualityAssurance` repo and `cd` into the top level directory.
+```
+git clone git@github-fn.jpl.nasa.gov:NISAR-ADT/QualityAssurance.git
+cd QualityAssurance
+```
+
+Step 4) Install
 For standard installation, run:
 ```
 python setup.py install
