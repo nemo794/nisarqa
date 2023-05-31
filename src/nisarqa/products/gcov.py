@@ -466,8 +466,9 @@ def save_gcov_browse_img(pol_imgs, filepath):
                 blue = pol_imgs["HHHH"]
             else:
                 for pol2 in ["VVVV", "HHHH"]:
-                    blue = pol_imgs[pol2]
-                    break
+                    if pol2 in pol_imgs:
+                        blue = pol_imgs[pol2]
+                        break
             break
 
     # Sanity Check, and catch-all logic to make a browse image
