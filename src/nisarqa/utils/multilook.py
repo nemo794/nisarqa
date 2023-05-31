@@ -129,7 +129,7 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
     If the pair of values in `sample_spacing` are within epsilon 1e-4 of each
     other, it will be assumed that the input image's pixels are already
     square pixels, and so the returned `nlooks` values will always be
-    equal to each other. (1e-4 is an arbitrary value; ok to adjust.)
+    equal to each other. (1e-2 is an arbitrary value; ok to adjust.)
     For example, GCOV products have square pixels.
 
     Parameters
@@ -228,7 +228,7 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
     N = img_shape[1]  # X dimension
     dy = np.abs(sample_spacing[0])  # Y
     dx = np.abs(sample_spacing[1])  # X
-    epsilon = 1e-4
+    epsilon = 1e-2
 
     if M * dy >= N * dx:
         # Y (azimuth) extent is longer
