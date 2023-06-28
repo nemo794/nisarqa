@@ -27,7 +27,11 @@ cd QualityAssurance
 
 Step 3) Create a conda environment with the correct packages for QA.
 
-By creating a new environment using the `environment.yaml` file, the required packages and their versions will all be resolved by conda from the conda-forge channel, and thus remain consistent with each other. (Mixing package managers has led to import errors during testing.) The `environment.yaml` defaults to naming the new conda environment `nisarqa`.
+By creating a new environment using the `environment.yaml` file, the required 
+packages and their versions will all be resolved by conda from the conda-forge 
+channel, and thus remain consistent with each other. (Mixing package managers 
+has led to import errors during testing.) The `environment.yaml` defaults to 
+naming the new conda environment `nisarqa`.
 ```
 conda env create -f environment.yaml
 conda activate nisarqa  # activate the new environment
