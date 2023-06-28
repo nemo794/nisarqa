@@ -7,7 +7,6 @@ import matplotlib
 matplotlib.use("Agg")
 import argparse
 
-import pkg_resources
 from ruamel.yaml import YAML
 
 import nisarqa
