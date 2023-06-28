@@ -1,6 +1,7 @@
 import inspect
 import sys
 
+__version__ = "3.0.0"
 
 def get_all(name, objects_to_skip=None, skip_private=True):
     """Return a list of all functions and classes in a module
@@ -106,10 +107,9 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 # Import Globals first (these must be imported before the parameters)
 from .parameters.constants.globals import *
 from .parameters.constants.stub_outputs import *
-
+from .parameters.gslc_params import *
 # Next import parameters, products, utils, etc.
 from .parameters.nisar_params import *
-from .parameters.gslc_params import *
 from .parameters.rslc_caltools_params import *
 # keep individual products in their own namespace
 from .products import (

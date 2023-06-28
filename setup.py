@@ -6,6 +6,7 @@
 
 import glob
 import os
+import re
 
 from setuptools import Command, find_packages, setup
 
@@ -28,6 +29,38 @@ class CleanCommand(Command):
         )
 
 
+def _get_version():
+    """Returns the PROTEUS software version from the
+    file `src/proteus/version.py`
+
+       Returns
+       -------
+       version : str
+            PROTEUS software version
+    """
+    init_file = os.path.join('src','nisarqa','__init__.py')
+
+    with open(init_file, 'r') as f:
+        text = f.read()
+
+    # Get first match of the version number contained in the version file
+    # This regex should match a pattern like: __version__ = '3.2.5', but it
+    # allows for varying spaces, number of major/minor versions,
+    # and quotation mark styles.
+    p = re.search("__version__[ ]*=[ ]*['\"]\d+([.]\d+)*['\"]", text)
+
+    # Check that the version file contains properly formatted text string
+    if p is None:
+        raise ValueError(
+            f"__init__.py file {init_file} not properly formatted."
+            " It should contain text matching e.g.` __version__ = '2.3.4'`")
+
+    # Extract just the numeric version number from the string
+    p = re.search("\d+([.]\d+)*", p.group(0))
+
+    return p.group(0)    
+
+
 setup(
     name="nisarqa",
     maintainer="NISAR ADT Team",
@@ -38,7 +71,7 @@ setup(
     license="Copyright by the California Institute of Technology."
     "All rights reserved",
     url="http://nisar.jpl.nasa.gov",
-    version="3.0.0",
+    version=_get_version(),
     # Gather all packages located under `src`.
     # (A package is a directory containing an __init__.py file.)
     package_dir={"": "src"},
