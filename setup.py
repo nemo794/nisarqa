@@ -30,13 +30,13 @@ class CleanCommand(Command):
 
 
 def _get_version():
-    """Returns the PROTEUS software version from the
-    file `src/proteus/version.py`
+    """Returns the NISAR QA SAS software version from the
+    file `src/nisarqa/__init__.py`
 
        Returns
        -------
        version : str
-            PROTEUS software version
+            NISAR QA SAS software version
     """
     init_file = os.path.join('src','nisarqa','__init__.py')
 
