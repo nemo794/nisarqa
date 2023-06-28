@@ -41,13 +41,12 @@ Step 4) Install
 
 For standard installation, run:
 ```
-python setup.py install
-python setup.py clean
+pip install --no-deps .
 ```
 
 For develop mode, run:
 ```
-python setup.py develop
+pip install -e --no-deps .
 ```
 
 To test installation, try:
@@ -56,6 +55,12 @@ nisarqa --version
 nisarqa -h
 nisarqa dumpconfig -h
 ```
+
+Warning: Please install via `pip` and with the `--no-deps` flag. Installing
+via the traditional `python setup.py install` or without the `--no-deps` flag
+method fails due to the `isce3` dependency in `setup.py`.
+Otherwise, the `isce3` dependency would need to be removed from `setup.py`,
+causing that dependency to be undocumented there.
 
 ## Running the QA Code
 

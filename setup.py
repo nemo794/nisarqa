@@ -92,6 +92,7 @@ setup(
         "ruamel.yaml",
         "cycler",
         "matplotlib",
+        "isce3"
     ],
     extras_require={
         "test": ["pytest"],
