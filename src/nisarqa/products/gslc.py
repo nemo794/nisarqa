@@ -54,7 +54,16 @@ def verify_gslc(user_rncfg):
     # it should log the values directly to the log file.
     root_params.log_parameters()
 
+    # For readibility, store output filenames in variables.
+    # Depending on which workflows are set to True, not all filename
+    # variables will be used.
     input_file = root_params.input_f.qa_input_file
+    browse_file_png = root_params.get_output_dir() / root_params.get_browse_png_filename()
+    browse_file_kml = root_params.get_output_dir() / root_params.get_kml_browse_filename()
+    report_file = root_params.get_output_dir() / root_params.get_report_pdf_filename()
+    stats_file = root_params.get_output_dir() / root_params.get_stats_h5_filename()
+    summary_file = root_params.get_output_dir() / root_params.get_summary_csv_filename()
+
     print(f"Starting Quality Assurance for input file: {input_file}")
 
     with nisarqa.open_h5_file(input_file, mode="r") as in_file:
@@ -77,7 +86,7 @@ def verify_gslc(user_rncfg):
             # For now, output the stub file
             nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
 
-            print(f"Input file validation PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}")
+            print(f"Input file validation PASS/FAIL checks saved to {summary_file}")
             print(f"Input file validation complete.")
 
         if root_params.workflows.qa_reports:
@@ -85,7 +94,7 @@ def verify_gslc(user_rncfg):
 
             # TODO qa_reports will add to the SUMMARY.csv file.
             # For now, make sure that the stub file is output
-            if not os.path.isfile(root_params.get_summary_csv_filename()):
+            if not os.path.isfile(summary_file):
                 nisarqa.output_stub_files(
                     output_dir=output_dir, stub_files="summary_csv"
                 )
@@ -94,10 +103,10 @@ def verify_gslc(user_rncfg):
             # For now, make sure that the stub file is output
             nisarqa.output_stub_files(output_dir=output_dir, stub_files="browse_kml")
             print("Processing of browse image kml complete.")
-            print(f"Browse image kml file saved to {root_params.get_kml_browse_filename()}")
+            print(f"Browse image kml file saved to {browse_file_kml}")
 
-            with nisarqa.open_h5_file(root_params.get_stats_h5_filename(), mode="w") as stats_h5, \
-                PdfPages(root_params.get_report_pdf_filename()) as report_pdf:
+            with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5, \
+                PdfPages(report_file) as report_pdf:
 
                 print("Beginning processing of `qa_reports` items...")
 
@@ -110,13 +119,13 @@ def verify_gslc(user_rncfg):
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                     nisar_h5=in_file, stats_h5=stats_h5
                 )
-                print(f"QA Processing Parameters saved to {root_params.get_stats_h5_filename()}")
+                print(f"QA Processing Parameters saved to {stats_file}")
 
                 # Save frequency/polarization info to stats file
                 nisarqa.rslc.save_nisar_freq_metadata_to_h5(
                     stats_h5=stats_h5, pols=pols
                 )
-                print(f"Input file Identification group copied to {root_params.get_stats_h5_filename()}")
+                print(f"Input file Identification group copied to {stats_file}")
 
                 # Generate the GSLC Power Image and Browse Image
                 nisarqa.rslc.process_slc_power_images_and_browse(
@@ -124,10 +133,10 @@ def verify_gslc(user_rncfg):
                     params=root_params.power_img,
                     stats_h5=stats_h5,
                     report_pdf=report_pdf,
-                    browse_filename=root_params.get_browse_png_filename(),
+                    browse_filename=browse_file_png,
                 )
                 print("Processing of power images complete.")
-                print(f"Browse image PNG file saved to {root_params.get_browse_png_filename()}")
+                print(f"Browse image PNG file saved to {browse_file_png}")
 
                 # Generate the GSLC Power and Phase Histograms
                 nisarqa.rslc.process_power_and_phase_histograms(
@@ -144,9 +153,9 @@ def verify_gslc(user_rncfg):
 
                 # Compute metrics for stats.h5
 
-                print(f"PDF reports saved to {root_params.get_report_pdf_filename()}")
-                print(f"HDF5 statistics saved to {root_params.get_stats_h5_filename()}")
-                print(f"CSV Summary PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}")
+                print(f"PDF reports saved to {report_file}")
+                print(f"HDF5 statistics saved to {stats_file}")
+                print(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
                 print("`qa_reports` processing complete.")
 
     print("Successful completion of QA SAS. Check log file for validation warnings and errors.")

@@ -63,11 +63,30 @@ def verify_rslc(user_rncfg):
     nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
 
     # Log the values of the parameters.
-    # Currently, this prints to stdout. Once the logger is implemented, 
+    # Currently, this prints to stdout. Once the logger is implemented,
     # it should log the values directly to the log file.
     root_params.log_parameters()
 
+    # For readibility, store output filenames in variables.
+    # Depending on which workflows are set to True, not all filename
+    # variables will be used.
     input_file = root_params.input_f.qa_input_file
+    browse_file_png = (
+        root_params.get_output_dir() / root_params.get_browse_png_filename()
+    )
+    browse_file_kml = (
+        root_params.get_output_dir() / root_params.get_kml_browse_filename()
+    )
+    report_file = (
+        root_params.get_output_dir() / root_params.get_report_pdf_filename()
+    )
+    stats_file = (
+        root_params.get_output_dir() / root_params.get_stats_h5_filename()
+    )
+    summary_file = (
+        root_params.get_output_dir() / root_params.get_summary_csv_filename()
+    )
+
     print(f"Starting Quality Assurance for input file: {input_file}")
 
     # Begin QA workflows
@@ -97,16 +116,14 @@ def verify_rslc(user_rncfg):
                 root_params.save_params_to_stats_file(
                     h5_file=stats_h5, bands=tuple(pols.keys())
                 )
-                print(
-                    f"QA Processing Parameters saved to {root_params.get_stats_h5_filename()}"
-                )
+                print(f"QA Processing Parameters saved to {stats_file}")
 
                 # Copy the Product identification group to STATS.h5
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                     nisar_h5=in_file, stats_h5=stats_h5
                 )
                 print(
-                    f"Input file Identification group copied to {root_params.get_stats_h5_filename()}"
+                    f"Input file Identification group copied to {stats_file}"
                 )
 
         # Run the requested workflows
@@ -148,7 +165,7 @@ def verify_rslc(user_rncfg):
             print(f"Beginning `qa_reports` processing...")
             # TODO qa_reports will add to the SUMMARY.csv file.
             # For now, make sure that the stub file is output
-            if not os.path.isfile(root_params.get_summary_csv_filename()):
+            if not os.path.isfile(summary_file):
                 nisarqa.output_stub_files(
                     output_dir=output_dir, stub_files="summary_csv"
                 )
@@ -159,15 +176,11 @@ def verify_rslc(user_rncfg):
                 output_dir=output_dir, stub_files="browse_kml"
             )
             print("Processing of browse image kml complete.")
-            print(
-                f"Browse image kml file saved to {root_params.get_kml_browse_filename()}"
-            )
+            print(f"Browse image kml file saved to {browse_file_kml}")
 
             with nisarqa.open_h5_file(
-                root_params.get_stats_h5_filename(), mode="r+"
-            ) as stats_h5, PdfPages(
-                root_params.get_report_pdf_filename()
-            ) as report_pdf:
+                stats_file, mode="r+"
+            ) as stats_h5, PdfPages(report_file) as report_pdf:
                 print("Beginning processing of `qa_reports` items...")
 
                 # Save frequency/polarization info to stats file
@@ -179,7 +192,7 @@ def verify_rslc(user_rncfg):
                     params=root_params.power_img,
                     stats_h5=stats_h5,
                     report_pdf=report_pdf,
-                    browse_filename=root_params.get_browse_png_filename(),
+                    browse_filename=browse_file_png,
                 )
                 print("Processing of power images complete.")
                 print(
@@ -203,15 +216,9 @@ def verify_rslc(user_rncfg):
 
                 # Compute metrics for stats.h5
 
-                print(
-                    f"PDF reports saved to {root_params.get_report_pdf_filename()}"
-                )
-                print(
-                    f"HDF5 statistics saved to {root_params.get_stats_h5_filename()}"
-                )
-                print(
-                    f"CSV Summary PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}"
-                )
+                print(f"PDF reports saved to {report_file}")
+                print(f"HDF5 statistics saved to {stats_file}")
+                print(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
                 print("`qa_reports` processing complete.")
 
     if root_params.workflows.abs_cal:
@@ -222,10 +229,10 @@ def verify_rslc(user_rncfg):
             abscal_params=root_params.abs_cal,
             dyn_anc_params=root_params.anc_files,
             input_filename=input_file,
-            stats_filename=root_params.get_stats_h5_filename(),
+            stats_filename=stats_file,
         )
         print(
-            f"Absolute Radiometric Calibration CalTool results saved to {root_params.get_stats_h5_filename()}"
+            f"Absolute Radiometric Calibration CalTool results saved to {stats_file}"
         )
         print("Absolute Radiometric Calibration CalTool complete.")
 
@@ -236,11 +243,9 @@ def verify_rslc(user_rncfg):
         nisarqa.caltools.run_noise_estimation_tool(
             params=root_params.noise_estimation,
             input_filename=input_file,
-            stats_filename=root_params.get_stats_h5_filename(),
+            stats_filename=stats_file,
         )
-        print(
-            f"Noise Estimation Tool CalTool results saved to {root_params.get_stats_h5_filename()}"
-        )
+        print(f"Noise Estimation Tool CalTool results saved to {stats_file}")
         print("Noise Estimation Tool CalTool complete.")
 
     if root_params.workflows.point_target:
@@ -251,11 +256,9 @@ def verify_rslc(user_rncfg):
             pta_params=root_params.pta,
             dyn_anc_params=root_params.anc_files,
             input_filename=input_file,
-            stats_filename=root_params.get_stats_h5_filename(),
+            stats_filename=stats_file,
         )
-        print(
-            f"Point Target Analyzer CalTool results saved to {root_params.get_stats_h5_filename()}"
-        )
+        print(f"Point Target Analyzer CalTool results saved to {stats_file}")
         print("Point Target Analyzer CalTool complete.")
 
     print(

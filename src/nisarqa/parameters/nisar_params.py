@@ -748,7 +748,7 @@ class RootParamGroup(ABC):
                 print(f"  Per `workflows`, runconfig group for {root_group_attr.name} not required.")
 
 
-    def _get_output_dir(self) -> Path:
+    def get_output_dir(self) -> Path:
         """
         Returns the filepath to the output directory.
         
@@ -781,84 +781,71 @@ class RootParamGroup(ABC):
         return self.input_f.qa_input_file
     
     def get_browse_png_filename(self) -> Path:
-        """Returns the browse image filename with path as a Path object.
+        """Return the browse image filename as a Path object. Does not include
+        the filepath.
         """
-        
-        output_dir = self._get_output_dir()
-
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return output_dir / f{self._get_input_file_basename_stripped}.png"
+        # return Path(f{self._get_input_file_basename_stripped}.png")
 
-        return output_dir / "BROWSE.png"
+        return Path("BROWSE.png")
 
     def get_kml_browse_filename(self) -> Path:
-        """Returns the browse kml filename with path as a Path object.
+        """Return the browse kml filename as a Path object. Does not include
+        the filepath.
         """
-
-        output_dir = self._get_output_dir()
-
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return output_dir / f{self._get_input_file_basename_stripped}.kml"
+        # return Path(f{self._get_input_file_basename_stripped}.kml")
 
-        return output_dir / "BROWSE.kml"
+        return Path("BROWSE.kml")
 
     def get_summary_csv_filename(self) -> Path:
-        """Returns the Pass/Fail checks summary csv filename with path 
-        as a Path object.
+        """Return the Pass/Fail checks summary csv filename as a Path object.
+        Does not include the filepath.
         """
-
-        output_dir = self._get_output_dir()
-
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return output_dir / f{self._get_input_file_basename_stripped}_QA_SUMMARY.csv"
+        # return Path(f{self._get_input_file_basename_stripped}_QA_SUMMARY.csv")
 
-        return output_dir / "SUMMARY.csv"
+        return Path("SUMMARY.csv")
 
 
     def get_report_pdf_filename(self) -> Path:
-        """Returns the reports pdf filename with path as a Path object.
+        """Return the reports pdf filename as a Path object. Does not include
+        the filepath.
         """
-
-        output_dir = self._get_output_dir()
-
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return output_dir / f{self._get_input_file_basename_stripped}_QA_REPORT.pdf"
+        # return Path(f{self._get_input_file_basename_stripped}_QA_REPORT.pdf")
 
-        return output_dir / "REPORT.pdf"
+        return Path("REPORT.pdf")
 
     def get_stats_h5_filename(self) -> Path:
-        """Returns the stats HDF5 filename with path as a Path object.
+        """Return the stats HDF5 filename as a Path object. Does not include
+        the filepath.
         """
-
-        output_dir = self._get_output_dir()
-
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return output_dir / f{self._get_input_file_basename_stripped}_QA_STATS.h5"
+        # return Path(f{self._get_input_file_basename_stripped}_QA_STATS.h5")
 
-        return output_dir / "STATS.h5"
+        return Path("STATS.h5")
     
     def get_log_filename(self) -> Path:
-        """Returns the log TXT filename with path as a Path object.
+        """Return the log TXT filename as a Path object. Does not include
+        the filepath.
         """
-
-        output_dir = self._get_output_dir()
-
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
         # 
-        # return output_dir / f{self._get_input_file_basename_stripped}_QA_LOG.txt"
+        # return Path(f{self._get_input_file_basename_stripped}_QA_LOG.txt")
 
-        return output_dir / "LOG.txt"
+        return Path("LOG.txt")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
