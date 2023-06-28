@@ -57,7 +57,6 @@ setup(
         "h5py",
         "pillow",
         "ruamel.yaml",
-        "yamale",
         "cycler",
         "matplotlib",
     ],
