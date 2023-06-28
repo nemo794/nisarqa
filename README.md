@@ -46,7 +46,7 @@ pip install --no-deps .
 
 For develop mode, run:
 ```
-pip install -e --no-deps .
+pip install --no-deps -e .
 ```
 
 To test installation, try:
