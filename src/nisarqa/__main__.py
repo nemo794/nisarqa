@@ -7,9 +7,10 @@ import matplotlib
 matplotlib.use("Agg")
 import argparse
 
-import nisarqa
 import pkg_resources
 from ruamel.yaml import YAML
+
+import nisarqa
 
 
 def parse_cli_args():
@@ -47,7 +48,7 @@ def parse_cli_args():
         "-v",
         "--version",
         action="version",
-        version=pkg_resources.require("nisarqa")[0].version,
+        version=nisarqa.__version__,
     )
 
     # create sub-parser
