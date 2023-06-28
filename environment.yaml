@@ -1,12 +1,12 @@
-name: qa
+name: nisarqa
 channels:
     - conda-forge
     - nodefaults  # force everything to come from conda-forge channel
 dependencies:
     - python>=3.8
     - setuptools
-    - numpy
-    - h5py
+    - numpy>=1.20
+    - h5py>=3
     - pillow
     - ruamel.yaml
     - yamale
