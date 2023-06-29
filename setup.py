@@ -38,16 +38,13 @@ def _get_version():
        version : str
             NISAR QA SAS software version
     """
-    init_file = os.path.join('src','nisarqa','__init__.py')
-
-    with open(init_file, 'r') as f:
-        text = f.read()
+    text = Path("src/nisarqa/__init__.py").read_text()
 
     # Get first match of the version number contained in the version file
     # This regex should match a pattern like: __version__ = '3.2.5', but it
     # allows for varying spaces, number of major/minor versions,
     # and quotation mark styles.
-    p = re.search("__version__[ ]*=[ ]*['\"]\d+([.]\d+)*['\"]", text)
+    p = re.search("__version__\s*=\s*['\"]\d+(\.\d+)*['\"]", text)
 
     # Check that the version file contains properly formatted text string
     if p is None:
