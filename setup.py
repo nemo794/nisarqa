@@ -82,14 +82,15 @@ setup(
         )
     ],
     install_requires=[
-        "setuptools",
-        "numpy",
-        "h5py",
-        "pillow",
-        "ruamel.yaml",
         "cycler",
-        "matplotlib",
+        "h5py>=3",
         "isce3"
+        "matplotlib",
+        "numpy>=1.20",
+        "pillow",
+        "python>=3.8",
+        "ruamel.yaml",
+        "setuptools",
     ],
     extras_require={
         "test": ["pytest"],

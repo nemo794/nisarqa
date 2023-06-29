@@ -3,12 +3,12 @@ channels:
     - conda-forge
     - nodefaults  # force everything to come from conda-forge channel
 dependencies:
-    - python>=3.8
-    - setuptools
-    - numpy>=1.20
-    - h5py>=3
-    - pillow
-    - ruamel.yaml
     - cycler
-    - matplotlib
+    - h5py>=3
     - isce3
+    - matplotlib
+    - numpy>=1.20
+    - pillow
+    - python>=3.8
+    - ruamel.yaml
+    - setuptools
