@@ -7,6 +7,7 @@
 import glob
 import os
 import re
+from pathlib import Path
 
 from setuptools import Command, find_packages, setup
 
@@ -38,24 +39,23 @@ def _get_version():
        version : str
             NISAR QA SAS software version
     """
-    text = Path("src/nisarqa/__init__.py").read_text()
+    init_file = "src/nisarqa/__init__.py"
+    text = Path(init_file).read_text()
 
     # Get first match of the version number contained in the version file
     # This regex should match a pattern like: __version__ = '3.2.5', but it
     # allows for varying spaces, number of major/minor versions,
     # and quotation mark styles.
-    p = re.search("__version__\s*=\s*['\"]\d+(\.\d+)*['\"]", text)
+    # Note the regex capturing group to extract the version number components.
+    match = re.search("__version__\s*=\s*['\"](\d+(\.\d+)*)['\"]", text)
 
     # Check that the version file contains properly formatted text string
-    if p is None:
+    if match is None:
         raise ValueError(
             f"__init__.py file {init_file} not properly formatted."
             " It should contain text matching e.g.` __version__ = '2.3.4'`")
 
-    # Extract just the numeric version number from the string
-    p = re.search("\d+([.]\d+)*", p.group(0))
-
-    return p.group(0)    
+    return match.group(1)
 
 
 setup(
