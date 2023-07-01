@@ -81,6 +81,13 @@ setup(
             glob.glob(os.path.join("src", "parameters", "product_specs", "*.xml")),
         )
     ],
+    # Build dependencies
+    # Can be removed if/when setup.py is replaced with pyproject.toml
+    # See: https://pip.pypa.io/en/stable/reference/build-system/#controlling-setup-requires
+    setup_requires=[
+        "setuptools",
+    ],
+    # Runtime dependencies
     install_requires=[
         "cycler",
         "h5py>=3",
@@ -90,7 +97,6 @@ setup(
         "pillow",
         "python>=3.8",
         "ruamel.yaml",
-        "setuptools",
     ],
     extras_require={
         "test": ["pytest"],
