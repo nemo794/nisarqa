@@ -34,10 +34,10 @@ def _get_version():
     """Returns the NISAR QA SAS software version from the
     file `src/nisarqa/__init__.py`
 
-       Returns
-       -------
-       version : str
-            NISAR QA SAS software version
+    Returns
+    -------
+    version : str
+         NISAR QA SAS software version
     """
     init_file = "src/nisarqa/__init__.py"
     text = Path(init_file).read_text()
