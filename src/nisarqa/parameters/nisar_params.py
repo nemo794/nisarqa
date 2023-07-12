@@ -309,7 +309,9 @@ class HDF5ParamGroup:
                     )
 
         # If the request field was not found, raise an error
-        raise KeyError(f"`{attribute_name}` is not an attribute of this dataclass.")
+        raise KeyError(
+            f"`{attribute_name}` is not an attribute of this dataclass."
+        )
 
     def write_params_to_h5(self, h5_file, bands=("LSAR",)):
         """
@@ -455,6 +457,7 @@ class WorkflowsParamGroup(YamlParamGroup):
         """
         return any(getattr(self, field.name) for field in fields(self))
 
+
 @dataclass(frozen=True)
 class InputFileGroupParamGroup(YamlParamGroup):
     """
@@ -486,7 +489,9 @@ class InputFileGroupParamGroup(YamlParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
         nisarqa.validate_is_file(
-            filepath=self.qa_input_file, parameter_name="qa_input_file", extension=".h5"
+            filepath=self.qa_input_file,
+            parameter_name="qa_input_file",
+            extension=".h5",
         )
 
     @staticmethod
@@ -710,7 +715,6 @@ class RootParamGroup(ABC):
                 if issubclass(type(po), HDF5ParamGroup):
                     po.write_params_to_h5(h5_file, bands=bands)
 
-
     def log_parameters(self):
         """
         Log the parameter values for this instance of *RootParamGroup.
@@ -732,22 +736,28 @@ class RootParamGroup(ABC):
                 # so this *ParamGroup was instantiated and its values logged.
 
                 # Use the path in the runconfig to identify the group
-                rncfg_grp_path = param_group_obj.get_path_to_group_in_runconfig()
+                rncfg_grp_path = (
+                    param_group_obj.get_path_to_group_in_runconfig()
+                )
                 rncfg_grp_path = "/".join(rncfg_grp_path)
-                print(f"  Final Input Parameters corresponding to Runconfig group: ", rncfg_grp_path)
+                print(
+                    f"  Final Input Parameters corresponding to Runconfig group: ",
+                    rncfg_grp_path,
+                )
 
                 # Show the final value assigned to the parameter
                 for param in fields(param_group_obj):
                     po2 = getattr(param_group_obj, param.name)
                     print(f"    {param.name}: {po2}")
             else:
-                print(f"  Per `workflows`, runconfig group for {root_group_attr.name} not required.")
-
+                print(
+                    f"  Per `workflows`, runconfig group for {root_group_attr.name} not required."
+                )
 
     def get_output_dir(self) -> Path:
         """
         Returns the filepath to the output directory.
-        
+
         Returns
         -------
         filepath : Path
@@ -763,26 +773,26 @@ class RootParamGroup(ABC):
         Returns the input file's basename with the extension stripped.
 
         This can be used for creating the QA output filenames.
-        
+
         Returns
         -------
         basename : str
             The input file's basename with the extension removed.
-            For example, if the input filename is "/home/qa/my_goff.h5", 
+            For example, if the input filename is "/home/qa/my_goff.h5",
             then `basename` will be "my_goff".
         """
         if self.input_f is None:
             raise ValueError("Input filename not provided via runconfig.")
 
         return self.input_f.qa_input_file
-    
+
     def get_browse_png_filename(self) -> Path:
         """Return the browse image filename as a Path object. Does not include
         the filepath.
         """
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
-        # 
+        #
         # return Path(f{self._get_input_file_basename_stripped}.png")
 
         return Path("BROWSE.png")
@@ -793,7 +803,7 @@ class RootParamGroup(ABC):
         """
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
-        # 
+        #
         # return Path(f{self._get_input_file_basename_stripped}.kml")
 
         return Path("BROWSE.kml")
@@ -804,11 +814,10 @@ class RootParamGroup(ABC):
         """
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
-        # 
+        #
         # return Path(f{self._get_input_file_basename_stripped}_QA_SUMMARY.csv")
 
         return Path("SUMMARY.csv")
-
 
     def get_report_pdf_filename(self) -> Path:
         """Return the reports pdf filename as a Path object. Does not include
@@ -816,7 +825,7 @@ class RootParamGroup(ABC):
         """
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
-        # 
+        #
         # return Path(f{self._get_input_file_basename_stripped}_QA_REPORT.pdf")
 
         return Path("REPORT.pdf")
@@ -827,18 +836,18 @@ class RootParamGroup(ABC):
         """
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
-        # 
+        #
         # return Path(f{self._get_input_file_basename_stripped}_QA_STATS.h5")
 
         return Path("STATS.h5")
-    
+
     def get_log_filename(self) -> Path:
         """Return the log TXT filename as a Path object. Does not include
         the filepath.
         """
         # # For R3.3, QA should not use the input filename for the output files.
         # # However, if/when this change occurs, here is the new code to use:
-        # 
+        #
         # return Path(f{self._get_input_file_basename_stripped}_QA_LOG.txt")
 
         return Path("LOG.txt")

@@ -144,7 +144,7 @@ def verify_rslc(user_rncfg):
                 output_dir=output_dir, stub_files="summary_csv"
             )
 
-    if rslc_params.workflows.qa_reports:
+    if root_params.workflows.qa_reports:
         # TODO qa_reports will add to the SUMMARY.csv file.
         # For now, make sure that the stub file is output
         if not os.path.isfile(summary_file):
@@ -157,7 +157,7 @@ def verify_rslc(user_rncfg):
         with nisarqa.open_h5_file(input_file, mode="r") as in_file:
             pols = nisarqa.rslc.get_pols(in_file)
             print(
-                f"Input file validation PASS/FAIL checks saved to {root_params.get_summary_csv_filename()}"
+                f"Input file validation PASS/FAIL checks saved to {summary_file}"
             )
             print(f"Input file validation complete.")
 

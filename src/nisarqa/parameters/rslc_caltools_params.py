@@ -6,9 +6,16 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 import nisarqa
-from nisarqa import (HDF5Attrs, HDF5ParamGroup, InputFileGroupParamGroup,
-                     ProductPathGroupParamGroup, RootParamGroup,
-                     WorkflowsParamGroup, YamlAttrs, YamlParamGroup)
+from nisarqa import (
+    HDF5Attrs,
+    HDF5ParamGroup,
+    InputFileGroupParamGroup,
+    ProductPathGroupParamGroup,
+    RootParamGroup,
+    WorkflowsParamGroup,
+    YamlAttrs,
+    YamlParamGroup,
+)
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -302,7 +309,9 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
         # validate linear_units
         if not isinstance(self.linear_units, bool):
-            raise TypeError(f"`linear_units` must be bool: {self.linear_units}")
+            raise TypeError(
+                f"`linear_units` must be bool: {self.linear_units}"
+            )
 
         # validate nlooks_freq*
         self._validate_nlooks(self.nlooks_freqa, "A")
@@ -310,7 +319,9 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
         # validate longest_side_max
         if not isinstance(self.longest_side_max, int):
-            raise TypeError(f"longest_side_max must be a int: {self.longest_side_max}")
+            raise TypeError(
+                f"longest_side_max must be a int: {self.longest_side_max}"
+            )
         if self.longest_side_max <= 0:
             raise ValueError(
                 f"`longest_side_max` must be positive: {self.longest_side_max}"
@@ -324,15 +335,14 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
         if self.middle_percentile < 0.0 or self.middle_percentile > 100.0:
             raise TypeError(
-                "`middle_percentile` is "
-                f"{self.middle_percentile}, must be in range [0.0, 100.0]"
+                f"{self.middle_percentile=}, must be in range [0.0, 100.0]"
             )
 
         # validate gamma
         if isinstance(self.gamma, float):
             if self.gamma < 0.0:
                 raise ValueError(
-                    "If `gamma` is a float, it must be" f" non-negative: {self.gamma}"
+                    "If `gamma` is a float, it must be non-negative: {self.gamma}"
                 )
         elif self.gamma is not None:
             raise TypeError(
@@ -356,7 +366,9 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         # so we need to use object.__setattr__()
 
         # use linear_units to set pow_units
-        object.__setattr__(self, "pow_units", "linear" if self.linear_units else "dB")
+        object.__setattr__(
+            self, "pow_units", "linear" if self.linear_units else "dB"
+        )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -388,7 +400,7 @@ class SLCPowerImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             pass
         else:
             raise TypeError(
-                "`nlooks` must be of type iterable of int, " f"or None: {nlooks}"
+                "`nlooks` must be of type iterable of int, or None: {nlooks}"
             )
 
 
@@ -544,26 +556,30 @@ class SLCHistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         if not isinstance(val, (list, tuple)):
             raise TypeError(f"`decimation_ratio` must be list or tuple: {val}")
         if not len(val) == 2:
-            raise ValueError(f"`decimation_ratio` must have length of 2: {val}")
+            raise ValueError(
+                f"`decimation_ratio` must have length of 2: {val}"
+            )
         if not all(isinstance(e, int) for e in val):
             raise TypeError(f"`decimation_ratio` must contain integers: {val}")
         if any(e <= 0 for e in val):
-            raise ValueError(f"`decimation_ratio` must contain positive values: {val}")
+            raise ValueError(
+                f"`decimation_ratio` must contain positive values: {val}"
+            )
 
         # Validate pow_histogram_bin_edges_range
         val = self.pow_histogram_bin_edges_range
         if not isinstance(val, (list, tuple)):
             raise TypeError(
-                "`pow_histogram_bin_edges_range` must" f" be a list or tuple: {val}"
+                f"`pow_histogram_bin_edges_range` must be a list or tuple: {val}"
             )
         if not len(val) == 2:
             raise ValueError(
-                "`pow_histogram_bin_edges_range` must" f" have a length of two: {val}"
+                f"`pow_histogram_bin_edges_range` must have a length of two: {val}"
             )
         if not all(isinstance(e, (int, float)) for e in val):
             raise TypeError(
-                "`pow_histogram_bin_edges_range` must"
-                f" contain only int or float values: {val}"
+                "`pow_histogram_bin_edges_range` must contain only int or "
+                f"float values: {val}"
             )
         if val[0] >= val[1]:
             raise ValueError(
@@ -660,7 +676,12 @@ class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "absolute_radiometric_calibration"]
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "absolute_radiometric_calibration",
+        ]
 
 
 @dataclass(frozen=True)
@@ -934,7 +955,9 @@ def build_root_params(product_type, user_rncfg):
         )
 
     except KeyError as e:
-        raise KeyError("`workflows` group is a required runconfig group") from e
+        raise KeyError(
+            "`workflows` group is a required runconfig group"
+        ) from e
     # If all functionality is off (i.e. all workflows are set to false),
     # then exit early. We will not need any of the other runconfig groups.
     if not root_inputs["workflows"].at_least_one_wkflw_requested():
@@ -942,19 +965,22 @@ def build_root_params(product_type, user_rncfg):
 
     workflows = root_inputs["workflows"]
 
-    wkflws2params_mapping = root_param_class_obj.get_mapping_of_workflows2param_grps(
-        workflows=workflows
+    wkflws2params_mapping = (
+        root_param_class_obj.get_mapping_of_workflows2param_grps(
+            workflows=workflows
+        )
     )
 
     for param_grp in wkflws2params_mapping:
         if param_grp.flag_param_grp_req:
-            populated_rncfg_group = \
-                _get_param_group_instance_from_runcfg(
-                    param_grp_cls_obj=param_grp.param_grp_cls_obj,
-                    user_rncfg=user_rncfg
+            populated_rncfg_group = _get_param_group_instance_from_runcfg(
+                param_grp_cls_obj=param_grp.param_grp_cls_obj,
+                user_rncfg=user_rncfg,
             )
 
-            root_inputs[param_grp.root_param_grp_attr_name] = populated_rncfg_group
+            root_inputs[
+                param_grp.root_param_grp_attr_name
+            ] = populated_rncfg_group
 
     # Construct and return *RootParamGroup
     return root_param_class_obj(**root_inputs)
@@ -1005,7 +1031,9 @@ def _get_param_group_instance_from_runcfg(
     rncfg_path = param_grp_cls_obj.get_path_to_group_in_runconfig()
 
     try:
-        runcfg_grp_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
+        runcfg_grp_dict = nisarqa.get_nested_element_in_dict(
+            user_rncfg, rncfg_path
+        )
     except KeyError:
         # Group was not found, so construct an instance using all defaults.
         # If a dataclass has a required parameter, this will (correctly)

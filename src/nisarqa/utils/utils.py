@@ -35,7 +35,9 @@ def open_h5_file(in_file, mode="r"):
 
     # TODO If file is already open, this error is thrown: BlockingIOError
     except (FileNotFoundError, IOError) as e:
-        print("Could not open file. Add logger and remove this print statement.")
+        print(
+            "Could not open file. Add logger and remove this print statement."
+        )
         # logger.log_message(logging_base.LogFilterError,
         #                     'File %s has a Fatal Error(s): %s' % (rslc_file, errors))
         raise
@@ -209,10 +211,14 @@ def create_dataset_in_h5group(
     ds = grp.create_dataset(ds_name, data=ds_data)
 
     if ds_units is not None:
-        ds.attrs.create(name="units", data=ds_units, dtype=f"<S{len(ds_units)}")
+        ds.attrs.create(
+            name="units", data=ds_units, dtype=f"<S{len(ds_units)}"
+        )
 
     ds.attrs.create(
-        name="description", data=ds_description, dtype=f"<S{len(ds_description)}"
+        name="description",
+        data=ds_description,
+        dtype=f"<S{len(ds_description)}",
     )
 
 

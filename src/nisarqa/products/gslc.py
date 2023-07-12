@@ -50,7 +50,7 @@ def verify_gslc(user_rncfg):
     nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
 
     # Log the values of the parameters.
-    # Currently, this prints to stdout. Once the logger is implemented, 
+    # Currently, this prints to stdout. Once the logger is implemented,
     # it should log the values directly to the log file.
     root_params.log_parameters()
 
@@ -58,11 +58,21 @@ def verify_gslc(user_rncfg):
     # Depending on which workflows are set to True, not all filename
     # variables will be used.
     input_file = root_params.input_f.qa_input_file
-    browse_file_png = root_params.get_output_dir() / root_params.get_browse_png_filename()
-    browse_file_kml = root_params.get_output_dir() / root_params.get_kml_browse_filename()
-    report_file = root_params.get_output_dir() / root_params.get_report_pdf_filename()
-    stats_file = root_params.get_output_dir() / root_params.get_stats_h5_filename()
-    summary_file = root_params.get_output_dir() / root_params.get_summary_csv_filename()
+    browse_file_png = (
+        root_params.get_output_dir() / root_params.get_browse_png_filename()
+    )
+    browse_file_kml = (
+        root_params.get_output_dir() / root_params.get_kml_browse_filename()
+    )
+    report_file = (
+        root_params.get_output_dir() / root_params.get_report_pdf_filename()
+    )
+    stats_file = (
+        root_params.get_output_dir() / root_params.get_stats_h5_filename()
+    )
+    summary_file = (
+        root_params.get_output_dir() / root_params.get_summary_csv_filename()
+    )
 
     print(f"Starting Quality Assurance for input file: {input_file}")
 
@@ -84,9 +94,13 @@ def verify_gslc(user_rncfg):
 
             # These reports will be saved to the SUMMARY.csv file.
             # For now, output the stub file
-            nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
+            nisarqa.output_stub_files(
+                output_dir=output_dir, stub_files="summary_csv"
+            )
 
-            print(f"Input file validation PASS/FAIL checks saved to {summary_file}")
+            print(
+                f"Input file validation PASS/FAIL checks saved to {summary_file}"
+            )
             print(f"Input file validation complete.")
 
         if root_params.workflows.qa_reports:
@@ -101,13 +115,15 @@ def verify_gslc(user_rncfg):
 
             # TODO qa_reports will create the BROWSE.kml file.
             # For now, make sure that the stub file is output
-            nisarqa.output_stub_files(output_dir=output_dir, stub_files="browse_kml")
+            nisarqa.output_stub_files(
+                output_dir=output_dir, stub_files="browse_kml"
+            )
             print("Processing of browse image kml complete.")
             print(f"Browse image kml file saved to {browse_file_kml}")
 
-            with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5, \
-                PdfPages(report_file) as report_pdf:
-
+            with nisarqa.open_h5_file(
+                stats_file, mode="w"
+            ) as stats_h5, PdfPages(report_file) as report_pdf:
                 print("Beginning processing of `qa_reports` items...")
 
                 # Save the processing parameters to the stats.h5 file
@@ -119,7 +135,9 @@ def verify_gslc(user_rncfg):
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                     nisar_h5=in_file, stats_h5=stats_h5
                 )
-                print(f"Input file Identification group copied to {stats_file}")
+                print(
+                    f"Input file Identification group copied to {stats_file}"
+                )
 
                 # Save frequency/polarization info to stats file
                 nisarqa.rslc.save_nisar_freq_metadata_to_h5(
@@ -158,7 +176,9 @@ def verify_gslc(user_rncfg):
                 print(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
                 print("`qa_reports` processing complete.")
 
-    print("Successful completion of QA SAS. Check log file for validation warnings and errors.")
+    print(
+        "Successful completion of QA SAS. Check log file for validation warnings and errors."
+    )
 
 
 def save_gslc_power_image_to_pdf(

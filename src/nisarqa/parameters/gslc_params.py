@@ -2,11 +2,18 @@ from dataclasses import dataclass, fields
 from typing import Optional
 
 import nisarqa
-from nisarqa import (InputFileGroupParamGroup, ProductPathGroupParamGroup,
-                     RootParamGroup, WorkflowsParamGroup)
+from nisarqa import (
+    InputFileGroupParamGroup,
+    ProductPathGroupParamGroup,
+    RootParamGroup,
+    WorkflowsParamGroup,
+)
+
 # TODO Remove the rslc_caltools_params imports after re-org of code
-from nisarqa.parameters.rslc_caltools_params import (SLCHistogramParamGroup,
-                                                     SLCPowerImageParamGroup)
+from nisarqa.parameters.rslc_caltools_params import (
+    SLCHistogramParamGroup,
+    SLCPowerImageParamGroup,
+)
 
 objects_to_skip = nisarqa.get_all(__name__)
 
