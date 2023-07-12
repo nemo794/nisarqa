@@ -455,8 +455,6 @@ class WorkflowsParamGroup(YamlParamGroup):
         """
         return any(getattr(self, field.name) for field in fields(self))
 
-# TODO - Geoff - this class was moved from a different module.
-# No changes to code. Please delete this comment during your review. Thanks!
 @dataclass(frozen=True)
 class InputFileGroupParamGroup(YamlParamGroup):
     """
@@ -496,8 +494,6 @@ class InputFileGroupParamGroup(YamlParamGroup):
         return ["runconfig", "groups", "input_file_group"]
 
 
-# TODO - Geoff - this class was moved from a different module.
-# No changes to code. Please delete this comment during your review. Thanks!
 @dataclass(frozen=True)
 class ProductPathGroupParamGroup(YamlParamGroup):
     """

@@ -935,7 +935,6 @@ def build_root_params(product_type, user_rncfg):
 
     except KeyError as e:
         raise KeyError("`workflows` group is a required runconfig group") from e
-    
     # If all functionality is off (i.e. all workflows are set to false),
     # then exit early. We will not need any of the other runconfig groups.
     if not root_inputs["workflows"].at_least_one_wkflw_requested():

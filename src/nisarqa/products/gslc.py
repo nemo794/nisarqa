@@ -38,8 +38,8 @@ def verify_gslc(user_rncfg):
     except nisarqa.ExitEarly as e:
         # No workflows were requested. Exit early.
         print(
-            "Succesful Completion. All `workflows` set to `False` in "
-            "the runconfig, so no QA processing will be performed."
+            "All `workflows` set to `False` in "
+            "the runconfig, so no QA processing will be performed. This is not an error."
         )
         return
 
