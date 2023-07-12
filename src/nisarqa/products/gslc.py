@@ -119,13 +119,13 @@ def verify_gslc(user_rncfg):
                 nisarqa.rslc.save_NISAR_identification_group_to_h5(
                     nisar_h5=in_file, stats_h5=stats_h5
                 )
-                print(f"QA Processing Parameters saved to {stats_file}")
+                print(f"Input file Identification group copied to {stats_file}")
 
                 # Save frequency/polarization info to stats file
                 nisarqa.rslc.save_nisar_freq_metadata_to_h5(
                     stats_h5=stats_h5, pols=pols
                 )
-                print(f"Input file Identification group copied to {stats_file}")
+                print(f"QA Processing Parameters saved to {stats_file}")
 
                 # Generate the GSLC Power Image and Browse Image
                 nisarqa.rslc.process_slc_power_images_and_browse(
