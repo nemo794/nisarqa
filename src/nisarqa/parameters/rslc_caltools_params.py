@@ -144,7 +144,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image.
         Superseded by nlooks_freq* parameters. Defaults to 2048 pixels.
-    percentile_for_clipping : float, optional
+    percentile_for_clipping : pair of float, optional
         Defines the percentile range that the image array will be clipped to
         and that the colormap covers. Must be in the range [0.0, 100.0].
         Defaults to [5.0, 95.0].
@@ -228,7 +228,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
-    percentile_for_clipping: float = field(
+    percentile_for_clipping: tuple[float, float] = field(
         default=(5.0, 95.0),
         metadata={
             "yaml_attrs": YamlAttrs(

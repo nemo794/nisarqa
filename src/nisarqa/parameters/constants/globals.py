@@ -40,7 +40,6 @@ NISAR_FREQS = ("A", "B")
 
 GCOV_DIAG_POLS = []
 GCOV_OFF_DIAG_POLS = []
-from itertools import product
 def _append_gcov_terms(txrx_iterable):
     for term in product(txrx_iterable, repeat=2):
         if term[0] == term[1]:

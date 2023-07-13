@@ -151,7 +151,7 @@ def verify_gslc(user_rncfg):
 
             input_raster_represents_power = False
             name_of_backscatter_content = (
-                "GSLC Backscatter Coefficient (beta0)"
+                r"GSLC Backscatter Coefficient ($\beta^0$)"
             )
 
             # Generate the GSLC Power Image and Browse Image
@@ -218,7 +218,7 @@ def save_geocoded_backscatter_img_to_pdf(
         and outputting the backscatter image(s).
     report_pdf : PdfPages
         The output pdf file to append the backscatter image plot to
-    plot_title_prefix : str
+    plot_title_prefix : str, optional
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
         "GCOV Backscatter Coefficient (gamma-0)"

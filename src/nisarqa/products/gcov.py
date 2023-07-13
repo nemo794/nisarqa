@@ -37,7 +37,7 @@ def verify_gcov(user_rncfg):
         gcov_params = nisarqa.build_root_params(
             product_type="gcov", user_rncfg=user_rncfg
         )
-    except nisarqa.ExitEarly as e:
+    except nisarqa.ExitEarly:
         # No workflows were requested. Exit early.
         print(
             "All `workflows` were set to `False` in the runconfig. No QA "
@@ -68,10 +68,7 @@ def verify_gcov(user_rncfg):
         if po is not None:
             for param in fields(po):
                 po2 = getattr(po, param.name)
-                if isinstance(po2, bool):
-                    print(f"    {param.name}: {po2}")
-                else:
-                    print(f"    {param.name}: {po2}")
+                print(f"    {param.name}: {po2}")
 
     output_dir = gcov_params.prodpath.qa_output_dir
 
@@ -80,7 +77,7 @@ def verify_gcov(user_rncfg):
     # For now, output the stub log file.
     nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
 
-    # Create file paths for output files ()
+    # Create file paths for output files
     input_file = gcov_params.input_f.qa_input_file
     msg = (
         f"Starting Quality Assurance for input file: {input_file}"
@@ -161,7 +158,7 @@ def verify_gcov(user_rncfg):
             nisarqa.output_stub_files(output_dir=output_dir, stub_files="browse_kml")
 
             input_raster_represents_power = True
-            name_of_backscatter_content = "GCOV Backscatter Coefficient (gamma0)"
+            name_of_backscatter_content = r"GCOV Backscatter Coefficient ($\gamma^0$)"
 
             # Generate the Backscatter Image and Browse Image
             nisarqa.rslc.process_backscatter_imgs_and_browse(
@@ -294,7 +291,7 @@ def select_layers_for_gcov_browse(pols):
             for pol in pols[band][freq]:
                 if pol[0:2] == pol[2:4]:
                     layers_for_browse[freq] = [pol]
-                break
+                    break
             else:
                 # Take first available pol, even if it is an off-diagonal term
                 layers_for_browse[freq] = [pols[band][freq][0]]

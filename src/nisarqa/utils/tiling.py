@@ -309,7 +309,7 @@ def compute_histogram_by_tiling(
         The input array
     bin_edges : numpy.ndarray
         The bin edges to use for the histogram
-    data_prep_func : Function or None, optional
+    data_prep_func : Callable or None, optional
         Function to process each tile of data through before computing
         the histogram counts. For example, this function can be used
         to convert the values in each tile of raw data to backscatter, 
@@ -324,6 +324,7 @@ def compute_histogram_by_tiling(
         (density = counts / (sum(counts) * np.diff(bins))),
         so that the area under the histogram integrates to 1
         (np.sum(density * np.diff(bins)) == 1).
+        Defaults to False.
     decimation_ratio : pair of int, optional
         The step size to decimate the input array for computations.
         For example, (2,3) means every 2nd azimuth line and

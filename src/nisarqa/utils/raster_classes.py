@@ -216,7 +216,7 @@ class GeoRaster(nisarqa.rslc.SARRaster):
                     " to Product Spec dtype of %s."
 
             if product == "GSLC":
-                pass_fail = "PASS"
+                pass_fail = "PASS" if (dataset.dtype == np.complex64) else "FAIL"
                 dtype = "complex64"
 
             elif product == "GCOV":

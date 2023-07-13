@@ -1028,8 +1028,8 @@ def process_backscatter_imgs_and_browse(
     plot_title_prefix : str
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
-        "GCOV Backscatter Coefficient (gamma-0)"
-        Defaults to "Backscatter Coefficient"
+        "GCOV Backscatter Coefficient (gamma-0)".
+        Defaults to "Backscatter Coefficient".
     browse_filename : str, optional
         Filename (with path) for the browse image PNG.
         Defaults to 'BROWSE.png'
@@ -1311,11 +1311,11 @@ def save_rslc_backscatter_img_to_pdf(
         and outputting the backscatter image(s).
     report_pdf : PdfPages
         The output pdf file to append the backscatter image plot to
-    plot_title_prefix : str
+    plot_title_prefix : str, optional
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
-        "GCOV Backscatter Coefficient (gamma-0)"
-        Defaults to "Backscatter Coefficient"
+        "GCOV Backscatter Coefficient (gamma-0)".
+        Defaults to "Backscatter Coefficient".
     colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
         Tick formatter function to define how the numeric value
         associated with each tick on the colorbar axis is formatted
@@ -1362,7 +1362,7 @@ def clip_array(arr, percentile_range=(0.0, 100.0)):
     ----------
     arr : array_like
         Input array
-    percentile_range : numeric, optional
+    percentile_range : pair of numeric, optional
         Defines the percentile range of the `arr`
         that the colormap covers. Must be in the range [0.0, 100.0],
         inclusive.
@@ -1901,11 +1901,11 @@ def process_backscatter_and_phase_histograms(
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
         The output pdf file to append the backscatter image plot to
-    plot_title_prefix : str
+    plot_title_prefix : str, optional
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
-        "GCOV Backscatter Coefficient (gamma-0)"
-        Defaults to "Backscatter Coefficient"
+        "GCOV Backscatter Coefficient (gamma-0)".
+        Defaults to "Backscatter Coefficient".
     input_raster_represents_power : bool, optional
         The input dataset rasters associated with these histogram parameters
         should have their pixel values represent either power or root power.
