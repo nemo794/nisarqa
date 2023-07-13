@@ -1,6 +1,7 @@
+from itertools import product
+
 import numpy as np
 from cycler import cycler
-from itertools import product
 
 # List of first 6 Seaborn colorblind colors:
 # Hardcode these so that we do not add another dependency of `seaborn`
@@ -16,7 +17,14 @@ seaborn_colorblind = [
 CUSTOM_CYCLER = (
     cycler(color=seaborn_colorblind)
     + cycler(
-        linestyle=["-", "-.", "--", (0, (3, 1, 1, 1)), (0, (3, 5, 1, 5, 1, 5)), ":"]
+        linestyle=[
+            "-",
+            "-.",
+            "--",
+            (0, (3, 1, 1, 1)),
+            (0, (3, 5, 1, 5, 1, 5)),
+            ":",
+        ]
     )
     + cycler(lw=np.linspace(3, 1, 6))
 )
@@ -40,6 +48,8 @@ NISAR_FREQS = ("A", "B")
 
 GCOV_DIAG_POLS = []
 GCOV_OFF_DIAG_POLS = []
+
+
 def _append_gcov_terms(txrx_iterable):
     for term in product(txrx_iterable, repeat=2):
         if term[0] == term[1]:
@@ -48,9 +58,11 @@ def _append_gcov_terms(txrx_iterable):
         else:
             GCOV_OFF_DIAG_POLS.append(term[0] + term[1])
 
+
 _append_gcov_terms(("HH", "HV", "VH", "VV"))
 _append_gcov_terms(("RH", "RV"))
 _append_gcov_terms(("LH", "LV"))
+
 
 def get_possible_pols(product_type):
     """
@@ -77,17 +89,7 @@ def get_possible_pols(product_type):
     if product_type.endswith("slc"):
         return ("HH", "VV", "HV", "VH", "RH", "RV", "LH", "LV")
     elif product_type == "gcov":
-        GCOV_POLS = []
-
-        def _append_gcov_terms(txrx_iterable):
-            for term in product(txrx_iterable, repeat=2):
-                GCOV_POLS.append(term[0] + term[1])
-
-        _append_gcov_terms(("HH", "HV", "VH", "VV"))
-        _append_gcov_terms(("RH", "RV"))
-        _append_gcov_terms(("LH", "LV"))
-
-        return GCOV_POLS
+        return GCOV_DIAG_POLS + GCOV_OFF_DIAG_POLS
     else:
         raise NotImplementedError
 
@@ -100,12 +102,16 @@ data_group = "/data"
 
 # QA Directory Structure and Paths in STATS.h5 file
 STATS_H5_QA_STATS_H5_BASE_GROUP = STATS_H5_BASE_GROUP + "/QA"
-STATS_H5_QA_PROCESSING_GROUP = STATS_H5_QA_STATS_H5_BASE_GROUP + processing_group
+STATS_H5_QA_PROCESSING_GROUP = (
+    STATS_H5_QA_STATS_H5_BASE_GROUP + processing_group
+)
 STATS_H5_QA_DATA_GROUP = STATS_H5_QA_STATS_H5_BASE_GROUP + data_group
 # Frequency group. Note: There are two '%s' here. The first is for the band,
 # the second for the frequency.
 # Example end result: '/science/%s/QA/data/frequency%s'
-STATS_H5_QA_FREQ_GROUP = STATS_H5_QA_DATA_GROUP + "/frequency%s"  # Two '%s' here!
+STATS_H5_QA_FREQ_GROUP = (
+    STATS_H5_QA_DATA_GROUP + "/frequency%s"
+)  # Two '%s' here!
 
 # CalTools
 STATS_H5_ABSCAL_STATS_H5_BASE_GROUP = (
@@ -117,14 +123,20 @@ STATS_H5_ABSCAL_PROCESSING_GROUP = (
 STATS_H5_ABSCAL_DATA_GROUP = STATS_H5_ABSCAL_STATS_H5_BASE_GROUP + data_group
 
 STATS_H5_PTA_STATS_H5_BASE_GROUP = STATS_H5_BASE_GROUP + "/pointTargetAnalyzer"
-STATS_H5_PTA_PROCESSING_GROUP = STATS_H5_PTA_STATS_H5_BASE_GROUP + processing_group
+STATS_H5_PTA_PROCESSING_GROUP = (
+    STATS_H5_PTA_STATS_H5_BASE_GROUP + processing_group
+)
 STATS_H5_PTA_DATA_GROUP = STATS_H5_PTA_STATS_H5_BASE_GROUP + data_group
 
-STATS_H5_NOISE_EST_STATS_H5_BASE_GROUP = STATS_H5_BASE_GROUP + "/noiseEstimation"
+STATS_H5_NOISE_EST_STATS_H5_BASE_GROUP = (
+    STATS_H5_BASE_GROUP + "/noiseEstimation"
+)
 STATS_H5_NOISE_EST_PROCESSING_GROUP = (
     STATS_H5_NOISE_EST_STATS_H5_BASE_GROUP + processing_group
 )
-STATS_H5_NOISE_EST_DATA_GROUP = STATS_H5_NOISE_EST_STATS_H5_BASE_GROUP + data_group
+STATS_H5_NOISE_EST_DATA_GROUP = (
+    STATS_H5_NOISE_EST_STATS_H5_BASE_GROUP + data_group
+)
 
 # The are global constants and not functions nor classes,
 # so manually create the __all__ attribute.
@@ -134,6 +146,8 @@ __all__ = [
     "NISAR_BANDS",
     "NISAR_FREQS",
     "get_possible_pols",
+    "GCOV_DIAG_POLS",
+    "GCOV_OFF_DIAG_POLS",
     "STATS_H5_BASE_GROUP",
     "STATS_H5_IDENTIFICATION_GROUP",
     "STATS_H5_QA_STATS_H5_BASE_GROUP",

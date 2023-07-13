@@ -116,7 +116,23 @@ def verify_gcov(user_rncfg):
 
             # These reports will be saved to the SUMMARY.csv file.
             # For now, output the stub file
-            nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
+            nisarqa.output_stub_files(
+                output_dir=output_dir, stub_files="summary_csv"
+            )
+
+            # TODO - this GCOV validation check should be integrated into
+            # the actual product validation. For now, we'll leave it here.
+            pols = nisarqa.rslc.get_pols(in_file)
+            for band in pols:
+                for freq in band:
+                    for pol in freq:
+                        if pol in nisarqa.GCOV_DIAG_POLS:
+                            continue
+                        elif pol in nisarqa.GCOV_OFF_DIAG_POLS:
+                            warnings.warn(
+                                f"GCOV product contains off-diagonal term {pol}.",
+                                RuntimeWarning,
+                            )
 
         if not gcov_params.workflows.qa_reports:
             print(
@@ -134,7 +150,9 @@ def verify_gcov(user_rncfg):
             pols = nisarqa.rslc.get_pols(in_file)
 
             # Save frequency/polarization info from `pols` to stats file
-            nisarqa.rslc.save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
+            nisarqa.rslc.save_nisar_freq_metadata_to_h5(
+                stats_h5=stats_h5, pols=pols
+            )
 
             # Save the processing parameters to the stats.h5 file
             gcov_params.save_params_to_stats_file(
@@ -155,10 +173,14 @@ def verify_gcov(user_rncfg):
 
             # TODO qa_reports will create the BROWSE.kml file.
             # For now, make sure that the stub file is output
-            nisarqa.output_stub_files(output_dir=output_dir, stub_files="browse_kml")
+            nisarqa.output_stub_files(
+                output_dir=output_dir, stub_files="browse_kml"
+            )
 
             input_raster_represents_power = True
-            name_of_backscatter_content = r"GCOV Backscatter Coefficient ($\gamma^0$)"
+            name_of_backscatter_content = (
+                r"GCOV Backscatter Coefficient ($\gamma^0$)"
+            )
 
             # Generate the Backscatter Image and Browse Image
             nisarqa.rslc.process_backscatter_imgs_and_browse(
@@ -186,7 +208,9 @@ def verify_gcov(user_rncfg):
 
             # Compute metrics for stats.h5
 
-    print("Successful completion. Check log file for validation warnings and errors.")
+    print(
+        "Successful completion. Check log file for validation warnings and errors."
+    )
 
 
 def select_layers_for_gcov_browse(pols):
@@ -334,7 +358,11 @@ def select_layers_for_gcov_browse(pols):
     else:
         # Only keep "HHHH", "HVHV", "VHVH", "VVVV".
         # (This will implicitly remove any extraneous e.g. compact pol terms.)
-        keep = [p for p in available_pols if (p in ("HHHH", "HVHV", "VHVH", "VVVV"))]
+        keep = [
+            p
+            for p in available_pols
+            if (p in ("HHHH", "HVHV", "VHVH", "VVVV"))
+        ]
 
         # Sanity Check
         assert len(keep) >= 1
@@ -429,13 +457,17 @@ def save_gcov_browse_img(pol_imgs, filepath):
     for img in pol_imgs.values():
         # Input validation check
         if np.shape(img) != img_2D_shape:
-            raise ValueError("All image arrays in `pol_imgs` must have the same shape.")
+            raise ValueError(
+                "All image arrays in `pol_imgs` must have the same shape."
+            )
 
     # Assign channels
 
     if len(pol_imgs) == 1:
         # Single pol. Make a grayscale image.
-        nisarqa.products.rslc.plot_to_grayscale_png(img_arr=first_img, filepath=filepath)
+        nisarqa.products.rslc.plot_to_grayscale_png(
+            img_arr=first_img, filepath=filepath
+        )
 
         # Return early, so that we do not try to plot to RGB
         return
@@ -447,9 +479,11 @@ def save_gcov_browse_img(pol_imgs, filepath):
 
     # There should only be one cross-pol in the input
     if ("HVHV" in pol_imgs) and ("VHVH" in pol_imgs):
-        raise ValueError("`pol_imgs` should only contain one cross-pol image."
-        f"It contains {pol_imgs.keys()}. Please update logic in "
-        "`_select_layers_for_gcov_browse()`")
+        raise ValueError(
+            "`pol_imgs` should only contain one cross-pol image."
+            f"It contains {pol_imgs.keys()}. Please update logic in "
+            "`_select_layers_for_gcov_browse()`"
+        )
 
     for pol in ["HVHV", "VHVH", "VVVV"]:
         if pol in pol_imgs:
@@ -479,12 +513,14 @@ def save_gcov_browse_img(pol_imgs, filepath):
 
         for gray_img in pol_imgs.values():
             nisarqa.products.rslc.plot_to_grayscale_png(
-                img_arr=gray_img, filepath=filepath)
+                img_arr=gray_img, filepath=filepath
+            )
 
     else:
         # Output the RGB Browse Image
         nisarqa.products.rslc.plot_to_rgb_png(
-            red=red, green=green, blue=blue, filepath=filepath)
+            red=red, green=green, blue=blue, filepath=filepath
+        )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
