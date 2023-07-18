@@ -125,6 +125,7 @@ from .products import (
 )
 from .utils.calc import *
 from .utils.input_verification import *
+from .utils.lonlat import *
 from .utils.multilook import *
 from .utils.raster_classes import *
 from .utils.tiling import *

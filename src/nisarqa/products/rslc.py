@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import functools
+import math
 import os
+import textwrap
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
@@ -13,6 +17,8 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
 from PIL import Image
 
+import isce3
+import nisar
 import nisarqa
 
 # List of objects from the import statements that
@@ -167,17 +173,16 @@ def verify_rslc(user_rncfg):
             # For now, output the stub file
             nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
 
-        if rslc_params.workflows.qa_reports:
-            # TODO qa_reports will add to the SUMMARY.csv file.
-            # For now, make sure that the stub file is output
-            if not os.path.isfile(summary_file):
-                nisarqa.output_stub_files(
-                    output_dir=output_dir, stub_files="summary_csv"
-                )
+    if rslc_params.workflows.qa_reports:
+        # TODO qa_reports will add to the SUMMARY.csv file.
+        # For now, make sure that the stub file is output
+        if not os.path.isfile(summary_file):
+            nisarqa.output_stub_files(output_dir=output_dir, stub_files="summary_csv")
 
-            # TODO qa_reports will create the BROWSE.kml file.
-            # For now, make sure that the stub file is output
-            nisarqa.output_stub_files(output_dir=output_dir, stub_files="browse_kml")
+        write_latlonquad_to_kml(get_latlonquad(input_file), output_dir)
+
+        with nisarqa.open_h5_file(input_file, mode="r") as in_file:
+            pols = nisarqa.rslc.get_pols(in_file)
 
             with nisarqa.open_h5_file(stats_file, mode="r+") as stats_h5, PdfPages(
                 report_file
@@ -1969,6 +1974,116 @@ def add_hist_to_axis(axis, counts, edges, label):
     """
     bin_centers = 0.5 * (edges[:-1] + edges[1:])
     axis.plot(bin_centers, counts, label=label)
+
+
+def get_latlonquad(input_file: str | os.PathLike[str]) -> nisarqa.LatLonQuad:
+    """
+    Create a LatLonQuad for the corners of the input product,
+    by geocoding the corners of the radar grid.
+
+    Currently only implemented for RSLC files, will need to support
+    other types of radar products and geocoded products.
+
+    Parameters
+    ----------
+    input_file : path-like
+        The path to the input RSLC product
+
+    Returns
+    -------
+    llq : LatLonQuad
+        A LatLonQuad object containing the four corner coordinates for the
+        Frequency A images in `input_file`. (If Frequency A is not available,
+        then Frequency B images will be used.)
+    """
+    input_file = os.fspath(input_file)
+    rslc = nisar.products.readers.open_product(input_file)
+    orbit = rslc.getOrbit()
+    freq = "A" if ("A" in rslc.frequencies) else "B"
+    radar_grid = rslc.getRadarGrid(freq)
+
+    image_grid_doppler = 0.0  # assume zero-doppler for NISAR
+    ellipsoid = isce3.core.Ellipsoid()  # assume WGS84 for NISAR
+
+    # zero-height DEM
+    dem = isce3.geometry.DEMInterpolator()
+
+    geo_corners = ()
+    for az in (radar_grid.sensing_start, radar_grid.sensing_stop):
+        for rg in (radar_grid.starting_range, radar_grid.end_range):
+            lon, lat, _ = isce3.geometry.rdr2geo(
+                aztime=az,
+                range=rg,
+                orbit=orbit,
+                side=radar_grid.lookside,
+                doppler=image_grid_doppler,
+                wavelength=radar_grid.wavelength,
+                dem=dem,
+                ellipsoid=ellipsoid,
+            )
+            geo_corners += (nisarqa.LonLat(lon, lat),)
+
+    return nisarqa.LatLonQuad(*geo_corners)
+
+
+def write_latlonquad_to_kml(
+    llq: nisarqa.LatLonQuad,
+    output_dir: str | os.PathLike[str],
+    *,
+    kml_filename: str = "BROWSE.kml",
+    png_filename: str = "BROWSE.png",
+) -> None:
+    """
+    Generate a KML file containing geolocation info of the corresponding
+    browse image.
+
+    Parameters
+    ----------
+    llq : LatLonQuad
+        The LatLonQuad object containing the corner coordinates that will be
+        serialized to KML.
+    output_dir : path-like
+        The directory to write the output KML file to. This directory
+        must already exist. The PNG file that the KML corresponds to is
+        expected to be placed in the same directory.
+    kml_filename : str, optional
+        The output filename of the KML file, specified relative to
+        `output_dir`. Defaults to 'BROWSE.kml'.
+    png_filename : str, optional
+        The filename of the corresponding PNG file, specified relative
+        to `output_dir`. Defaults to 'BROWSE.png'.
+    """
+
+    # extract upper/lower left/right corners
+    ul, ur, ll, lr = llq.ul, llq.ur, llq.ll, llq.lr
+
+    # convert lon/lat radians to string in degrees suitable for LatLonQuad
+    ll_str = lambda c: str(np.rad2deg(c.lon)) + "," + str(np.rad2deg(c.lat))
+
+    # The coordinates are specified in counter-clockwise order with the first
+    # point corresponding to the lower-left corner of the overlayed image.
+    # (https://developers.google.com/kml/documentation/kmlreference#gx:latlonquad)
+    kml_file = textwrap.dedent(
+        f"""
+        <?xml version="1.0" encoding="UTF-8"?>
+        <kml xmlns:gx="http://www.google.com/kml/ext/2.2">
+          <Document>
+            <name>overlay image</name>
+            <GroundOverlay>
+              <name>overlay image</name>
+              <Icon>
+                <href>{png_filename}</href>
+              </Icon>
+              <gx:LatLonQuad>
+                <coordinates>{' '.join(ll_str(llh) for llh in (ll, lr, ur, ul))}</coordinates>
+              </gx:LatLonQuad>
+            </GroundOverlay>
+          </Document>
+        </kml>
+        """
+    ).strip()
+    with open(os.path.join(output_dir, kml_filename), "w") as f:
+        f.write(kml_file)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
