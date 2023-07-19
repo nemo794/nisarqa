@@ -42,15 +42,26 @@ LIST_OF_NISAR_PRODUCTS = [
 ]
 
 NISAR_BANDS = ("LSAR", "SSAR")
-
 NISAR_FREQS = ("A", "B")
 
-
+# As of June 2023, baseline for GCOV NISAR products is to only include
+# on-diagonal terms. However, the ISCE3 GCOV processor is capable of processing
+# both on-diagonal and off-diagonal terms. There is an ongoing push from
+# some NISAR Science Team members to include the off-diagonal terms
+# in the baseline GCOV product, so P. Rosen requested that QA handle both
+# on-diag and off-diag terms. But, they need to be handled differently
+# in the code, so have these lists be independent.
 GCOV_DIAG_POLS = []
 GCOV_OFF_DIAG_POLS = []
 
 
 def _append_gcov_terms(txrx_iterable):
+    # For global GCOV*_POLS variables, we should include all possible
+    # polarizations.
+    # ISCE3 GCOV processor can output e.g. either HHVV or VVHH, depending
+    # on the order the user typed the polarizations into the runconfig.
+    # So, use `product()` to list the full matrix, and not only the upper
+    # triangle or the lower triangle of the matrix.
     for term in product(txrx_iterable, repeat=2):
         if term[0] == term[1]:
             # On-diag term
@@ -66,7 +77,7 @@ _append_gcov_terms(("LH", "LV"))
 
 def get_possible_pols(product_type):
     """
-    Return the possible polarizations for the requested product type.
+    Return all possible polarizations for the requested product type.
 
     Parameters
     ----------
