@@ -221,8 +221,8 @@ def save_geocoded_backscatter_img_to_pdf(
     plot_title_prefix : str, optional
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
-        "GCOV Backscatter Coefficient (gamma-0)"
-        Defaults to "Backscatter Coefficient"
+        "GCOV Backscatter Coefficient (gamma-0)".
+        Defaults to "Backscatter Coefficient".
     colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
         Tick formatter function to define how the numeric value
         associated with each tick on the colorbar axis is formatted
