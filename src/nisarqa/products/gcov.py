@@ -267,15 +267,20 @@ def select_layers_for_gcov_browse(pols):
     Usually polarimetric symmetrization is applied; symmetrization
     joins HV and VH into a single polarimetric channel HV.
 
-    Channel selection:
-    If only one polarization, make that into grayscale.
-    Otherwise, generate an RGB color composition:
-          Red: first available co-pol of the list [HHHH, VVVV]
-          Green: first cross-pol of the list [HVHV, VHVH]
-          Blue: last co-pol of the list [HHHH, VVVV]
+    Layer selection for LSAR GCOV Browse:
+     - Frequency A is used if available. Otherwise, Frequency B.
+     - If only one polarization is available, or if the images are cross-pol,
+     make one layer into grayscale. This function selects that layer.
+     - Otherwise, generate an RGB color composition, per the algorithm
+    described in `save_gcov_browse_img()`. This function will gather the
+    largest subset of: {HHHH, VVVV, (HVHV or VHVH)}, in prep for that function.
 
     GCOV and RTC-S1 pixels are square on the ground, so the multilooking factor
     is the same in both directions, depending only in the expected output dimensions.
+
+    See Also
+    --------
+    save_gcov_browse_img : Assigns color channels and generates the browse PNG
 
     """
 
@@ -447,7 +452,7 @@ def save_gcov_browse_img(pol_imgs, filepath):
 
     See Also
     --------
-    _select_layers_for_gcov_browse : Function to select the layers
+    select_layers_for_gcov_browse : Function to select the layers
     """
 
     # WLOG, get the shape of the image arrays
@@ -460,6 +465,12 @@ def save_gcov_browse_img(pol_imgs, filepath):
             raise ValueError(
                 "All image arrays in `pol_imgs` must have the same shape."
             )
+
+    # Only on-diagonal terms are supported.
+    if not set(pol_imgs.keys()).issubset(set(nisarqa.GCOV_DIAG_POLS)):
+        raise ValueError(
+            f"{pol_imgs.keys()=}, must be a subset of {nisarqa.GCOV_DIAG_POLS}"
+        )
 
     # Assign channels
 
