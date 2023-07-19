@@ -398,8 +398,9 @@ def save_gcov_browse_img(pol_imgs, filepath):
     Save the given polarization images to a RGB or Grayscale PNG with
     transparency.
 
-    Output browse image will be keep the same pixel dimensions as the
-    input polarization image(s). Non-finite values will be made transparent.
+    Dimensions of the output PNG (in pixels) will be the same as the dimensions
+    of the input polarization image array(s). (No scaling will occur.)
+    Non-finite values will be made transparent.
 
     Color Channels will be assigned per the following pseudocode:
 
