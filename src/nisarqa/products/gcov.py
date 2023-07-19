@@ -357,7 +357,6 @@ def select_layers_for_gcov_browse(pols):
 
     else:
         # Only keep "HHHH", "HVHV", "VHVH", "VVVV".
-        # (This will implicitly remove any extraneous e.g. compact pol terms.)
         keep = [
             p
             for p in available_pols
