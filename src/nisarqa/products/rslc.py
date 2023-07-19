@@ -59,8 +59,9 @@ def verify_rslc(user_rncfg):
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
-    output_dir = root_params.prodpath.qa_output_dir
-    nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
+    nisarqa.output_stub_files(
+        output_dir=root_params.get_output_dir(), stub_files="log_txt"
+    )
 
     # Log the values of the parameters.
     # Currently, this prints to stdout. Once the logger is implemented,
@@ -90,6 +91,21 @@ def verify_rslc(user_rncfg):
     print(f"Starting Quality Assurance for input file: {input_file}")
 
     # Begin QA workflows
+
+    # Due to complexities with ISCE3, the HDF5 input file cannot simultaneously
+    # be open as an h5py file handle for QA and also be passed to / opened by
+    # ISCE3 to be used for generating the KML.
+    # So, create the KML separately.
+    if root_params.workflows.qa_reports:
+        write_latlonquad_to_kml(
+            llq=get_latlonquad(input_file),
+            output_dir=root_params.get_output_dir(),
+            kml_filename=root_params.get_kml_browse_filename(),
+            png_filename=root_params.get_browse_png_filename(),
+        )
+        print("Processing of browse image kml complete.")
+        print(f"Browse image kml file saved to {browse_file_kml}")
+
     with nisarqa.open_h5_file(input_file, mode="r") as in_file:
         # Note: `pols` contains references to datasets in the open input file.
         # All processing with `pols` must be done within this context manager,
@@ -107,9 +123,7 @@ def verify_rslc(user_rncfg):
             # This is the first time opening the STATS.h5 file for RSLC
             # workflow, so open in 'w' mode.
             # After this, always open STATS.h5 in 'r+' mode.
-            with nisarqa.open_h5_file(
-                root_params.get_stats_h5_filename(), mode="w"
-            ) as stats_h5:
+            with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
                 # Save the processing parameters to the stats.h5 file
                 # Note: If only the validate workflow is requested,
                 # this will do nothing.
@@ -141,21 +155,9 @@ def verify_rslc(user_rncfg):
             # These reports will be saved to the SUMMARY.csv file.
             # For now, output the stub file
             nisarqa.output_stub_files(
-                output_dir=output_dir, stub_files="summary_csv"
+                output_dir=root_params.get_output_dir(),
+                stub_files="summary_csv",
             )
-
-    if root_params.workflows.qa_reports:
-        # TODO qa_reports will add to the SUMMARY.csv file.
-        # For now, make sure that the stub file is output
-        if not os.path.isfile(summary_file):
-            nisarqa.output_stub_files(
-                output_dir=output_dir, stub_files="summary_csv"
-            )
-
-        nisarqa.write_latlonquad_to_kml(nisarqa.get_latlonquad(input_file), output_dir)
-
-        with nisarqa.open_h5_file(input_file, mode="r") as in_file:
-            pols = nisarqa.rslc.get_pols(in_file)
             print(
                 f"Input file validation PASS/FAIL checks saved to {summary_file}"
             )
@@ -167,16 +169,9 @@ def verify_rslc(user_rncfg):
             # For now, make sure that the stub file is output
             if not os.path.isfile(summary_file):
                 nisarqa.output_stub_files(
-                    output_dir=output_dir, stub_files="summary_csv"
+                    output_dir=root_params.get_output_dir(),
+                    stub_files="summary_csv",
                 )
-
-            # TODO qa_reports will create the BROWSE.kml file.
-            # For now, make sure that the stub file is output
-            nisarqa.output_stub_files(
-                output_dir=output_dir, stub_files="browse_kml"
-            )
-            print("Processing of browse image kml complete.")
-            print(f"Browse image kml file saved to {browse_file_kml}")
 
             with nisarqa.open_h5_file(
                 stats_file, mode="r+"
@@ -195,9 +190,7 @@ def verify_rslc(user_rncfg):
                     browse_filename=browse_file_png,
                 )
                 print("Processing of power images complete.")
-                print(
-                    f"Browse image PNG file saved to {root_params.get_browse_png_filename()}"
-                )
+                print(f"Browse image PNG file saved to {browse_file_png}")
 
                 # Generate the RSLC Power and Phase Histograms
                 process_power_and_phase_histograms(

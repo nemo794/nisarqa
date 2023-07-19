@@ -209,7 +209,6 @@ def create_dataset_in_h5group(
     grp = h5_file.require_group(grp_path)
 
     ds = grp.create_dataset(ds_name, data=ds_data)
-
     if ds_units is not None:
         ds.attrs.create(
             name="units", data=ds_units, dtype=f"<S{len(ds_units)}"

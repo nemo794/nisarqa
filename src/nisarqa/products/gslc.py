@@ -46,8 +46,9 @@ def verify_gslc(user_rncfg):
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
-    output_dir = root_params.prodpath.qa_output_dir
-    nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
+    nisarqa.output_stub_files(
+        output_dir=root_params.get_output_dir(), stub_files="log_txt"
+    )
 
     # Log the values of the parameters.
     # Currently, this prints to stdout. Once the logger is implemented,
@@ -95,7 +96,8 @@ def verify_gslc(user_rncfg):
             # These reports will be saved to the SUMMARY.csv file.
             # For now, output the stub file
             nisarqa.output_stub_files(
-                output_dir=output_dir, stub_files="summary_csv"
+                output_dir=root_params.get_output_dir(),
+                stub_files="summary_csv",
             )
 
             print(
@@ -110,13 +112,15 @@ def verify_gslc(user_rncfg):
             # For now, make sure that the stub file is output
             if not os.path.isfile(summary_file):
                 nisarqa.output_stub_files(
-                    output_dir=output_dir, stub_files="summary_csv"
+                    output_dir=root_params.get_output_dir(),
+                    stub_files="summary_csv",
                 )
 
             # TODO qa_reports will create the BROWSE.kml file.
             # For now, make sure that the stub file is output
             nisarqa.output_stub_files(
-                output_dir=output_dir, stub_files="browse_kml"
+                output_dir=root_params.get_output_dir(),
+                stub_files="browse_kml",
             )
             print("Processing of browse image kml complete.")
             print(f"Browse image kml file saved to {browse_file_kml}")
