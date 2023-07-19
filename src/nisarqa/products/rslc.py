@@ -846,15 +846,15 @@ def select_layers_for_slc_browse(pols):
     layers_for_browse = {}
 
     # Determine which band to use. LSAR has priority over SSAR.
-    bands = list(pols)
-    if "LSAR" in bands:
-        layers_for_browse["band"] = "LSAR"
-    elif "SSAR" in bands:
-        layers_for_browse["band"] = "SSAR"
+    for b in ("LSAR", "SSAR"):
+        if b in pols:
+            layers_for_browse["band"] = b
+            band = b
+            break
     else:
-        raise ValueError(f'Only "LSAR" and "SSAR" bands are supported: {band}')
-
-    band = bands[0]
+        raise ValueError(
+            f'Only "LSAR" and "SSAR" bands are supported: {list(pols)}'
+        )
 
     # Check that the correct frequencies are available
     if not set(pols[band].keys()).issubset({"A", "B"}):
@@ -865,10 +865,7 @@ def select_layers_for_slc_browse(pols):
 
     # Get the frequency sub-band containing science mode data.
     # This is always frequency A if present, otherwise B.
-    if "A" in pols[band]:
-        freq = "A"
-    else:
-        freq = "B"
+    freq = "A" if ("A" in pols[band]) else "B"
 
     # SSAR is not fully supported by QA, so just make a simple grayscale
     if band == "SSAR":

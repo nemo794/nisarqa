@@ -282,15 +282,15 @@ def select_layers_for_gcov_browse(pols):
     layers_for_browse = {}
 
     # Determine which band to use. LSAR has priority over SSAR.
-    bands = list(pols)
-    if "LSAR" in bands:
-        layers_for_browse["band"] = "LSAR"
-    elif "SSAR" in bands:
-        layers_for_browse["band"] = "SSAR"
+    for b in ("LSAR", "SSAR"):
+        if b in pols:
+            layers_for_browse["band"] = b
+            band = b
+            break
     else:
-        raise ValueError(f'Only "LSAR" and "SSAR" bands are supported: {band}')
-
-    band = bands[0]
+        raise ValueError(
+            f'Only "LSAR" and "SSAR" bands are supported: {list(pols)}'
+        )
 
     # Check that the correct frequencies are available
     if not set(pols[band].keys()).issubset({"A", "B"}):
