@@ -116,7 +116,9 @@ def validate_nlooks(nlooks, arr):
             break
 
 
-def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048):
+def compute_square_pixel_nlooks(
+    img_shape, sample_spacing, longest_side_max=2048, epsilon=1e-2
+):
     """
     Computes the nlooks values required to achieve approx. square pixels
     in a multilooked image.
@@ -125,12 +127,6 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
     the same coordinate grid as the array that will be multilooked.
     Using an even-valued 'look' would cause the multilooked image's
     coordinates to be shifted a half-pixel from the source image's coordinates.
-
-    If the pair of values in `sample_spacing` are within epsilon 1e-4 of each
-    other, it will be assumed that the input image's pixels are already
-    square pixels, and so the returned `nlooks` values will always be
-    equal to each other. (1e-2 is an arbitrary value; ok to adjust.)
-    For example, GCOV products have square pixels.
 
     Parameters
     ----------
@@ -148,6 +144,12 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked image.
         Defaults to 2048.
+    epsilon : float or int, optional
+        If the values in `sample_spacing` are within `epsilon` of each other,
+        it is likely that the image already was created with square pixels,
+        and so this function will check that the computed nlooks values
+        are equal. Typically, a user will use the default.
+        Defaults to 1e-2.
 
     Returns
     -------
@@ -220,7 +222,8 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
     for input in (img_shape[0], img_shape[1], longest_side_max):
         if (not isinstance(input, int)) or (input < 1):
             raise TypeError(
-                f"`Input is type {type(input)} " f"but must be a positive int: {input}"
+                f"`Input is type {type(input)} "
+                f"but must be a positive int: {input}"
             )
 
     # Variables
@@ -228,7 +231,6 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
     N = img_shape[1]  # X dimension
     dy = np.abs(sample_spacing[0])  # Y
     dx = np.abs(sample_spacing[1])  # X
-    epsilon = 1e-2
 
     if M * dy >= N * dx:
         # Y (azimuth) extent is longer
@@ -238,11 +240,8 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
         # keep the final multilooked pixels closer to being square pixels.
         ky = nisarqa.next_greater_odd_int(ky)
 
-        if np.abs(dy - dx) < epsilon:
-            kx = ky
-        else:
-            kx = (ky * dy) / dx  # Formula (11)
-            kx = nisarqa.next_greater_odd_int(kx)
+        kx = (ky * dy) / dx  # Formula (11)
+        kx = nisarqa.next_greater_odd_int(kx)
 
     else:
         # X (range) ground distance is longer
@@ -258,6 +257,18 @@ def compute_square_pixel_nlooks(img_shape, sample_spacing, longest_side_max=2048
     # Sanity Check
     assert N // kx <= longest_side_max
     assert M // ky <= longest_side_max
+
+    # Sanity Check
+    # If the pair of values in `sample_spacing` are within epsilon of each
+    # other, it is likely that the input image's pixels are already
+    # "square pixels". As a sanity check for this QA algorithm, check that
+    # the returned `nlooks` values are equal to each other.
+    # For example, GCOV products have square pixels.
+    if (np.abs(dy - dx) < epsilon) and (kx != ky):
+        warnings.warn(
+            "Computation of nlooks did not retain square pixels. "
+            "Image aspect ratio will be distorted."
+        )
 
     return (ky, kx)
 
