@@ -13,7 +13,12 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 class TileIterator:
     def __init__(
-        self, arr_shape, tile_ncols=-1, tile_nrows=-1, col_stride=1, row_stride=1
+        self,
+        arr_shape,
+        tile_ncols=-1,
+        tile_nrows=-1,
+        col_stride=1,
+        row_stride=1,
     ):
         """
         Simple iterator class to iterate over a 1D or 2D array by tiles.
@@ -90,7 +95,8 @@ class TileIterator:
         # Warn if the `tile_nrows` is not an integer multiple of `row_stride`
         if self.tile_nrows % self.row_stride != 0:
             warnings.warn(
-                msg % ("row", self.tile_nrows, "row", self.row_stride), RuntimeWarning
+                msg % ("row", self.tile_nrows, "row", self.row_stride),
+                RuntimeWarning,
             )
 
     def __iter__(self):
@@ -107,13 +113,16 @@ class TileIterator:
             for col_start in range(0, self.arr_shape[1], self.tile_ncols):
                 if self.num_dim == 2:
                     yield np.s_[
-                        row_start : row_start + self.tile_nrows : self.row_stride,
-                        col_start : col_start + self.tile_ncols : self.col_stride,
+                        row_start : row_start
+                        + self.tile_nrows : self.row_stride,
+                        col_start : col_start
+                        + self.tile_ncols : self.col_stride,
                     ]
 
                 else:  # 1 dimension array
                     yield np.s_[
-                        col_start : col_start + self.tile_ncols : self.col_stride
+                        col_start : col_start
+                        + self.tile_ncols : self.col_stride
                     ]
 
 
@@ -166,7 +175,7 @@ def process_arr_by_tiles(
 
 
 def compute_multilooked_backscatter_by_tiling(
-    arr, input_raster_represents_power, nlooks, tile_shape=(512, -1)
+    arr, nlooks, input_raster_represents_power=False, tile_shape=(512, -1)
 ):
     """
     Compute the multilooked backscatter array (linear units) by tiling.
@@ -175,6 +184,10 @@ def compute_multilooked_backscatter_by_tiling(
     ----------
     arr : array_like
         The input 2D array
+    nlooks : tuple of ints
+        Number of looks along each axis of the input array to be
+        averaged during multilooking.
+        Format: (num_rows, num_cols)
     input_raster_represents_power : bool, optional
         The input dataset rasters associated with these histogram parameters
         should have their pixel values represent either power or root power.
@@ -184,10 +197,6 @@ def compute_multilooked_backscatter_by_tiling(
         aka magnitude and will handle the full computation to power using
         the formula:  power = abs(<magnitude>)^2 .
         Defaults to False (root power).
-    nlooks : tuple of ints
-        Number of looks along each axis of the input array to be
-        averaged during multilooking.
-        Format: (num_rows, num_cols)
     tile_shape : tuple of ints
         Shape of each tile to be processed. If `tile_shape` is
         larger than the shape of `arr`, or if the dimensions of `arr`
@@ -217,7 +226,8 @@ def compute_multilooked_backscatter_by_tiling(
 
     if len(arr_shape) != 2:
         raise ValueError(
-            f"Input array has shape {arr_shape}" " but can only have 2 dimensions."
+            f"Input array has shape {arr_shape}"
+            " but can only have 2 dimensions."
         )
 
     if tile_shape[0] == -1:
@@ -234,7 +244,9 @@ def compute_multilooked_backscatter_by_tiling(
     # that is integer multiples of nlooks.
     # This will be used to trim off (discard) the 'uneven edges' of the image,
     # i.e. the pixels beyond the largest integer multiples of nlooks.
-    in_arr_valid_shape = tuple([(m // n) * n for m, n in zip(arr_shape, nlooks)])
+    in_arr_valid_shape = tuple(
+        [(m // n) * n for m, n in zip(arr_shape, nlooks)]
+    )
 
     # Compute the shape of the output multilooked array
     final_out_arr_shape = tuple([m // n for m, n in zip(arr_shape, nlooks)])
@@ -255,7 +267,9 @@ def compute_multilooked_backscatter_by_tiling(
 
     # Create the Iterators
     input_iter = TileIterator(
-        in_arr_valid_shape, tile_nrows=in_tiling_shape[0], tile_ncols=in_tiling_shape[1]
+        in_arr_valid_shape,
+        tile_nrows=in_tiling_shape[0],
+        tile_ncols=in_tiling_shape[1],
     )
     out_iter = TileIterator(
         final_out_arr_shape,
@@ -269,7 +283,11 @@ def compute_multilooked_backscatter_by_tiling(
         # if requested.
         # Otherwise, take the absolute value to ensure we're using the
         # magnitude for either real or complex values
-        out = np.abs(arr) if input_raster_represents_power else nisarqa.arr2pow(arr)
+        out = (
+            np.abs(arr)
+            if input_raster_represents_power
+            else nisarqa.arr2pow(arr)
+        )
 
         # Multilook
         out = nisarqa.multilook(out, nlooks)
@@ -277,7 +295,9 @@ def compute_multilooked_backscatter_by_tiling(
         return out
 
     # Instantiate the output array
-    multilook_img = np.zeros(final_out_arr_shape, dtype=np.float32)  # 32 bit precision
+    multilook_img = np.zeros(
+        final_out_arr_shape, dtype=np.float32
+    )  # 32 bit precision
 
     # Ok to pass the full input array; the tiling iterators
     # are constrained such that the 'uneven edges' will be ignored.
@@ -312,7 +332,7 @@ def compute_histogram_by_tiling(
     data_prep_func : Callable or None, optional
         Function to process each tile of data through before computing
         the histogram counts. For example, this function can be used
-        to convert the values in each tile of raw data to backscatter, 
+        to convert the values in each tile of raw data to backscatter,
         dB scale, etc. before taking the histogram.
         If `None`, then histogram will be computed on `arr` as-is,
         and no pre-processing of the data will occur.
@@ -365,7 +385,9 @@ def compute_histogram_by_tiling(
 
     # Shrink the tile shape to be an even multiple of the decimation ratio.
     # Otherwise, the decimation will get messy to book-keep.
-    in_tiling_shape = tuple([m - (m % n) for m, n in zip(tile_shape, decimation_ratio)])
+    in_tiling_shape = tuple(
+        [m - (m % n) for m, n in zip(tile_shape, decimation_ratio)]
+    )
 
     # Create the Iterator over the input array
     input_iter = TileIterator(
