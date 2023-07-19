@@ -471,6 +471,11 @@ def save_gcov_browse_img(pol_imgs, filepath):
         # Return early, so that we do not try to plot to RGB
         return
 
+    # Initialize variables. Later, check to ensure they were all used.
+    red = None
+    blue = None
+    green = None
+
     for pol in ["HHHH", "VVVV"]:
         if pol in pol_imgs:
             red = pol_imgs[pol]
@@ -502,7 +507,7 @@ def save_gcov_browse_img(pol_imgs, filepath):
             break
 
     # Sanity Check, and catch-all logic to make a browse image
-    if not all([isinstance(arr, np.ndarray) for arr in (red, green, blue)]):
+    if any(arr is None for arr in (red, green, blue)):
         # If we get here, then the images provided are not one of the
         # expected cases. WLOG plot one of the image(s) in `pol_imgs`.
         warnings.warn(
