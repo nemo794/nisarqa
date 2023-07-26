@@ -248,11 +248,8 @@ def compute_square_pixel_nlooks(
         kx = N / longest_side_max
         kx = nisarqa.next_greater_odd_int(kx)
 
-        if np.abs(dy - dx) < epsilon:
-            ky = kx
-        else:
-            ky = (kx * dx) / dy  # Formula (11)
-            ky = nisarqa.next_greater_odd_int(ky)
+        ky = (kx * dx) / dy  # Formula (11)
+        ky = nisarqa.next_greater_odd_int(ky)
 
     # Sanity Check
     assert N // kx <= longest_side_max
