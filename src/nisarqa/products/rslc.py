@@ -1,16 +1,11 @@
 from __future__ import annotations
 
 import functools
-import math
 import os
-import warnings
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, fields
-from typing import Optional
+from dataclasses import dataclass
 
 import h5py
-import isce3
-import nisar
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -97,8 +92,8 @@ def verify_rslc(user_rncfg):
     # ISCE3 to be used for generating the KML.
     # So, create the KML separately.
     if root_params.workflows.qa_reports:
-        write_latlonquad_to_kml(
-            llq=get_latlonquad(input_file),
+        nisarqa.write_latlonquad_to_kml(
+            llq=nisarqa.get_latlonquad(input_file),
             output_dir=root_params.get_output_dir(),
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),
