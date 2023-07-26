@@ -579,7 +579,11 @@ class RadarRaster(SARRaster):
         freq_path = f"{swaths_path}/frequency{freq}"
         pol_path = f"{freq_path}/{pol}"
 
+        swaths_group = h5_file[swaths_path]
+        freq_group = h5_file[freq_path]
+
         if pol_path in h5_file:
+            pol_group = h5_file[pol_path]
             # self.logger.log_message(logging_base.LogFilterInfo,
             #                         'Found image %s' % band_freq_pol_str)
             pass
@@ -596,13 +600,13 @@ class RadarRaster(SARRaster):
         # As of h5py 3.8.0, h5py gained the ability to read complex32
         # datasets, however numpy and other downstream packages do not
         # necessarily have that flexibility.
-        if nisarqa.is_complex32(h5_file[pol_path]):
+        if nisarqa.is_complex32(pol_group):
             # If the input RSLC product has dtype complex32, then we'll need
             # to use ComplexFloat16Decoder.
             if product == "RSLC":
                 # The RSLC dataset is complex32. h5py >= 3.8 can read these
                 # but numpy cannot yet. So, use the ComplexFloat16Decoder.
-                dataset = ComplexFloat16Decoder(h5_file[pol_path])
+                dataset = ComplexFloat16Decoder(pol_group)
                 print(
                     "(PASS) PASS/FAIL Check: Product raster dtype conforms"
                     " to RSLC Product Spec dtype of complex32."
@@ -616,7 +620,7 @@ class RadarRaster(SARRaster):
                 )
         else:
             # Use h5py's standard reader
-            dataset = h5_file[pol_path]
+            dataset = pol_group
 
             if product == "SLC":
                 print(
@@ -634,46 +638,32 @@ class RadarRaster(SARRaster):
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
         # 'Nominal along track spacing in meters between consecutive lines
         # near mid swath of the RSLC image.'
-        az_spacing = h5_file[freq_path]["sceneCenterAlongTrackSpacing"][...]
+        az_spacing = freq_group["sceneCenterAlongTrackSpacing"][...]
 
         # Get Azimuth (y-axis) tick range + label
         # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
         # For NISAR, radar-domain grids are referenced by the center of the
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
-        az_start = (
-            float(h5_file[swaths_path]["zeroDopplerTime"][0])
-            - 0.5 * az_spacing
-        )
-
-        az_stop = (
-            float(h5_file[swaths_path]["zeroDopplerTime"][-1])
-            + 0.5 * az_spacing
-        )
+        az_start = float(swaths_group["zeroDopplerTime"][0]) - 0.5 * az_spacing
+        az_stop = float(swaths_group["zeroDopplerTime"][-1]) + 0.5 * az_spacing
 
         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
         # 'Nominal ground range spacing in meters between consecutive pixels
         # near mid swath of the RSLC image.'
-        range_spacing = h5_file[freq_path]["sceneCenterGroundRangeSpacing"][
-            ...
-        ]
+
+        range_spacing = freq_group["sceneCenterGroundRangeSpacing"][...]
 
         # Range in meters (units are specified as meters in the product spec)
         # For NISAR, radar-domain grids are referenced by the center of the
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
-        rng_start = (
-            float(h5_file[freq_path]["slantRange"][0]) - 0.5 * range_spacing
-        )
-        rng_stop = (
-            float(h5_file[freq_path]["slantRange"][-1]) + 0.5 * range_spacing
-        )
+        rng_start = float(freq_group["slantRange"][0]) - 0.5 * range_spacing
+        rng_stop = float(freq_group["slantRange"][-1]) + 0.5 * range_spacing
 
         # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
         sec_since_epoch = (
-            h5_file[swaths_path]["zeroDopplerTime"]
-            .attrs["units"]
-            .decode("utf-8")
+            swaths_group["zeroDopplerTime"].attrs["units"].decode("utf-8")
         )
         epoch = sec_since_epoch.replace("seconds since ", "").strip()
 
