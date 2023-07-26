@@ -124,8 +124,8 @@ def verify_gcov(user_rncfg):
             # the actual product validation. For now, we'll leave it here.
             pols = nisarqa.rslc.get_pols(in_file)
             for band in pols:
-                for freq in band:
-                    for pol in freq:
+                for freq in pols[band]:
+                    for pol in pols[band][freq]:
                         if pol in nisarqa.GCOV_DIAG_POLS:
                             continue
                         elif pol in nisarqa.GCOV_OFF_DIAG_POLS:
