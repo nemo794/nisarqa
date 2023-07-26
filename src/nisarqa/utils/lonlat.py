@@ -5,6 +5,7 @@ import nisarqa
 import numpy as np
 import os
 import textwrap
+import warnings
 
 @dataclass
 class LonLat:
@@ -74,8 +75,19 @@ def get_latlonquad(input_file: str | os.PathLike[str]) -> LatLonQuad:
     product = nisar.products.readers.open_product(input_file)
 
     identification_path = product.IdentificationPath
-    with nisarqa.open_h5_file(input_file, mode="r") as in_file:
-        is_geocoded = in_file[identification_path]["isGeocoded"][()] == b"True"
+    try:
+        with nisarqa.open_h5_file(input_file, mode="r") as in_file:
+            is_geocoded = in_file[identification_path]["isGeocoded"][()] == b"True"
+    except KeyError:
+        # Older products don't have an isGeocoded field.
+        # Fall back to checking the productType.
+        msg = (
+            "Input product's identification group does not contain `isGeocoded`."
+            f" Will use first letter of `productType` ({product.productType})"
+            " to determine if geocoded."
+        )
+        warnings.warn(msg, RuntimeWarning)
+        is_geocoded = product.productType.startswith("G")
 
     freq = "A" if ("A" in product.frequencies) else "B"
 
