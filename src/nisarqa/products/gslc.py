@@ -77,108 +77,108 @@ def verify_gslc(user_rncfg):
 
     print(f"Starting Quality Assurance for input file: {input_file}")
 
-    with nisarqa.open_h5_file(input_file, mode="r") as in_file:
-        # Note: `pols` contains references to datasets in the open input file.
-        # All processing with `pols` must be done within this context manager,
-        # or the references will be closed and inaccessible.
-        pols = nisarqa.rslc.get_pols(in_file)
+    if root_params.workflows.validate:
+        print(f"Beginning input file validation...")
 
-        # Run the requested workflows
-        if root_params.workflows.validate:
-            print(f"Beginning input file validation...")
+        # TODO Validate file structure
+        # (After this, we can assume the file structure for all
+        # subsequent accesses to it)
+        # NOTE: Refer to the original get_freq_pol() for the verification
+        # checks. This could trigger a fatal error!
 
-            # TODO Validate file structure
-            # (After this, we can assume the file structure for all
-            # subsequent accesses to it)
-            # NOTE: Refer to the original get_freq_pol() for the verification
-            # checks. This could trigger a fatal error!
+        # These reports will be saved to the SUMMARY.csv file.
+        # For now, output the stub file
+        nisarqa.output_stub_files(
+            output_dir=root_params.get_output_dir(),
+            stub_files="summary_csv",
+        )
 
-            # These reports will be saved to the SUMMARY.csv file.
-            # For now, output the stub file
+        print(
+            f"Input file validation PASS/FAIL checks saved to {summary_file}"
+        )
+        print(f"Input file validation complete.")
+
+    if root_params.workflows.qa_reports:
+        print(f"Beginning `qa_reports` processing...")
+
+        # TODO qa_reports will add to the SUMMARY.csv file.
+        # For now, make sure that the stub file is output
+        if not os.path.isfile(summary_file):
             nisarqa.output_stub_files(
                 output_dir=root_params.get_output_dir(),
                 stub_files="summary_csv",
             )
 
-            print(
-                f"Input file validation PASS/FAIL checks saved to {summary_file}"
+        # TODO qa_reports will create the BROWSE.kml file.
+        # For now, make sure that the stub file is output
+        nisarqa.output_stub_files(
+            output_dir=root_params.get_output_dir(),
+            stub_files="browse_kml",
+        )
+        print("Processing of browse image kml complete.")
+        print(f"Browse image kml file saved to {browse_file_kml}")
+
+        with nisarqa.open_h5_file(
+            input_file, mode="r"
+        ) as in_file, nisarqa.open_h5_file(
+            stats_file, mode="w"
+        ) as stats_h5, PdfPages(
+            report_file
+        ) as report_pdf:
+            # Note: `pols` contains references to datasets in the open input file.
+            # All processing with `pols` must be done within this context manager,
+            # or the references will be closed and inaccessible.
+            print("Beginning processing of `qa_reports` items...")
+
+            pols = nisarqa.rslc.get_pols(in_file)
+
+            # Save the processing parameters to the stats.h5 file
+            root_params.save_params_to_stats_file(
+                h5_file=stats_h5, bands=tuple(pols.keys())
             )
-            print(f"Input file validation complete.")
 
-        if root_params.workflows.qa_reports:
-            print(f"Beginning `qa_reports` processing...")
-
-            # TODO qa_reports will add to the SUMMARY.csv file.
-            # For now, make sure that the stub file is output
-            if not os.path.isfile(summary_file):
-                nisarqa.output_stub_files(
-                    output_dir=root_params.get_output_dir(),
-                    stub_files="summary_csv",
-                )
-
-            # TODO qa_reports will create the BROWSE.kml file.
-            # For now, make sure that the stub file is output
-            nisarqa.output_stub_files(
-                output_dir=root_params.get_output_dir(),
-                stub_files="browse_kml",
+            # Copy the Product identification group to STATS.h5
+            nisarqa.rslc.save_NISAR_identification_group_to_h5(
+                nisar_h5=in_file, stats_h5=stats_h5
             )
-            print("Processing of browse image kml complete.")
-            print(f"Browse image kml file saved to {browse_file_kml}")
+            print(f"Input file Identification group copied to {stats_file}")
 
-            with nisarqa.open_h5_file(
-                stats_file, mode="w"
-            ) as stats_h5, PdfPages(report_file) as report_pdf:
-                print("Beginning processing of `qa_reports` items...")
+            # Save frequency/polarization info to stats file
+            nisarqa.rslc.save_nisar_freq_metadata_to_h5(
+                stats_h5=stats_h5, pols=pols
+            )
+            print(f"QA Processing Parameters saved to {stats_file}")
 
-                # Save the processing parameters to the stats.h5 file
-                root_params.save_params_to_stats_file(
-                    h5_file=stats_h5, bands=tuple(pols.keys())
-                )
+            # Generate the GSLC Power Image and Browse Image
+            nisarqa.rslc.process_slc_power_images_and_browse(
+                pols=pols,
+                params=root_params.power_img,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
+                browse_filename=browse_file_png,
+            )
+            print("Processing of power images complete.")
+            print(f"Browse image PNG file saved to {browse_file_png}")
 
-                # Copy the Product identification group to STATS.h5
-                nisarqa.rslc.save_NISAR_identification_group_to_h5(
-                    nisar_h5=in_file, stats_h5=stats_h5
-                )
-                print(
-                    f"Input file Identification group copied to {stats_file}"
-                )
+            # Generate the GSLC Power and Phase Histograms
+            nisarqa.rslc.process_power_and_phase_histograms(
+                pols=pols,
+                params=root_params.histogram,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
+            )
+            print("Processing of power and phase histograms complete.")
 
-                # Save frequency/polarization info to stats file
-                nisarqa.rslc.save_nisar_freq_metadata_to_h5(
-                    stats_h5=stats_h5, pols=pols
-                )
-                print(f"QA Processing Parameters saved to {stats_file}")
+            # Process Interferograms
 
-                # Generate the GSLC Power Image and Browse Image
-                nisarqa.rslc.process_slc_power_images_and_browse(
-                    pols=pols,
-                    params=root_params.power_img,
-                    stats_h5=stats_h5,
-                    report_pdf=report_pdf,
-                    browse_filename=browse_file_png,
-                )
-                print("Processing of power images complete.")
-                print(f"Browse image PNG file saved to {browse_file_png}")
+            # Check for invalid values
 
-                # Generate the GSLC Power and Phase Histograms
-                nisarqa.rslc.process_power_and_phase_histograms(
-                    pols=pols,
-                    params=root_params.histogram,
-                    stats_h5=stats_h5,
-                    report_pdf=report_pdf,
-                )
-                print("Processing of power and phase histograms complete.")
+            # Compute metrics for stats.h5
 
-                # Process Interferograms
-
-                # Check for invalid values
-
-                # Compute metrics for stats.h5
-
-                print(f"PDF reports saved to {report_file}")
-                print(f"HDF5 statistics saved to {stats_file}")
-                print(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
-                print("`qa_reports` processing complete.")
+            print(f"PDF reports saved to {report_file}")
+            print(f"HDF5 statistics saved to {stats_file}")
+            print(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
+            print("`qa_reports` processing complete.")
 
     print(
         "Successful completion of QA SAS. Check log file for validation warnings and errors."
