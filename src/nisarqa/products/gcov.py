@@ -34,94 +34,60 @@ def verify_gcov(user_rncfg):
 
     # Build the GCOVRootParamGroup parameters per the runconfig
     try:
-        gcov_params = nisarqa.build_root_params(
+        root_params = nisarqa.build_root_params(
             product_type="gcov", user_rncfg=user_rncfg
         )
     except nisarqa.ExitEarly:
         # No workflows were requested. Exit early.
         print(
-            "All `workflows` were set to `False` in the runconfig. No QA "
-            "processing will be performed. Exiting..."
+            "All `workflows` set to `False` in the runconfig, "
+            "so no QA outputs will be generated. This is not an error."
         )
         return
-
-    output_dir = gcov_params.prodpath.qa_output_dir
-
-    # Print final processing parameters that will be used for QA, for debugging
-    print(
-        "QA Processing parameters, per runconfig and defaults (runconfig has precedence)"
-    )
-
-    gcov_params_names = {
-        "input_f": "Input File Group",
-        "prodpath": "Product Path Group",
-        "workflows": "Workflows",
-        "backscatter_img": "Backscatter Image",
-        "histogram": "Histogram",
-    }
-
-    for params_obj in fields(gcov_params):
-        grp_name = gcov_params_names[params_obj.name]
-        print(f"  {grp_name} Input Parameters:")
-
-        po = getattr(gcov_params, params_obj.name)
-        if po is not None:
-            for param in fields(po):
-                po2 = getattr(po, param.name)
-                print(f"    {param.name}: {po2}")
-
-    output_dir = gcov_params.prodpath.qa_output_dir
 
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
-    nisarqa.output_stub_files(output_dir=output_dir, stub_files="log_txt")
-
-    # Create file paths for output files
-    input_file = gcov_params.input_f.qa_input_file
-    msg = (
-        f"Starting Quality Assurance for input file: {input_file}"
-        f"\nOutputs to be generated:"
+    nisarqa.output_stub_files(
+        output_dir=root_params.get_output_dir(), stub_files="log_txt"
     )
-    if gcov_params.workflows.validate or gcov_params.workflows.qa_reports:
-        summary_file = os.path.join(output_dir, "SUMMARY.csv")
-        msg += f"\n\tSummary file: {summary_file}"
 
-    if gcov_params.workflows.qa_reports:
-        stats_file = os.path.join(output_dir, "STATS.h5")
-        msg += f"\n\tMetrics file: {stats_file}"
-        report_file = os.path.join(output_dir, "REPORT.pdf")
-        browse_image = os.path.join(output_dir, "BROWSE.png")
-        browse_kml = os.path.join(output_dir, "BROWSE.kml")
+    # Log the values of the parameters.
+    # Currently, this prints to stdout. Once the logger is implemented,
+    # it should log the values directly to the log file.
+    root_params.log_parameters()
 
-        msg += (
-            f"\n\tReport file: {report_file}"
-            f"\n\tBrowse Image: {browse_image}"
-            f"\n\tBrowse Image Geolocation file: {browse_kml}"
-        )
-    print(msg)
+    # For readibility, store possible output filenames in variables.
+    input_file = root_params.input_f.qa_input_file
+    out_dir = root_params.get_output_dir()
+    browse_file_png = out_dir / root_params.get_browse_png_filename()
+    browse_file_kml = out_dir / root_params.get_kml_browse_filename()
+    report_file = out_dir / root_params.get_report_pdf_filename()
+    stats_file = out_dir / root_params.get_stats_h5_filename()
+    summary_file = out_dir / root_params.get_summary_csv_filename()
 
-    # Begin QA workflows
-    with nisarqa.open_h5_file(input_file, mode="r") as in_file:
-        # Run the requested workflows
-        if gcov_params.workflows.validate:
-            # TODO Validate file structure
-            # (After this, we can assume the file structure for all
-            # subsequent accesses to it)
-            # NOTE: Refer to the original 'get_bands()' to check that in_file
-            # contains metadata, swaths, Identification groups, and that it
-            # is SLC/RSLC compliant. These should trigger a fatal error!
-            # NOTE: Refer to the original get_freq_pol() for the verification
-            # checks. This could trigger a fatal error!
+    print(f"Starting Quality Assurance for input file: {input_file}")
 
-            # These reports will be saved to the SUMMARY.csv file.
-            # For now, output the stub file
-            nisarqa.output_stub_files(
-                output_dir=output_dir, stub_files="summary_csv"
-            )
+    if root_params.workflows.validate:
+        # TODO Validate file structure
+        # (After this, we can assume the file structure for all
+        # subsequent accesses to it)
+        # NOTE: Refer to the original 'get_bands()' to check that in_file
+        # contains metadata, swaths, Identification groups, and that it
+        # is SLC/RSLC compliant. These should trigger a fatal error!
+        # NOTE: Refer to the original get_freq_pol() for the verification
+        # checks. This could trigger a fatal error!
 
-            # TODO - this GCOV validation check should be integrated into
-            # the actual product validation. For now, we'll leave it here.
+        # These reports will be saved to the SUMMARY.csv file.
+        # For now, output the stub file
+        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
+        print(f"Input file validation PASS/FAIL checks saved: {summary_file}")
+        print(f"Input file validation complete.")
+
+        # TODO - this GCOV validation check should be integrated into
+        # the actual product validation. For now, we'll leave it here.
+        with nisarqa.open_h5_file(input_file, mode="r") as in_file:
+            # Run the requested workflows
             pols = nisarqa.rslc.get_pols(in_file)
             for band in pols:
                 for freq in pols[band]:
@@ -134,16 +100,37 @@ def verify_gcov(user_rncfg):
                                 RuntimeWarning,
                             )
 
-        if not gcov_params.workflows.qa_reports:
-            print(
-                "Successful completion. Check log file for validation warnings and errors."
+    if root_params.workflows.qa_reports:
+        # TODO qa_reports will add to the SUMMARY.csv file.
+        # For now, make sure that the stub file is output
+        if not os.path.isfile(summary_file):
+            nisarqa.output_stub_files(
+                output_dir=out_dir,
+                stub_files="summary_csv",
             )
-            return
+            print(
+                f"Input file validation PASS/FAIL checks saved: {summary_file}"
+            )
+            print(f"Input file validation complete.")
 
-        # First time opening the STATS.h5 file, so open in 'w' mode.
-        with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5, PdfPages(
+        # TODO qa_reports will create the BROWSE.kml file.
+        # For now, make sure that the stub file is output
+        nisarqa.output_stub_files(
+            output_dir=out_dir,
+            stub_files="browse_kml",
+        )
+        print("Processing of browse image kml complete.")
+        print(f"Browse image kml file saved to {browse_file_kml}")
+
+        with nisarqa.open_h5_file(
+            input_file, mode="r"
+        ) as in_file, nisarqa.open_h5_file(
+            stats_file, mode="w"
+        ) as stats_h5, PdfPages(
             report_file
         ) as report_pdf:
+            print("Beginning processing of `qa_reports` items...")
+
             # Note: `pols` contains references to datasets in the open input file.
             # All processing with `pols` must be done within this context manager,
             # or the references will be closed and inaccessible.
@@ -155,27 +142,16 @@ def verify_gcov(user_rncfg):
             )
 
             # Save the processing parameters to the stats.h5 file
-            gcov_params.save_params_to_stats_file(
+            root_params.save_params_to_stats_file(
                 h5_file=stats_h5, bands=tuple(pols.keys())
             )
+            print(f"QA Processing Parameters saved to {stats_file}")
 
             # Copy the Product identification group to STATS.h5
             nisarqa.rslc.save_NISAR_identification_group_to_h5(
                 nisar_h5=in_file, stats_h5=stats_h5
             )
-
-            # TODO qa_reports will add to the SUMMARY.csv file.
-            # For now, make sure that the stub file is output
-            if not os.path.isfile(summary_file):
-                nisarqa.output_stub_files(
-                    output_dir=output_dir, stub_files="summary_csv"
-                )
-
-            # TODO qa_reports will create the BROWSE.kml file.
-            # For now, make sure that the stub file is output
-            nisarqa.output_stub_files(
-                output_dir=output_dir, stub_files="browse_kml"
-            )
+            print(f"Input file Identification group copied to {stats_file}")
 
             input_raster_represents_power = True
             name_of_backscatter_content = (
@@ -185,31 +161,39 @@ def verify_gcov(user_rncfg):
             # Generate the Backscatter Image and Browse Image
             nisarqa.rslc.process_backscatter_imgs_and_browse(
                 pols=pols,
-                params=gcov_params.backscatter_img,
+                params=root_params.backscatter_img,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 product_type="gcov",
                 plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
-                browse_filename=browse_image,
+                browse_filename=browse_file_png,
             )
+            print("Processing of Backscatter images complete.")
+            print(f"Browse image PNG file saved to {browse_file_png}")
 
             # Generate the Backscatter and Phase Histograms
             nisarqa.rslc.process_backscatter_and_phase_histograms(
                 pols=pols,
-                params=gcov_params.histogram,
+                params=root_params.histogram,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
             )
+            print("Processing of backscatter and phase histograms complete.")
 
             # Check for invalid values
 
             # Compute metrics for stats.h5
 
+            print(f"PDF reports saved to {report_file}")
+            print(f"HDF5 statistics saved to {stats_file}")
+            print(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
+            print("`qa_reports` processing complete.")
+
     print(
-        "Successful completion. Check log file for validation warnings and errors."
+        "Successful completion of QA SAS. Check log file for validation warnings and errors."
     )
 
 

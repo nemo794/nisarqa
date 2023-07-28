@@ -45,7 +45,7 @@ def verify_rslc(user_rncfg):
         root_params = nisarqa.build_root_params(
             product_type="rslc", user_rncfg=user_rncfg
         )
-    except nisarqa.ExitEarly as e:
+    except nisarqa.ExitEarly:
         # No workflows were requested. Exit early.
         print(
             "All `workflows` set to `False` in the runconfig, "
@@ -182,7 +182,7 @@ def verify_rslc(user_rncfg):
 
             input_raster_represents_power = False
             name_of_backscatter_content = (
-                "RSLC Backscatter Coefficient (beta0)"
+                r"RSLC Backscatter Coefficient ($\beta^0$)"
             )
 
             # Generate the RSLC Backscatter Image and Browse Image
@@ -196,7 +196,7 @@ def verify_rslc(user_rncfg):
                 input_raster_represents_power=input_raster_represents_power,
                 browse_filename=browse_file_png,
             )
-            print("Processing of power images complete.")
+            print("Processing of backscatter images complete.")
             print(f"Browse image PNG file saved to {browse_file_png}")
 
             # Generate the RSLC Power and Phase Histograms
@@ -205,9 +205,10 @@ def verify_rslc(user_rncfg):
                 params=root_params.histogram,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
+                plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
             )
-            print("Processing of power and phase histograms complete.")
+            print("Processing of backscatter and phase histograms complete.")
 
             # Process Interferograms
 

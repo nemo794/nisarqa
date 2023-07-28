@@ -35,7 +35,7 @@ def verify_gslc(user_rncfg):
         root_params = nisarqa.build_root_params(
             product_type="gslc", user_rncfg=user_rncfg
         )
-    except nisarqa.ExitEarly as e:
+    except nisarqa.ExitEarly:
         # No workflows were requested. Exit early.
         print(
             "All `workflows` set to `False` in the runconfig, "
@@ -59,21 +59,12 @@ def verify_gslc(user_rncfg):
     # Depending on which workflows are set to True, not all filename
     # variables will be used.
     input_file = root_params.input_f.qa_input_file
-    browse_file_png = (
-        root_params.get_output_dir() / root_params.get_browse_png_filename()
-    )
-    browse_file_kml = (
-        root_params.get_output_dir() / root_params.get_kml_browse_filename()
-    )
-    report_file = (
-        root_params.get_output_dir() / root_params.get_report_pdf_filename()
-    )
-    stats_file = (
-        root_params.get_output_dir() / root_params.get_stats_h5_filename()
-    )
-    summary_file = (
-        root_params.get_output_dir() / root_params.get_summary_csv_filename()
-    )
+    out_dir = root_params.get_output_dir()
+    browse_file_png = out_dir / root_params.get_browse_png_filename()
+    browse_file_kml = out_dir / root_params.get_kml_browse_filename()
+    report_file = out_dir / root_params.get_report_pdf_filename()
+    stats_file = out_dir / root_params.get_stats_h5_filename()
+    summary_file = out_dir / root_params.get_summary_csv_filename()
 
     print(f"Starting Quality Assurance for input file: {input_file}")
 
@@ -88,14 +79,8 @@ def verify_gslc(user_rncfg):
 
         # These reports will be saved to the SUMMARY.csv file.
         # For now, output the stub file
-        nisarqa.output_stub_files(
-            output_dir=root_params.get_output_dir(),
-            stub_files="summary_csv",
-        )
-
-        print(
-            f"Input file validation PASS/FAIL checks saved to {summary_file}"
-        )
+        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
+        print(f"Input file validation PASS/FAIL checks saved: {summary_file}")
         print(f"Input file validation complete.")
 
     if root_params.workflows.qa_reports:
@@ -108,11 +93,15 @@ def verify_gslc(user_rncfg):
                 output_dir=root_params.get_output_dir(),
                 stub_files="summary_csv",
             )
+            print(
+                f"Input file validation PASS/FAIL checks saved: {summary_file}"
+            )
+            print(f"Input file validation complete.")
 
         # TODO qa_reports will create the BROWSE.kml file.
         # For now, make sure that the stub file is output
         nisarqa.output_stub_files(
-            output_dir=root_params.get_output_dir(),
+            output_dir=out_dir,
             stub_files="browse_kml",
         )
         print("Processing of browse image kml complete.")
@@ -136,6 +125,7 @@ def verify_gslc(user_rncfg):
             root_params.save_params_to_stats_file(
                 h5_file=stats_h5, bands=tuple(pols.keys())
             )
+            print(f"QA Processing Parameters saved to {stats_file}")
 
             # Copy the Product identification group to STATS.h5
             nisarqa.rslc.save_NISAR_identification_group_to_h5(
@@ -147,7 +137,6 @@ def verify_gslc(user_rncfg):
             nisarqa.rslc.save_nisar_freq_metadata_to_h5(
                 stats_h5=stats_h5, pols=pols
             )
-            print(f"QA Processing Parameters saved to {stats_file}")
 
             input_raster_represents_power = False
             name_of_backscatter_content = (
@@ -165,7 +154,7 @@ def verify_gslc(user_rncfg):
                 input_raster_represents_power=input_raster_represents_power,
                 browse_filename=browse_file_png,
             )
-            print("Processing of power images complete.")
+            print("Processing of Backscatter images complete.")
             print(f"Browse image PNG file saved to {browse_file_png}")
 
             # Generate the GSLC Power and Phase Histograms
@@ -174,9 +163,10 @@ def verify_gslc(user_rncfg):
                 params=root_params.histogram,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
+                plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
             )
-            print("Processing of power and phase histograms complete.")
+            print("Processing of backscatter and phase histograms complete.")
 
             # Process Interferograms
 

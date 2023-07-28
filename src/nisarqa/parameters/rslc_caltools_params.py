@@ -9,6 +9,8 @@ import nisarqa
 from nisarqa import (
     HDF5Attrs,
     HDF5ParamGroup,
+    InputFileGroupParamGroup,
+    ProductPathGroupParamGroup,
     RootParamGroup,
     WorkflowsParamGroup,
     YamlAttrs,
