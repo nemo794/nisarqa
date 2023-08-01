@@ -1941,12 +1941,12 @@ def generate_backscatter_image_histogram_single_freq(
     input_raster_represents_power=False,
 ):
     """
-        Generate Backscatter Image Histogram for a single frequency.
+    Generate Backscatter Image Histogram for a single frequency.
 
-        The histogram's plot will be appended to the graphical
-        summary file `report_pdf`, and its data will be
-        stored in the statistics .h5 file `stats_h5`.
-        Backscatter histogram will be computed in decibel units.
+    The histogram's plot will be appended to the graphical
+    summary file `report_pdf`, and its data will be
+    stored in the statistics .h5 file `stats_h5`.
+    Backscatter histogram will be computed in decibel units.
 
     Parameters
     ----------
