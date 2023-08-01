@@ -6,6 +6,7 @@ import os
 import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from datetime import datetime
 
 import h5py
 import numpy as np
@@ -662,11 +663,24 @@ class RadarRaster(SARRaster):
         rng_start = float(freq_group["slantRange"][0]) - 0.5 * range_spacing
         rng_stop = float(freq_group["slantRange"][-1]) + 0.5 * range_spacing
 
-        # output of the next line will have the format: 'seconds since YYYY-MM-DD HH:MM:SS'
+        # output of the next line has format: 'seconds since YYYY-MM-DD HH:MM:SS'
         sec_since_epoch = (
             swaths_group["zeroDopplerTime"].attrs["units"].decode("utf-8")
         )
-        epoch = sec_since_epoch.replace("seconds since ", "").strip()
+
+        # Sanity Check
+        format_data = "seconds since %Y-%m-%d %H:%M:%S"
+        try:
+            datetime.strptime(sec_since_epoch, format_data)
+        except ValueError:
+            warnings.warn(
+                f"Invalid epoch format in input file: {sec_since_epoch}",
+                RuntimeWarning,
+            )
+            # This text should appear in the REPORT.pdf to make it obvious:
+            epoch = "INVALID EPOCH"
+        else:
+            epoch = sec_since_epoch.replace("seconds since ", "").strip()
 
         return cls(
             data=dataset,
