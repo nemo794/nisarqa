@@ -98,11 +98,11 @@ def verify_gslc(user_rncfg):
             )
             print(f"Input file validation complete.")
 
-        # TODO qa_reports will create the BROWSE.kml file.
-        # For now, make sure that the stub file is output
-        nisarqa.output_stub_files(
-            output_dir=out_dir,
-            stub_files="browse_kml",
+        nisarqa.write_latlonquad_to_kml(
+            llq=nisarqa.get_latlonquad(input_file),
+            output_dir=root_params.get_output_dir(),
+            kml_filename=root_params.get_kml_browse_filename(),
+            png_filename=root_params.get_browse_png_filename(),
         )
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")

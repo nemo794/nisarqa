@@ -94,7 +94,28 @@ def get_latlonquad(input_file: str | os.PathLike[str]) -> LatLonQuad:
     freq = "A" if ("A" in product.frequencies) else "B"
 
     if is_geocoded:
-        raise NotImplementedError("Can only get LatLonQuad for radar products")
+        freq_path = f"{product.GridPath}/frequency{freq}"
+        with nisarqa.open_h5_file(input_file, mode="r") as in_file:
+            xcoords = in_file[freq_path]["xCoordinates"][()]
+            ycoords = in_file[freq_path]["yCoordinates"][()]
+            epsg = in_file[freq_path]["projection"][()]
+            # Coordinates point to beginning of pixel,
+            # so add pixel spacing to span entire range
+            xspacing = in_file[freq_path]["xCoordinateSpacing"][()]
+            yspacing = in_file[freq_path]["yCoordinateSpacing"][()]
+            xrange = (xcoords[0], xcoords[-1] + xspacing)
+            yrange = (ycoords[0], ycoords[-1] + yspacing)
+
+        proj = isce3.core.make_projection(epsg)
+
+        geo_corners = ()
+        for y in yrange:
+            for x in xrange:
+                # Use a dummy height value in computing the inverse projection.
+                # isce3 projections are always 2-D transformations -- the height
+                # has no effect on lon/lat
+                lon, lat, _ = proj.inverse([x, y, 0])
+                geo_corners += (LonLat(lon, lat),)
     else:
         orbit = product.getOrbit()
         radar_grid = product.getRadarGrid(freq)
@@ -127,8 +148,8 @@ def write_latlonquad_to_kml(
     llq: LatLonQuad,
     output_dir: str | os.PathLike[str],
     *,
-    kml_filename: str = "BROWSE.kml",
-    png_filename: str = "BROWSE.png",
+    kml_filename: str,
+    png_filename: str,
 ) -> None:
     """
     Generate a KML file containing geolocation info of the corresponding
