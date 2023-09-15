@@ -5,7 +5,9 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def run_abscal_tool(abscal_params, dyn_anc_params, input_filename, stats_filename):
+def run_abscal_tool(
+    abscal_params, dyn_anc_params, input_filename, stats_filename
+):
     """
     Run the Absolute Calibration Factor workflow.
 
@@ -34,7 +36,7 @@ def run_abscal_tool(abscal_params, dyn_anc_params, input_filename, stats_filenam
     bands = []
     with nisarqa.open_h5_file(input_filename, mode="r") as in_file:
         for band in nisarqa.NISAR_BANDS:
-            grp_path = f"/science/{band}"
+            grp_path = f"/science/{band}SAR"
             if grp_path in in_file:
                 bands.append(band)
 
@@ -82,7 +84,7 @@ def run_noise_estimation_tool(params, input_filename, stats_filename):
     bands = []
     with nisarqa.open_h5_file(input_filename, mode="r") as in_file:
         for band in nisarqa.NISAR_BANDS:
-            grp_path = f"/science/{band}"
+            grp_path = f"/science/{band}SAR"
             if grp_path in in_file:
                 bands.append(band)
 
@@ -135,7 +137,7 @@ def run_pta_tool(pta_params, dyn_anc_params, input_filename, stats_filename):
     bands = []
     with nisarqa.open_h5_file(input_filename, mode="r") as in_file:
         for band in nisarqa.NISAR_BANDS:
-            grp_path = f"/science/{band}"
+            grp_path = f"/science/{band}SAR"
             if grp_path in in_file:
                 bands.append(band)
 

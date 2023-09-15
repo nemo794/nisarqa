@@ -12,6 +12,7 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def open_h5_file(in_file, mode="r"):
     """
     Open or create a handle for a h5 file.
+
     Parameters
     ----------
     in_file : str
@@ -23,6 +24,7 @@ def open_h5_file(in_file, mode="r"):
             'w'         - Create file, truncate if exists
             'w-' or 'x' - Create file, fail if exists
             'a'         - Read/write if exists, create otherwise
+
     Returns
     -------
     handle : h5py.File
@@ -71,10 +73,12 @@ class InvalidNISARProductError(Exception):
 def raise_(exc):
     """
     Wrapper to raise an Exception for use in e.g. lambda functions.
+
     Parameters
     ----------
     exc : Exception
         An Exception or a subclass of Exception that can be re-raised.
+
     Examples
     --------
     >>> raise_(Exception('mayday'))
@@ -104,10 +108,12 @@ def raise_(exc):
 def compute_non_zero_mask(arr, epsilon=1.0e-05):
     """
     Create a mask of the non-zero pixels in the input array.
+
     Elements in the input array that are approximately equal to zero,
     based on the specified tolerance, are masked out.
     TODO - after development of the RSLC QA code is complete,
     check that this function is used. If not, delete.
+
     Parameters
     ----------
     arr : array_like
@@ -115,6 +121,7 @@ def compute_non_zero_mask(arr, epsilon=1.0e-05):
     epsilon : float, optional
         Absolute tolerance for determining if an element in `arr`
         is nearly zero.
+
     Returns
     -------
     mask : Boolean array
@@ -129,14 +136,17 @@ def compute_non_zero_mask(arr, epsilon=1.0e-05):
 def compute_mask_ok(arr, epsilon=1.0e-05):
     """
     Create a mask of the valid (finite, non-zero) pixels in arr.
+
     TODO - after development of the RSLC QA code is complete,
     check that this function is used. If not, delete.
+
     Parameters
     ----------
     arr : array_like
         The input array
     epsilon : float, optional
         Tolerance for if an element in `arr` is considered 'zero'
+
     Returns
     -------
     mask_ok : array_like
@@ -159,6 +169,7 @@ def create_dataset_in_h5group(
 ):
     """
     Add a dataset with attributes to the provided group.
+
     Parameters
     ----------
     h5_file : h5py.File
@@ -201,11 +212,14 @@ def create_dataset_in_h5group(
 def multi_line_string_iter(multiline_str):
     """
     Iterator for a multi-line string.
+
     Strips leading and trailing whitespace, and returns one line at a time.
+
     Parameters
     ----------
     multiline_str : str
         The string to be iterated over
+
     Yields
     ------
     line : str
@@ -218,6 +232,7 @@ def multi_line_string_iter(multiline_str):
 def get_nested_element_in_dict(source_dict, path_to_element):
     """
     Return the value of the last key in the `path_to_element`.
+
     Parameters
     ----------
     source_dict : dict
@@ -225,10 +240,12 @@ def get_nested_element_in_dict(source_dict, path_to_element):
     path_to_element : sequence
         Sequence which define a nested path in `source_dict` to
         the desired value.
+
     Returns
     -------
     element : Any
         The value of the final key in the `path_to_element` sequence
+
     Example
     -------
     >>> src = {'a' : 'dog', 'b' : {'cat':'lulu', 'toy':'mouse'}}

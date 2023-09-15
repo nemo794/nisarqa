@@ -15,14 +15,17 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def is_complex32(dataset: h5py.Dataset) -> bool:
     """
     Check if the input dataset is half-precision complex ("complex32").
+
     Parameters
     --------
     dataset : h5py.Dataset
         The input dataset.
+
     Returns
     -------
     bool
         True if the input dataset is complex32.
+
     Notes
     -----
     If a Dataset has dtype complex32, h5py < v3.8 will throw the error
@@ -49,11 +52,14 @@ def is_complex32(dataset: h5py.Dataset) -> bool:
 class ComplexFloat16Decoder(object):
     """Wrapper to read in NISAR product datasets that are '<c4' type,
     which raise an TypeError if accessed naively by h5py.
+
     Indexing operatations always return data converted to numpy.complex64.
+
     Parameters
     ----------
     h5dataset : h5py.Dataset
         Dataset to be stored. Dataset should have type '<c4'.
+
     Notes
     -----
     The ComplexFloat16Decoder class is an example of what the NumPy folks call a 'duck array',
@@ -113,6 +119,7 @@ class ComplexFloat16Decoder(object):
 class Raster:
     """
     Raster image dataset base class.
+
     Parameters
     ----------
     data : array_like
@@ -158,8 +165,10 @@ class SARRaster(ABC, Raster):
 class RadarRaster(SARRaster):
     """
     A Raster with attributes specific to Radar products.
+
     The attributes specified here are based on the needs of the QA code
     for generating and labeling plots, etc.
+
     Parameters
     ----------
     data : array_like
@@ -215,8 +224,10 @@ class RadarRaster(SARRaster):
 class GeoRaster(SARRaster):
     """
     A Raster with attributes specific to Geocoded products.
+
     The attributes specified here are based on the needs of the QA code
     for generating and labeling plots, etc.
+
     Parameters
     ----------
     data : array_like

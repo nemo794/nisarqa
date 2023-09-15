@@ -333,7 +333,7 @@ class HDF5ParamGroup:
             f"`{attribute_name}` is not an attribute of this dataclass."
         )
 
-    def write_params_to_h5(self, h5_file, bands=("LSAR",)):
+    def write_params_to_h5(self, h5_file, band):
         """
         Update `h5_file` with the attributes of this dataclass
         that are a subclass of HDF5Param.
@@ -343,9 +343,8 @@ class HDF5ParamGroup:
         h5_file : h5py.File
             Handle to an HDF5 file where the parameter metadata
             should be saved
-        bands : iterable of str, optional
-            Sequence of the band names. Ex: ('SSAR', 'LSAR')
-            Defaults to ('LSAR',)
+        band : str
+            The letter of the band. Ex: "L" or "S".
         """
 
         # Flag -- the intention is to help assist developers and ensure
@@ -353,32 +352,31 @@ class HDF5ParamGroup:
         found_at_least_one_hdf5_attr = False
 
         # Add all attributes from this dataclass to the group
-        for band in bands:
-            for field in fields(self):
-                if ("hdf5_attrs" in field.metadata) or (
-                    "hdf5_attrs_func" in field.metadata
-                ):
-                    attr = getattr(self, field.name)
+        for field in fields(self):
+            if ("hdf5_attrs" in field.metadata) or (
+                "hdf5_attrs_func" in field.metadata
+            ):
+                attr = getattr(self, field.name)
 
-                    # Create filler data to stand in for Python's Nonetype.
-                    # This is for cases such as gamma=None (not a float)
-                    val = "None" if attr is None else attr
+                # Create filler data to stand in for Python's Nonetype.
+                # This is for cases such as gamma=None (not a float)
+                val = "None" if attr is None else attr
 
-                    if "hdf5_attrs" in field.metadata:
-                        hdf5_attrs = field.metadata["hdf5_attrs"]
-                    else:
-                        hdf5_attrs = field.metadata["hdf5_attrs_func"](self)
+                if "hdf5_attrs" in field.metadata:
+                    hdf5_attrs = field.metadata["hdf5_attrs"]
+                else:
+                    hdf5_attrs = field.metadata["hdf5_attrs_func"](self)
 
-                    nisarqa.create_dataset_in_h5group(
-                        h5_file=h5_file,
-                        grp_path=hdf5_attrs.group_path % band,
-                        ds_name=hdf5_attrs.name,
-                        ds_data=val,
-                        ds_units=hdf5_attrs.units,
-                        ds_description=hdf5_attrs.descr,
-                    )
+                nisarqa.create_dataset_in_h5group(
+                    h5_file=h5_file,
+                    grp_path=hdf5_attrs.group_path % band,
+                    ds_name=hdf5_attrs.name,
+                    ds_data=val,
+                    ds_units=hdf5_attrs.units,
+                    ds_description=hdf5_attrs.descr,
+                )
 
-                    found_at_least_one_hdf5_attr = True
+                found_at_least_one_hdf5_attr = True
 
         if not found_at_least_one_hdf5_attr:
             # No attributes in this class were added to stats.h5.
@@ -716,7 +714,7 @@ class RootParamGroup(ABC):
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
 
-    def save_params_to_stats_h5(self, h5_file, bands="LSAR"):
+    def save_params_to_stats_h5(self, h5_file, band):
         """Update the provided HDF5 file handle with select attributes
         (parameters) of this instance of *RootParams.
 
@@ -725,9 +723,8 @@ class RootParamGroup(ABC):
         h5_file : h5py.File
             Handle to an h5 file where the parameter metadata
             should be saved
-        bands : iterable of str, optional
-            Sequence of the band names. Ex: ('SSAR', 'LSAR')
-            Defaults to ('LSAR')
+        band : str
+            The letter of the band. Ex: "L" or "S".
         """
         for params_obj in fields(self):
             po = getattr(self, params_obj.name)
@@ -735,7 +732,7 @@ class RootParamGroup(ABC):
             # will be None, so there will be no params to add to the h5 file
             if po is not None:
                 if issubclass(type(po), HDF5ParamGroup):
-                    po.write_params_to_h5(h5_file, bands=bands)
+                    po.write_params_to_h5(h5_file, band=band)
 
     def log_parameters(self):
         """

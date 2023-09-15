@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import Iterable, Optional
+from typing import Optional
 
 import h5py
 import isce3
@@ -26,6 +26,7 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
     """
     Get path to the occurrence of `dataset_to_find` nearest to `starting_path`.
+
     Walking up each parent directory from right to left, this function
     searches each parent directory in `starting_path` (non-recursive)
     to find the first occurrence of `dataset_to_find`, and then returns
@@ -35,6 +36,7 @@ def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
     in multiple groups, and the goal of this function
     is to find the occurrence of `dataset_to_find` that is in closest
     proximity to the dataset located at `starting_path`.
+
     Parameters
     ----------
     h5_file : h5py.File
@@ -45,14 +47,17 @@ def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
         occurrence of `dataset_to_find`.
     dataset_to_find : str
         Name of the dataset to locate in `h5_file`.
+
     Returns
     -------
     path : str or None
         Path inside `h5_file` to the requested `dataset_to_find`.
+
     Raises
     ------
     nisarqa.DatasetNotFoundError
         If `dataset_to_find` is not found.
+
     Examples
     --------
     # Example setup, using an InSAR product
@@ -104,12 +109,14 @@ def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
 def _get_paths_in_h5(h5_file: h5py.File, name: str) -> tuple[str]:
     """
     Return the path(s) to the `name` group or dataset in the input file.
+
     Parameters
     ----------
     h5_file : h5py.File, h5py.Group
         Handle to HDF5 input file or group to be searched.
     name : str
         Name of a h5py.Dataset or h5py.Group to be located.
+
     Returns
     -------
     paths : tuple of str
@@ -146,6 +153,7 @@ def _hdf5_byte_string_to_str(h5_str: np.ndarray) -> str:
 class NisarProduct(ABC):
     """
     Base class for NISAR product readers.
+
     Parameters
     ----------
     filepath : str, os.Pathlike
@@ -177,13 +185,16 @@ class NisarProduct(ABC):
     def identification_path(self) -> str:
         """
         Return the path to the identification group in the input file.
+
         Only returns the first occurence of an h5py.Group or h5py.Dataset named
         "identification. If there are multiple occurances of "identification"
         in the input file, it is unspecified which will be returned.
+
         Returns
         -------
         id_group : str
             The path to the identification group in the input file.
+
         Raises
         ------
         nisarqa.InvalidNISARProductError
@@ -204,6 +215,7 @@ class NisarProduct(ABC):
     def product_spec_version(self) -> str:
         """
         Return the product specification version.
+
         Returns
         -------
         spec_version : str
@@ -234,17 +246,20 @@ class NisarProduct(ABC):
     def _data_root(self) -> str:
         """
         Get the path to the group which is the root for the science datasets.
+
         In products up to and including the R3.4 delivery (which used product
         spec 0.X.X), this will be something like "/science/LSAR/RSLC".
         In subsequent deliveries, that path will likely be removed, and the
         science datasets will begin at the root level. In that case, the
         empty string "" should be returned.
+
         Returns
         -------
         root : str
             Path to the directory where the product data is stored.
                 Standard Format: "/science/<band>/<product_type>
                 Example: "/science/LSAR/RSLC"
+
         Notes
         -----
         Sometime after Sept. 2023, it is possible that this path will be
@@ -280,7 +295,9 @@ class NisarProduct(ABC):
     def band(self) -> str:
         """
         Get the frequency-band ("L" or "S") of the input file.
+
         Assumption by QA SAS: each input product contains only one band.
+
         Returns
         -------
         band : str
@@ -319,6 +336,7 @@ class NisarProduct(ABC):
     def freqs(self) -> tuple[str]:
         """
         The available frequencies in the input file.
+
         Note: "frequency" in this context is different than the typical
         meaning of e.g. "L-band" or "S-band" frequencies.
         In QA SAS, the convention is for e.g. L band or S band
@@ -330,11 +348,13 @@ class NisarProduct(ABC):
         (meaning that two frequencies of data can be collected within a single
         band), hence the reason for this distinction. For NISAR, these
         are referred to as "Frequency A" and "Freqency B".
+
         Returns
         -------
         found_freqs : tuple of str
             The available frequencies in the input file. Will be a subset of
             ("A", "B").
+
         Raises
         ------
         ValueError
@@ -361,14 +381,17 @@ class NisarProduct(ABC):
     def get_freq_path(self, freq: str) -> str:
         """
         Return the path inside the input file to the specified frequency group.
+
         Parameters
         ----------
         freq : str
             Must be either "A" or "B".
+
         Returns
         -------
         path : str
             Path inside the input file to the requested frequency group.
+
         Raises
         ------
         nisarqa.DatasetNotFoundError
@@ -394,6 +417,7 @@ class NisarProduct(ABC):
     def science_freq(self) -> str:
         """
         The science frequency (primary frequency) of the input product.
+
         Returns
         -------
         freq : str
@@ -404,6 +428,7 @@ class NisarProduct(ABC):
     def _check_product_type(self) -> None:
         """
         Sanity check for `self.product_type`.
+
         Ensures that `self.product_type` returns a value
         that matches the `identification > productType` dataset in the
         input file.
@@ -443,10 +468,12 @@ class NisarProduct(ABC):
     def _grid_path(self) -> str:
         """
         Return the path to the grid group.
+
         For range Doppler products, this should be e.g.:
             '/science/LSAR/RIFG/swaths'
         For geocoded products, this should be e.g.:
             '/science/LSAR/RIFG/grids'
+
         Notes
         -----
         A common implementation for this would be e.g.:
@@ -460,6 +487,7 @@ class NisarProduct(ABC):
     ) -> nisarqa.RadarRaster | nisarqa.GeoRaster:
         """
         Generate a *Raster for the raster at `raster_path`.
+
         Parameters
         ----------
         h5_file : h5py.File
@@ -469,10 +497,12 @@ class NisarProduct(ABC):
             Examples:
                 "/science/LSAR/RSLC/swaths/frequencyA/HH"
                 "/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
+
         Returns
         -------
         raster : nisarqa.RadarRaster | nisarqa.GeoRaster
             *Raster of the given dataset.
+
         Raises
         ------
         DatasetNotFoundError
@@ -485,10 +515,6 @@ class NisarProduct(ABC):
 
 @dataclass
 class NisarRadarProduct(NisarProduct):
-    # @property
-    # def raster_cls(self) -> object:
-    #     return nisarqa.RadarRaster
-
     @property
     def is_geocoded(self) -> bool:
         return False
@@ -518,10 +544,12 @@ class NisarRadarProduct(NisarProduct):
     ) -> isce3.ext.isce3.core.radarGrid:  # TODO: correct type?
         """
         Return the ISCE3 radarGrid object for this input file.
+
         Parameters
         ----------
         freq : str
             Must be either "A" or "B".
+
         Returns
         -------
         grid : isce3.ext.isce3.core.radarGrid
@@ -550,6 +578,7 @@ class NisarRadarProduct(NisarProduct):
     def _get_raster_name(self, raster_path: str) -> str:
         """
         Get the name for the raster, e.g. 'RSLC_LSAR_A_HH'.
+
         Parameters
         ----------
         raster_path : str
@@ -557,6 +586,7 @@ class NisarRadarProduct(NisarProduct):
             Examples:
                 "/science/LSAR/GSLC/grids/frequencyA/HH"
                 "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
+
         Returns
         -------
         name : str
@@ -572,10 +602,12 @@ class NisarRadarProduct(NisarProduct):
     ) -> nisarqa.RadarRaster:
         """
         Generate a RadarRaster for the raster at `raster_path`.
+
         NISAR product type must be one of: 'RSLC', 'SLC', 'RIFG', 'RUNW', 'ROFF'
         If the product type is 'RSLC' or 'SLC', then the image dataset
         will be stored as a ComplexFloat16Decoder instance; this will allow
         significantly faster access to the data.
+
         Parameters
         ----------
         h5_file : h5py.File
@@ -585,16 +617,19 @@ class NisarRadarProduct(NisarProduct):
             Examples:
                 "/science/LSAR/RSLC/swaths/frequencyA/HH"
                 "/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
+
         Returns
         -------
         raster : nisarqa.RadarRaster
             RadarRaster of the given dataset.
+
         Raises
         ------
         DatasetNotFoundError
             If the file does not contain a raster dataset at `raster_path`,
             or if any of the corresponding metadata for that raster are
             not located.
+
         Notes
         -----
         The `name` attribute will be populated per `self.get_name()`.
@@ -705,10 +740,12 @@ class NisarRadarProduct(NisarProduct):
     ) -> h5py.Dataset:
         """
         Return a handle to the requested dataset.
+
         When implemented, it is recommended that validation checks on the
         dataset's dtype, etc. are performed before returning the handle.
         This function is a useful abstraction in case we need to e.g. use
         ComplexFloat16DataDecoder to access RSLC data.
+
         Parameters
         ----------
         h5_file : h5py.File
@@ -718,6 +755,7 @@ class NisarRadarProduct(NisarProduct):
             Examples:
                 "/science/LSAR/RSLC/swaths/frequencyA/HH"
                 "/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
+
         Returns
         -------
         dataset : h5py.Dataset
@@ -757,6 +795,7 @@ class NisarGeoProduct(NisarProduct):
     def browse_x_range(self) -> tuple(float, float):
         """
         Get the x range coordinates for the browse image.
+
         Returns
         -------
         x_range : tuple of float
@@ -770,6 +809,7 @@ class NisarGeoProduct(NisarProduct):
     def browse_y_range(self) -> tuple(float, float):
         """
         Get the y range coordinates for the browse image.
+
         Returns
         -------
         y_range : tuple of float
@@ -783,6 +823,7 @@ class NisarGeoProduct(NisarProduct):
     def _get_raster_name(self, raster_path: str) -> str:
         """
         Return a name for the raster, e.g. 'RSLC_LSAR_A_HH'.
+
         Parameters
         ----------
         raster_path : str
@@ -790,6 +831,7 @@ class NisarGeoProduct(NisarProduct):
             Examples:
                 "/science/LSAR/GSLC/grids/frequencyA/HH"
                 "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
+
         Returns
         -------
         name : str
@@ -803,7 +845,9 @@ class NisarGeoProduct(NisarProduct):
     ) -> nisarqa.GeoRaster:
         """
         Get the GeoRaster for the raster at `raster_path`.
+
         NISAR product type must be one of: 'GSLC', 'GCOV', 'GUNW', 'GOFF'.
+
         Parameters
         ----------
         h5_file : h5py.File
@@ -813,16 +857,19 @@ class NisarGeoProduct(NisarProduct):
             Examples:
                 "/science/LSAR/GSLC/grids/frequencyA/HH"
                 "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
+
         Returns
         -------
         raster : nisarqa.GeoRaster
             GeoRaster of the given dataset.
+
         Raises
         ------
         DatasetNotFoundError
             If the file does not contain a raster dataset at `raster_path`,
             or if any of the corresponding metadata for that raster are
             not located.
+
         Notes
         -----
         The `name` attribute will be populated per `self.get_name()`.
@@ -905,9 +952,11 @@ class NisarGeoProduct(NisarProduct):
     ) -> h5py.Dataset:
         """
         Return a handle to the requested dataset.
+
         It is recommended that the implementation perform validation
         checks on the dataset's dtype, etc. before returning the handle.
         For example, RSLC might need to use ComplexFloat16Decoder.
+
         Parameters
         ----------
         h5_file : h5py.File
@@ -917,6 +966,7 @@ class NisarGeoProduct(NisarProduct):
             Examples:
                 "/science/LSAR/RSLC/grids/frequencyA/HH"
                 "/science/LSAR/RIFG/grids/frequencyA/wrappedInterferogram/HH/wrappedInterferogram"
+
         Returns
         -------
         dataset : h5py.Dataset
@@ -933,6 +983,7 @@ class NonInsarProduct(NisarProduct):
     def get_layers_for_browse(self) -> dict:
         """
         Determine which polarization layers to use to generate the browse image.
+
         Returns
         -------
         layers_for_browse : dict
@@ -948,9 +999,11 @@ class NonInsarProduct(NisarProduct):
     def save_browse(self, pol_imgs: dict[np.ndarray], filepath: str) -> None:
         """
         Save given polarization images to a RGB or Grayscale PNG.
+
         Dimensions of the output PNG (in pixels) will be the same as the
         dimensions of the input polarization image array(s). (No scaling will
         occur.) Non-finite values will be made transparent.
+
         Parameters
         ----------
         pol_imgs : dict of numpy.ndarray
@@ -964,6 +1017,7 @@ class NonInsarProduct(NisarProduct):
                 pol_imgs['VVVV'] : <2D numpy.ndarray image>
         filepath : str
             Full filepath for where to save the browse image PNG.
+
         Notes
         -----
         Provided image array(s) must previously be image-corrected. This
@@ -992,6 +1046,7 @@ class NonInsarProduct(NisarProduct):
     ) -> None:
         """
         Annotate and save a Backscatter Image to `report_pdf`.
+
         Parameters
         ----------
         img_arr : numpy.ndarray
@@ -1026,6 +1081,7 @@ class NonInsarProduct(NisarProduct):
     def get_raster(self, freq: str, pol: str) -> contextmanager:
         """
         Context Manager for a RadarRaster or GeoRaster for the specified raster.
+
         Parameters
         ----------
         freq : str
@@ -1034,12 +1090,14 @@ class NonInsarProduct(NisarProduct):
             The desired polarization.
               For RSLC and GSLC, use e.g. "HH", "HV",
               For GCOV, use e.g. "HHVV"
+
         Returns
         -------
         raster : contextlib.contextmanager
             Context manager to the requested SARRaster dataset.
             Warning: the input NISAR file cannot be opened by ISCE3 until
             this context manager is exited.
+
         Raises
         ------
         DatasetNotFoundError
@@ -1073,12 +1131,14 @@ class NonInsarProduct(NisarProduct):
     def _get_raster_name(self, raster_path: str) -> str:
         """
         Return a name for the raster, e.g. 'RSLC_LSAR_A_HH'.
+
         Parameters
         ----------
         raster_path : str
             Full path in `h5_file` to the desired raster dataset.
             Example:
                 "/science/LSAR/GSLC/grids/frequencyA/HH"
+
         Returns
         -------
         name : str
@@ -1086,7 +1146,6 @@ class NonInsarProduct(NisarProduct):
             Example:
                 "GSLC_L_A_HH"
         """
-        pass
         freq = "A" if ("frequencyA" in raster_path) else "B"
         pol = raster_path.split("/")[-1]
         name = f"{self.product_type}_{self.band}_{freq}_{pol}"
@@ -1097,10 +1156,12 @@ class NonInsarProduct(NisarProduct):
     def _layers(self) -> dict:
         """
         Locate available bands, frequencies, and polarizations in input file.
+
         Parameters
         ----------
         h5_file : h5py.File
             Handle to the input product h5 file.
+
         Returns
         -------
         layers : nested dict of *Raster
@@ -1141,10 +1202,12 @@ class NonInsarProduct(NisarProduct):
     def get_pols(self, freq: str) -> tuple[str]:
         """
         Get a list of the available polarizations for frequency `freq`.
+
         Parameters
         ----------
         freq : str
             One of the frequencies in `self.freqs`.
+
         Returns
         -------
         pols : Iterable of str
@@ -1165,12 +1228,14 @@ class SLC(NonInsarProduct):
     def get_layers_for_browse(self) -> dict:
         """
         Assign polarizations to grayscale or RGBA channels for the Browse Image.
+
         See `Notes` for details on  possible NISAR modes and assigned channels
         for LSAR band.
         SSAR is currently only minimally supported, so only a grayscale image
         will be created. Prioritization order to select the freq/pol to use:
             For frequency: Freq A then Freq B.
             For polarization: 'HH', then 'VV', then first polarization found.
+
         Returns
         -------
         layers_for_browse : dict
@@ -1185,6 +1250,7 @@ class SLC(NonInsarProduct):
                                             List of the Freq B polarizations
                                             required to create the browse image.
                                             A subset of ['HH','VV']
+
         Notes
         -----
         Possible modes for L-Band, as of Feb 2023:
@@ -1340,6 +1406,7 @@ class SLC(NonInsarProduct):
     def save_browse(pol_imgs, filepath):
         """
         Save images in `pol_imgs` to a RGB or Grayscale PNG with transparency.
+
         Dimensions of the output PNG (in pixels) will be the same as the
         dimensions of the input polarization image array(s). (No scaling will
         occur.) Non-finite values will be made transparent.
@@ -1363,6 +1430,7 @@ class SLC(NonInsarProduct):
                 green = 'VH'
                 blue = 'VV'
             Otherwise, one image in `pol_imgs` will be output as grayscale.
+
         Parameters
         ----------
         pol_imgs : dict of numpy.ndarray
@@ -1378,6 +1446,7 @@ class SLC(NonInsarProduct):
                 pol_imgs['VV'] : <2D numpy.ndarray image>
         filepath : str
             Full filepath for where to save the browse image PNG.
+
         Notes
         -----
         Provided image array(s) must previously be image-corrected. This
@@ -1458,6 +1527,7 @@ class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
     ) -> None:
         """
         Annotate and save a Geocoded Backscatter Image to `report_pdf`.
+
         Parameters
         ----------
         img_arr : numpy.ndarray
@@ -1602,6 +1672,7 @@ class RSLC(SLC, NisarRadarProduct):
     ) -> None:
         """
         Annotate and save a RSLC Backscatter Image to `report_pdf`.
+
         Parameters
         ----------
         img_arr : numpy.ndarray
@@ -1732,6 +1803,7 @@ class GCOV(NonInsarGeoProduct):
     def get_layers_for_browse(self) -> dict:
         """
         Assign polarizations to grayscale or RGBA channels for the Browse Image.
+
         Only on-diagonal terms will be used to create the browse image.
         See `Notes` for details on the possible NISAR modes and assigned
         channels for LSAR band.
@@ -1739,6 +1811,7 @@ class GCOV(NonInsarGeoProduct):
         will be created. Prioritization order to select the freq/pol to use:
             For frequency: Freq A then Freq B.
             For polarization: 'HHHH', then 'VVVV', then first pol found.
+
         Returns
         -------
         layers_for_browse : dict
@@ -1755,6 +1828,7 @@ class GCOV(NonInsarGeoProduct):
                                          List of the Freq B polarizations
                                          required to create the browse image.
                                          Warning: Only on-diag terms supported.
+
         See Also
         --------
         save_browse : Assigns color channels and generates the browse PNG.
@@ -1883,6 +1957,7 @@ class GCOV(NonInsarGeoProduct):
     def save_browse(pol_imgs, filepath):
         """
         Save the given polarization images to a RGB or Grayscale PNG.
+
         Dimensions of the output PNG (in pixels) will be the same as the
         dimensions of the input polarization image array(s). (No scaling will
         occur.) Non-finite values will be made transparent.
@@ -1896,6 +1971,7 @@ class GCOV(NonInsarGeoProduct):
                     Blue: HHHH
                 else:
                     Blue: first co-pol of the list [VVVV, HHHH]
+
         Parameters
         ----------
         pol_imgs : dict of numpy.ndarray
@@ -1912,9 +1988,11 @@ class GCOV(NonInsarGeoProduct):
                 pol_imgs['VVVV'] : <2D numpy.ndarray image>
         filepath : str
             Full filepath for where to save the browse image PNG.
+
         See Also
         --------
         select_layers_for_browse : Function to select the layers.
+
         Notes
         -----
         Provided image array(s) must previously be image-corrected. This

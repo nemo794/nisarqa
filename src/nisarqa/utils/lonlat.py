@@ -16,6 +16,7 @@ objects_to_skip = nisarqa.get_all(__name__)
 class LonLat:
     """
     A point in Lon/Lat space.
+
     Attributes
     ----------
     lon, lat : float
@@ -30,6 +31,7 @@ class LonLat:
 class LatLonQuad:
     """
     A quadrilateral defined by four Lon/Lat corner points.
+
     This class represents a KML gx:LatLonQuad, as described in
     https://developers.google.com/kml/documentation/kmlreference#gx:latlonquad
     The corners are provided as follows:
@@ -42,6 +44,7 @@ class LatLonQuad:
     the "upper-left" coordinate of a radar image is not necessarily the
     upper-left in lon/lat space, but in the un-geocoded radar image. This is
     done to provide the proper orientation of the overlay image.
+
     Attributes
     ----------
     ul, ur, ll, lr : LonLat
@@ -60,12 +63,15 @@ def get_latlonquad(
     """
     Create a LatLonQuad for the corners of the input product,
     by geocoding the corners of the radar grid.
+
     Currently only implemented for RSLC files, will need to support
     other types of radar products and geocoded products.
+
     Parameters
     ----------
     product : nisarqa.NisarRadarProduct or nisarqa.NisarGeoProduct
         The input product
+
     Returns
     -------
     llq : LatLonQuad
@@ -73,7 +79,6 @@ def get_latlonquad(
         Frequency A images in `input_file`. (If Frequency A is not available,
         then Frequency B images will be used.)
     """
-
     if product.is_geocoded:
         epsg = product.epsg
         proj = isce3.core.make_projection(epsg)
@@ -124,6 +129,7 @@ def write_latlonquad_to_kml(
     """
     Generate a KML file containing geolocation info of the corresponding
     browse image.
+
     Parameters
     ----------
     llq : LatLonQuad

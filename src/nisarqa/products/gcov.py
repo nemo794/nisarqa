@@ -1,6 +1,5 @@
 import os
 import warnings
-from dataclasses import fields
 
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
@@ -16,6 +15,7 @@ def verify_gcov(user_rncfg):
     """
     Verify an GCOV product based on the input file, parameters, etc.
     specified in the input runconfig file.
+
     This is the main function for running the entire QA workflow for this
     product. It will run based on the options supplied in the
     input runconfig file.
@@ -23,6 +23,7 @@ def verify_gcov(user_rncfg):
     for this product. Run the command line command:
             nisar_qa dumpconfig <product name>
     to generate an example template with default parameters for this product.
+
     Parameters
     ----------
     user_rncfg : dict
@@ -126,7 +127,7 @@ def verify_gcov(user_rncfg):
         ) as report_pdf:
             # Save the processing parameters to the stats.h5 file
             root_params.save_params_to_stats_h5(
-                h5_file=stats_h5, bands=(product.band,)
+                h5_file=stats_h5, band=product.band
             )
             print(f"QA Processing Parameters saved to {stats_file}")
 

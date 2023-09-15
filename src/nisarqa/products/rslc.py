@@ -19,11 +19,13 @@ def verify_rslc(user_rncfg):
     """
     Verify an RSLC product based on the input file, parameters, etc.
     specified in the input runconfig file.
+
     This is the main function for running the entire QA workflow. It will
     run based on the options supplied in the input runconfig file.
     The input runconfig file must follow the standard RSLC QA runconfig
     format. Run the command line command 'nisar_qa dumpconfig rslc'
     for an example template with default parameters (where available).
+
     Parameters
     ----------
     user_rncfg : dict
@@ -108,7 +110,7 @@ def verify_rslc(user_rncfg):
             # Note: If only the validate workflow is requested,
             # this will do nothing.
             root_params.save_params_to_stats_h5(
-                h5_file=stats_h5, bands=(product.band,)
+                h5_file=stats_h5, band=product.band
             )
             print(f"QA Processing Parameters saved to {stats_file}")
 
@@ -240,6 +242,7 @@ def copy_identification_group_to_stats_h5(
     """
     Copy the identification group from the input NISAR file
     to the STATS.h5 file.
+
     Parameters
     ----------
     product : nisarqa.NisarProduct
@@ -271,6 +274,7 @@ def save_nisar_freq_metadata_to_h5(
     """
     Populate the `stats_h5` HDF5 file with a list of each available
     frequency's polarizations.
+
     If `pols` contains values for Frequency A, then this dataset will
     be created in `stats_h5`:
         /science/<band>/QA/data/frequencyA/listOfPolarizations
@@ -280,6 +284,7 @@ def save_nisar_freq_metadata_to_h5(
     * Note: The paths are pulled from the global nisarqa.STATS_H5_QA_FREQ_GROUP.
     If the value of that global changes, then the path for the
     `listOfPolarizations` dataset(s) will change accordingly.
+
     Parameters
     ----------
     product : nisarqa.NisarProduct
@@ -287,7 +292,6 @@ def save_nisar_freq_metadata_to_h5(
     stats_h5 : h5py.File
         Handle to an h5 file where the list(s) of polarizations should be saved
     """
-
     # Populate data group's metadata
     for freq in product.freqs:
         list_of_pols = product.get_pols(freq=freq)
@@ -320,6 +324,7 @@ def process_backscatter_imgs_and_browse(
     """
     Generate Backscatter Image plots for the `report_pdf` and
     corresponding browse image product.
+
     Parameters
     ----------
     product : nisarqa.NonInsarProduct
@@ -934,6 +939,7 @@ def img2pdf_grayscale(
 ):
     """
     Plot the image array in grayscale, add a colorbar, and append to the pdf.
+
     Parameters
     ----------
     img_arr : array_like
@@ -1010,6 +1016,7 @@ def format_axes_ticks_and_labels(
 ):
     """
     Plot the image array in grayscale, add a colorbar, and append to the pdf.
+
     Parameters
     ----------
     ax : matplotlib.Axes
@@ -1074,11 +1081,13 @@ def process_backscatter_and_phase_histograms(
     """
     Generate the Backscatter and Phase Histograms and save their plots
     to the graphical summary .pdf file.
+
     Backscatter histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians,
     configurable to be computed in degrees by setting
     `params.phs_in_radians` to False.
     NaN values will be excluded from Histograms.
+
     Parameters
     ----------
     product : nisarqa.NonInsarProduct
@@ -1139,10 +1148,12 @@ def generate_backscatter_image_histogram_single_freq(
 ) -> None:
     """
     Generate Backscatter Image Histogram for a single frequency.
+
     The histogram's plot will be appended to the graphical
     summary file `report_pdf`, and its data will be
     stored in the statistics .h5 file `stats_h5`.
     Backscatter histogram will be computed in decibel units.
+
     Parameters
     ----------
     product : nisarqa.NonInsarProduct
@@ -1268,6 +1279,7 @@ def generate_phase_histogram_single_freq(
 ) -> None:
     """
     Generate Phase Histograms for a single frequency.
+
     The histograms' plots will be appended to the graphical
     summary file `report_pdf`, and their data will be
     stored in the statistics .h5 file `stats_h5`.
@@ -1276,6 +1288,7 @@ def generate_phase_histogram_single_freq(
     NOTE: Only if the dtype of a polarization raster is complex-valued
     (e.g. complex32) will it be included in the Phase histogram(s).
     NaN values will be excluded from the histograms.
+
     Parameters
     ----------
     product : nisarqa.NonInsarProduct

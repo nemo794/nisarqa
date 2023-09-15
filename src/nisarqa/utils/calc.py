@@ -117,6 +117,7 @@ def counts2density(counts, bins):
 def normalize(arr, min_max=None):
     """
     Normalize input array to range [0,1], ignoring any NaN values.
+
     Parameters
     ----------
     arr : Arraylike
