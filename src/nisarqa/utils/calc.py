@@ -1,5 +1,6 @@
-import nisarqa
 import numpy as np
+
+import nisarqa
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -113,12 +114,30 @@ def counts2density(counts, bins):
     return density
 
 
-def normalize(arr):
-    """Normalize input array to range [0,1], ignoring
-    any NaN values.
+def normalize(arr, min_max=None):
     """
-    arr_min = np.nanmin(arr)
-    arr_max = np.nanmax(arr)
+    Normalize input array to range [0,1], ignoring any NaN values.
+    Parameters
+    ----------
+    arr : Arraylike
+        Input array to be normalized
+    min_max : pair of numeric or None, optional
+        Defaults to None, which means that `arr`'s min and max will be
+        computed and used for normalization. (This is most common.)
+        If provided, the normalization computation will use `min_max` as
+        the range which determines the scaling to [0,1].
+        Format: [<minimum>, <maximum>]
+    """
+    if min_max is None:
+        arr_min = np.nanmin(arr)
+        arr_max = np.nanmax(arr)
+    else:
+        if min_max[0] >= min_max[1]:
+            raise ValueError(
+                f"{min_max=}, but min_max[0] must be less than min_max[1]"
+            )
+        arr_min = min_max[0]
+        arr_max = min_max[1]
 
     return (arr - arr_min) / (arr_max - arr_min)
 

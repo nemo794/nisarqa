@@ -1,71 +1,71 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-import isce3
-import nisar
-import nisarqa
-import numpy as np
 import os
 import textwrap
-import warnings
+from dataclasses import dataclass
+
+import isce3
+import numpy as np
+
+import nisarqa
+
+objects_to_skip = nisarqa.get_all(__name__)
+
 
 @dataclass
 class LonLat:
     """
     A point in Lon/Lat space.
-
     Attributes
     ----------
     lon, lat : float
         The geodetic longitude and latitude, in radians.
     """
+
     lon: float
     lat: float
+
 
 @dataclass
 class LatLonQuad:
     """
     A quadrilateral defined by four Lon/Lat corner points.
-
     This class represents a KML gx:LatLonQuad, as described in
     https://developers.google.com/kml/documentation/kmlreference#gx:latlonquad
-
     The corners are provided as follows:
         * ul - upper-left
         * ur - upper-right
         * ll - lower-left
         * lr - lower-right
-
     Note that "upper", "lower", "left" and "right" are given from the image's
     native perspective prior to transformation to lon/lat coordinates, so e.g.
     the "upper-left" coordinate of a radar image is not necessarily the
     upper-left in lon/lat space, but in the un-geocoded radar image. This is
     done to provide the proper orientation of the overlay image.
-
     Attributes
     ----------
     ul, ur, ll, lr : LonLat
         The upper-left, upper-right, lower-left, and lower-right corners.
     """
+
     ul: LonLat
     ur: LonLat
     ll: LonLat
     lr: LonLat
 
 
-def get_latlonquad(input_file: str | os.PathLike[str]) -> LatLonQuad:
+def get_latlonquad(
+    product: nisarqa.RadarProduct | nisarqa.GeoProduct,
+) -> LatLonQuad:
     """
     Create a LatLonQuad for the corners of the input product,
     by geocoding the corners of the radar grid.
-
     Currently only implemented for RSLC files, will need to support
     other types of radar products and geocoded products.
-
     Parameters
     ----------
-    input_file : path-like
-        The path to the input RSLC product
-
+    product : nisarqa.NisarRadarProduct or nisarqa.NisarGeoProduct
+        The input product
     Returns
     -------
     llq : LatLonQuad
@@ -73,52 +73,22 @@ def get_latlonquad(input_file: str | os.PathLike[str]) -> LatLonQuad:
         Frequency A images in `input_file`. (If Frequency A is not available,
         then Frequency B images will be used.)
     """
-    input_file = os.fspath(input_file)
-    product = nisar.products.readers.open_product(input_file)
 
-    identification_path = product.IdentificationPath
-    try:
-        with nisarqa.open_h5_file(input_file, mode="r") as in_file:
-            is_geocoded = in_file[identification_path]["isGeocoded"][()] == b"True"
-    except KeyError:
-        # Older products don't have an isGeocoded field.
-        # Fall back to checking the productType.
-        msg = (
-            "Input product's identification group does not contain `isGeocoded`."
-            f" Will use first letter of `productType` ({product.productType})"
-            " to determine if geocoded."
-        )
-        warnings.warn(msg, RuntimeWarning)
-        is_geocoded = product.productType.startswith("G")
-
-    freq = "A" if ("A" in product.frequencies) else "B"
-
-    if is_geocoded:
-        freq_path = f"{product.GridPath}/frequency{freq}"
-        with nisarqa.open_h5_file(input_file, mode="r") as in_file:
-            xcoords = in_file[freq_path]["xCoordinates"][()]
-            ycoords = in_file[freq_path]["yCoordinates"][()]
-            epsg = in_file[freq_path]["projection"][()]
-            # Coordinates point to beginning of pixel,
-            # so add pixel spacing to span entire range
-            xspacing = in_file[freq_path]["xCoordinateSpacing"][()]
-            yspacing = in_file[freq_path]["yCoordinateSpacing"][()]
-            xrange = (xcoords[0], xcoords[-1] + xspacing)
-            yrange = (ycoords[0], ycoords[-1] + yspacing)
-
+    if product.is_geocoded:
+        epsg = product.epsg
         proj = isce3.core.make_projection(epsg)
 
         geo_corners = ()
-        for y in yrange:
-            for x in xrange:
+        for y in product.browse_y_range:
+            for x in product.browse_x_range:
                 # Use a dummy height value in computing the inverse projection.
                 # isce3 projections are always 2-D transformations -- the height
                 # has no effect on lon/lat
                 lon, lat, _ = proj.inverse([x, y, 0])
                 geo_corners += (LonLat(lon, lat),)
     else:
-        orbit = product.getOrbit()
-        radar_grid = product.getRadarGrid(freq)
+        orbit = product.orbit
+        radar_grid = product.radar_grid(freq=product.science_freq)
 
         image_grid_doppler = 0.0  # assume zero-doppler for NISAR
         ellipsoid = isce3.core.Ellipsoid()  # assume WGS84 for NISAR
@@ -154,7 +124,6 @@ def write_latlonquad_to_kml(
     """
     Generate a KML file containing geolocation info of the corresponding
     browse image.
-
     Parameters
     ----------
     llq : LatLonQuad
@@ -181,8 +150,7 @@ def write_latlonquad_to_kml(
     # The coordinates are specified in counter-clockwise order with the first
     # point corresponding to the lower-left corner of the overlayed image.
     # (https://developers.google.com/kml/documentation/kmlreference#gx:latlonquad)
-    kml_file = textwrap.dedent(
-        f"""
+    kml_file = textwrap.dedent(f"""
         <?xml version="1.0" encoding="UTF-8"?>
         <kml xmlns:gx="http://www.google.com/kml/ext/2.2">
           <Document>
@@ -198,7 +166,9 @@ def write_latlonquad_to_kml(
             </GroundOverlay>
           </Document>
         </kml>
-        """
-    ).strip()
+        """).strip()
     with open(os.path.join(output_dir, kml_filename), "w") as f:
         f.write(kml_file)
+
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)

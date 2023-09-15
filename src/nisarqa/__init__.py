@@ -114,6 +114,7 @@ from .parameters.nisar_params import *
 from .parameters.rslc_caltools_params import *
 from .parameters.gslc_params import *
 from .parameters.gcov_params import *
+from .products.product_reader import *
 
 # keep individual products in their own namespace
 from .products import (

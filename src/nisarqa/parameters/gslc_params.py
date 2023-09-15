@@ -36,7 +36,7 @@ class GSLCRootParamGroup(RootParamGroup):
         Product Path Group parameters for QA
     backscatter_img : BackscatterImageParamGroup or None, optional
         Backscatter Image Group parameters for SLC QA
-    histogram : SLCHistogramParamGroup or None, optional
+    histogram : HistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     """
 

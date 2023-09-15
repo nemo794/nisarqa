@@ -12,34 +12,32 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def open_h5_file(in_file, mode="r"):
     """
     Open or create a handle for a h5 file.
-
     Parameters
     ----------
     in_file : str
         Filepath to an HDF5 file.
     mode : char
-        The mode to open the input file.
-        'r'         - Readonly, file must exist (default)
-        'r+'        - Read/write, file must exist
-        'w'         - Create file, truncate if exists
-        'w-' or 'x' - Create file, fail if exists
-        'a'         - Read/write if exists, create otherwise
-
+        The mode to open the input file. Options:
+            'r'         - Readonly, file must exist (default)
+            'r+'        - Read/write, file must exist
+            'w'         - Create file, truncate if exists
+            'w-' or 'x' - Create file, fail if exists
+            'a'         - Read/write if exists, create otherwise
     Returns
     -------
     handle : h5py.File
-        Handle to `filepath` file
+        Handle to `filepath` file.
     """
     try:
         input_file = h5py.File(in_file, mode)
 
     # TODO If file is already open, this error is thrown: BlockingIOError
-    except (FileNotFoundError, IOError) as e:
+    except (FileNotFoundError, IOError):
         print(
             "Could not open file. Add logger and remove this print statement."
         )
         # logger.log_message(logging_base.LogFilterError,
-        #                     'File %s has a Fatal Error(s): %s' % (rslc_file, errors))
+        #             'File %s has a Fatal Error(s): %s' % (rslc_file, errors))
         raise
     else:
         yield input_file
@@ -48,10 +46,7 @@ def open_h5_file(in_file, mode="r"):
 
 
 class DatasetNotFoundError(Exception):
-    """
-    Custom exception name for when a dataset is
-    not found in an e.g. HDF5 file.
-    """
+    """Custom exception for when a dataset is not found in an e.g. HDF5 file."""
 
     def __init__(self):
         super().__init__("Dataset not found.")
@@ -59,8 +54,8 @@ class DatasetNotFoundError(Exception):
 
 class ExitEarly(Exception):
     """
-    Custom exception name for when logic is nominal but the QA-SAS
-    should exit early, such as for when all `workflows` are set to
+    Custom exception for when logic is nominal but the QA-SAS should exit early.
+    This should be used such as for when all `workflows` are set to
     `False` and so no QA processing should be performed.
     """
 
@@ -68,10 +63,7 @@ class ExitEarly(Exception):
 
 
 class InvalidNISARProductError(Exception):
-    """
-    Custom exception name for when an input NISAR product
-    HDF5 file does not match the structure of the product spec.
-    """
+    """Input NISAR HDF5 file does not match the product spec structure."""
 
     pass
 
@@ -79,12 +71,10 @@ class InvalidNISARProductError(Exception):
 def raise_(exc):
     """
     Wrapper to raise an Exception for use in e.g. lambda functions.
-
     Parameters
     ----------
     exc : Exception
         An Exception or a subclass of Exception that can be re-raised.
-
     Examples
     --------
     >>> raise_(Exception('mayday'))
@@ -92,14 +82,12 @@ def raise_(exc):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 2, in raise_
     Exception: mayday
-
     >>> raise_(TypeError('Input has incorrect type'))
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 2, in raise_
     TypeError: Input has incorrect type
     >>> out = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
-
     >>> my_func = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
     >>> my_func(3)
     4
@@ -110,19 +98,16 @@ def raise_(exc):
       File "<stdin>", line 2, in raise_
     Exception: error
     """
-
     raise exc
 
 
 def compute_non_zero_mask(arr, epsilon=1.0e-05):
     """
     Create a mask of the non-zero pixels in the input array.
-
     Elements in the input array that are approximately equal to zero,
     based on the specified tolerance, are masked out.
     TODO - after development of the RSLC QA code is complete,
     check that this function is used. If not, delete.
-
     Parameters
     ----------
     arr : array_like
@@ -130,7 +115,6 @@ def compute_non_zero_mask(arr, epsilon=1.0e-05):
     epsilon : float, optional
         Absolute tolerance for determining if an element in `arr`
         is nearly zero.
-
     Returns
     -------
     mask : Boolean array
@@ -145,17 +129,14 @@ def compute_non_zero_mask(arr, epsilon=1.0e-05):
 def compute_mask_ok(arr, epsilon=1.0e-05):
     """
     Create a mask of the valid (finite, non-zero) pixels in arr.
-
     TODO - after development of the RSLC QA code is complete,
     check that this function is used. If not, delete.
-
     Parameters
     ----------
     arr : array_like
         The input array
     epsilon : float, optional
         Tolerance for if an element in `arr` is considered 'zero'
-
     Returns
     -------
     mask_ok : array_like
@@ -178,7 +159,6 @@ def create_dataset_in_h5group(
 ):
     """
     Add a dataset with attributes to the provided group.
-
     Parameters
     ----------
     h5_file : h5py.File
@@ -196,23 +176,20 @@ def create_dataset_in_h5group(
         Units of `ds_data`; will be stored in a `units` attribute
         for the new Dataset.
         For NISAR datasets, use this convention:
-            - If the values have dimensions, use CF-compliant names (e.g. 'meters')
-            - If the values are numeric but dimensionless (e.g. ratios),
+            - If values have dimensions, use CF-compliant names (e.g. 'meters')
+            - If values are numeric but dimensionless (e.g. ratios),
               set `ds_units` to 'unitless'
-            - If the values are inherently descriptive and have no units
-              (e.g. a file name, or a list of frequency names such as ['A', 'B']),
+            - If values are inherently descriptive and have no units
+              (e.g. a file name, or a list of frequency names like: ['A', 'B']),
               then set `ds_units` to None so that no units attribute
               is created.
         Defaults to None (no units attribute will be created)
     """
-
     grp = h5_file.require_group(grp_path)
 
     ds = grp.create_dataset(ds_name, data=ds_data)
     if ds_units is not None:
-        ds.attrs.create(
-            name="units", data=ds_units, dtype=f"<S{len(ds_units)}"
-        )
+        ds.attrs.create(name="units", data=ds_units, dtype=f"<S{len(ds_units)}")
 
     ds.attrs.create(
         name="description",
@@ -224,14 +201,11 @@ def create_dataset_in_h5group(
 def multi_line_string_iter(multiline_str):
     """
     Iterator for a multi-line string.
-
     Strips leading and trailing whitespace, and returns one line at a time.
-
     Parameters
     ----------
     multiline_str : str
         The string to be iterated over
-
     Yields
     ------
     line : str
@@ -243,8 +217,7 @@ def multi_line_string_iter(multiline_str):
 
 def get_nested_element_in_dict(source_dict, path_to_element):
     """
-    Returns the value of the last key in the `path_to_element`.
-
+    Return the value of the last key in the `path_to_element`.
     Parameters
     ----------
     source_dict : dict
@@ -252,12 +225,10 @@ def get_nested_element_in_dict(source_dict, path_to_element):
     path_to_element : sequence
         Sequence which define a nested path in `source_dict` to
         the desired value.
-
     Returns
     -------
     element : Any
         The value of the final key in the `path_to_element` sequence
-
     Example
     -------
     >>> src = {'a' : 'dog', 'b' : {'cat':'lulu', 'toy':'mouse'}}
@@ -274,51 +245,8 @@ def get_nested_element_in_dict(source_dict, path_to_element):
     return element
 
 
-def get_NISAR_product_type(h5_file):
-    """
-    Returns the product type for the provided NISAR HDF5 product file.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-        File handle to a valid NISAR RSLC hdf5 file.
-        Product name must be located in the h5 file in the path:
-        /science/<band>/<product type> or a ValueError will be raised.
-
-    Returns
-    -------
-    product_type : str
-        One of: 'RSLC', 'SLC', 'GSLC', 'GCOV', 'RIFG', 'RUNW', 'GUNW',
-                'ROFF', or 'GOFF'
-    """
-
-    nisar_products = [p.upper() for p in nisarqa.LIST_OF_NISAR_PRODUCTS]
-    nisar_products.append("SLC")
-
-    for band in h5_file["/science"]:
-        for product in nisar_products:
-            if product in h5_file[f"/science/{band}"]:
-                if product == "SLC":
-                    # TODO - The UAVSAR test datasets were created with
-                    # only the 'SLC' filepath. New NISAR RSLC Products should
-                    # only contain 'RSLC' file paths.
-                    # Once the test datasets have been updated to 'RSLC',
-                    # then remove this warning, and raise a fatal error.
-                    print(
-                        "(FAIL) PASS/FAIL Check: This product uses the "
-                        'deprecated "SLC" group. Update to "RSLC".'
-                    )
-
-                return product
-        else:
-            raise ValueError(
-                "Provided input file does not have a valid"
-                f"NISAR product group under band {band}"
-            )
-
-
 def m2km(m):
-    """Convert meters to kilometers"""
+    """Convert meters to kilometers."""
     return m / 1000.0
 
 

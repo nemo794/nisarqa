@@ -419,7 +419,8 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="validate",
-                descr=_descr % "`validate` workflow to validate the\n"
+                descr=_descr
+                % "`validate` workflow to validate the\n"
                 " input file against its product spec",
             )
         },
@@ -430,7 +431,8 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="qa_reports",
-                descr=_descr % "`qa_reports` workflow to generate a\n"
+                descr=_descr
+                % "`qa_reports` workflow to generate a\n"
                 "PDF report, geolocated browse image, compute statistics\n"
                 "on the input file, etc.",
             )
@@ -461,7 +463,7 @@ class WorkflowsParamGroup(YamlParamGroup):
         # Validate `val`
         if not isinstance(val, bool):
             raise TypeError(
-                f"`{attr_name}` must be of type bool. " f"It is {type(val)}"
+                f"`{attr_name}` must be of type bool. It is {type(val)}"
             )
 
     def at_least_one_wkflw_requested(self):
@@ -664,7 +666,7 @@ class RootParamGroup(ABC):
             ProductPathGroupParamGroup,
             RSLCWorkflowsParamGroup,
             BackscatterImageParamGroup,
-            RSLCHistogramParamGroup,
+            HistogramParamGroup,
             AbsCalParamGroup,
             NESZParamGroup,
             PointTargetAnalyzerParamGroup
@@ -714,7 +716,7 @@ class RootParamGroup(ABC):
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
 
-    def save_params_to_stats_file(self, h5_file, bands=("LSAR")):
+    def save_params_to_stats_h5(self, h5_file, bands="LSAR"):
         """Update the provided HDF5 file handle with select attributes
         (parameters) of this instance of *RootParams.
 
@@ -743,7 +745,8 @@ class RootParamGroup(ABC):
         log via a proper logger.
         """
         print(
-            "QA processing parameters, per runconfig and defaults (runconfig has precedence)"
+            "QA processing parameters, per runconfig and defaults (runconfig"
+            " has precedence)"
         )
 
         # Iterate through each *ParamGroup attribute in the *RootParamGroup
@@ -761,8 +764,8 @@ class RootParamGroup(ABC):
                 )
                 rncfg_grp_path = "/".join(rncfg_grp_path)
                 print(
-                    f"  Final Input Parameters corresponding to Runconfig group: ",
-                    rncfg_grp_path,
+                    "  Final Input Parameters corresponding to Runconfig"
+                    f" group: {rncfg_grp_path}"
                 )
 
                 # Show the final value assigned to the parameter
@@ -771,7 +774,8 @@ class RootParamGroup(ABC):
                     print(f"    {param.name}: {po2}")
             else:
                 print(
-                    f"  Per `workflows`, runconfig group for {root_group_attr.name} not required."
+                    "  Per `workflows`, runconfig group for"
+                    f" {root_group_attr.name} not required."
                 )
 
     def get_output_dir(self) -> Path:

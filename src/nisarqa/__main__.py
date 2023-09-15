@@ -80,13 +80,17 @@ def parse_cli_args():
     )
 
     # create a parser for each *_qa subcommand
-    msg = "Run QA for a NISAR %s with runconfig yaml. Usage: `nisarqa %s_qa <runconfig.yaml>`"
+    msg = (
+        "Run QA for a NISAR %s with runconfig yaml. Usage: `nisarqa %s_qa"
+        " <runconfig.yaml>`"
+    )
     for prod in nisarqa.LIST_OF_NISAR_PRODUCTS:
         parser_qa = sub_parsers.add_parser(
             f"{prod}_qa", help=msg % (prod.upper(), prod.lower())
         )
         parser_qa.add_argument(
-            f"runconfig_yaml", help=f"NISAR {prod.upper()} product runconfig yaml file"
+            f"runconfig_yaml",
+            help=f"NISAR {prod.upper()} product runconfig yaml file",
         )
 
     # parse args
@@ -102,7 +106,7 @@ def dumpconfig(product_type, indent=4):
     Parameters
     ----------
     product_type : str
-        One of: 'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', 'goff'
+        One of: 'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', 'goff'.
     indent : int, optional
         Number of spaces of an indent in the output runconfig yaml.
         Defaults to 4.

@@ -41,7 +41,7 @@ LIST_OF_NISAR_PRODUCTS = [
     "goff",
 ]
 
-NISAR_BANDS = ("LSAR", "SSAR")
+NISAR_BANDS = ("L", "S")
 NISAR_FREQS = ("A", "B")
 
 # As of June 2023, baseline for GCOV NISAR products is to only include
@@ -106,7 +106,7 @@ def get_possible_pols(product_type):
 
 
 # Directory Structure and Paths in QA STATS.h5 file
-STATS_H5_BASE_GROUP = "/science/%s"
+STATS_H5_BASE_GROUP = "/science/%sSAR"
 STATS_H5_IDENTIFICATION_GROUP = STATS_H5_BASE_GROUP + "/identification"
 processing_group = "/processing"
 data_group = "/data"

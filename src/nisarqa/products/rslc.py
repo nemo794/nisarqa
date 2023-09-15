@@ -1,6 +1,7 @@
 import functools
 import os
 
+import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -18,13 +19,11 @@ def verify_rslc(user_rncfg):
     """
     Verify an RSLC product based on the input file, parameters, etc.
     specified in the input runconfig file.
-
     This is the main function for running the entire QA workflow. It will
     run based on the options supplied in the input runconfig file.
     The input runconfig file must follow the standard RSLC QA runconfig
     format. Run the command line command 'nisar_qa dumpconfig rslc'
     for an example template with default parameters (where available).
-
     Parameters
     ----------
     user_rncfg : dict
@@ -48,9 +47,8 @@ def verify_rslc(user_rncfg):
     # Start logger
     # TODO get logger from Brian's code and implement here
     # For now, output the stub log file.
-    nisarqa.output_stub_files(
-        output_dir=root_params.get_output_dir(), stub_files="log_txt"
-    )
+    out_dir = root_params.get_output_dir()
+    nisarqa.output_stub_files(output_dir=out_dir, stub_files="log_txt")
 
     # Log the values of the parameters.
     # Currently, this prints to stdout. Once the logger is implemented,
@@ -61,21 +59,11 @@ def verify_rslc(user_rncfg):
     # Depending on which workflows are set to True, not all filename
     # variables will be used.
     input_file = root_params.input_f.qa_input_file
-    browse_file_png = (
-        root_params.get_output_dir() / root_params.get_browse_png_filename()
-    )
-    browse_file_kml = (
-        root_params.get_output_dir() / root_params.get_kml_browse_filename()
-    )
-    report_file = (
-        root_params.get_output_dir() / root_params.get_report_pdf_filename()
-    )
-    stats_file = (
-        root_params.get_output_dir() / root_params.get_stats_h5_filename()
-    )
-    summary_file = (
-        root_params.get_output_dir() / root_params.get_summary_csv_filename()
-    )
+    browse_file_png = out_dir / root_params.get_browse_png_filename()
+    browse_file_kml = out_dir / root_params.get_kml_browse_filename()
+    report_file = out_dir / root_params.get_report_pdf_filename()
+    stats_file = out_dir / root_params.get_stats_h5_filename()
+    summary_file = out_dir / root_params.get_summary_csv_filename()
 
     print(f"Starting Quality Assurance for input file: {input_file}")
 
@@ -96,7 +84,7 @@ def verify_rslc(user_rncfg):
         # These reports will be saved to the SUMMARY.csv file.
         # For now, output the stub file
         nisarqa.output_stub_files(
-            output_dir=root_params.get_output_dir(),
+            output_dir=out_dir,
             stub_files="summary_csv",
         )
         print(f"Input file validation PASS/FAIL checks saved to {summary_file}")
@@ -113,22 +101,19 @@ def verify_rslc(user_rncfg):
         # This is the first time opening the STATS.h5 file for RSLC
         # workflow, so open in 'w' mode.
         # After this, always open STATS.h5 in 'r+' mode.
-        with nisarqa.open_h5_file(
-            input_file, mode="r"
-        ) as in_file, nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
-            pols = nisarqa.rslc.get_pols(in_file)
+        with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
+            product = nisarqa.RSLC(input_file)
 
             # Save the processing parameters to the stats.h5 file
             # Note: If only the validate workflow is requested,
             # this will do nothing.
-            root_params.save_params_to_stats_file(
-                h5_file=stats_h5, bands=tuple(pols.keys())
+            root_params.save_params_to_stats_h5(
+                h5_file=stats_h5, bands=(product.band,)
             )
             print(f"QA Processing Parameters saved to {stats_file}")
 
-            # Copy the Product identification group to STATS.h5
-            nisarqa.rslc.save_NISAR_identification_group_to_h5(
-                nisar_h5=in_file, stats_h5=stats_h5
+            nisarqa.rslc.copy_identification_group_to_stats_h5(
+                product=product, stats_h5=stats_h5
             )
             print(f"Input file Identification group copied to {stats_file}")
 
@@ -138,37 +123,26 @@ def verify_rslc(user_rncfg):
         # For now, make sure that the stub file is output
         if not os.path.isfile(summary_file):
             nisarqa.output_stub_files(
-                output_dir=root_params.get_output_dir(),
+                output_dir=out_dir,
                 stub_files="summary_csv",
             )
 
-        # Due to complexities with ISCE3, the HDF5 input file cannot
-        # simultaneously be open as an h5py file handle for QA and also be
-        # passed to / opened by ISCE3 to be used for generating the KML.
-        # So, create the KML separately.
         nisarqa.write_latlonquad_to_kml(
-            llq=nisarqa.get_latlonquad(input_file),
-            output_dir=root_params.get_output_dir(),
+            llq=nisarqa.get_latlonquad(product=product),
+            output_dir=out_dir,
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),
         )
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
-        with nisarqa.open_h5_file(
-            input_file, mode="r"
-        ) as in_file, nisarqa.open_h5_file(
-            stats_file, mode="r+"
-        ) as stats_h5, PdfPages(
+        with nisarqa.open_h5_file(stats_file, mode="r+") as stats_h5, PdfPages(
             report_file
         ) as report_pdf:
-            # Note: `pols` contains references to datasets in the open input file.
-            # All processing with `pols` must be done within this context manager,
-            # or the references will be closed and inaccessible.
-            pols = nisarqa.rslc.get_pols(in_file)
+            product = nisarqa.RSLC(filepath=input_file)
 
             # Save frequency/polarization info to stats file
-            save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, pols=pols)
+            save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, product=product)
 
             input_raster_represents_power = False
             name_of_backscatter_content = (
@@ -177,9 +151,8 @@ def verify_rslc(user_rncfg):
 
             # Generate the RSLC Backscatter Image and Browse Image
             process_backscatter_imgs_and_browse(
-                pols=pols,
+                product=product,
                 params=root_params.backscatter_img,
-                product_type="rslc",
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
                 plot_title_prefix=name_of_backscatter_content,
@@ -191,7 +164,7 @@ def verify_rslc(user_rncfg):
 
             # Generate the RSLC Power and Phase Histograms
             process_backscatter_and_phase_histograms(
-                pols=pols,
+                product=product,
                 params=root_params.histogram,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
@@ -224,7 +197,8 @@ def verify_rslc(user_rncfg):
             stats_filename=stats_file,
         )
         print(
-            f"Absolute Radiometric Calibration CalTool results saved to {stats_file}"
+            "Absolute Radiometric Calibration CalTool results saved to"
+            f" {stats_file}"
         )
         print("Absolute Radiometric Calibration CalTool complete.")
 
@@ -254,400 +228,102 @@ def verify_rslc(user_rncfg):
         print("Point Target Analyzer CalTool complete.")
 
     print(
-        "Successful completion of QA SAS. Check log file for validation warnings and errors."
+        "Successful completion of QA SAS. Check log file for validation"
+        " warnings and errors."
     )
 
 
 # TODO - move to generic NISAR module
-def save_NISAR_identification_group_to_h5(nisar_h5, stats_h5):
+def copy_identification_group_to_stats_h5(
+    product: nisarqa.NisarProduct, stats_h5: h5py.File
+):
     """
     Copy the identification group from the input NISAR file
     to the STATS.h5 file.
-
-    For each band in `nisar_h5`, this function will recursively copy
-    all available items in the `nisar_h5` group
-    '/science/<band>/identification' to the group
-    '/science/<band>/identification/*' in `stats_h5`.
-
     Parameters
     ----------
-    nisar_h5 : h5py.File
-        Handle to the input NISAR product h5 file
+    product : nisarqa.NisarProduct
+        Instance of a NisarProduct
     stats_h5 : h5py.File
         Handle to an h5 file where the identification metadata
         should be saved
     """
 
-    for band in nisar_h5["/science"]:
-        src_grp_path = f"/science/{band}/identification"
-        dest_grp_path = nisarqa.STATS_H5_IDENTIFICATION_GROUP % band
+    src_grp_path = product.identification_path
+    dest_grp_path = nisarqa.STATS_H5_IDENTIFICATION_GROUP % product.band
 
+    with nisarqa.open_h5_file(product.filepath, "r") as in_file:
         if dest_grp_path in stats_h5:
             # The identification group already exists, so copy each
             # dataset, etc. individually
-            for item in nisar_h5[src_grp_path]:
+            for item in in_file[src_grp_path]:
                 item_path = f"{dest_grp_path}/{item}"
-                nisar_h5.copy(nisar_h5[item_path], stats_h5, item_path)
+                in_file.copy(in_file[item_path], stats_h5, item_path)
         else:
             # Copy entire identification metadata from input file to stats.h5
-            nisar_h5.copy(nisar_h5[src_grp_path], stats_h5, dest_grp_path)
+            in_file.copy(in_file[src_grp_path], stats_h5, dest_grp_path)
 
 
 # TODO - move to generic NISAR module
-def save_nisar_freq_metadata_to_h5(stats_h5, pols):
+def save_nisar_freq_metadata_to_h5(
+    product: nisarqa.NonInsarProduct, stats_h5: h5py.File
+) -> None:
     """
     Populate the `stats_h5` HDF5 file with a list of each available
     frequency's polarizations.
-
     If `pols` contains values for Frequency A, then this dataset will
     be created in `stats_h5`:
         /science/<band>/QA/data/frequencyA/listOfPolarizations
-
     If `pols` contains values for Frequency B, then this dataset will
     be created in `stats_h5`:
         /science/<band>/QA/data/frequencyB/listOfPolarizations
-
     * Note: The paths are pulled from the global nisarqa.STATS_H5_QA_FREQ_GROUP.
     If the value of that global changes, then the path for the
     `listOfPolarizations` dataset(s) will change accordingly.
-
     Parameters
     ----------
+    product : nisarqa.NisarProduct
+        Input NISAR product
     stats_h5 : h5py.File
         Handle to an h5 file where the list(s) of polarizations should be saved
-    pols : nested dict of RadarRaster
-        Nested dict of RadarRaster objects, where each object represents
-        a polarization dataset.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a RadarRaster object
     """
 
     # Populate data group's metadata
-    for band in pols:
-        for freq in pols[band]:
-            list_of_pols = list(pols[band][freq])
-            grp_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq)
-            nisarqa.create_dataset_in_h5group(
-                h5_file=stats_h5,
-                grp_path=grp_path,
-                ds_name="listOfPolarizations",
-                ds_data=list_of_pols,
-                ds_description=f"Polarizations for Frequency {freq} "
-                "discovered in input NISAR product by QA code",
-            )
-
-
-# TODO - move to generic
-def get_pols(h5_file):
-    """
-    Locate the available bands, frequencies, and polarizations
-    in the input HDF5 file.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-        Handle to the input product h5 file
-
-    Returns
-    -------
-    pols : nested dict of *Raster
-        Nested dict of *Raster objects, where each object represents
-        a polarization dataset in `h5_file`.
-        If the input product is in radar domain, *Raster means RadarRaster.
-        If the input product is geocoded, *Raster means GeoRaster.
-        Format: pols[<band>][<freq>][<pol>] -> a *Raster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a *Raster object
-    """
-    product_type = nisarqa.get_NISAR_product_type(h5_file=h5_file)
-
-    if product_type.startswith("G"):
-        # geocoded product
-        swaths_or_grids = "grids"
-        raster_cls = nisarqa.GeoRaster
-    else:
-        # radar domain
-        assert product_type.startswith("R") or (product_type == "SLC")
-        swaths_or_grids = "swaths"
-        raster_cls = nisarqa.RadarRaster
-
-    # Discover images in input file and populate the `pols` dictionary
-    pols = {}
-    path = "/science"
-    for band in h5_file[path]:
-        pols[band] = {}
-        path += f"/{band}/{product_type}/{swaths_or_grids}"
-
-        for freq in nisarqa.NISAR_FREQS:
-            path = f"/science/{band}/{product_type}/{swaths_or_grids}/frequency{freq}"
-            if path not in h5_file:
-                continue
-
-            pols[band][freq] = {}
-
-            for pol in nisarqa.get_possible_pols(product_type.lower()):
-                try:
-                    raster = raster_cls.init_from_nisar_h5_product(
-                        h5_file, band, freq, pol
-                    )
-
-                except nisarqa.DatasetNotFoundError:
-                    # RadarRaster could not be created, which means that the
-                    # input file did not contain am image with the current
-                    # `band`, `freq`, and `pol` combination.
-                    continue
-
-                pols[band][freq][pol] = raster
-
-    # Sanity Check - if a band/freq does not have any polarizations,
-    # this is a validation error. This check should be handled during
-    # the validation process before this function was called,
-    # not the quality process, so raise an error.
-    # In the future, this step might be moved earlier in the
-    # processing, and changed to be handled via: 'log the error
-    # and remove the band from the dictionary'
-    for band in pols.keys():
-        for freq in pols[band].keys():
-            # Empty dictionaries evaluate to False in Python
-            if not pols[band][freq]:
-                raise ValueError(
-                    f"Provided input file does not have any polarizations"
-                    f" included under band {band}, frequency {freq}."
-                )
-
-    return pols
-
-
-def select_layers_for_slc_browse(pols):
-    """
-    Assign the polarization layers in the input file to grayscale or
-    RGBA channels for the Browse Image.
-
-    See `Notes` for details on the possible NISAR modes and assigned channels
-    for LSAR band.
-    SSAR is currently only minimally supported, so only a grayscale image
-    will be created. Prioritization order to select the freq/pol to use:
-        For frequency: Freq A then Freq B.
-        For polarization: 'HH', then 'VV', then the first polarization found.
-
-
-    Parameters
-    ----------
-    pols : nested dict of RadarRaster
-        Nested dict of RadarRaster objects, where each object represents
-        a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
-                                       in a RadarRaster object
-
-    Returns
-    -------
-    layers_for_browse : dict
-        A dictionary containing the channel assignments. Its structure is:
-
-        layers_for_browse['band']  : str
-                                        Either 'LSAR' or 'SSAR'
-        layers_for_browse['A']     : list of str, optional
-                                        List of the Freq A polarization(s)
-                                        required to create the browse image.
-                                        A subset of:
-                                           ['HH','HV','VV','RH','RV','LH','LV']
-        layers_for_browse['B']     : list of str, optional
-                                        List of the Freq B polarizations
-                                        required to create the browse image.
-                                        A subset of ['HH','VV']
-
-    Notes
-    -----
-    Possible modes for L-Band, as of Feb 2023:
-        Single Pol      SP HH:      20+5, 40+5, 77
-        Single Pol      SP VV:      5, 40
-
-        Dual Pol        DP HH/HV:   77, 40+5, 20+5
-        Dual Pol        DP VV/VH:   5, 77, 20+5, 40+5
-        Quasi Quad Pol  QQ:         20+20, 20+5, 40+5, 5+5
-
-        Quad Pol        QP:         20+5, 40+5
-
-        Quasi Dual Pol  QD HH/VV:   5+5
-        Compact Pol     CP RH/RV:   20+20           # an experimental mode
-
-    Single Pol (SP) Assignment:
-        - Freq A CoPol
-        else:
-        - Freq B CoPol
-    DP and QQ Assignment:
-        - Freq A: Red=HH, Green=HV, Blue=HH
-    QP Assignment:
-        - Freq A: Red=HH, Green=HV, Blue=VV
-    QD Assignment:
-        - Freq A: Red=HH, Blue=HH
-        - Freq B: Green=VV
-    CP Assignment:
-        - Freq A: Grayscale of one pol image, with
-                  Prioritization order: ['RH','RV','LH','LV']
-    """
-
-    layers_for_browse = {}
-
-    # Determine which band to use. LSAR has priority over SSAR.
-    for b in ("LSAR", "SSAR"):
-        if b in pols:
-            layers_for_browse["band"] = b
-            band = b
-            break
-    else:
-        raise ValueError(
-            f'Only "LSAR" and "SSAR" bands are supported: {list(pols)}'
+    for freq in product.freqs:
+        list_of_pols = product.get_pols(freq=freq)
+        grp_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq)
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name="listOfPolarizations",
+            ds_data=list_of_pols,
+            ds_description=(
+                f"Polarizations for Frequency {freq} "
+                "discovered in input NISAR product by QA code"
+            ),
         )
 
-    # Check that the correct frequencies are available
-    if not set(pols[band].keys()).issubset({"A", "B"}):
-        raise ValueError(
-            f"`pols['{band}']` contains {set(pols[band].keys())}"
-            ", but must be a subset of {'A', 'B'}"
-        )
 
-    # Get the frequency sub-band containing science mode data.
-    # This is always frequency A if present, otherwise B.
-    freq = "A" if ("A" in pols[band]) else "B"
-
-    # SSAR is not fully supported by QA, so just make a simple grayscale
-    if band == "SSAR":
-        # Prioritize Co-Pol
-        if "HH" in pols[band][freq]:
-            layers_for_browse[freq] = ["HH"]
-        elif "VV" in pols[band][freq]:
-            layers_for_browse[freq] = ["VV"]
-        else:
-            # Take the first available Cross-Pol
-            layers_for_browse[freq] = [pols[band][freq][0]]
-
-        return layers_for_browse
-
-    # The input file contains LSAR data. Will need to make
-    # grayscale/RGB channel assignments
-
-    # Get the available polarizations
-    available_pols = list(pols[band][freq])
-    n_pols = len(available_pols)
-
-    if freq == "B":
-        # This means only Freq B has data; this only occurs in Single Pol case.
-        if n_pols > 1:
-            raise ValueError(
-                "When only Freq B is present, then only "
-                f"single-pol mode supported. Freq{freq}: {available_pols}"
-            )
-
-        layers_for_browse["B"] = available_pols
-
-    else:  # freq A exists
-        if available_pols[0].startswith("R") or available_pols[0].startswith(
-            "L"
-        ):
-            # Compact Pol. This is not a planned mode for LSAR,
-            # and there is no test data, so simply make a grayscale image.
-
-            # Per the Prioritization Order, use first available polarization
-            for pol in ["RH", "RV", "LH", "LV"]:
-                if pol in available_pols:
-                    layers_for_browse["A"] = [pol]
-                    break
-
-            assert len(layers_for_browse["A"]) == 1
-
-        elif n_pols == 1:  # Horizontal/Vertical transmit
-            if "B" in pols[band]:
-                # Freq A has one pol image, and Freq B exists.
-                if set(available_pols) == set(pols[band]["B"]):
-                    # A's polarization image is identical to B's pol image,
-                    # which means that this is a single-pol observation mode
-                    # where both frequency bands were active
-                    layers_for_browse["A"] = available_pols
-
-                elif len(pols[band]["B"]) == 1:
-                    # Quasi Dual Pol -- Freq A has HH, Freq B has VV
-                    assert "HH" in pols[band]["A"]
-                    assert "VV" in pols[band]["B"]
-
-                    layers_for_browse["A"] = available_pols
-                    layers_for_browse["B"] = ["VV"]
-
-                else:
-                    # There is/are polarization image(s) for both A and B.
-                    # But, they are not representative of any of the current
-                    # observation modes for NISAR.
-                    raise ValueError(
-                        f"Freq A contains 1 polarization {available_pols}, but"
-                        f' Freq B contains polarization(s) {pols[band]["B"]}.'
-                        " This setup does not match any known NISAR"
-                        " observation mode."
-                    )
-            else:
-                # Single Pol
-                layers_for_browse["A"] = available_pols
-
-        elif n_pols in (2, 4):  # Horizontal/Vertical transmit
-            # dual-pol, quad-pol, or Quasi-Quad pol
-
-            # HH has priority over VV
-            if "HH" in available_pols and "HV" in available_pols:
-                layers_for_browse["A"] = ["HH", "HV"]
-                if n_pols == 4:
-                    # quad pol
-                    layers_for_browse["A"].append("VV")
-
-            elif "VV" in available_pols and "VH" in available_pols:
-                # If there is only 'VV', then this granule must be dual-pol
-                assert n_pols == 2
-                layers_for_browse["A"] = ["VV", "VH"]
-
-            else:
-                raise ValueError(
-                    "For dual-pol, quad-pol, and quasi-quad modes, "
-                    "the input product must contain at least one "
-                    "of HH+HV and/or VV+VH channels. Instead got: "
-                    f"{available_pols}"
-                )
-        else:
-            raise ValueError(
-                f"Input product's band {band} contains {n_pols} "
-                "polarization images, but only 1, 2, or 4 "
-                "are supported."
-            )
-
-    # Sanity Check
-    if ("A" not in layers_for_browse) and ("B" not in layers_for_browse):
-        raise ValueError(
-            "Current Mode (configuration) of the NISAR input file"
-            " not supported for browse image."
-        )
-
-    return layers_for_browse
+# TODO - Reviewer please delete comment -- these functions were incorporated
+# into the product readers
 
 
 def process_backscatter_imgs_and_browse(
-    pols,
-    params,
-    stats_h5,
-    report_pdf,
-    product_type,
-    input_raster_represents_power=False,
-    plot_title_prefix="Backscatter Coefficient",
-    browse_filename="BROWSE.png",
+    product: nisarqa.NonInsarProduct,
+    params: nisarqa.BackscatterImageParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+    browse_filename: str,
+    input_raster_represents_power: bool = False,
+    plot_title_prefix: str = "Backscatter Coefficient",
 ):
     """
     Generate Backscatter Image plots for the `report_pdf` and
     corresponding browse image product.
-
     Parameters
     ----------
-    pols : nested dict of RadarRaster or GeoRaster
-        Nested dict of RadarRaster or GeoRaster objects, where each
-        object represents a polarization dataset.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored in a
-                                       RadarRaster or GeoRaster object
+    product : nisarqa.NonInsarProduct
+        The input NISAR product
     params : BackscatterImageParamGroup
         A dataclass containing the parameters for processing
         and outputting backscatter image(s) and browse image.
@@ -655,8 +331,8 @@ def process_backscatter_imgs_and_browse(
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
         The output pdf file to append the backscatter image plot to
-    product_type : str
-        One of "rslc", "gslc", "slc", or "gcov".
+    browse_filename : str
+        Filename (with path) for the browse image PNG.
     input_raster_represents_power : bool, optional
         The input dataset rasters associated with these histogram parameters
         should have their pixel values represent either power or root power.
@@ -671,21 +347,7 @@ def process_backscatter_imgs_and_browse(
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
         "GCOV Backscatter Coefficient (gamma-0)".
         Defaults to "Backscatter Coefficient".
-    browse_filename : str, optional
-        Filename (with path) for the browse image PNG.
-        Defaults to 'BROWSE.png'
     """
-
-    if product_type.endswith("slc"):
-        layers_for_browse_func = select_layers_for_slc_browse
-        save_browse_img_func = save_slc_browse_img
-    elif product_type == "gcov":
-        layers_for_browse_func = (
-            nisarqa.products.gcov.select_layers_for_gcov_browse
-        )
-        save_browse_img_func = nisarqa.products.gcov.save_gcov_browse_img
-    else:
-        raise NotImplementedError(f"{product_type=} not implemented")
 
     # Select which layers will be needed for the browse image.
     # Multilooking takes a long time, but each multilooked polarization image
@@ -693,7 +355,7 @@ def process_backscatter_imgs_and_browse(
     # so it's ok to store the necessary multilooked Backscatter Images in memory.
     # to combine them later into the Browse image. The memory costs are
     # less than the costs for re-computing the multilooking.
-    layers_for_browse = layers_for_browse_func(pols)
+    layers_for_browse = product.get_layers_for_browse()
 
     # At the end of the loop below, the keys of this dict should exactly
     # match the set of TxRx polarizations needed to form the browse image
@@ -701,20 +363,11 @@ def process_backscatter_imgs_and_browse(
 
     # Process each image in the dataset
 
-    for band in pols:
-        for freq in pols[band]:
-            for pol in pols[band][freq]:
-                img = pols[band][freq][pol]
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            # Open the *SARRaster image
 
-                # Input validation
-                if not isinstance(
-                    img, (nisarqa.RadarRaster, nisarqa.GeoRaster)
-                ):
-                    raise TypeError(
-                        "`pols` must contain objects of type "
-                        f"RadarRaster or GeoRaster. Current type: {type(img)}"
-                    )
-
+            with product.get_raster(freq=freq, pol=pol) as img:
                 multilooked_img = get_multilooked_backscatter_img(
                     img=img,
                     params=params,
@@ -741,16 +394,10 @@ def process_backscatter_imgs_and_browse(
                 else:
                     colorbar_formatter = None
 
-                if isinstance(img, nisarqa.RadarRaster):
-                    img2pdf_func = save_rslc_backscatter_img_to_pdf
-                else:  # is a GeoRaster
-                    img2pdf_func = (
-                        nisarqa.gslc.save_geocoded_backscatter_img_to_pdf
-                    )
-
-                img2pdf_func(
+                product.save_backscatter_img_to_pdf(
                     img_arr=corrected_img,
-                    img=img,
+                    freq=freq,
+                    pol=pol,
                     params=params,
                     report_pdf=report_pdf,
                     colorbar_formatter=colorbar_formatter,
@@ -758,16 +405,18 @@ def process_backscatter_imgs_and_browse(
                 )
 
                 # If this backscatter image is needed to construct the browse image...
-                if (
-                    band == layers_for_browse["band"]
-                    and freq in layers_for_browse
-                    and pol in layers_for_browse[freq]
+                if (freq in layers_for_browse) and (
+                    pol in layers_for_browse[freq]
                 ):
-                    # ...keep the multilooked, color-corrected image
+                    # ...keep the multilooked, color-corrected image open
+                    # (These will be closed when the function returns.)
                     pol_imgs_for_browse[pol] = corrected_img
+                # else:
+                #     # We no longer need the image, so close the context manager
+                #     img.close()
 
     # Construct the browse image
-    save_browse_img_func(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
+    product.save_browse(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
 
 
 # TODO - move to generic location
@@ -838,8 +487,7 @@ def get_multilooked_backscatter_img(
         axes = "[<Y direction>,<X direction>]"
     else:
         raise TypeError(
-            "Input `img` must be RadarRaster or GeoRaster. "
-            f"It is {type(img)}"
+            f"Input `img` must be RadarRaster or GeoRaster. It is {type(img)}"
         )
 
     # Create the nlooks dataset
@@ -852,9 +500,11 @@ def get_multilooked_backscatter_img(
             ds_name=dataset_name,
             ds_data=nlooks,
             ds_units="unitless",
-            ds_description=f"Number of looks along {axes} axes of "
-            f"Frequency {img.freq.upper()} image arrays "
-            "for multilooking the backscatter and browse images.",
+            ds_description=(
+                f"Number of looks along {axes} axes of "
+                f"Frequency {img.freq.upper()} image arrays "
+                "for multilooking the backscatter and browse images."
+            ),
         )
 
     print(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
@@ -945,7 +595,7 @@ def save_rslc_backscatter_img_to_pdf(
         2D image array to be saved. All image correction, multilooking, etc.
         needs to have previously been applied
     img : RadarRaster
-        The RadarRaster object that corresponds to `img`. The metadata
+        The RadarRaster object that corresponds to `img_arr`. The metadata
         from this will be used for annotating the image plot.
     params : BackscatterImageParamGroup
         A structure containing the parameters for processing
@@ -983,7 +633,7 @@ def save_rslc_backscatter_img_to_pdf(
     # Get Range (x-axis) labels and scale
     rng_title = "Slant Range (km)"
 
-    img2pdf(
+    img2pdf_grayscale(
         img_arr=img_arr,
         title=title,
         ylim=[img.az_start, img.az_stop],
@@ -1106,115 +756,8 @@ def invert_gamma_correction(img_arr, gamma, vmin, vmax):
     return out
 
 
-def save_slc_browse_img(pol_imgs, filepath):
-    """
-    Save the given polarization images to a RGB or Grayscale PNG with
-    transparency.
-
-    Dimensions of the output PNG (in pixels) will be the same as the dimensions
-    of the input polarization image array(s). (No scaling will occur.)
-    Non-finite values will be made transparent.
-
-    Color Channels will be assigned per the following pseudocode:
-
-        If pol_imgs.keys() contains only one image, then:
-            grayscale = <that image>
-        If pol_imgs.keys() is ['HH','HV','VV'], then:
-            red = 'HH'
-            green = 'HV'
-            blue = 'VV'
-        If pol_imgs.keys() is ['HH','HV'], then:
-            red = 'HH'
-            green = 'HV'
-            blue = 'HH'
-        If pol_imgs.keys() is ['HH','VV'], then:
-            red = 'HH'
-            green = 'VV'
-            blue = 'HH'
-        If pol_imgs.keys() is ['VV','VH'], then:
-            red = 'VV'
-            green = 'VH'
-            blue = 'VV'
-        Otherwise, one image in `pol_imgs` will be output as grayscale.
-
-    Parameters
-    ----------
-    pol_imgs : dict of numpy.ndarray
-        Dictionary of 2D array(s) that will be mapped to specific color
-        channel(s) for the output browse PNG.
-        If there are multiple image arrays, they must have identical shape.
-        Format of dictionary:
-            pol_imgs[<polarization>] : <2D numpy.ndarray image>, where
-                <polarization> must be a subset of: 'HH', 'HV', 'VV', 'VH',
-                                                    'RH', 'RV', 'LV', 'LH',
-        Example:
-            pol_imgs['HH'] : <2D numpy.ndarray image>
-            pol_imgs['VV'] : <2D numpy.ndarray image>
-    filepath : str
-        Full filepath for where to save the browse image PNG.
-
-    Notes
-    -----
-    Provided image array(s) must previously be image-corrected. This
-    function will take the image array(s) as-is and will not apply additional
-    image correction processing to them. This function directly combines
-    the image(s) into a single browse image.
-
-    If there are multiple input images, they must be thoughtfully prepared and
-    standardized relative to each other prior to use by this function.
-    For example, trying to combine a Freq A 20 MHz image
-    and a Freq B 5 MHz image into the same output browse image might not go
-    well, unless the image arrays were properly prepared and standardized
-    in advance.
-    """
-
-    # WLOG, get the shape of the image arrays
-    # They should all be the same shape; the check for this is below.
-    arbitrary_img = next(iter(pol_imgs.values()))
-    img_2D_shape = np.shape(arbitrary_img)
-    for img in pol_imgs.values():
-        # Input validation check
-        if np.shape(img) != img_2D_shape:
-            raise ValueError(
-                "All image arrays in `pol_imgs` must have the same shape."
-            )
-
-    # Assign color channels
-    set_of_pol_imgs = set(pol_imgs)
-
-    if set_of_pol_imgs == {"HH", "HV", "VV"}:
-        # Quad Pol
-        red = pol_imgs["HH"]
-        green = pol_imgs["HV"]
-        blue = pol_imgs["VV"]
-    elif set_of_pol_imgs == {"HH", "HV"}:
-        # dual pol horizontal transmit, or quasi-quad
-        red = pol_imgs["HH"]
-        green = pol_imgs["HV"]
-        blue = pol_imgs["HH"]
-    elif set_of_pol_imgs == {"HH", "VV"}:
-        # quasi-dual mode
-        red = pol_imgs["HH"]
-        green = pol_imgs["VV"]
-        blue = pol_imgs["HH"]
-    elif set_of_pol_imgs == {"VV", "VH"}:
-        # dual-pol only, vertical transmit
-        red = pol_imgs["VV"]
-        green = pol_imgs["VH"]
-        blue = pol_imgs["VV"]
-    else:
-        # If we get into this "else" statement, then
-        # either there is only one image provided (e.g. single pol),
-        # or the images provided are not one of the expected cases.
-        # Either way, WLOG plot one of the image(s) in `pol_imgs`.
-        gray_img = pol_imgs.popitem()[1]
-        plot_to_grayscale_png(img_arr=gray_img, filepath=filepath)
-
-        # This `else` is a catch-all clause. Return early, so that
-        # we do not try to plot to RGB
-        return
-
-    plot_to_rgb_png(red=red, green=green, blue=blue, filepath=filepath)
+# TODO - Reviewer please delete comment. This function was incorporated into
+# the product readers.
 
 
 def plot_to_grayscale_png(img_arr, filepath):
@@ -1252,7 +795,7 @@ def plot_to_grayscale_png(img_arr, filepath):
     im.save(filepath, transparency=transparency_val)  # default = 72 dpi
 
 
-def plot_to_rgb_png(red, green, blue, filepath):
+def plot_to_rgb_png(red, green, blue, filepath, longest_side_max=None):
     """
     Combine and save RGB channel arrays to a browse PNG with transparency.
 
@@ -1297,6 +840,23 @@ def plot_to_rgb_png(red, green, blue, filepath):
     transparency_val = (transparency_val,) * 3
 
     im = Image.fromarray(rgb_arr, mode="RGB")
+
+    if (longest_side_max is not None) and (
+        max(np.shape(red)) > longest_side_max
+    ):
+        # TODO - make sure browse.thumbnail() did not overwrite NaNs
+
+        # TODO - Geoff which is the best resampling algo?
+        # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-filters
+
+        # Note: Newer version of pillow might break
+        # Error: AttributeError: module 'PIL.Image' has no attribute 'Resampling'
+        # Sol'n: replace PIL.Image.Resampling.BICUBIC with PIL.Image.BICUBIC
+        im.thumbnail(
+            (longest_side_max, longest_side_max),
+            resample=Image.Resampling.BICUBIC,
+        )
+
     im.save(filepath, transparency=transparency_val)  # default = 72 dpi
 
 
@@ -1362,7 +922,7 @@ def prep_arr_for_png_with_transparency(img_arr):
 
 
 # TODO - move to generic plotting.py
-def img2pdf(
+def img2pdf_grayscale(
     img_arr,
     plots_pdf,
     title=None,
@@ -1374,7 +934,6 @@ def img2pdf(
 ):
     """
     Plot the image array in grayscale, add a colorbar, and append to the pdf.
-
     Parameters
     ----------
     img_arr : array_like
@@ -1407,8 +966,11 @@ def img2pdf(
     f = plt.figure()
     ax = plt.gca()
 
+    # grayscale
+    cmap = plt.cm.gray
+
     # Plot the img_arr image.
-    ax_img = ax.imshow(X=img_arr, cmap=plt.cm.gray)
+    ax_img = ax.imshow(X=img_arr, cmap=cmap)
 
     # Add Colorbar
     cbar = plt.colorbar(ax_img, ax=ax)
@@ -1417,88 +979,15 @@ def img2pdf(
         cbar.ax.yaxis.set_major_formatter(colorbar_formatter)
 
     ## Label the plot
-
-    # If xlim or ylim are not provided, let matplotlib auto-assign the ticks.
-    # Otherwise, dynamically calculate and set the ticks w/ labels for
-    # the x-axis and/or y-axis.
-    # (Attempts to set the limits by using the `extent` argument for
-    # matplotlib.imshow() caused significantly distorted images.
-    # So, compute and set the ticks w/ labels manually.)
-    if xlim is not None or ylim is not None:
-        img_arr_shape = np.shape(img_arr)
-
-        # Set the density of the ticks on the figure
-        ticks_per_inch = 2.5
-
-        # Get full figure size in inches
-        fig_w, fig_h = f.get_size_inches()
-        W = img_arr_shape[1]
-        H = img_arr_shape[0]
-
-        # Update variables to the actual, displayed image size
-        # (The actual image will have a different aspect ratio
-        # than the matplotlib figure window's aspect ratio.
-        # But, altering the matplotlib figure window's aspect ratio
-        # will lead to inconsistently-sized pages in the output .pdf)
-        if H / W >= fig_h / fig_w:
-            # image will be limited by its height, so
-            # it will not use the full width of the figure
-            fig_w = W * (fig_h / H)
-        else:
-            # image will be limited by its width, so
-            # it will not use the full height of the figure
-            fig_h = H * (fig_w / W)
-
-    if xlim is not None:
-        # Compute num of xticks to use
-        num_xticks = int(ticks_per_inch * fig_w)
-
-        # Always have a minimum of 2 labeled ticks
-        num_xticks = num_xticks if num_xticks >= 2 else 2
-
-        # Specify where we want the ticks, in pixel locations.
-        xticks = np.linspace(0, img_arr_shape[1], num_xticks)
-        ax.set_xticks(xticks)
-
-        # Specify what those pixel locations correspond to in data coordinates.
-        # By default, np.linspace is inclusive of the endpoint
-        xticklabels = [
-            "{:.1f}".format(i)
-            for i in np.linspace(start=xlim[0], stop=xlim[1], num=num_xticks)
-        ]
-        ax.set_xticklabels(xticklabels)
-
-        plt.xticks(rotation=45)
-
-    if ylim is not None:
-        # Compute num of yticks to use
-        num_yticks = int(ticks_per_inch * fig_h)
-
-        # Always have a minimum of 2 labeled ticks
-        if num_yticks < 2:
-            num_yticks = 2
-
-        # Specify where we want the ticks, in pixel locations.
-        yticks = np.linspace(0, img_arr_shape[0], num_yticks)
-        ax.set_yticks(yticks)
-
-        # Specify what those pixel locations correspond to in data coordinates.
-        # By default, np.linspace is inclusive of the endpoint
-        yticklabels = [
-            "{:.1f}".format(i)
-            for i in np.linspace(start=ylim[0], stop=ylim[1], num=num_yticks)
-        ]
-        ax.set_yticklabels(yticklabels)
-
-    # Label the Axes
-    if xlabel is not None:
-        plt.xlabel(xlabel)
-    if ylabel is not None:
-        plt.ylabel(ylabel)
-
-    # Add title
-    if title is not None:
-        plt.title(title)
+    format_axes_ticks_and_labels(
+        ax=ax,
+        img_arr_shape=np.shape(img_arr),
+        title=title,
+        xlim=xlim,
+        ylim=ylim,
+        xlabel=xlabel,
+        ylabel=ylabel,
+    )
 
     # Make sure axes labels do not get cut off
     f.tight_layout()
@@ -1510,32 +999,90 @@ def img2pdf(
     plt.close(f)
 
 
+def format_axes_ticks_and_labels(
+    ax,
+    img_arr_shape=None,
+    title=None,
+    xlim=None,
+    ylim=None,
+    xlabel=None,
+    ylabel=None,
+):
+    """
+    Plot the image array in grayscale, add a colorbar, and append to the pdf.
+    Parameters
+    ----------
+    ax : matplotlib.Axes
+        TODO This will be modified by this function.
+    img_arr_shape : pair of ints, optional
+        TODO This basically establishes the aspect ratio
+        Only required if `xlim` or `ylim` are specified.
+    title : str, optional
+        The full title for the plot
+    xlim, ylim : sequence of numeric, optional
+        Lower and upper limits for the axes ticks for the plot.
+        Format: xlim=[<x-axis lower limit>, <x-axis upper limit>],
+                ylim=[<y-axis lower limit>, <y-axis upper limit>]
+    xlabel, ylabel : str, optional
+        Axes labels for the x-axis and y-axis (respectively)
+    """
+
+    # Format the tick labels
+    if xlim is not None:
+
+        def x_mapping(x):
+            """Map a value from a pixel coordinate to xlim coordinate."""
+            m = (1.0 * xlim[1] - xlim[0]) / (img_arr_shape[1])
+            return xlim[0] + (m * x)
+
+        ax.xaxis.set_major_formatter(
+            FuncFormatter(lambda x, pos: "{:.1f}".format(x_mapping(x)))
+        )
+
+        ax.tick_params(axis="x", labelrotation=45)
+
+    if ylim is not None:
+
+        def y_mapping(x):
+            """Map a value from a pixel coordinate to ylim coordinate."""
+            m = (1.0 * ylim[1] - ylim[0]) / img_arr_shape[0]
+            return ylim[0] + (m * x)
+
+        ax.yaxis.set_major_formatter(
+            FuncFormatter(lambda x, pos: "{:.1f}".format(y_mapping(x)))
+        )
+
+    # Label the Axes
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+
+    # Add title
+    if title is not None:
+        ax.set_title(title)
+
+
 def process_backscatter_and_phase_histograms(
-    pols,
-    params,
-    stats_h5,
-    report_pdf,
-    plot_title_prefix="Backscatter Coefficient",
-    input_raster_represents_power=False,
+    product: nisarqa.NonInsarProduct,
+    params: nisarqa.HistogramParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+    plot_title_prefix: str = "Backscatter Coefficient",
+    input_raster_represents_power: bool = False,
 ):
     """
     Generate the Backscatter and Phase Histograms and save their plots
     to the graphical summary .pdf file.
-
     Backscatter histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians,
     configurable to be computed in degrees by setting
     `params.phs_in_radians` to False.
     NaN values will be excluded from Histograms.
-
     Parameters
     ----------
-    pols : nested dict of RadarRaster or GeoRaster
-        Nested dict of *Raster objects, where each object represents
-        a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RadarRaster or GeoRaster
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
-                                       in a RadarRaster object
+    product : nisarqa.NonInsarProduct
+        Input NISAR product
     params : HistogramParams
         A structure containing the parameters for processing
         and outputting the backscatter and phase histograms.
@@ -1560,59 +1107,46 @@ def process_backscatter_and_phase_histograms(
     """
 
     # Generate and store the histograms
-    for band in pols:
-        for freq in pols[band]:
-            generate_backscatter_image_histogram_single_freq(
-                pol=pols[band][freq],
-                band=band,
-                freq=freq,
-                params=params,
-                stats_h5=stats_h5,
-                report_pdf=report_pdf,
-                input_raster_represents_power=input_raster_represents_power,
-                plot_title_prefix=plot_title_prefix,
-            )
 
-            generate_phase_histogram_single_freq(
-                pol=pols[band][freq],
-                band=band,
-                freq=freq,
-                params=params,
-                stats_h5=stats_h5,
-                report_pdf=report_pdf,
-            )
+    for freq in product.freqs:
+        generate_backscatter_image_histogram_single_freq(
+            product=product,
+            freq=freq,
+            params=params,
+            stats_h5=stats_h5,
+            report_pdf=report_pdf,
+            input_raster_represents_power=input_raster_represents_power,
+            plot_title_prefix=plot_title_prefix,
+        )
+
+        generate_phase_histogram_single_freq(
+            product=product,
+            freq=freq,
+            params=params,
+            stats_h5=stats_h5,
+            report_pdf=report_pdf,
+        )
 
 
 def generate_backscatter_image_histogram_single_freq(
-    pol,
-    band,
-    freq,
-    params,
-    stats_h5,
-    report_pdf,
-    plot_title_prefix="Backscatter Coefficient",
-    input_raster_represents_power=False,
-):
+    product: nisarqa.NonInsarProduct,
+    freq: str,
+    params: nisarqa.HistogramParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+    plot_title_prefix: str = "Backscatter Coefficient",
+    input_raster_represents_power: bool = False,
+) -> None:
     """
     Generate Backscatter Image Histogram for a single frequency.
-
     The histogram's plot will be appended to the graphical
     summary file `report_pdf`, and its data will be
     stored in the statistics .h5 file `stats_h5`.
     Backscatter histogram will be computed in decibel units.
-
     Parameters
     ----------
-    pol : dict of RadarRaster or GeoRaster
-        dict of *Raster objects for the given `band`
-        and `freq`. Each key is a polarization (e.g. 'HH'
-        or 'HV'), and each key's item is the corresponding
-        RadarRaster instance.
-        Ex: pol['HH'] -> the HH dataset, stored
-                         in a RadarRaster or GeoRaster object
-    band : str
-        Band name for the histograms to be processed,
-        e.g. 'LSAR'
+    product : nisarqa.NonInsarProduct
+        Input NISAR product
     freq : str
         Frequency name for the histograms to be processed,
         e.g. 'A' or 'B'
@@ -1660,47 +1194,52 @@ def generate_backscatter_image_histogram_single_freq(
 
         return nisarqa.pow2db(power)
 
-    for pol_name, pol_data in pol.items():
-        # Get histogram probability density
-        hist_density = nisarqa.compute_histogram_by_tiling(
-            arr=pol_data.data,
-            bin_edges=params.backscatter_bin_edges,
-            data_prep_func=img_prep,
-            density=True,
-            decimation_ratio=params.decimation_ratio,
-            tile_shape=params.tile_shape,
-        )
+    for pol_name in product.get_pols(freq=freq):
+        with product.get_raster(freq=freq, pol=pol_name) as pol_data:
+            # Get histogram probability density
+            hist_density = nisarqa.compute_histogram_by_tiling(
+                arr=pol_data.data,
+                bin_edges=params.backscatter_bin_edges,
+                data_prep_func=img_prep,
+                density=True,
+                decimation_ratio=params.decimation_ratio,
+                tile_shape=params.tile_shape,
+            )
 
-        # Save to stats.h5 file
-        grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (
-            band,
-            freq,
-        )
+            # Save to stats.h5 file
+            grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (
+                product.band,
+                freq,
+            )
 
-        # Save Backscatter Histogram Counts to HDF5 file
-        backscatter_units = params.get_units_from_hdf5_metadata(
-            "backscatter_bin_edges"
-        )
+            # Save Backscatter Histogram Counts to HDF5 file
+            backscatter_units = params.get_units_from_hdf5_metadata(
+                "backscatter_bin_edges"
+            )
 
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name="backscatterHistogramDensity",
-            ds_data=hist_density,
-            ds_units=f"1/{backscatter_units}",
-            ds_description="Normalized density of the backscatter image histogram",
-        )
+            nisarqa.create_dataset_in_h5group(
+                h5_file=stats_h5,
+                grp_path=grp_path,
+                ds_name="backscatterHistogramDensity",
+                ds_data=hist_density,
+                ds_units=f"1/{backscatter_units}",
+                ds_description=(
+                    "Normalized density of the backscatter image histogram"
+                ),
+            )
 
-        # Add backscatter histogram density to the figure
-        add_hist_to_axis(
-            ax,
-            counts=hist_density,
-            edges=params.backscatter_bin_edges,
-            label=pol_name,
-        )
+            # Add backscatter histogram density to the figure
+            add_hist_to_axis(
+                ax,
+                counts=hist_density,
+                edges=params.backscatter_bin_edges,
+                label=pol_name,
+            )
 
     # Label the Backscatter Image Figure
-    title = f"{plot_title_prefix} Histograms\n{band} Frequency {freq}"
+    title = (
+        f"{plot_title_prefix} Histograms\n{product.band}-band Frequency {freq}"
+    )
     ax.set_title(title)
 
     ax.legend(loc="upper right")
@@ -1721,11 +1260,14 @@ def generate_backscatter_image_histogram_single_freq(
 
 
 def generate_phase_histogram_single_freq(
-    pol, band, freq, params, stats_h5, report_pdf
-):
+    product: nisarqa.NonInsarProduct,
+    freq: str,
+    params: nisarqa.HistogramParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+) -> None:
     """
     Generate Phase Histograms for a single frequency.
-
     The histograms' plots will be appended to the graphical
     summary file `report_pdf`, and their data will be
     stored in the statistics .h5 file `stats_h5`.
@@ -1734,19 +1276,10 @@ def generate_phase_histogram_single_freq(
     NOTE: Only if the dtype of a polarization raster is complex-valued
     (e.g. complex32) will it be included in the Phase histogram(s).
     NaN values will be excluded from the histograms.
-
     Parameters
     ----------
-    pol : dict of RadarRaster or GeoRaster
-        dict of *Raster objects for the given `band`
-        and `freq`. Each key is a polarization (e.g. 'HH'
-        or 'HV'), and each key's item is the corresponding
-        RadarRaster instance.
-        Ex: pol['HH'] -> the HH dataset, stored
-                         in a RadarRaster or GeoRaster object
-    band : str
-        Band name for the histograms to be processed,
-        e.g. 'LSAR'
+    product : nisarqa.NonInsarProduct
+        The input NISAR product
     freq : str
         Frequency name for the histograms to be processed,
         e.g. 'A' or 'B'
@@ -1758,6 +1291,8 @@ def generate_phase_histogram_single_freq(
     report_pdf : PdfPages
         The output pdf file to append the backscatter image plot to
     """
+
+    band = product.band
 
     # flag for if any phase histogram densities are generated
     # (We expect this flag to be set to True if any polarization contains
@@ -1786,48 +1321,49 @@ def generate_phase_histogram_single_freq(
             # phase in degrees
             return np.angle(arr[np.abs(arr) >= 1.0e-05], deg=True)
 
-    for pol_name, pol_data in pol.items():
-        # Only create phase histograms for complex datasets. Examples of
-        # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
-        # Note: Need to use `np.issubdtype` instead of `np.iscomplexobj`
-        # due to e.g. RSLC and GSLC datasets of type ComplexFloat16Decoder.
-        if not np.issubdtype(pol_data.data, np.complexfloating):
-            continue
+    for pol_name in product.get_pols(freq=freq):
+        with product.get_raster(freq=freq, pol=pol_name) as pol_data:
+            # Only create phase histograms for complex datasets. Examples of
+            # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
+            # Note: Need to use `np.issubdtype` instead of `np.iscomplexobj`
+            # due to e.g. RSLC and GSLC datasets of type ComplexFloat16Decoder.
+            if not np.issubdtype(pol_data.data, np.complexfloating):
+                continue
 
-        save_phase_histogram = True
+            save_phase_histogram = True
 
-        # Get histogram probability densities
-        hist_density = nisarqa.compute_histogram_by_tiling(
-            arr=pol_data.data,
-            bin_edges=params.phs_bin_edges,
-            data_prep_func=img_prep,
-            density=True,
-            decimation_ratio=params.decimation_ratio,
-            tile_shape=params.tile_shape,
-        )
+            # Get histogram probability densities
+            hist_density = nisarqa.compute_histogram_by_tiling(
+                arr=pol_data.data,
+                bin_edges=params.phs_bin_edges,
+                data_prep_func=img_prep,
+                density=True,
+                decimation_ratio=params.decimation_ratio,
+                tile_shape=params.tile_shape,
+            )
 
-        # Save to stats.h5 file
-        freq_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq)
-        grp_path = f"{freq_path}/{pol_name}/"
+            # Save to stats.h5 file
+            freq_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq)
+            grp_path = f"{freq_path}/{pol_name}/"
 
-        phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
+            phs_units = params.get_units_from_hdf5_metadata("phs_bin_edges")
 
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name="phaseHistogramDensity",
-            ds_data=hist_density,
-            ds_units=f"1/{phs_units}",
-            ds_description="Normalized density of the phase histogram",
-        )
+            nisarqa.create_dataset_in_h5group(
+                h5_file=stats_h5,
+                grp_path=grp_path,
+                ds_name="phaseHistogramDensity",
+                ds_data=hist_density,
+                ds_units=f"1/{phs_units}",
+                ds_description="Normalized density of the phase histogram",
+            )
 
-        # Add phase histogram density to the figure
-        add_hist_to_axis(
-            ax,
-            counts=hist_density,
-            edges=params.phs_bin_edges,
-            label=pol_name,
-        )
+            # Add phase histogram density to the figure
+            add_hist_to_axis(
+                ax,
+                counts=hist_density,
+                edges=params.phs_bin_edges,
+                label=pol_name,
+            )
 
     # Label and output the Phase Histogram Figure
     if save_phase_histogram:
@@ -1846,7 +1382,6 @@ def generate_phase_histogram_single_freq(
 
         # Close figure
         plt.close(fig)
-
     else:
         # Remove unused dataset from STATS.h5 because no phase histogram was
         # generated.
