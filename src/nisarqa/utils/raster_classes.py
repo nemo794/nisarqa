@@ -81,13 +81,14 @@ class ComplexFloat16Decoder(object):
     def read_c4_dataset_as_c8(ds: h5py.Dataset, key=np.s_[...]):
         """
         Read a complex float16 HDF5 dataset as a numpy.complex64 array.
-        Avoids h5py/numpy dtype bugs and uses numpy float16 -> float32 conversions
-        which are about 10x faster than HDF5 ones.
+
+        Avoids h5py/numpy dtype bugs and uses numpy float16 -> float32
+        conversions which are about 10x faster than HDF5 ones.
         """
         # This avoids h5py exception:
         # TypeError: data type '<c4' not understood
-        # Also note this syntax changed in h5py 3.0 and was deprecated in 3.6, see
-        # https://docs.h5py.org/en/stable/whatsnew/3.6.html
+        # Also note this syntax changed in h5py 3.0 and was deprecated in 3.6,
+        # see: https://docs.h5py.org/en/stable/whatsnew/3.6.html
 
         complex32 = np.dtype([("r", np.float16), ("i", np.float16)])
         z = ds.astype(complex32)[key]
@@ -179,7 +180,7 @@ class RadarRaster(SARRaster):
         name of the band for `img`, e.g. 'LSAR'
     freq : str
         name of the frequency for `img`, e.g. 'A' or 'B'
-    az_spacing : float
+    ground_az_spacing : float
         Azimuth spacing of pixels of input array
     az_start : float
         The start time of the observation for this RSLC Raster.
@@ -187,7 +188,7 @@ class RadarRaster(SARRaster):
     az_stop : float
         The stopping time of the observation for this RSLC Raster.
         This corresponds to the lower side of the bottom pixels.
-    range_spacing : float
+    ground_range_spacing : float
         Range spacing of pixels of input array
     rng_start : float
         Start (near) distance of the range of input array
@@ -201,11 +202,11 @@ class RadarRaster(SARRaster):
     """
 
     # Attributes of the input array
-    az_spacing: float
+    ground_az_spacing: float
     az_start: float
     az_stop: float
 
-    range_spacing: float
+    ground_range_spacing: float
     rng_start: float
     rng_stop: float
 
@@ -213,11 +214,11 @@ class RadarRaster(SARRaster):
 
     @property
     def y_axis_spacing(self):
-        return self.az_spacing
+        return self.ground_az_spacing
 
     @property
     def x_axis_spacing(self):
-        return self.range_spacing
+        return self.ground_range_spacing
 
 
 @dataclass

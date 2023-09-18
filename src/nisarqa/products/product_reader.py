@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import Optional
+from typing import Iterator, Optional
 
 import h5py
 import isce3
@@ -23,7 +23,9 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
+def _get_path_to_nearest_dataset(
+    h5_file: h5py.File, starting_path: str, dataset_to_find: str
+) -> str:
     """
     Get path to the occurrence of `dataset_to_find` nearest to `starting_path`.
 
@@ -60,30 +62,41 @@ def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
 
     Examples
     --------
-    # Example setup, using an InSAR product
+    Example setup, using an InSAR product
+
     >>> import h5py
     >>> in_file = h5py.File("RIFG_product.h5", "r")
-    # Initial path is to a specific raster layer (dataset).
+
+    Initial path is to a specific raster layer (dataset).
+
     >>> path = "/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
-    # First, find the coherence magnitude layer that (likely) corresponds to
-    # that wrapped interferogram dataset. Since this function searches the
-    # dataset's parent directory first, it locates the coherence magnitude
-    # layer inside the same directory as our provided path.
+
+    First, find the coherence magnitude layer that (likely) corresponds to
+    that wrapped interferogram dataset. Since this function searches the
+    dataset's parent directory first, it locates the coherence magnitude
+    layer inside the same directory as our provided path.
+
     >>> name = "coherenceMagnitude"
     >>> nisarqa.get_path_to_nearest_dataset(in_file, path, name)
     '/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/coherenceMagnitude'
-    # Now, find the "zeroDopplerTime" dataset that corresponds to that layer.
-    # Note: The located dataset will be one level higher in the directory tree.
+
+    Now, find the "zeroDopplerTime" dataset that corresponds to that layer.
+    Note: The located dataset will be one level higher in the directory tree.
+
     >>> name = "zeroDopplerTime"
     >>> _get_path_to_nearest_dataset(in_file, path, name)
     '/science/LSAR/RIFG/swaths/frequencyA/interferogram/zeroDopplerTime'
-    # If we provide a path to a different raster in the pixel offsets group,
-    # but give it the same dataset name to find, the function locates the
-    # "zeroDopplerTime" dataset which (likely) corresponds to that other layer.
+
+    If we provide a path to a different raster in the pixel offsets group,
+    but give it the same dataset name to find, the function locates the
+    "zeroDopplerTime" dataset which (likely) corresponds to that other layer.
+
     >>> path2 = "/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/HH/alongTrackOffset"
     >>> _get_path_to_nearest_dataset(in_file, path2, name)
     '/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/zeroDopplerTime'
-    # If a dataset is not found, an error is raised.
+
+    If a dataset is not found, an error is raised.
+
     >>> name2 = "zeroDopplerTimeFake"
     >>> path3 = _get_path_to_nearest_dataset(in_file, path2, name2)
     Traceback (most recent call last):
@@ -103,10 +116,13 @@ def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
         if path in h5_file:
             return path
     else:
-        raise nisarqa.DatasetNotFoundError
+        raise nisarqa.DatasetNotFoundError(
+            f"`{dataset_to_find}` not found in any of the parent directories of"
+            f" {starting_path}."
+        )
 
 
-def _get_paths_in_h5(h5_file: h5py.File, name: str) -> tuple[str]:
+def _get_paths_in_h5(h5_file: h5py.File, name: str) -> list[str]:
     """
     Return the path(s) to the `name` group or dataset in the input file.
 
@@ -115,27 +131,27 @@ def _get_paths_in_h5(h5_file: h5py.File, name: str) -> tuple[str]:
     h5_file : h5py.File, h5py.Group
         Handle to HDF5 input file or group to be searched.
     name : str
-        Name of a h5py.Dataset or h5py.Group to be located.
+        Base Name of a h5py.Dataset or h5py.Group to be located.
 
     Returns
     -------
     paths : list of str
-        Tuple containing the paths to each dataset or group with the
+        List containing the paths to each dataset or group with the
         name `name` in the input file. For example, if `name` is
         "identification", this function could return
-        ("science/LSAR/identification",).
-        If no occurances are found, returns an empty tuple.
+        "science/LSAR/identification"].
+        If no occurrences are found, returns an empty list.
     """
     paths = []
 
-    def get_path(path):
+    def get_path(path: str) -> None:
         """Find all paths to the group or dataset specified."""
         if path.split("/")[-1] == name:
             paths.append(path)
 
     h5_file.visit(get_path)
 
-    return tuple(paths)
+    return paths
 
 
 def _hdf5_byte_string_to_str(h5_str: np.ndarray) -> str:
@@ -156,7 +172,7 @@ class NisarProduct(ABC):
 
     Parameters
     ----------
-    filepath : str, os.Pathlike
+    filepath : path-like
         Filepath to the input product.
     """
 
@@ -170,7 +186,7 @@ class NisarProduct(ABC):
         self._check_product_type()
         self._check_data_root()
         self._check_is_geocoded()
-        self._check_grid_path()
+        self._check_swaths_or_grid_path()
 
     @abstractproperty
     def product_type(self) -> str:
@@ -187,9 +203,9 @@ class NisarProduct(ABC):
         """
         Return the path to the identification group in the input file.
 
-        Only returns the first occurence of an h5py.Group or h5py.Dataset named
-        "identification. If there are multiple occurances of "identification"
-        in the input file, it is unspecified which will be returned.
+        Assumes that the input file contains only one path whose base name
+        is "identification". If multiple such paths exist, or if no paths
+        have that base name, then an exception is raised.
 
         Returns
         -------
@@ -287,10 +303,11 @@ class NisarProduct(ABC):
                 )
 
             # Sanity check that product structure has not significantly changed
-            assert "metadata" in f[self._data_root], (
-                f"`metadata` group not found inside {self._data_root};"
-                " Product spec structure not as expected."
-            )
+            if "metadata" not in f[self._data_root]:
+                raise nisarqa.DatasetNotFoundError(
+                    f"`metadata` group not found inside {self._data_root};"
+                    " Product spec structure not as expected."
+                )
 
     @cached_property
     def band(self) -> str:
@@ -339,18 +356,6 @@ class NisarProduct(ABC):
         """
         The available frequencies in the input file.
 
-        Note: "frequency" in this context is different than the typical
-        meaning of e.g. "L-band" or "S-band" frequencies.
-        In QA SAS, the convention is for e.g. L band or S band
-        to be referred to as "bands", while the section of the band used
-        for the raster data is referred to as "frequency."
-        Most satellites are single band instruments, meaning that "band" and
-        "frequency" are one and the same, so this distinction is redundant.
-        However, the NISAR mission is capable of dual frequency data collection,
-        (meaning that two frequencies of data can be collected within a single
-        band), hence the reason for this distinction. For NISAR, these
-        are referred to as "Frequency A" and "Freqency B".
-
         Returns
         -------
         found_freqs : tuple of str
@@ -361,6 +366,20 @@ class NisarProduct(ABC):
         ------
         nisarqa.InvalidNISARProductError
             If no frequency groups are found.
+
+        Notes
+        -----
+        "frequency" in this context is different than the typical
+        meaning of e.g. "L-band" or "S-band" frequencies.
+        In QA SAS, the convention is for e.g. L band or S band
+        to be referred to as "bands", while the section of the band used
+        for the raster data is referred to as "frequency."
+        Most satellites are single band instruments, meaning that "band" and
+        "frequency" are one and the same, so this distinction is redundant.
+        However, the NISAR mission is capable of dual frequency data collection,
+        (meaning that two frequencies of data can be collected within a single
+        band), hence the reason for this distinction. For NISAR, these
+        are referred to as "Frequency A" and "Freqency B".
         """
         # Get paths to the frequency groups
         found_freqs = []
@@ -406,12 +425,15 @@ class NisarProduct(ABC):
         # the `self` parameter, so use an inner function to cache the results.
         @lru_cache
         def _freq_path(freq):
-            path = self._grid_path + f"/frequency{freq}"
+            path = self._swaths_or_grid_path + f"/frequency{freq}"
             with nisarqa.open_h5_file(self.filepath) as f:
                 if path in f:
                     return path
                 else:
-                    raise nisarqa.DatasetNotFoundError()
+                    raise nisarqa.DatasetNotFoundError(
+                        f"Input file does not contain frequency {freq} group at"
+                        f" expected path: {path}"
+                    )
 
         return _freq_path(freq)
 
@@ -441,10 +463,11 @@ class NisarProduct(ABC):
             in_file_prod_type = f[id_group]["productType"][...]
             in_file_prod_type = _hdf5_byte_string_to_str(in_file_prod_type)
 
-        assert self.product_type == in_file_prod_type, (
-            f"QA requested for {self.product_type}, but input file's"
-            f" `productType` field is {in_file_prod_type}."
-        )
+        if self.product_type != in_file_prod_type:
+            raise ValueError(
+                f"QA requested for {self.product_type}, but input file's"
+                f" `productType` field is {in_file_prod_type}."
+            )
 
     def _check_is_geocoded(self) -> None:
         """Sanity check for `self.is_geocoded`."""
@@ -458,16 +481,25 @@ class NisarProduct(ABC):
                         " incorrectly populated"
                     )
             else:
+                # The `isGeocoded` field is not necessary for successful
+                # completion QA SAS: whether a product is geocoded
+                # or not can be determined by the product type (e.g. RSLC vs.
+                # GSLC). So let's simply raise a warning and let QA continue.
+                # However, it's part of QA's job to check these fields for
+                # product robustness and to warn the user of faulty products.
                 warnings.warn("Product is missing `isGeocoded` field")
 
-    def _check_grid_path(self) -> None:
+    def _check_swaths_or_grid_path(self) -> None:
         """Sanity check to ensure the grid path exists in the input file."""
-        grid_path = self._grid_path
+        grid_path = self._swaths_or_grid_path
         with nisarqa.open_h5_file(self.filepath) as f:
-            assert grid_path in f, f"Input file is missing: {grid_path=}"
+            if grid_path not in f:
+                raise nisarqa.DatasetNotFoundError(
+                    f"Input file is missing the path: {grid_path}"
+                )
 
     @abstractmethod
-    def _grid_path(self) -> str:
+    def _swaths_or_grid_path(self) -> str:
         """
         Return the path to the grid group.
 
@@ -522,7 +554,7 @@ class NisarRadarProduct(NisarProduct):
         return False
 
     @cached_property
-    def _grid_path(self) -> str:
+    def _swaths_or_grid_path(self) -> str:
         return self._data_root + "/swaths"
 
     @cached_property
@@ -541,9 +573,7 @@ class NisarRadarProduct(NisarProduct):
                     raise ValueError("Cannot locate the orbit group")
         return orbit
 
-    def radar_grid(
-        self, freq: str
-    ) -> isce3.product.RadarGridParameters:
+    def radar_grid(self, freq: str) -> isce3.product.RadarGridParameters:
         """
         Return the ISCE3 RadarGridParameters object for this input file.
 
@@ -659,7 +689,7 @@ class NisarRadarProduct(NisarProduct):
             starting_path=raster_path,
             dataset_to_find="sceneCenterAlongTrackSpacing",
         )
-        az_spacing = h5_file[path][...]
+        ground_az_spacing = h5_file[path][...]
 
         # Get Azimuth (y-axis) tick range + label
         # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
@@ -671,38 +701,12 @@ class NisarRadarProduct(NisarProduct):
             starting_path=raster_path,
             dataset_to_find="zeroDopplerTime",
         )
-        az_start = float(h5_file[path][0]) - 0.5 * az_spacing
-        az_stop = float(h5_file[path][-1]) + 0.5 * az_spacing
+        az_start = float(h5_file[path][0]) - 0.5 * ground_az_spacing
+        az_stop = float(h5_file[path][-1]) + 0.5 * ground_az_spacing
 
-        # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
-        # 'Nominal ground range spacing in meters between consecutive pixels
-        # near mid swath of the RSLC image.'
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="sceneCenterGroundRangeSpacing",
-        )
-        range_spacing = h5_file[path][...]
-
-        # Range in meters (units are specified as meters in the product spec)
-        # For NISAR, radar-domain grids are referenced by the center of the
-        # pixel, so +/- half the distance of the pixel's side to capture
-        # the entire range.
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="slantRange",
-        )
-        rng_start = float(h5_file[path][0]) - 0.5 * range_spacing
-        rng_stop = float(h5_file[path][-1]) + 0.5 * range_spacing
-
+        # Use zeroDopplerTime's units attribute to read the epoch
         # output of the next line will have the format:
         #       'seconds since YYYY-MM-DD HH:MM:SS'
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="zeroDopplerTime",
-        )
         sec_since_epoch = h5_file[path].attrs["units"].decode("utf-8")
         epoch = sec_since_epoch.replace("seconds since ", "").strip()
 
@@ -720,6 +724,28 @@ class NisarRadarProduct(NisarProduct):
         else:
             epoch = sec_since_epoch.replace("seconds since ", "").strip()
 
+        # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
+        # 'Nominal ground range spacing in meters between consecutive pixels
+        # near mid swath of the RSLC image.'
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="sceneCenterGroundRangeSpacing",
+        )
+        ground_range_spacing = h5_file[path][...]
+
+        # Range in meters (units are specified as meters in the product spec)
+        # For NISAR, radar-domain grids are referenced by the center of the
+        # pixel, so +/- half the distance of the pixel's side to capture
+        # the entire range.
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="slantRange",
+        )
+        rng_start = float(h5_file[path][0]) - 0.5 * ground_range_spacing
+        rng_stop = float(h5_file[path][-1]) + 0.5 * ground_range_spacing
+
         # Construct Name
         name = self._get_raster_name(raster_path)
 
@@ -728,10 +754,10 @@ class NisarRadarProduct(NisarProduct):
             name=name,
             band=self.band,
             freq="A" if "frequencyA" in raster_path else "B",
-            az_spacing=az_spacing,
+            ground_az_spacing=ground_az_spacing,
             az_start=az_start,
             az_stop=az_stop,
-            range_spacing=range_spacing,
+            ground_range_spacing=ground_range_spacing,
             rng_start=rng_start,
             rng_stop=rng_stop,
             epoch=epoch,
@@ -774,7 +800,7 @@ class NisarGeoProduct(NisarProduct):
         return True
 
     @cached_property
-    def _grid_path(self) -> str:
+    def _swaths_or_grid_path(self) -> str:
         return self._data_root + "/grids"
 
     @cached_property
@@ -785,7 +811,7 @@ class NisarGeoProduct(NisarProduct):
             # science frequency.
             freq_path = self.get_freq_path(freq=self.science_freq)
 
-            # Get the sub path to an occurance of a `projection` dataset
+            # Get the sub path to an occurrence of a `projection` dataset
             # for the chosen frequency. (Again, they're all the same.)
             proj_path = _get_paths_in_h5(
                 h5_file=f[freq_path], name="projection"
@@ -793,7 +819,9 @@ class NisarGeoProduct(NisarProduct):
             try:
                 proj_path = os.path.join(freq_path, proj_path[0])
             except IndexError as exc:
-                raise nisarqa.DatasetNotFoundError("no projection path found") from exc
+                raise nisarqa.DatasetNotFoundError(
+                    "no projection path found"
+                ) from exc
 
             return f[proj_path][...]
 
@@ -888,8 +916,9 @@ class NisarGeoProduct(NisarProduct):
             yCoordinates
         """
         if raster_path not in h5_file:
-            print(f"Input file does not contain raster {raster_path}")
-            raise nisarqa.DatasetNotFoundError
+            errmsg = f"Input file does not contain raster {raster_path}"
+            print(errmsg)
+            raise nisarqa.DatasetNotFoundError(errmsg)
 
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
@@ -986,7 +1015,7 @@ class NonInsarProduct(NisarProduct):
     """Common functionality for RSLC, GLSC, and GCOV products."""
 
     @abstractmethod
-    def get_layers_for_browse(self) -> dict:
+    def get_layers_for_browse(self) -> dict[str, list[str]]:
         """
         Determine which polarization layers to use to generate the browse image.
 
@@ -1002,7 +1031,9 @@ class NonInsarProduct(NisarProduct):
 
     @staticmethod
     @abstractmethod
-    def save_browse(self, pol_imgs: dict[np.ndarray], filepath: str) -> None:
+    def save_browse(
+        pol_imgs: dict[str, np.ndarray], filepath: str | os.PathLike
+    ) -> None:
         """
         Save given polarization images to a RGB or Grayscale PNG.
 
@@ -1021,7 +1052,7 @@ class NonInsarProduct(NisarProduct):
             Example:
                 pol_imgs['HHHH'] : <2D numpy.ndarray image>
                 pol_imgs['VVVV'] : <2D numpy.ndarray image>
-        filepath : str
+        filepath : path-like
             Full filepath for where to save the browse image PNG.
 
         Notes
@@ -1084,7 +1115,9 @@ class NonInsarProduct(NisarProduct):
         pass
 
     @contextmanager
-    def get_raster(self, freq: str, pol: str) -> Iterator[RadarRaster | GeoRaster]:
+    def get_raster(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
         """
         Context Manager for a RadarRaster or GeoRaster for the specified raster.
 
@@ -1100,7 +1133,7 @@ class NonInsarProduct(NisarProduct):
         Yields
         -------
         raster : RadarRaster or GeoRaster
-            Context manager to the requested SARRaster dataset.
+            Generated *Raster for the requested dataset.
             Warning: the input NISAR file cannot be opened by ISCE3 until
             this context manager is exited.
 
@@ -1195,9 +1228,9 @@ class NonInsarProduct(NisarProduct):
 
         return layers
 
-    def get_pols(self, freq: str) -> tuple[str]:
+    def get_pols(self, freq: str) -> tuple[str, ...]:
         """
-        Get a list of the available polarizations for frequency `freq`.
+        Get a tuple of the available polarizations for frequency `freq`.
 
         Parameters
         ----------
@@ -1218,7 +1251,7 @@ class NonInsarProduct(NisarProduct):
 
 @dataclass
 class SLC(NonInsarProduct):
-    def get_layers_for_browse(self) -> dict:
+    def get_layers_for_browse(self) -> dict[str, list[str]]:
         """
         Assign polarizations to grayscale or RGBA channels for the Browse Image.
 
@@ -1393,7 +1426,9 @@ class SLC(NonInsarProduct):
         return layers_for_browse
 
     @staticmethod
-    def save_browse(pol_imgs, filepath):
+    def save_browse(
+        pol_imgs: dict[str, np.ndarray], filepath: str | os.PathLike
+    ) -> None:
         """
         Save images in `pol_imgs` to a RGB or Grayscale PNG with transparency.
 
@@ -1434,7 +1469,7 @@ class SLC(NonInsarProduct):
             Example:
                 pol_imgs['HH'] : <2D numpy.ndarray image>
                 pol_imgs['VV'] : <2D numpy.ndarray image>
-        filepath : str
+        filepath : path-like
             Full filepath for where to save the browse image PNG.
 
         Notes
@@ -1591,7 +1626,7 @@ class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
         # All rasters used for the browse should have the same grid specs
         # So, WLOG parse the specs from the first one of them.
         layers = self.get_layers_for_browse()
-        freq = list(layers.keys())[0]
+        freq = next(iter(layers.keys()))
         pol = layers[freq][0]
 
         with self.get_raster(freq=freq, pol=pol) as img:
@@ -1787,7 +1822,7 @@ class GCOV(NonInsarGeoProduct):
 
         return dataset
 
-    def get_layers_for_browse(self) -> dict:
+    def get_layers_for_browse(self) -> dict[str, list[str]]:
         """
         Assign polarizations to grayscale or RGBA channels for the Browse Image.
 
@@ -1819,6 +1854,7 @@ class GCOV(NonInsarGeoProduct):
         See Also
         --------
         save_browse : Assigns color channels and generates the browse PNG.
+
         Notes
         -----
         Unlike RSLC products, the polarizations contained within a GCOV product
@@ -1938,7 +1974,9 @@ class GCOV(NonInsarGeoProduct):
         return layers_for_browse
 
     @staticmethod
-    def save_browse(pol_imgs, filepath):
+    def save_browse(
+        pol_imgs: dict[str, np.ndarray], filepath: str | os.PathLike
+    ) -> None:
         """
         Save the given polarization images to a RGB or Grayscale PNG.
 
@@ -1970,7 +2008,7 @@ class GCOV(NonInsarGeoProduct):
             Example:
                 pol_imgs['HHHH'] : <2D numpy.ndarray image>
                 pol_imgs['VVVV'] : <2D numpy.ndarray image>
-        filepath : str
+        filepath : path-like
             Full filepath for where to save the browse image PNG.
 
         See Also
