@@ -182,11 +182,12 @@ class NisarProduct(ABC):
     def __post_init__(self):
         # Verify that the input product contained a product spec version.
         self.product_spec_version
+        print("B))OOO: ", self._root_path)
 
         self._check_product_type()
-        self._check_data_root()
+        self._check_root_path()
         self._check_is_geocoded()
-        self._check_swaths_or_grid_path()
+        self._check_data_group_path()
 
     @abstractproperty
     def product_type(self) -> str:
@@ -260,15 +261,9 @@ class NisarProduct(ABC):
             return spec_version
 
     @cached_property
-    def _data_root(self) -> str:
+    def _root_path(self) -> str:
         """
-        Get the path to the group which is the root for the science datasets.
-
-        In products up to and including the R3.4 delivery (which used product
-        spec 0.X.X), this will be something like "/science/LSAR/RSLC".
-        In subsequent deliveries, that path will likely be removed, and the
-        science datasets will begin at the root level. In that case, the
-        empty string "" should be returned.
+        Get the path to the group which is the root for the primary groups.
 
         Returns
         -------
@@ -277,36 +272,46 @@ class NisarProduct(ABC):
                 Standard Format: "/science/<band>/<product_type>
                 Example: "/science/LSAR/RSLC"
 
+        See Also
+        --------
+        _data_group_path : Constructs the path to the data group, e.g.
+                                "/science/LSAR/RSLC/swaths"
+
         Notes
         -----
-        Sometime after Sept. 2023, it is possible that this path will be
-        removed from the directory structure for all L1/L2 products.
-        This means that the science datasets will begin at the root level,
-        and so an empty string ("") would likely be returned.
-        If so, update this function accordingly.
+        In products up to and including the R3.4 delivery (which used product
+        spec 0.9.0), this will be something like "/science/LSAR".
+        This structure is set up like e.g.:
+            /science/LSAR/RSLC/swaths/frequencyX/...
+            /science/LSAR/RSLC/metadata/...
+            /science/LSAR/identification
+        In subsequent deliveries, that path will likely be truncated. All
+        products would follow a consistent structure, something like:
+            /data/frequencyX/...
+            /metadata/...
+            /identification
+        In that case, the empty string "" should be returned by this function.
         """
         id_group = self.identification_path
+        print("adfgad: ", id_group)
         # The `identification` group is found at e.g.:
         #   "/science/LSAR/identification"
-        # Replace "identification" with the product type to form the data root
-        path = id_group.replace("identification", self.product_type)
-        return path
+        # Remove identification.
+        root = id_group.replace("/identification", "")
+        print("lululul: ", root)
+        return root
 
-    def _check_data_root(self) -> None:
-        """Sanity check that `self._data_root` is valid."""
+    def _check_root_path(self) -> None:
+        """Sanity check that `self._root_path` is valid."""
+        print("kikikik4444: ", self._root_path)
+
         with nisarqa.open_h5_file(self.filepath) as f:
             # Conditional branch for datasets <=R3.4 (TBD possibly beyond)
-            if self._data_root not in f:
+            print("kikikik: ", self._root_path)
+            if self._root_path not in f:
                 raise ValueError(
-                    f"self._data_root determined to be {self._data_root},"
+                    f"self._root_path determined to be {self._root_path},"
                     " but this is not a valid path in the input file."
-                )
-
-            # Sanity check that product structure has not significantly changed
-            if "metadata" not in f[self._data_root]:
-                raise nisarqa.DatasetNotFoundError(
-                    f"`metadata` group not found inside {self._data_root};"
-                    " Product spec structure not as expected."
                 )
 
     @cached_property
@@ -425,7 +430,7 @@ class NisarProduct(ABC):
         # the `self` parameter, so use an inner function to cache the results.
         @lru_cache
         def _freq_path(freq):
-            path = self._swaths_or_grid_path + f"/frequency{freq}"
+            path = self._data_group_path + f"/frequency{freq}"
             with nisarqa.open_h5_file(self.filepath) as f:
                 if path in f:
                     return path
@@ -489,9 +494,9 @@ class NisarProduct(ABC):
                 # product robustness and to warn the user of faulty products.
                 warnings.warn("Product is missing `isGeocoded` field")
 
-    def _check_swaths_or_grid_path(self) -> None:
+    def _check_data_group_path(self) -> None:
         """Sanity check to ensure the grid path exists in the input file."""
-        grid_path = self._swaths_or_grid_path
+        grid_path = self._data_group_path
         with nisarqa.open_h5_file(self.filepath) as f:
             if grid_path not in f:
                 raise nisarqa.DatasetNotFoundError(
@@ -499,19 +504,45 @@ class NisarProduct(ABC):
                 )
 
     @abstractmethod
-    def _swaths_or_grid_path(self) -> str:
+    def _data_group_path(self) -> str:
         """
-        Return the path to the grid group.
+        Return the path to the group containing the primary datasets.
 
         For range Doppler products, this should be e.g.:
             '/science/LSAR/RIFG/swaths'
         For geocoded products, this should be e.g.:
             '/science/LSAR/RIFG/grids'
 
+        Returns
+        -------
+        root : str
+            Path to the directory where the product data is stored.
+                Standard Format: "/science/<band>/<product_type>
+                Example: "/science/LSAR/RSLC"
+
+        See Also
+        --------
+        _root_path : Constructs the path to the primary root group, e.g.
+                                "/science/LSAR"
+
         Notes
         -----
         A common implementation for this would be e.g.:
-            return self._data_root + "/swaths"
+            return os.path.join(self._root_path, self.product_type, "/swaths")
+
+        In products up to and including the R3.4 delivery (which used product
+        spec 0.9.0), the L1/L2 product structure is set up like e.g.:
+            /science/LSAR/RSLC/swaths/frequencyX/...
+            /science/LSAR/RSLC/metadata/...
+            /science/LSAR/identification
+        In which case "/science/LSAR/RSLC/swaths" should be returned.
+
+        In subsequent deliveries, that path will likely be truncated. All
+        products would follow a consistent structure, something like:
+            /data/frequencyX/...
+            /metadata/...
+            /identification
+        In that case, the string "/data" should be returned by this function.
         """
         pass
 
@@ -554,8 +585,8 @@ class NisarRadarProduct(NisarProduct):
         return False
 
     @cached_property
-    def _swaths_or_grid_path(self) -> str:
-        return self._data_root + "/swaths"
+    def _data_group_path(self) -> str:
+        return os.path.join(self._root_path, self.product_type, "swaths")
 
     @cached_property
     def orbit(self) -> isce3.core.Orbit:
@@ -566,7 +597,7 @@ class NisarRadarProduct(NisarProduct):
         except:
             print("WARNING: orbit could not be accessed via ISCE3 API.")
             with nisarqa.open_h5_file(self.filepath) as f:
-                path = f"{self._data_root}/metadata/orbit"
+                path = f"{self._root_path}/metadata/orbit"
                 if path in f:
                     orbit = isce3.core.load_orbit_from_h5_group(f[path])
                 else:
@@ -800,8 +831,8 @@ class NisarGeoProduct(NisarProduct):
         return True
 
     @cached_property
-    def _swaths_or_grid_path(self) -> str:
-        return self._data_root + "/grids"
+    def _data_group_path(self) -> str:
+        return os.path.join(self._root_path, self.product_type, "grids")
 
     @cached_property
     def epsg(self) -> str:
@@ -1643,8 +1674,8 @@ class RSLC(SLC, NisarRadarProduct):
         return "RSLC"
 
     @cached_property
-    def _data_root(self) -> str:
-        path = super()._data_root
+    def _data_group_path(self) -> str:
+        path = super()._data_group_path
 
         # Special handling for old UAVSAR test datasets that have paths
         # like "/science/LSAR/SLC/..."
@@ -1656,8 +1687,9 @@ class RSLC(SLC, NisarRadarProduct):
                     return slc_path
                 else:
                     raise ValueError(
-                        f"self._data_root determined to be {self._data_root},"
-                        " but this is not a valid path in the input file."
+                        "self._data_group_path determined to be"
+                        f" {self._data_group_path}, but this is not a valid"
+                        " path in the input file."
                     )
 
     def _get_dataset_handle(
