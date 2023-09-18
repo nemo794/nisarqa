@@ -270,12 +270,12 @@ class NisarProduct(ABC):
         root : str
             Path to the directory where the product data is stored.
                 Standard Format: "/science/<band>/<product_type>
-                Example: "/science/LSAR/RSLC"
+                Example:
+                    "/science/LSAR/RSLC"
 
         See Also
         --------
-        _data_group_path : Constructs the path to the data group, e.g.
-                                "/science/LSAR/RSLC/swaths"
+        _data_group_path : Constructs the path to the data group.
 
         Notes
         -----
@@ -398,9 +398,9 @@ class NisarProduct(ABC):
                 print(f"Found Frequency{freq} group: {path}")
 
         if not found_freqs:
-            raise nisarqa.InvalidNISARProductError(
-                "Input product does not contain any frequency groups."
-            )
+            errmsg = "Input product does not contain any frequency groups."
+            print(errmsg)
+            raise nisarqa.InvalidNISARProductError(errmsg)
 
         return tuple(found_freqs)
 
@@ -435,10 +435,12 @@ class NisarProduct(ABC):
                 if path in f:
                     return path
                 else:
-                    raise nisarqa.DatasetNotFoundError(
+                    errmsg = (
                         f"Input file does not contain frequency {freq} group at"
                         f" expected path: {path}"
                     )
+                    print(errmsg)
+                    raise nisarqa.DatasetNotFoundError(errmsg)
 
         return _freq_path(freq)
 
@@ -499,9 +501,9 @@ class NisarProduct(ABC):
         grid_path = self._data_group_path
         with nisarqa.open_h5_file(self.filepath) as f:
             if grid_path not in f:
-                raise nisarqa.DatasetNotFoundError(
-                    f"Input file is missing the path: {grid_path}"
-                )
+                errmsg = f"Input file is missing the path: {grid_path}"
+                print(errmsg)
+                raise nisarqa.DatasetNotFoundError(errmsg)
 
     @abstractmethod
     def _data_group_path(self) -> str:
@@ -522,8 +524,7 @@ class NisarProduct(ABC):
 
         See Also
         --------
-        _root_path : Constructs the path to the primary root group, e.g.
-                                "/science/LSAR"
+        _root_path : Constructs the path to the primary root group.
 
         Notes
         -----

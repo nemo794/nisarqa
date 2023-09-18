@@ -48,10 +48,17 @@ def open_h5_file(in_file, mode="r"):
 
 
 class DatasetNotFoundError(Exception):
-    """Custom exception for when a dataset is not found in an e.g. HDF5 file."""
+    """
+    Custom exception for when a dataset is not found in an e.g. HDF5 file.
 
-    def __init__(self):
-        super().__init__("Dataset not found.")
+    Parameters
+    ----------
+    msg : str, optional
+        Error message. Default: "Dataset not found.".
+    """
+
+    def __init__(self, msg: str = "Dataset not found.") -> None:
+        super().__init__(msg)
 
 
 class ExitEarly(Exception):
@@ -65,9 +72,21 @@ class ExitEarly(Exception):
 
 
 class InvalidNISARProductError(Exception):
-    """Input NISAR HDF5 file does not match the product spec structure."""
+    """
+    Input NISAR HDF5 file does not match the product spec structure.
 
-    pass
+    Parameters
+    ----------
+    msg : str, optional
+        Error message.
+        Default: "Input file does not match expected product spec structure.".
+    """
+
+    def __init__(
+        self,
+        msg: str = "Input file does not match expected product spec structure.",
+    ) -> None:
+        super().__init__(msg)
 
 
 def raise_(exc):
