@@ -46,11 +46,11 @@ def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
         each successive parent directory in `starting_path` to find the first
         occurrence of `dataset_to_find`.
     dataset_to_find : str
-        Name of the dataset to locate in `h5_file`.
+        Base name of the dataset to locate in `h5_file`.
 
     Returns
     -------
-    path : str or None
+    path : str
         Path inside `h5_file` to the requested `dataset_to_find`.
 
     Raises
@@ -96,7 +96,7 @@ def _get_path_to_nearest_dataset(h5_file, starting_path, dataset_to_find):
 
     # Iterate through each parent directory of the dataset (raster image),
     # starting with the directory that the dataset (raster) itself is inside.
-    for i in range(-1, -(len(path_list)), -1):
+    for i in reversed(range(len(path_list))):
         parent = "/".join(path_list[:i])
 
         path = f"{parent}/{dataset_to_find}"
@@ -119,7 +119,7 @@ def _get_paths_in_h5(h5_file: h5py.File, name: str) -> tuple[str]:
 
     Returns
     -------
-    paths : tuple of str
+    paths : list of str
         Tuple containing the paths to each dataset or group with the
         name `name` in the input file. For example, if `name` is
         "identification", this function could return
@@ -164,6 +164,7 @@ class NisarProduct(ABC):
     filepath: str
 
     def __post_init__(self):
+        # Verify that the input product contained a product spec version.
         self.product_spec_version
 
         self._check_product_type()
@@ -309,11 +310,12 @@ class NisarProduct(ABC):
         with nisarqa.open_h5_file(self.filepath) as f:
             try:
                 band = f[id_group]["radarBand"][...]
-                band = _hdf5_byte_string_to_str(band)
             except KeyError:
                 warnings.warn(
                     "`radarBand` missing from `identification` group."
                 )
+            else:
+                band = _hdf5_byte_string_to_str(band)
 
         # TODO - remove the below code once all test data sets are updated to
         # new product spec
@@ -333,7 +335,7 @@ class NisarProduct(ABC):
         return band
 
     @cached_property
-    def freqs(self) -> tuple[str]:
+    def freqs(self) -> tuple[str, ...]:
         """
         The available frequencies in the input file.
 
@@ -357,7 +359,7 @@ class NisarProduct(ABC):
 
         Raises
         ------
-        ValueError
+        nisarqa.InvalidNISARProductError
             If no frequency groups are found.
         """
         # Get paths to the frequency groups
@@ -524,7 +526,7 @@ class NisarRadarProduct(NisarProduct):
         return self._data_root + "/swaths"
 
     @cached_property
-    def orbit(self) -> isce3.ext.isce3.core.Orbit:
+    def orbit(self) -> isce3.core.Orbit:
         """The ISCE3 orbit object for this input file."""
         try:
             product = nisar.products.readers.open_product(self.filepath)
@@ -541,9 +543,9 @@ class NisarRadarProduct(NisarProduct):
 
     def radar_grid(
         self, freq: str
-    ) -> isce3.ext.isce3.core.radarGrid:  # TODO: correct type?
+    ) -> isce3.product.RadarGridParameters:
         """
-        Return the ISCE3 radarGrid object for this input file.
+        Return the ISCE3 RadarGridParameters object for this input file.
 
         Parameters
         ----------
@@ -642,8 +644,9 @@ class NisarRadarProduct(NisarProduct):
             zeroDopplerTime
         """
         if raster_path not in h5_file:
-            print(f"Input file does not contain raster {raster_path}")
-            raise nisarqa.DatasetNotFoundError
+            errmsg = f"Input file does not contain raster {raster_path}"
+            print(errmsg)
+            raise nisarqa.DatasetNotFoundError(errmsg)
 
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
@@ -787,7 +790,10 @@ class NisarGeoProduct(NisarProduct):
             proj_path = _get_paths_in_h5(
                 h5_file=f[freq_path], name="projection"
             )
-            proj_path = os.path.join(freq_path, proj_path[0])
+            try:
+                proj_path = os.path.join(freq_path, proj_path[0])
+            except IndexError as exc:
+                raise nisarqa.DatasetNotFoundError("no projection path found") from exc
 
             return f[proj_path][...]
 
@@ -1078,7 +1084,7 @@ class NonInsarProduct(NisarProduct):
         pass
 
     @contextmanager
-    def get_raster(self, freq: str, pol: str) -> contextmanager:
+    def get_raster(self, freq: str, pol: str) -> Iterator[RadarRaster | GeoRaster]:
         """
         Context Manager for a RadarRaster or GeoRaster for the specified raster.
 
@@ -1091,9 +1097,9 @@ class NonInsarProduct(NisarProduct):
               For RSLC and GSLC, use e.g. "HH", "HV",
               For GCOV, use e.g. "HHVV"
 
-        Returns
+        Yields
         -------
-        raster : contextlib.contextmanager
+        raster : RadarRaster or GeoRaster
             Context manager to the requested SARRaster dataset.
             Warning: the input NISAR file cannot be opened by ISCE3 until
             this context manager is exited.
@@ -1116,17 +1122,12 @@ class NonInsarProduct(NisarProduct):
 
         path = self._layers[freq][pol]
 
-        try:
-            in_file = h5py.File(self.filepath, "r")
+        with h5py.File(self.filepath, "r") as in_file:
             if path not in in_file:
-                raise nisarqa.DatasetNotFoundError
-        except nisarqa.DatasetNotFoundError:
-            print(f"Input file does not contain raster {path}")
-            raise
-        else:
+                errmsg = f"Input file does not contain raster {path}"
+                print(errmsg)
+                raise nisarqa.DatasetNotFoundError(errmsg)
             yield self._get_raster_from_path(h5_file=in_file, raster_path=path)
-        finally:
-            in_file.close()
 
     def _get_raster_name(self, raster_path: str) -> str:
         """
@@ -1153,18 +1154,13 @@ class NonInsarProduct(NisarProduct):
         return name
 
     @cached_property
-    def _layers(self) -> dict:
+    def _layers(self) -> dict[str, dict[str, str]]:
         """
-        Locate available bands, frequencies, and polarizations in input file.
-
-        Parameters
-        ----------
-        h5_file : h5py.File
-            Handle to the input product h5 file.
+        Locate available bands, frequencies, and polarizations in the product.
 
         Returns
         -------
-        layers : nested dict of *Raster
+        layers : nested dict of str
             Nested dict of paths to input file raster datasets.
             Format: layers[<freq>][<pol>] -> str
             Example:
@@ -1210,8 +1206,8 @@ class NonInsarProduct(NisarProduct):
 
         Returns
         -------
-        pols : Iterable of str
-            An iterable of the available polarizations for the requested.
+        pols : tuple of str
+            An tuple of the available polarizations for the requested
             frequency.
                 Example for RSLC or GSLC: ("HH", "VV")
                 Example for GCOV: ("HHHH", "HVHH", "VVVV")
@@ -1222,9 +1218,6 @@ class NonInsarProduct(NisarProduct):
 
 @dataclass
 class SLC(NonInsarProduct):
-    # TODO - PLEASE DELETE THIS COMMENT DURING CODE REVIEW
-    # FYI - This function is basically a cut-and-paste of:
-    #        src/nisarqa/products/rslc.py > select_layers_for_slc_browse()
     def get_layers_for_browse(self) -> dict:
         """
         Assign polarizations to grayscale or RGBA channels for the Browse Image.
@@ -1399,9 +1392,6 @@ class SLC(NonInsarProduct):
 
         return layers_for_browse
 
-    # TODO - PLEASE DELETE THIS COMMENT DURING CODE REVIEW
-    # FYI - This function is basically a cut-and-paste of:
-    #        src/nisarqa/products/rslc.py > save_slc_browse_img()
     @staticmethod
     def save_browse(pol_imgs, filepath):
         """
@@ -1587,7 +1577,7 @@ class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
         # All rasters used for the browse should have the same grid specs
         # So, WLOG parse the specs from the first one of them.
         layers = self.get_layers_for_browse()
-        freq = list(layers.keys())[0]
+        freq = next(iter(layers.keys()))
         pol = layers[freq][0]
 
         with self.get_raster(freq=freq, pol=pol) as img:
@@ -1760,7 +1750,7 @@ class GSLC(SLC, NonInsarGeoProduct):
 
         print(
             f"({pass_fail}) PASS/FAIL Check: Product raster dtype conforms"
-            " to RSLC Product Spec dtype of complex64."
+            " to GSLC Product Spec dtype of complex64."
         )
 
         return dataset
@@ -1797,9 +1787,6 @@ class GCOV(NonInsarGeoProduct):
 
         return dataset
 
-    # TODO - PLEASE DELETE THIS COMMENT DURING CODE REVIEW
-    # FYI - This function is basically a cut-and-paste of:
-    #        src/nisarqa/products/gcov.py > select_layers_for_gcov_browse()
     def get_layers_for_browse(self) -> dict:
         """
         Assign polarizations to grayscale or RGBA channels for the Browse Image.
@@ -1950,9 +1937,6 @@ class GCOV(NonInsarGeoProduct):
 
         return layers_for_browse
 
-    # TODO - PLEASE DELETE THIS COMMENT DURING CODE REVIEW
-    # FYI - This function is basically a cut-and-paste of:
-    #        src/nisarqa/products/gcov.py > select_layers_for_gcov_browse()
     @staticmethod
     def save_browse(pol_imgs, filepath):
         """
