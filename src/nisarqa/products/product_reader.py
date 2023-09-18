@@ -182,7 +182,6 @@ class NisarProduct(ABC):
     def __post_init__(self):
         # Verify that the input product contained a product spec version.
         self.product_spec_version
-        print("B))OOO: ", self._root_path)
 
         self._check_product_type()
         self._check_root_path()
@@ -293,21 +292,17 @@ class NisarProduct(ABC):
         In that case, the empty string "" should be returned by this function.
         """
         id_group = self.identification_path
-        print("adfgad: ", id_group)
         # The `identification` group is found at e.g.:
         #   "/science/LSAR/identification"
         # Remove identification.
         root = id_group.replace("/identification", "")
-        print("lululul: ", root)
         return root
 
     def _check_root_path(self) -> None:
         """Sanity check that `self._root_path` is valid."""
-        print("kikikik4444: ", self._root_path)
 
         with nisarqa.open_h5_file(self.filepath) as f:
             # Conditional branch for datasets <=R3.4 (TBD possibly beyond)
-            print("kikikik: ", self._root_path)
             if self._root_path not in f:
                 raise ValueError(
                     f"self._root_path determined to be {self._root_path},"
@@ -529,7 +524,7 @@ class NisarProduct(ABC):
         Notes
         -----
         A common implementation for this would be e.g.:
-            return os.path.join(self._root_path, self.product_type, "/swaths")
+            return "/".join(self._root_path, self.product_type, "swaths")
 
         In products up to and including the R3.4 delivery (which used product
         spec 0.9.0), the L1/L2 product structure is set up like e.g.:
@@ -587,7 +582,7 @@ class NisarRadarProduct(NisarProduct):
 
     @cached_property
     def _data_group_path(self) -> str:
-        return os.path.join(self._root_path, self.product_type, "swaths")
+        return "/".join(self._root_path, self.product_type, "swaths")
 
     @cached_property
     def orbit(self) -> isce3.core.Orbit:
@@ -833,7 +828,7 @@ class NisarGeoProduct(NisarProduct):
 
     @cached_property
     def _data_group_path(self) -> str:
-        return os.path.join(self._root_path, self.product_type, "grids")
+        return "/".join(self._root_path, self.product_type, "grids")
 
     @cached_property
     def epsg(self) -> str:
@@ -849,7 +844,7 @@ class NisarGeoProduct(NisarProduct):
                 h5_file=f[freq_path], name="projection"
             )
             try:
-                proj_path = os.path.join(freq_path, proj_path[0])
+                proj_path = "/".join(freq_path, proj_path[0])
             except IndexError as exc:
                 raise nisarqa.DatasetNotFoundError(
                     "no projection path found"
@@ -1163,7 +1158,7 @@ class NonInsarProduct(NisarProduct):
               For GCOV, use e.g. "HHVV"
 
         Yields
-        -------
+        ------
         raster : RadarRaster or GeoRaster
             Generated *Raster for the requested dataset.
             Warning: the input NISAR file cannot be opened by ISCE3 until

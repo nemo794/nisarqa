@@ -185,7 +185,5 @@ def verify_gcov(user_rncfg):
     )
 
 
-# Dear Reviewer: PLEASE DELETE THIS COMMENT!
-# These two functions were incorporated into the GCOV Product reader.
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

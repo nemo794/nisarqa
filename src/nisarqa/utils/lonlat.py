@@ -70,7 +70,7 @@ def get_latlonquad(
     Parameters
     ----------
     product : nisarqa.NisarRadarProduct or nisarqa.NisarGeoProduct
-        The input product
+        The input product.
 
     Returns
     -------

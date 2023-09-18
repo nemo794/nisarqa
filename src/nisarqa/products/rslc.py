@@ -238,7 +238,7 @@ def verify_rslc(user_rncfg):
 # TODO - move to generic NISAR module
 def copy_identification_group_to_stats_h5(
     product: nisarqa.NisarProduct, stats_h5: h5py.File
-):
+) -> None:
     """
     Copy the identification group from the input NISAR file
     to the STATS.h5 file.
@@ -308,8 +308,6 @@ def save_nisar_freq_metadata_to_h5(
         )
 
 
-# TODO - Reviewer please delete comment -- these functions were incorporated
-# into the product readers
 
 
 def process_backscatter_imgs_and_browse(
@@ -320,7 +318,7 @@ def process_backscatter_imgs_and_browse(
     browse_filename: str,
     input_raster_represents_power: bool = False,
     plot_title_prefix: str = "Backscatter Coefficient",
-):
+) -> None:
     """
     Generate Backscatter Image plots for the `report_pdf` and
     corresponding browse image product.
@@ -413,12 +411,8 @@ def process_backscatter_imgs_and_browse(
                 if (freq in layers_for_browse) and (
                     pol in layers_for_browse[freq]
                 ):
-                    # ...keep the multilooked, color-corrected image open
-                    # (These will be closed when the function returns.)
+                    # ...keep the multilooked, color-corrected image in memory
                     pol_imgs_for_browse[pol] = corrected_img
-                # else:
-                #     # We no longer need the image, so close the context manager
-                #     img.close()
 
     # Construct the browse image
     product.save_browse(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
@@ -761,8 +755,6 @@ def invert_gamma_correction(img_arr, gamma, vmin, vmax):
     return out
 
 
-# TODO - Reviewer please delete comment. This function was incorporated into
-# the product readers.
 
 
 def plot_to_grayscale_png(img_arr, filepath):

@@ -173,7 +173,5 @@ def verify_gslc(user_rncfg):
     )
 
 
-# TODO - Reviewer, please delete this comment
-# This function was incorporated into the product reader.
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
