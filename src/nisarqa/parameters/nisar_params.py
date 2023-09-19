@@ -402,13 +402,13 @@ class WorkflowsParamGroup(YamlParamGroup):
     Attributes
     ----------
     validate : bool, optional
-        True to run the validate workflow. Default: False
+        True to run the validate workflow. Default: True
     qa_reports : bool, optional
-        True to run the QA Reports workflow. Default: False
+        True to run the QA Reports workflow. Default: True
     """
 
     # default value for all workflows
-    _default_val: ClassVar[bool] = False
+    _default_val: ClassVar[bool] = True
 
     # Generic description for all workflows
     _descr: ClassVar[str] = f"Flag to run %s."

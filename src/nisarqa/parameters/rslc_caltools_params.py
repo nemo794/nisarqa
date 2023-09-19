@@ -33,18 +33,18 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     Parameters
     ----------
     validate : bool, optional
-        True to run the validate workflow. Default: False
+        True to run the validate workflow. Default: True
         (inherited from WorkflowsParamGroup class)
     qa_reports : bool, optional
-        True to run the QA Reports workflow. Default: False
+        True to run the QA Reports workflow. Default: True
         (inherited from WorkflowsParamGroup class)
     abs_cal : bool, optional
         True to run the Absolute Radiometric Calibration Factor CalTool workflow
-        Default: False
+        Default: True
     noise_estimation : bool, optional
-        True to run the Noise Estimation Tool (NET) workflow. Default: False
+        True to run the Noise Estimation Tool (NET) workflow. Default: True
     point_target : bool, optional
-        True to run the Point Target Analyzer (PTA) workflow. Default: False
+        True to run the Point Target Analyzer (PTA) workflow. Default: True
     """
 
     abs_cal: bool = field(
