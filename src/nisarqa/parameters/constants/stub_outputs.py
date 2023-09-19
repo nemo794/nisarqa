@@ -164,12 +164,15 @@ def output_stub_files(output_dir, stub_files="all", input_file=None):
         stub_files = [stub_files]
 
     # ensure that the inputs are a subset of the valid options
-    assert set(stub_files) <= set(opts), "invalid input for argument `stub_files`"
+    assert set(stub_files) <= set(
+        opts
+    ), "invalid input for argument `stub_files`"
 
     if "stats_h5" in stub_files:
-        assert (
-            input_file is not None
-        ), "to generate a stub STATS.h5, a valid NISAR product input file must be provided."
+        assert input_file is not None, (
+            "to generate a stub STATS.h5, a valid NISAR product input file must"
+            " be provided."
+        )
         assert os.path.isfile(
             input_file
         ), f"`input_file` is not a valid file: {input_file}"
@@ -204,7 +207,7 @@ def output_stub_files(output_dir, stub_files="all", input_file=None):
             input_file, mode="r"
         ) as in_file, nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
             for band in nisarqa.NISAR_BANDS:
-                grp_path = f"/science/{band}/identification"
+                grp_path = f"/science/{band}SAR/identification"
 
                 if grp_path in in_file:
                     # Copy identification metadata from input file to stats.h5
@@ -214,7 +217,9 @@ def output_stub_files(output_dir, stub_files="all", input_file=None):
     # Create a roughly 2048x2048 pixels^2 RGB image
     # (ASF allows for in-exact dimensions, so let's test that.)
     # (Current plan is for all NISAR products to generate RGBA browse images)
-    imarray = np.random.randint(low=0, high=256, size=(1800, 2000, 4), dtype=np.uint8)
+    imarray = np.random.randint(
+        low=0, high=256, size=(1800, 2000, 4), dtype=np.uint8
+    )
 
     # Make all pixels opaque by setting the alpha channel to 255
     imarray[:, :, 3] = 255
@@ -244,7 +249,9 @@ def output_stub_files(output_dir, stub_files="all", input_file=None):
 
             plt.xlabel("Placeholder x-axis label")
             plt.ylabel("Placeholder y-axis label")
-            plt.title("PLACEHOLDER IMAGE - NOT REPRESENTATIVE OF ACTUAL NISAR PRODUCT")
+            plt.title(
+                "PLACEHOLDER IMAGE - NOT REPRESENTATIVE OF ACTUAL NISAR PRODUCT"
+            )
 
             # Make sure axes labels do not get cut off
             fig.tight_layout()
@@ -277,11 +284,15 @@ def get_input_file(user_rncfg, in_file_param="qa_input_file"):
     try:
         params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
     except KeyError as e:
-        raise KeyError("`input_file_group` is a required runconfig group") from e
+        raise KeyError(
+            "`input_file_group` is a required runconfig group"
+        ) from e
     try:
         input_file = params_dict[in_file_param]
     except KeyError as e:
-        raise KeyError(f"`{in_file_param}` " "is a required parameter for QA") from e
+        raise KeyError(
+            f"`{in_file_param}` is a required parameter for QA"
+        ) from e
 
     return input_file
 
@@ -326,7 +337,9 @@ def get_output_dir(user_rncfg):
     return output_dir
 
 
-def get_workflows(user_rncfg, rncfg_path=("runconfig", "groups", "qa", "workflows")):
+def get_workflows(
+    user_rncfg, rncfg_path=("runconfig", "groups", "qa", "workflows")
+):
     """
     Parse workflows group from the given runconfig path.
 
@@ -354,7 +367,7 @@ def get_workflows(user_rncfg, rncfg_path=("runconfig", "groups", "qa", "workflow
         params_dict = nisarqa.get_nested_element_in_dict(user_rncfg, rncfg_path)
     except KeyError:
         # group not found in runconfig. Use defaults.
-        warnings.warn("`workflows` not found in runconfig. " "Using defaults.")
+        warnings.warn("`workflows` not found in runconfig. Using defaults.")
     else:
         try:
             validate = params_dict["validate"]
@@ -415,7 +428,9 @@ def verify_insar(user_rncfg, product):
         output_stub_files(output_dir, stub_files="all", input_file=input_file)
     elif validate:
         output_stub_files(
-            output_dir, stub_files=["summary_csv", "log_txt"], input_file=input_file
+            output_dir,
+            stub_files=["summary_csv", "log_txt"],
+            input_file=input_file,
         )
 
 

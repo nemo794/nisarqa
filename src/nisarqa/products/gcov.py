@@ -95,6 +95,12 @@ def verify_gcov(user_rncfg):
                         f"GCOV product contains off-diagonal term {pol}.",
                         RuntimeWarning,
                     )
+                else:
+                    raise nisarqa.InvalidNISARProductError(
+                        f"Polzarization '{pol}' was found in input product."
+                        " GCOV products can only contain polarizations: "
+                        f" {nisarqa.GCOV_DIAG_POLS + nisarqa.GCOV_OFF_DIAG_POLS}."
+                    )
 
     if root_params.workflows.qa_reports:
         print("Beginning processing of `qa_reports` items...")
@@ -183,7 +189,6 @@ def verify_gcov(user_rncfg):
         "Successful completion of QA SAS. Check log file for validation"
         " warnings and errors."
     )
-
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import numpy as np
+from numpy.typing import ArrayLike
 
 import nisarqa
 
@@ -114,7 +117,9 @@ def counts2density(counts, bins):
     return density
 
 
-def normalize(arr, min_max=None):
+def normalize(
+    arr: ArrayLike, min_max: tuple[float, float] | None = None
+) -> np.ndarray:
     """
     Normalize input array to range [0,1], ignoring any NaN values.
 
@@ -128,6 +133,11 @@ def normalize(arr, min_max=None):
         If provided, the normalization computation will use `min_max` as
         the range which determines the scaling to [0,1].
         Format: [<minimum>, <maximum>]
+
+    Returns
+    -------
+    normalized_arr : numpy.ndarray
+        A normalized copy of `arr`.
     """
     if min_max is None:
         arr_min = np.nanmin(arr)

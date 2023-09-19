@@ -105,15 +105,18 @@ def raise_(exc):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 2, in raise_
     Exception: mayday
+
     >>> raise_(TypeError('Input has incorrect type'))
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
       File "<stdin>", line 2, in raise_
     TypeError: Input has incorrect type
+
     >>> out = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
     >>> my_func = lambda x: (x + 1) if (x > 1) else raise_(Exception('error'))
     >>> my_func(3)
     4
+
     >>> my_func(-1)
     Traceback (most recent call last):
     File "<stdin>", line 1, in <module>

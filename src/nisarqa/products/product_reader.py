@@ -506,16 +506,18 @@ class NisarProduct(ABC):
         Return the path to the group containing the primary datasets.
 
         For range Doppler products, this should be e.g.:
-            '/science/LSAR/RIFG/swaths'
+            'science/LSAR/RIFG/swaths'
         For geocoded products, this should be e.g.:
-            '/science/LSAR/RIFG/grids'
+            'science/LSAR/RIFG/grids'
 
         Returns
         -------
         root : str
             Path to the directory where the product data is stored.
-                Standard Format: "/science/<band>/<product_type>
-                Example: "/science/LSAR/RSLC"
+                Standard Format:
+                    "science/<band>/<product_type>/<'swaths' OR 'grids'>"
+                Example:
+                    "science/LSAR/RSLC/swaths"
 
         See Also
         --------
@@ -524,7 +526,7 @@ class NisarProduct(ABC):
         Notes
         -----
         A common implementation for this would be e.g.:
-            return "/".join(self._root_path, self.product_type, "swaths")
+            return "/".join([self._root_path, self.product_type, "swaths"])
 
         In products up to and including the R3.4 delivery (which used product
         spec 0.9.0), the L1/L2 product structure is set up like e.g.:
@@ -538,9 +540,38 @@ class NisarProduct(ABC):
             /data/frequencyX/...
             /metadata/...
             /identification
-        In that case, the string "/data" should be returned by this function.
+        In that case, the string "data" should be returned by this function.
         """
         pass
+
+    def _metadata_group_path(self) -> str:
+        """
+        Get the path to the metadata group.
+
+        Returns
+        -------
+        root : str
+            Path to the metadata directory.
+                Standard Format: "/science/<band>/<product_type>/metadata
+                Example:
+                    "/science/LSAR/RSLC/metadata"
+
+        Notes
+        -----
+        In products up to and including the R3.4 delivery (which used product
+        spec 0.9.0), this input product structure is set up like e.g.:
+            /science/LSAR/RSLC/swaths/frequencyX/...
+            /science/LSAR/RSLC/metadata/...
+            /science/LSAR/identification
+        In subsequent deliveries, that path will likely be truncated. All
+        products would follow a consistent structure, something like:
+            /data/frequencyX/...
+            /metadata/...
+            /identification
+        When that change is implemented, this function will need to be updated
+        to accommodate the new spec.
+        """
+        return "/".join([self._root_path, self.product_type, "metadata"])
 
     @abstractmethod
     def _get_raster_from_path(
@@ -582,7 +613,7 @@ class NisarRadarProduct(NisarProduct):
 
     @cached_property
     def _data_group_path(self) -> str:
-        return "/".join(self._root_path, self.product_type, "swaths")
+        return "/".join([self._root_path, self.product_type, "swaths"])
 
     @cached_property
     def orbit(self) -> isce3.core.Orbit:
@@ -593,7 +624,7 @@ class NisarRadarProduct(NisarProduct):
         except:
             print("WARNING: orbit could not be accessed via ISCE3 API.")
             with nisarqa.open_h5_file(self.filepath) as f:
-                path = f"{self._root_path}/metadata/orbit"
+                path = f"{self._metadata_group_path}/orbit"
                 if path in f:
                     orbit = isce3.core.load_orbit_from_h5_group(f[path])
                 else:
@@ -828,7 +859,7 @@ class NisarGeoProduct(NisarProduct):
 
     @cached_property
     def _data_group_path(self) -> str:
-        return "/".join(self._root_path, self.product_type, "grids")
+        return "/".join([self._root_path, self.product_type, "grids"])
 
     @cached_property
     def epsg(self) -> str:
@@ -844,7 +875,7 @@ class NisarGeoProduct(NisarProduct):
                 h5_file=f[freq_path], name="projection"
             )
             try:
-                proj_path = "/".join(freq_path, proj_path[0])
+                proj_path = "/".join([freq_path, proj_path[0]])
             except IndexError as exc:
                 raise nisarqa.DatasetNotFoundError(
                     "no projection path found"
@@ -1685,6 +1716,25 @@ class RSLC(SLC, NisarRadarProduct):
                     raise ValueError(
                         "self._data_group_path determined to be"
                         f" {self._data_group_path}, but this is not a valid"
+                        " path in the input file."
+                    )
+
+    @cached_property
+    def _metadata_group_path(self) -> str:
+        path = super()._metadata_group_path
+
+        # Special handling for old UAVSAR test datasets that have paths
+        # like "/science/LSAR/SLC/metadata..."
+        with nisarqa.open_h5_file(self.filepath) as f:
+            if (path not in f) and (self.product_spec_version == "0.0.0"):
+                slc_path = path.replace("RSLC", "SLC")
+
+                if slc_path in f:
+                    return slc_path
+                else:
+                    raise ValueError(
+                        "self._metadata_group_path determined to be"
+                        f" {self._metadata_group_path}, but this is not a valid"
                         " path in the input file."
                     )
 

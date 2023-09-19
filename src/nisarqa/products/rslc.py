@@ -1,11 +1,13 @@
 import functools
 import os
+from typing import Iterable, Optional
 
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
+from numpy.typing import ArrayLike
 from PIL import Image
 
 import nisarqa
@@ -278,9 +280,11 @@ def save_nisar_freq_metadata_to_h5(
     If `pols` contains values for Frequency A, then this dataset will
     be created in `stats_h5`:
         /science/<band>/QA/data/frequencyA/listOfPolarizations
+
     If `pols` contains values for Frequency B, then this dataset will
     be created in `stats_h5`:
         /science/<band>/QA/data/frequencyB/listOfPolarizations
+
     * Note: The paths are pulled from the global nisarqa.STATS_H5_QA_FREQ_GROUP.
     If the value of that global changes, then the path for the
     `listOfPolarizations` dataset(s) will change accordingly.
@@ -306,8 +310,6 @@ def save_nisar_freq_metadata_to_h5(
                 "discovered in input NISAR product by QA code"
             ),
         )
-
-
 
 
 def process_backscatter_imgs_and_browse(
@@ -755,8 +757,6 @@ def invert_gamma_correction(img_arr, gamma, vmin, vmax):
     return out
 
 
-
-
 def plot_to_grayscale_png(img_arr, filepath):
     """
     Save the image array to a 1-channel grayscale PNG with transparency.
@@ -792,7 +792,7 @@ def plot_to_grayscale_png(img_arr, filepath):
     im.save(filepath, transparency=transparency_val)  # default = 72 dpi
 
 
-def plot_to_rgb_png(red, green, blue, filepath, longest_side_max=None):
+def plot_to_rgb_png(red, green, blue, filepath):
     """
     Combine and save RGB channel arrays to a browse PNG with transparency.
 
@@ -837,22 +837,6 @@ def plot_to_rgb_png(red, green, blue, filepath, longest_side_max=None):
     transparency_val = (transparency_val,) * 3
 
     im = Image.fromarray(rgb_arr, mode="RGB")
-
-    if (longest_side_max is not None) and (
-        max(np.shape(red)) > longest_side_max
-    ):
-        # TODO - make sure browse.thumbnail() did not overwrite NaNs
-
-        # TODO - Geoff which is the best resampling algo?
-        # https://pillow.readthedocs.io/en/stable/handbook/concepts.html#concept-filters
-
-        # Note: Newer version of pillow might break
-        # Error: AttributeError: module 'PIL.Image' has no attribute 'Resampling'
-        # Sol'n: replace PIL.Image.Resampling.BICUBIC with PIL.Image.BICUBIC
-        im.thumbnail(
-            (longest_side_max, longest_side_max),
-            resample=Image.Resampling.BICUBIC,
-        )
 
     im.save(filepath, transparency=transparency_val)  # default = 72 dpi
 
@@ -920,15 +904,15 @@ def prep_arr_for_png_with_transparency(img_arr):
 
 # TODO - move to generic plotting.py
 def img2pdf_grayscale(
-    img_arr,
-    plots_pdf,
-    title=None,
-    xlim=None,
-    ylim=None,
-    colorbar_formatter=None,
-    xlabel=None,
-    ylabel=None,
-):
+    img_arr: ArrayLike,
+    plots_pdf: PdfPages,
+    title: Optional[str] = None,
+    xlim: Optional[Iterable[str]] = None,
+    ylim: Optional[Iterable[str]] = None,
+    colorbar_formatter: Optional[FuncFormatter] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+) -> None:
     """
     Plot the image array in grayscale, add a colorbar, and append to the pdf.
 
