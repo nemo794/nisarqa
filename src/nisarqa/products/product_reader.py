@@ -3,11 +3,12 @@ from __future__ import annotations
 import os
 import warnings
 from abc import ABC, abstractmethod, abstractproperty
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import Iterator, Optional
+from typing import Optional
 
 import h5py
 import isce3

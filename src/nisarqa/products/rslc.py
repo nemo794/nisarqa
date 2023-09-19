@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import functools
 import os
-from typing import Iterable, Optional
+from collections.abc import Sequence
+from typing import Optional
 
 import h5py
 import numpy as np
@@ -910,8 +911,8 @@ def img2pdf_grayscale(
     img_arr: ArrayLike,
     plots_pdf: PdfPages,
     title: Optional[str] = None,
-    xlim: Optional[Iterable[str]] = None,
-    ylim: Optional[Iterable[str]] = None,
+    xlim: Optional[Sequence[float]] = None,
+    ylim: Optional[Sequence[float]] = None,
     colorbar_formatter: Optional[FuncFormatter] = None,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
@@ -925,9 +926,9 @@ def img2pdf_grayscale(
         Image to plot in grayscale
     plots_pdf : PdfPages
         The output pdf file to append the backscatter image plot to
-    title : str, optional
+    title : str or None, optional
         The full title for the plot
-    xlim, ylim : sequence of numeric, optional
+    xlim, ylim : sequence of numeric or None, optional
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>],
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
@@ -941,7 +942,7 @@ def img2pdf_grayscale(
         If None, then default tick values will be used. Defaults to None.
         See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
         (Wrapping the function with FuncFormatter is optional.)
-    xlabel, ylabel : str, optional
+    xlabel, ylabel : str or None, optional
         Axes labels for the x-axis and y-axis (respectively)
     """
 
@@ -968,7 +969,6 @@ def img2pdf_grayscale(
         ax=ax,
         xlim=xlim,
         ylim=ylim,
-        fig=f,
         img_arr_shape=np.shape(img_arr),
         title=title,
         xlabel=xlabel,
@@ -987,10 +987,9 @@ def img2pdf_grayscale(
 
 def format_axes_ticks_and_labels(
     ax: Axes,
-    xlim: Optional[Iterable[str]] = None,
-    ylim: Optional[Iterable[str]] = None,
-    fig: Optional[plt.Figure] = None,
-    img_arr_shape: Iterable[int] = None,
+    xlim: Optional[Sequence[float]] = None,
+    ylim: Optional[Sequence[float]] = None,
+    img_arr_shape: Optional[Sequence[int]] = None,
     title: Optional[str] = None,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
@@ -1010,17 +1009,13 @@ def format_axes_ticks_and_labels(
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
         If `xlim` is None, the x-axes ticks and labels will not be modified.
         Similar for `ylim`. (They are handled independently.) Defaults to None.
-    fig : matplotlib.pyplot.Figure, optional
-        The Figure object containing `ax`. This function will not modify
-        `fig`; the function just needs to determine its size.
-        Required if `xlim` or `ylim` are specified; otherwise will be ignored.
-    img_arr_shape : pair of ints, optional
+    img_arr_shape : pair of ints or None, optional
         The shape of the image which will be placed on `ax`. In practise, this
         establishes the aspect ratio for the axes.
         Required if `xlim` or `ylim` are specified; otherwise will be ignored.
-    title : str, optional
+    title : str or None, optional
         The full title for the plot. Defaults to None (no title added).
-    xlabel, ylabel : str, optional
+    xlabel, ylabel : str or None, optional
         Axes labels for the x-axis and y-axis (respectively).
         Defaults to None (no labels added).
     """
@@ -1032,8 +1027,6 @@ def format_axes_ticks_and_labels(
     # matplotlib.imshow() caused significantly distorted images.
     # So, compute and set the ticks w/ labels manually.)
     if xlim is not None or ylim is not None:
-        if fig is None:
-            raise ValueError("Must provide a `fig` object.")
         if img_arr_shape is None:
             raise ValueError("Must provide `img_arr_shape` input.")
 
@@ -1041,7 +1034,7 @@ def format_axes_ticks_and_labels(
         ticks_per_inch = 2.5
 
         # Get the dimensions of the figure object in inches
-        fig_w, fig_h = fig.get_size_inches()
+        fig_w, fig_h = ax.get_figure().get_size_inches()
 
         # Get the dimensions of the image array in pixels
         W = img_arr_shape[1]
@@ -1066,7 +1059,7 @@ def format_axes_ticks_and_labels(
         num_xticks = int(ticks_per_inch * fig_w)
 
         # Always have a minimum of 2 labeled ticks
-        num_xticks = num_xticks if num_xticks >= 2 else 2
+        num_xticks = max(num_xticks, 2)
 
         # Specify where we want the ticks, in pixel locations.
         xticks = np.linspace(0, img_arr_shape[1], num_xticks)
@@ -1087,8 +1080,7 @@ def format_axes_ticks_and_labels(
         num_yticks = int(ticks_per_inch * fig_h)
 
         # Always have a minimum of 2 labeled ticks
-        if num_yticks < 2:
-            num_yticks = 2
+        num_yticks = max(num_yticks, 2)
 
         # Specify where we want the ticks, in pixel locations.
         yticks = np.linspace(0, img_arr_shape[0], num_yticks)
@@ -1104,13 +1096,13 @@ def format_axes_ticks_and_labels(
 
     # Label the Axes
     if xlabel is not None:
-        plt.xlabel(xlabel)
+        ax.set_xlabel(xlabel)
     if ylabel is not None:
-        plt.ylabel(ylabel)
+        ax.set_ylabel(ylabel)
 
     # Add title
     if title is not None:
-        plt.title(title)
+        ax.set_title(title)
 
 
 def process_backscatter_and_phase_histograms(

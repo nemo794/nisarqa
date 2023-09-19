@@ -1,6 +1,7 @@
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass, field, fields
-from typing import ClassVar, Iterable, Optional, Type, Union
+from typing import ClassVar, Optional, Type, Union
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -241,8 +242,10 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             "hdf5_attrs": HDF5Attrs(
                 name="backscatterImagePercentileClipped",
                 units="unitless",
-                descr="Percentile range that the image array was clipped to"
-                " and that the colormap covers",
+                descr=(
+                    "Percentile range that the image array was clipped to"
+                    " and that the colormap covers"
+                ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
         },
@@ -266,9 +269,9 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name="backscatterImageGammaCorrection",
                 units="unitless",
                 descr=(
-                    "Gamma correction parameter applied to backscatter and browse image(s)."
-                    " Dataset will be type float if gamma was applied, otherwise it is"
-                    " the string 'None'"
+                    "Gamma correction parameter applied to backscatter and"
+                    " browse image(s). Dataset will be type float if gamma was"
+                    " applied, otherwise it is the string 'None'"
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -309,9 +312,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
         # validate linear_units
         if not isinstance(self.linear_units, bool):
-            raise TypeError(
-                f"`linear_units` must be bool: {self.linear_units}"
-            )
+            raise TypeError(f"`linear_units` must be bool: {self.linear_units}")
 
         # validate nlooks_freq*
         self._validate_nlooks(self.nlooks_freqa, "A")
@@ -343,18 +344,21 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             )
         if any((e < 0.0 or e > 100.0) for e in val):
             raise ValueError(
-                f"{self.percentile_for_clipping=}, must be in range [0.0, 100.0]"
+                f"{self.percentile_for_clipping=}, must be in range [0.0,"
+                " 100.0]"
             )
         if self.percentile_for_clipping[0] >= self.percentile_for_clipping[1]:
             raise ValueError(
-                f"{self.percentile_for_clipping=}; values must appear in increasing order."
+                f"{self.percentile_for_clipping=}; values must appear in"
+                " increasing order."
             )
 
         # validate gamma
         if isinstance(self.gamma, float):
             if self.gamma < 0.0:
                 raise ValueError(
-                    f"If `gamma` is a float, it must be non-negative: {self.gamma}"
+                    "If `gamma` is a float, it must be non-negative:"
+                    f" {self.gamma}"
                 )
         elif self.gamma is not None:
             raise TypeError(
@@ -475,8 +479,10 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             "hdf5_attrs": HDF5Attrs(
                 name="histogramDecimationRatio",
                 units="unitless",
-                descr="Image decimation strides used to compute backscatter"
-                " and phase histograms. Format: [<azimuth>, <range>]",
+                descr=(
+                    "Image decimation strides used to compute backscatter"
+                    " and phase histograms. Format: [<azimuth>, <range>]"
+                ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
         },
@@ -527,7 +533,9 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             "hdf5_attrs": HDF5Attrs(
                 name="histogramEdgesBackscatter",
                 units="dB",
-                descr="Bin edges (including endpoint) for backscatter histogram",
+                descr=(
+                    "Bin edges (including endpoint) for backscatter histogram"
+                ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             )
         },
@@ -545,16 +553,19 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     phs_bin_edges: ArrayLike = field(
         init=False,
         metadata={
-            "hdf5_attrs_func": lambda obj: HDF5Attrs(
-                name="histogramEdgesPhase",
-                units="radians" if obj.phs_in_radians else "degrees",
-                descr="Bin edges (including endpoint) for phase histogram",
-                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
-            )
-            if (isinstance(obj, HistogramParamGroup))
-            else nisarqa.raise_(
-                TypeError(
-                    f"`obj` is {type(obj)}, but must be type HistogramParamGroup"
+            "hdf5_attrs_func": lambda obj: (
+                HDF5Attrs(
+                    name="histogramEdgesPhase",
+                    units="radians" if obj.phs_in_radians else "degrees",
+                    descr="Bin edges (including endpoint) for phase histogram",
+                    group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+                )
+                if (isinstance(obj, HistogramParamGroup))
+                else nisarqa.raise_(
+                    TypeError(
+                        f"`obj` is {type(obj)}, but must be type"
+                        " HistogramParamGroup"
+                    )
                 )
             )
         },
@@ -568,9 +579,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         if not isinstance(val, (list, tuple)):
             raise TypeError(f"`decimation_ratio` must be list or tuple: {val}")
         if not len(val) == 2:
-            raise ValueError(
-                f"`decimation_ratio` must have length of 2: {val}"
-            )
+            raise ValueError(f"`decimation_ratio` must have length of 2: {val}")
         if not all(isinstance(e, int) for e in val):
             raise TypeError(f"`decimation_ratio` must contain integers: {val}")
         if any(e <= 0 for e in val):
@@ -598,7 +607,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         if val[0] >= val[1]:
             raise ValueError(
                 "`backscatter_histogram_bin_edges_range` has format "
-                f"[<starting value>, <endpoint>] where <starting value> "
+                "[<starting value>, <endpoint>] where <starting value> "
                 f"must be less than <ending value>: {val}"
             )
 
@@ -945,8 +954,7 @@ def build_root_params(product_type, user_rncfg):
     """
     if product_type not in nisarqa.LIST_OF_NISAR_PRODUCTS:
         raise ValueError(
-            f"{product_type=} but must one of:"
-            f" {nisarqa.LIST_OF_NISAR_PRODUCTS}"
+            f"{product_type=} but must one of: {nisarqa.LIST_OF_NISAR_PRODUCTS}"
         )
 
     if product_type == "rslc":
@@ -972,9 +980,7 @@ def build_root_params(product_type, user_rncfg):
         )
 
     except KeyError as e:
-        raise KeyError(
-            "`workflows` group is a required runconfig group"
-        ) from e
+        raise KeyError("`workflows` group is a required runconfig group") from e
     # If all functionality is off (i.e. all workflows are set to false),
     # then exit early. We will not need any of the other runconfig groups.
     if not root_inputs["workflows"].at_least_one_wkflw_requested():
@@ -995,9 +1001,9 @@ def build_root_params(product_type, user_rncfg):
                 user_rncfg=user_rncfg,
             )
 
-            root_inputs[
-                param_grp.root_param_grp_attr_name
-            ] = populated_rncfg_group
+            root_inputs[param_grp.root_param_grp_attr_name] = (
+                populated_rncfg_group
+            )
 
     # Construct and return *RootParamGroup
     return root_param_class_obj(**root_inputs)

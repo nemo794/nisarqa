@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -118,7 +120,7 @@ def counts2density(counts, bins):
 
 
 def normalize(
-    arr: ArrayLike, min_max: tuple[float, float] | None = None
+    arr: ArrayLike, min_max: Sequence[float] | None = None
 ) -> np.ndarray:
     """
     Normalize input array to range [0,1], ignoring any NaN values.
@@ -139,6 +141,8 @@ def normalize(
     normalized_arr : numpy.ndarray
         A normalized copy of `arr`.
     """
+    arr = np.asanyarray(arr)
+
     if min_max is None:
         arr_min = np.nanmin(arr)
         arr_max = np.nanmax(arr)
