@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import os
 from typing import Iterable, Optional
@@ -5,6 +7,7 @@ from typing import Iterable, Optional
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
 from numpy.typing import ArrayLike
@@ -963,10 +966,11 @@ def img2pdf_grayscale(
     ## Label the plot
     format_axes_ticks_and_labels(
         ax=ax,
-        img_arr_shape=np.shape(img_arr),
-        title=title,
         xlim=xlim,
         ylim=ylim,
+        fig=f,
+        img_arr_shape=np.shape(img_arr),
+        title=title,
         xlabel=xlabel,
         ylabel=ylabel,
     )
@@ -982,68 +986,131 @@ def img2pdf_grayscale(
 
 
 def format_axes_ticks_and_labels(
-    ax,
-    img_arr_shape=None,
-    title=None,
-    xlim=None,
-    ylim=None,
-    xlabel=None,
-    ylabel=None,
-):
+    ax: Axes,
+    xlim: Optional[Iterable[str]] = None,
+    ylim: Optional[Iterable[str]] = None,
+    fig: Optional[plt.Figure] = None,
+    img_arr_shape: Iterable[int] = None,
+    title: Optional[str] = None,
+    xlabel: Optional[str] = None,
+    ylabel: Optional[str] = None,
+) -> None:
     """
-    Plot the image array in grayscale, add a colorbar, and append to the pdf.
+    Format the tick marks and labels on the given axes object.
 
     Parameters
     ----------
-    ax : matplotlib.Axes
-        TODO This will be modified by this function.
-    img_arr_shape : pair of ints, optional
-        TODO This basically establishes the aspect ratio
-        Only required if `xlim` or `ylim` are specified.
-    title : str, optional
-        The full title for the plot
-    xlim, ylim : sequence of numeric, optional
+    ax : matplotlib.axis.Axes
+        The axes object to be modified. This axes' tick marks, labels, and
+        title will be formatted as specified by the parameters provided to
+        this function. `ax` should be the full size of `fig`.
+    xlim, ylim : sequence of numeric or None, optional
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>],
                 ylim=[<y-axis lower limit>, <y-axis upper limit>]
+        If `xlim` is None, the x-axes ticks and labels will not be modified.
+        Similar for `ylim`. (They are handled independently.) Defaults to None.
+    fig : matplotlib.pyplot.Figure, optional
+        The Figure object containing `ax`. This function will not modify
+        `fig`; the function just needs to determine its size.
+        Required if `xlim` or `ylim` are specified; otherwise will be ignored.
+    img_arr_shape : pair of ints, optional
+        The shape of the image which will be placed on `ax`. In practise, this
+        establishes the aspect ratio for the axes.
+        Required if `xlim` or `ylim` are specified; otherwise will be ignored.
+    title : str, optional
+        The full title for the plot. Defaults to None (no title added).
     xlabel, ylabel : str, optional
-        Axes labels for the x-axis and y-axis (respectively)
+        Axes labels for the x-axis and y-axis (respectively).
+        Defaults to None (no labels added).
     """
 
-    # Format the tick labels
+    # If xlim or ylim are not provided, let matplotlib auto-assign the ticks.
+    # Otherwise, dynamically calculate and set the ticks w/ labels for
+    # the x-axis and/or y-axis.
+    # (Attempts to set the limits by using the `extent` argument for
+    # matplotlib.imshow() caused significantly distorted images.
+    # So, compute and set the ticks w/ labels manually.)
+    if xlim is not None or ylim is not None:
+        if fig is None:
+            raise ValueError("Must provide a `fig` object.")
+        if img_arr_shape is None:
+            raise ValueError("Must provide `img_arr_shape` input.")
+
+        # Set the density of the ticks on the figure
+        ticks_per_inch = 2.5
+
+        # Get the dimensions of the figure object in inches
+        fig_w, fig_h = fig.get_size_inches()
+
+        # Get the dimensions of the image array in pixels
+        W = img_arr_shape[1]
+        H = img_arr_shape[0]
+
+        # Update variables to the actual, displayed image size
+        # (The actual image will have a different aspect ratio
+        # than the matplotlib figure window's aspect ratio.
+        # But, altering the matplotlib figure window's aspect ratio
+        # will lead to inconsistently-sized pages in the output .pdf)
+        if H / W >= fig_h / fig_w:
+            # image will be limited by its height, so
+            # it will not use the full width of the figure
+            fig_w = W * (fig_h / H)
+        else:
+            # image will be limited by its width, so
+            # it will not use the full height of the figure
+            fig_h = H * (fig_w / W)
+
     if xlim is not None:
+        # Compute num of xticks to use
+        num_xticks = int(ticks_per_inch * fig_w)
 
-        def x_mapping(x):
-            """Map a value from a pixel coordinate to xlim coordinate."""
-            m = (1.0 * xlim[1] - xlim[0]) / (img_arr_shape[1])
-            return xlim[0] + (m * x)
+        # Always have a minimum of 2 labeled ticks
+        num_xticks = num_xticks if num_xticks >= 2 else 2
 
-        ax.xaxis.set_major_formatter(
-            FuncFormatter(lambda x, pos: "{:.1f}".format(x_mapping(x)))
-        )
+        # Specify where we want the ticks, in pixel locations.
+        xticks = np.linspace(0, img_arr_shape[1], num_xticks)
+        ax.set_xticks(xticks)
 
-        ax.tick_params(axis="x", labelrotation=45)
+        # Specify what those pixel locations correspond to in data coordinates.
+        # By default, np.linspace is inclusive of the endpoint
+        xticklabels = [
+            "{:.1f}".format(i)
+            for i in np.linspace(start=xlim[0], stop=xlim[1], num=num_xticks)
+        ]
+        ax.set_xticklabels(xticklabels)
+
+        plt.xticks(rotation=45)
 
     if ylim is not None:
+        # Compute num of yticks to use
+        num_yticks = int(ticks_per_inch * fig_h)
 
-        def y_mapping(x):
-            """Map a value from a pixel coordinate to ylim coordinate."""
-            m = (1.0 * ylim[1] - ylim[0]) / img_arr_shape[0]
-            return ylim[0] + (m * x)
+        # Always have a minimum of 2 labeled ticks
+        if num_yticks < 2:
+            num_yticks = 2
 
-        ax.yaxis.set_major_formatter(
-            FuncFormatter(lambda x, pos: "{:.1f}".format(y_mapping(x)))
-        )
+        # Specify where we want the ticks, in pixel locations.
+        yticks = np.linspace(0, img_arr_shape[0], num_yticks)
+        ax.set_yticks(yticks)
+
+        # Specify what those pixel locations correspond to in data coordinates.
+        # By default, np.linspace is inclusive of the endpoint
+        yticklabels = [
+            "{:.1f}".format(i)
+            for i in np.linspace(start=ylim[0], stop=ylim[1], num=num_yticks)
+        ]
+        ax.set_yticklabels(yticklabels)
 
     # Label the Axes
     if xlabel is not None:
-        ax.set_xlabel(xlabel)
+        plt.xlabel(xlabel)
     if ylabel is not None:
-        ax.set_ylabel(ylabel)
+        plt.ylabel(ylabel)
 
     # Add title
     if title is not None:
-        ax.set_title(title)
+        plt.title(title)
 
 
 def process_backscatter_and_phase_histograms(
