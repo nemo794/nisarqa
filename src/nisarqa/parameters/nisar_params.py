@@ -8,6 +8,7 @@ from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import ClassVar, Optional
 
+import h5py
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
 
 import nisarqa
@@ -714,15 +715,20 @@ class RootParamGroup(ABC):
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
 
-    def save_params_to_stats_h5(self, h5_file, band):
-        """Update the provided HDF5 file handle with select attributes
-        (parameters) of this instance of *RootParams.
+    def save_processing_params_to_stats_h5(
+        self, h5_file: h5py.File, band: str
+    ) -> None:
+        """
+        Populate the HDF5 file's processing group with QA processing parameters.
+
+        This function updates the "processing" group in `h5_file` with each
+        parameter in this instance of *RootParams that contains `hdf5_attrs`
+        metadata. It also adds the QA software version.
 
         Parameters
         ----------
         h5_file : h5py.File
-            Handle to an h5 file where the parameter metadata
-            should be saved
+            Handle to an h5 file where the processing metadata should be saved.
         band : str
             The letter of the band. Ex: "L" or "S".
         """
@@ -733,6 +739,16 @@ class RootParamGroup(ABC):
             if po is not None:
                 if issubclass(type(po), HDF5ParamGroup):
                     po.write_params_to_h5(h5_file, band=band)
+
+        # Add QA version to stats file
+        nisarqa.create_dataset_in_h5group(
+            h5_file=h5_file,
+            grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP % band,
+            ds_name="QASoftwareVersion",
+            ds_data=nisarqa.__version__,
+            ds_description="QA software version used for processing",
+            ds_units=None,
+        )
 
     def log_parameters(self):
         """

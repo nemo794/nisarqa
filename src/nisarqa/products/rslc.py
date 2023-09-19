@@ -115,7 +115,7 @@ def verify_rslc(user_rncfg):
             # Save the processing parameters to the stats.h5 file
             # Note: If only the validate workflow is requested,
             # this will do nothing.
-            root_params.save_params_to_stats_h5(
+            root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band
             )
             print(f"QA Processing Parameters saved to {stats_file}")

@@ -112,7 +112,7 @@ def verify_gslc(user_rncfg):
             report_file
         ) as report_pdf:
             # Save the processing parameters to the stats.h5 file
-            root_params.save_params_to_stats_h5(
+            root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band
             )
             print(f"QA Processing Parameters saved to {stats_file}")
@@ -171,7 +171,6 @@ def verify_gslc(user_rncfg):
         "Successful completion of QA SAS. Check log file for validation"
         " warnings and errors."
     )
-
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
