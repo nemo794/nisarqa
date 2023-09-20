@@ -1708,17 +1708,22 @@ class RSLC(SLC, NisarRadarProduct):
         # Special handling for old UAVSAR test datasets that have paths
         # like "/science/LSAR/SLC/..."
         with nisarqa.open_h5_file(self.filepath) as f:
-            if (path not in f) and (self.product_spec_version == "0.0.0"):
+            if path in f:
+                return path
+            elif self.product_spec_version == "0.0.0":
                 slc_path = path.replace("RSLC", "SLC")
-
                 if slc_path in f:
                     return slc_path
                 else:
                     raise ValueError(
-                        "self._data_group_path determined to be"
-                        f" {self._data_group_path}, but this is not a valid"
-                        " path in the input file."
+                        "Could not determine the path to the group containing"
+                        " the primary datasets."
                     )
+            else:
+                raise ValueError(
+                    f"self._data_group_path determined to be {path}, but this"
+                    " is not a valid path in the input file."
+                )
 
     @cached_property
     def _metadata_group_path(self) -> str:
@@ -1727,17 +1732,22 @@ class RSLC(SLC, NisarRadarProduct):
         # Special handling for old UAVSAR test datasets that have paths
         # like "/science/LSAR/SLC/metadata..."
         with nisarqa.open_h5_file(self.filepath) as f:
-            if (path not in f) and (self.product_spec_version == "0.0.0"):
+            if path in f:
+                return path
+            elif self.product_spec_version == "0.0.0":
                 slc_path = path.replace("RSLC", "SLC")
-
                 if slc_path in f:
                     return slc_path
                 else:
                     raise ValueError(
-                        "self._metadata_group_path determined to be"
-                        f" {self._metadata_group_path}, but this is not a valid"
-                        " path in the input file."
+                        "Could not determine the path to the group containing"
+                        " the product metadata."
                     )
+            else:
+                raise ValueError(
+                    f"self._metadata_group_path determined to be {path}, but"
+                    " this is not a valid path in the input file."
+                )
 
     def _get_dataset_handle(
         self, h5_file: h5py.File, raster_path: str
