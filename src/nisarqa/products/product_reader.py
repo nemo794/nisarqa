@@ -1304,6 +1304,12 @@ class NonInsarProduct(NisarProduct):
                 Example for RSLC or GSLC: ("HH", "VV")
                 Example for GCOV: ("HHHH", "HVHH", "VVVV")
         """
+        if freq not in self.freqs:
+            raise ValueError(
+                f"Requested frequency {freq}, but product only contains"
+                f" frequencies {self.freqs}."
+            )
+
         layers = self._layers
         return tuple(layers[freq].keys())
 
@@ -1387,8 +1393,6 @@ class SLC(NonInsarProduct):
         # grayscale/RGB channel assignments
 
         n_pols = len(science_pols)
-        a_pols = self.get_pols(freq="A")
-        b_pols = self.get_pols(freq="B")
 
         if freq == "B":
             # Only Freq B has data; this only occurs in Single Pol case.
@@ -1417,6 +1421,7 @@ class SLC(NonInsarProduct):
 
             elif n_pols == 1:  # Horizontal/Vertical transmit
                 if "B" in self.freqs:
+                    b_pols = self.get_pols(freq="B")
                     # Freq A has one pol image, and Freq B exists.
                     if set(science_pols) == set(b_pols):
                         # A's polarization image is identical to B's pol image,
@@ -1426,7 +1431,7 @@ class SLC(NonInsarProduct):
 
                     elif len(b_pols) == 1:
                         # Quasi Dual Pol -- Freq A has HH, Freq B has VV
-                        assert "HH" in a_pols
+                        assert "HH" in self.get_pols(freq="A")
                         assert "VV" in b_pols
 
                         layers_for_browse["A"] = science_pols
