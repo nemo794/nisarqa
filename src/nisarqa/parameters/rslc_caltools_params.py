@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import os
+import warnings
 from collections.abc import Iterable
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field, fields, replace
 from typing import ClassVar, Optional, Type, Union
 
 import numpy as np
@@ -98,30 +99,35 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
 
     Parameters
     ----------
-    corner_reflector_file : str
+    corner_reflector_file : str or None, optional
         The input corner reflector file's file name (with path).
-        Required for the Absolute Calibration Factor and Point Target
-        Analyzer workflows.
+        A valid corner reflector file is required for the Absolute Calibration
+        Factor and Point Target Analyzer workflows to generate results.
     """
 
     # Required parameter
     corner_reflector_file: str = field(
+        default=None,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="corner_reflector_file",
-                descr="""Locations of the corner reflectors in the input product.
-                Only required if `absolute_radiometric_calibration` or
-                `point_target_analyzer` runconfig params are set to True for QA.""",
+                descr="""File containing the locations of the corner reflectors
+            in the input product.
+            Required for `absolute_radiometric_calibration` and/or
+            `point_target_analyzer` QA-CalTools workflows to generate results.
+            If a file is not provided, or if the corner file has no useful data
+            for the given input product, then no results will be generated. """,
             )
-        }
+        },
     )
 
     def __post_init__(self):
-        nisarqa.validate_is_file(
-            filepath=self.corner_reflector_file,
-            parameter_name="corner_reflector_file",
-            extension=".csv",
-        )
+        if self.corner_reflector_file is not None:
+            nisarqa.validate_is_file(
+                filepath=self.corner_reflector_file,
+                parameter_name="corner_reflector_file",
+                extension=".csv",
+            )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -863,6 +869,35 @@ class RSLCRootParamGroup(RootParamGroup):
     abs_cal: Optional[AbsCalParamGroup] = None
     noise_estimation: Optional[NoiseEstimationParamGroup] = None
     pta: Optional[PointTargetAnalyzerParamGroup] = None
+
+    def __post_init__(self):
+        # TODO - Geoff -
+        # The behavior below means that while reading in and validating the
+        # user runconfig parameters, the QA code will check if a corner file is
+        # not provided and modify the parameters accordingly.
+
+        # By doing this step here, this prevents the CalTools processing
+        # parameters from being preemptively copied into the STATS.h5 file
+        # during the `save_processing_params_to_stats_h5()` step of
+        # `verify_rslc()`. It also means that these two CalTools will never
+        # be called.
+
+        # Would you prefer to handle this aspect of the behavior
+        # at this point in the code? (i.e. before CalTools is even called?)
+        # Or would you like to pass all parameters as-is
+        # to the CalTools code, and have all of the behavior handled there?
+        if self.workflows.abs_cal or self.workflows.point_target:
+            if self.anc_files.corner_reflector_file is None:
+                warnings.warn(
+                    f"`corner_reflector_file` not provided in runconfig."
+                    f" Absolute Calibration Factor and Point Target Analyzer"
+                    f" Caltools workflows require this file. Setting those"
+                    f" two workflows to False."
+                )
+                self.workflows = replace(
+                    self.workflows, abs_cal=False, point_target=False
+                )
+                self.anc_files = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
