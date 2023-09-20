@@ -1048,6 +1048,15 @@ def build_root_params(product_type, user_rncfg):
     elif product_type == "gcov":
         workflows_param_cls_obj = WorkflowsParamGroup
         root_param_class_obj = nisarqa.GCOVRootParamGroup
+    elif product_type == "rifg":
+        workflows_param_cls_obj = nisarqa.RIFGWorkflowsParamGroup
+        root_param_class_obj = nisarqa.RIFGRootParamGroup
+    elif product_type == "runw":
+        workflows_param_cls_obj = nisarqa.RUNWWorkflowsParamGroup
+        root_param_class_obj = nisarqa.RUNWRootParamGroup
+    elif product_type == "gunw":
+        workflows_param_cls_obj = nisarqa.GUNWWorkflowsParamGroup
+        root_param_class_obj = nisarqa.GUNWRootParamGroup
     else:
         raise NotImplementedError(f"{product_type} code not implemented yet.")
 

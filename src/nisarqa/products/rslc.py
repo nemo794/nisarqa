@@ -1071,9 +1071,7 @@ def format_axes_ticks_and_labels(
             "{:.1f}".format(i)
             for i in np.linspace(start=xlim[0], stop=xlim[1], num=num_xticks)
         ]
-        ax.set_xticklabels(xticklabels)
-
-        plt.xticks(rotation=45)
+        ax.set_xticklabels(xticklabels, rotation=45)
 
     if ylim is not None:
         # Compute num of yticks to use

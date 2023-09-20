@@ -123,6 +123,12 @@ def dumpconfig(product_type, indent=4):
         nisarqa.GSLCRootParamGroup.dump_runconfig_template(indent=indent)
     elif product_type == "gcov":
         nisarqa.GCOVRootParamGroup.dump_runconfig_template(indent=indent)
+    elif product_type == "rifg":
+        nisarqa.RIFGRootParamGroup.dump_runconfig_template(indent=indent)
+    elif product_type == "runw":
+        nisarqa.RUNWRootParamGroup.dump_runconfig_template(indent=indent)
+    elif product_type == "gunw":
+        nisarqa.GUNWRootParamGroup.dump_runconfig_template(indent=indent)
     else:
         raise NotImplementedError(
             f"{product_type} dumpconfig code not implemented yet."
@@ -170,11 +176,11 @@ def main():
     elif subcommand == "gcov_qa":
         nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg)
     elif subcommand == "rifg_qa":
-        nisarqa.rifg.verify_rifg(user_rncfg=user_rncfg)
+        nisarqa.igram.verify_rifg(user_rncfg=user_rncfg)
     elif subcommand == "runw_qa":
-        nisarqa.runw.verify_runw(user_rncfg=user_rncfg)
+        nisarqa.igram.verify_runw(user_rncfg=user_rncfg)
     elif subcommand == "gunw_qa":
-        nisarqa.gunw.verify_gunw(user_rncfg=user_rncfg)
+        nisarqa.igram.verify_gunw(user_rncfg=user_rncfg)
     elif subcommand == "roff_qa":
         nisarqa.roff.verify_roff(user_rncfg=user_rncfg)
     elif subcommand == "goff_qa":

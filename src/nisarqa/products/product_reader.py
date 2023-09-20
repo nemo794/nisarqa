@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import warnings
 from abc import ABC, abstractmethod, abstractproperty
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
@@ -2232,6 +2232,585 @@ class GCOV(NonInsarGeoProduct):
             nisarqa.products.rslc.plot_to_rgb_png(
                 red=red, green=green, blue=blue, filepath=filepath
             )
+
+
+@dataclass
+class InsarProduct(NisarProduct):
+    def get_browse_freq_pol(self) -> tuple[str, str]:
+        """
+        Return the frequency and polarization for the browse image.
+
+        Returns
+        -------
+        freq, pol : pair of str
+            The frequency and polarization to use for the browse image.
+        """
+        for freq in ("A", "B"):
+            if freq not in self.freqs:
+                continue
+
+            for pol in ("HH", "VV", "HV", "VH"):
+                if pol not in self.get_pols(freq=freq):
+                    continue
+
+                return freq, pol
+
+        # The input product does not contain the expected frequencies and/or
+        # polarization combinations
+        raise nisarqa.InvalidNISARProductError
+
+    def _get_raster_name(self, raster_path: str) -> str:
+        """
+        Return a name for the raster, e.g. 'RSLC_LSAR_A_HH'.
+
+        Parameters
+        ----------
+        raster_path : str
+            Full path in `h5_file` to the desired raster dataset.
+            Example:
+                "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
+
+        Returns
+        -------
+        name : str
+            The human-understandable name that is derived from the dataset.
+            Example:
+                "GUNW_L_A_HH_unwrappedPhase"
+        """
+        # InSAR product. Example `raster_path` to parse:
+        # "/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/HH/alongTrackOffset"
+        band = self.band
+        freq = "A" if ("frequencyA" in raster_path) else "B"
+        path = raster_path.split("/")
+        group = path[-3]
+        pol = path[-2]
+        layer = path[-1]
+
+        # Sanity check
+        assert pol in nisarqa.get_possible_pols(
+            product_type=self.product_type.lower()
+        )
+
+        name = (
+            f"{self.product_type.upper()}_{band}_{freq}_{group}_{pol}_{layer}"
+        )
+        return name
+
+    def _get_dataset_handle(
+        self, h5_file: h5py.File, raster_path: str
+    ) -> h5py.Dataset:
+        """
+        Return a handle to the requested dataset.
+
+        Parameters
+        ----------
+        h5_file : h5py.File
+            File handle for the input file.
+        raster_path : str
+            Path in the input file to the desired dataset.
+            Examples:
+                "/science/LSAR/RSLC/swaths/frequencyA/HH"
+                "/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
+
+        Returns
+        -------
+        dataset : h5py.Dataset
+            Handle to the requested dataset.
+        """
+        # Unlike RSLC, GSLC, and GCOV, the product readers for
+        # insar products do their dtype checking when the paths are fetched
+        # (e.g. when calling get_along_track_offset(...)).
+        # So, treat this as a wrapper function.
+        return h5_file[raster_path]
+
+    def _check_dtype(self, path: str, expected_dtype: type) -> None:
+        """
+        Check that the dataset found at `path` has the correct dtype.
+
+        Parameters
+        ----------
+        path : str
+            Path to a dataset inside the input product.
+        expected_dtype : type
+            The expected dtype for the dataset, e.g. np.complex64.
+        """
+
+        # Use lru_cache to minimize the amount of (slow) file i/o
+        @lru_cache
+        def _check_dtype_inner(path: str, expected_dtype: type) -> None:
+            with nisarqa.open_h5_file(self.filepath) as f:
+                try:
+                    dataset_handle = f[path]
+                except KeyError:
+                    raise nisarqa.DatasetNotFoundError
+
+                product_dtype = dataset_handle.dtype
+
+            # dataset.dtype returns e.g. "<f4" for NISAR products.
+            # Use .base to convert to equivalent native numpy dtype.
+            pass_fail = (
+                "PASS" if (product_dtype.base == expected_dtype) else "FAIL"
+            )
+
+            print(
+                f"({pass_fail}) PASS/FAIL Check: Input file's dataset has"
+                f" type {product_dtype} which conforms to expected dtype"
+                f" {expected_dtype}. Dataset: {path}"
+            )
+
+        _check_dtype_inner(path, expected_dtype)
+
+    @abstractmethod
+    def _pols_path_shim(self, freq: str, pol: str) -> str:
+        """
+        Return a potential valid path in the dataset for the given freq and pol.
+
+        In essence, this is a thin wrapper to standardize each group's
+        `...parent_path()` function.
+        By allowing each group to have a unique name for its `...parent_path()`
+        function, we prevent name collisions when a product (e.g. GUNW)
+        contains multiple groups.
+        Also, the offset products' `...parent_path()` function requires
+        a third argument; using a shim allows them to supply a partial
+        function while maintaining this same interface.
+
+        Parameters
+        ----------
+        freq : str
+            Frequency of interest. Must be one of "A" or "B".
+        pol : str
+            Polarization of interest. Examples: "HH" or "HV".
+
+        Returns
+        -------
+        path : str
+            A potential valid path in the dataset for which incorporates the
+            requested freq and pol.
+            Note: This path may or may not exist in the NISAR input product.
+
+        See Also
+        --------
+        get_pols : Returns the polarizations for the requested frequency.
+        """
+        pass
+
+    def get_pols(self, freq: str) -> tuple[int]:
+        """
+        Get the polarizations for the given frequency.
+
+        Parameters
+        ----------
+        freq : str
+            Either "A" or "B".
+
+        Returns
+        -------
+        pols : tuple[str]
+            Tuple of the available polarizations in the input product
+            for the requested frequency.
+
+        Raises
+        ------
+        DatasetNotFoundError
+            If no polarizations were found for this frequency.
+        InvalidNISARProductError
+            If the polarizations found are inconsistent with the polarizations
+            listed in product's `listOfPolarizations` dataset for this freq.
+        """
+        if freq not in ("A", "B"):
+            raise ValueError(f"{freq=}, must be one of 'A' or 'B'.")
+
+        @lru_cache
+        def _get_pols(freq):
+            pols = []
+            with nisarqa.open_h5_file(self.filepath) as f:
+                for pol in nisarqa.get_possible_pols(self.product_type.lower()):
+                    pol_path = self._pols_path_shim(freq, pol)
+                    try:
+                        f[pol_path]
+                    except KeyError:
+                        print(
+                            f"Did not locate polarization group at: {pol_path}"
+                        )
+                        pass
+                    else:
+                        print(f"Located polarization group at: {pol_path}")
+                        pols.append(pol)
+
+                # The product contains a list of expected polarizations.
+                # While file is open, grab it to use in a sanity check later.
+                path = f"{self.get_freq_path(freq)}/listOfPolarizations"
+                list_of_pols_ds = f[path][...].tolist()
+
+                # convert from byte strings to str
+                list_of_pols_ds = [
+                    bytes.decode(b, "utf-8") for b in list_of_pols_ds
+                ]
+
+            # Sanity checks
+            if set(pols) != set(list_of_pols_ds):
+                warnings.warn(
+                    f"Frequency {freq} contains polarizations {pols}, but"
+                    f" `listOfPolarizations` says {list_of_pols_ds}"
+                    " should be available."
+                )
+                raise nisarqa.InvalidNISARProductError
+
+            if not pols:
+                # No polarizations were found for this frequency
+                print(f"No polarizations were found for frequency {freq}")
+                raise nisarqa.DatasetNotFoundError
+
+            return pols
+
+        return tuple(_get_pols(freq))
+
+    def save_qa_metadata_to_h5(self, stats_h5: h5py.File) -> None:
+        """
+        Populate `stats_h5` file with a list of each available polarization.
+
+        If the input file contains Frequency A, then this dataset will
+        be created in `stats_h5`:
+            /science/<band>/QA/data/frequencyA/listOfPolarizations
+
+        If the input file contains Frequency B, then this dataset will
+        be created in `stats_h5`:
+            /science/<band>/QA/data/frequencyB/listOfPolarizations
+
+        * Note: The paths are pulled from nisarqa.STATS_H5_QA_FREQ_GROUP.
+        If the value of that global changes, then the path for the
+        `listOfPolarizations` dataset(s) will change accordingly.
+
+        Parameters
+        ----------
+        stats_h5 : h5py.File
+            Handle to an h5 file where the list(s) of polarizations
+            should be saved.
+        """
+        band = self.band
+
+        for freq in self.freqs:
+            list_of_pols = self.get_pols(freq=freq)
+
+            nisarqa.create_dataset_in_h5group(
+                h5_file=stats_h5,
+                grp_path=nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq),
+                ds_name="listOfPolarizations",
+                ds_data=list_of_pols,
+                ds_description=f"Polarizations for Frequency {freq}.",
+            )
+
+
+@dataclass
+class InterferogramProduct(InsarProduct):
+    @abstractmethod
+    def save_hsi_img_to_pdf(
+        img: nisarqa.RadarRaster | nisarqa.GeoRaster,
+        report_pdf,
+        cbar_min_max=None,
+        plot_title_prefix="Phase Image and Coherence Magnitude as HSI Image",
+    ) -> None:
+        """
+        Annotate and save a radar-doppler (Rxxx product) HSI Image to PDF.
+
+        `img.data` should be in linear.
+
+        Parameters
+        ----------
+        img : *Raster
+            Image in RGB color space to be saved. All image correction,
+            multilooking, etc. needs to have previously been applied.
+        report_pdf : PdfPages
+            The output pdf file to append the backscatter image plot to.
+        cbar_min_max : pair of float
+            The suggested range to use for the Hue axis of the
+            HSI colorbar for `hsi_raster`.
+        plot_title_prefix : str, optional
+            Prefix for the title of the backscatter plots.
+            Defaults to "Phase Image and Coherence Magnitude as HSI Image".
+        """
+        pass
+
+
+@dataclass
+class RadarInterferogramProduct(InterferogramProduct, NisarRadarProduct):
+    def save_hsi_img_to_pdf(
+        self,
+        img: nisarqa.RadarRaster,
+        report_pdf: PdfPages,
+        cbar_min_max: Optional[Sequence[float]] = None,
+        plot_title_prefix: str = "Phase and Coherence Magnitude as HSI Image",
+    ) -> None:
+        """
+        Annotate and save a radar-doppler (Rxxx product) HSI Image to PDF.
+
+        `img.data` should be in linear.
+
+        Parameters
+        ----------
+        img : RadarRaster
+            Image in RGB color space to be saved. All image correction,
+            multilooking, etc. needs to have previously been applied.
+        report_pdf : PdfPages
+            The output pdf file to append the backscatter image plot to.
+        cbar_min_max : pair of float or None, optional
+            The suggested range to use for the Hue axis of the
+            HSI colorbar for `hsi_raster`.
+        plot_title_prefix : str, optional
+            Prefix for the title of the backscatter plots.
+            Defaults to "Phase Image and Coherence Magnitude as HSI Image".
+        """
+        # Plot and Save Backscatter Image to graphical summary pdf
+        title = f"{plot_title_prefix}\n{img.name}"
+
+        # Get Azimuth (y-axis) label
+        az_title = f"Zero Doppler Time\n(seconds since {img.epoch})"
+
+        # Get Range (x-axis) labels and scale
+        rng_title = "Slant Range (km)"
+
+        nisarqa.img2pdf_hsi(
+            img_arr=img.data,
+            title=title,
+            ylim=[img.az_start, img.az_stop],
+            xlim=[nisarqa.m2km(img.rng_start), nisarqa.m2km(img.rng_stop)],
+            cbar_min_max=cbar_min_max,
+            xlabel=rng_title,
+            ylabel=az_title,
+            plots_pdf=report_pdf,
+        )
+
+
+class WrappedGroup(InterferogramProduct):
+    @staticmethod
+    @abstractmethod
+    def _wrapped_parent_path(freq: str, pol: str) -> str:
+        """Path in input file to parent group for Wrapped I-gram group."""
+        pass
+
+    def _pols_path_shim(self, freq: str, pol: str) -> str:
+        return self._wrapped_parent_path(freq, pol)
+
+    @contextmanager
+    def get_wrapped_phase(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the wrapped phase image *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._wrapped_parent_path(freq=freq, pol=pol)
+        path = f"{parent_path}/wrappedInterferogram"
+        self._check_dtype(path=path, expected_dtype=np.complex64)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+    @contextmanager
+    def get_wrapped_coh_mag(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the wrapped coherence magnitude *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._wrapped_parent_path(freq=freq, pol=pol)
+        path = f"{parent_path}/coherenceMagnitude"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+
+class UnwrappedGroup(InterferogramProduct):
+    @staticmethod
+    @abstractmethod
+    def _unwrapped_parent_path(freq: str, pol: str) -> str:
+        """Path in input file to parent group for Unwrapped I-gram group."""
+        pass
+
+    def _pols_path_shim(self, freq: str, pol: str) -> str:
+        return self._unwrapped_parent_path(freq, pol)
+
+    @contextmanager
+    def get_unwrapped_phase(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the unwrapped phase image *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._unwrapped_parent_path(freq=freq, pol=pol)
+        path = f"{parent_path}/unwrappedPhase"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+    @contextmanager
+    def get_unwrapped_coh_mag(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the unwrapped coherence magnitude *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._unwrapped_parent_path(freq=freq, pol=pol)
+        path = f"{parent_path}/coherenceMagnitude"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+
+@dataclass
+class RIFG(RadarInterferogramProduct, WrappedGroup):
+    @property
+    def product_type(self) -> str:
+        return "RIFG"
+
+    def _wrapped_parent_path(self, freq: str, pol: str) -> str:
+        return f"{self.get_freq_path(freq)}/interferogram/{pol}"
+
+
+@dataclass
+class RUNW(RadarInterferogramProduct, UnwrappedGroup):
+    @property
+    def product_type(self) -> str:
+        return "RUNW"
+
+    def _unwrapped_parent_path(self, freq: str, pol: str) -> str:
+        return f"{self.get_freq_path(freq)}/interferogram/{pol}"
+
+
+@dataclass
+class GUNW(
+    WrappedGroup,
+    UnwrappedGroup,
+    NisarGeoProduct,
+):
+    def __post_init__(self) -> None:
+        super().__post_init__()
+
+        # Make sure that all groups contain the same polarizations
+        for freq in self.freqs:
+            wrapped_pols = super(WrappedGroup, self).get_pols(freq)
+            unwrapped_pols = super(UnwrappedGroup, self).get_pols(freq)
+            if set(wrapped_pols) != set(unwrapped_pols):
+                warnings.warn(
+                    f"Wrapped interferogram group contains {wrapped_pols},"
+                    " but the unwrapped interferogram group contains "
+                    f" {unwrapped_pols}."
+                )
+
+    @property
+    def product_type(self) -> str:
+        return "GUNW"
+
+    def _wrapped_parent_path(self, freq, pol) -> str:
+        return f"{self.get_freq_path(freq)}/wrappedInterferogram/{pol}"
+
+    def _unwrapped_parent_path(self, freq, pol) -> str:
+        if self.product_spec_version == "0.0.0":
+            return f"{self.get_freq_path(freq)}/interferogram/{pol}"
+        else:
+            # Path for product spec v0.9.0 (...and maybe subsequent versions?)
+            return f"{self.get_freq_path(freq)}/unwrappedInterferogram/{pol}"
+
+    @cached_property
+    def browse_x_range(self) -> tuple[float, float]:
+        freq, pol = self.get_browse_freq_pol()
+
+        with self.get_wrapped_phase(freq, pol) as img:
+            x_start = img.x_start
+            x_stop = img.x_stop
+
+        return (x_start, x_stop)
+
+    @cached_property
+    def browse_y_range(self) -> tuple[float, float]:
+        freq, pol = self.get_browse_freq_pol()
+
+        with self.get_wrapped_phase(freq, pol) as img:
+            y_start = img.y_start
+            y_stop = img.y_stop
+
+        return (y_start, y_stop)
+
+    def save_hsi_img_to_pdf(
+        self,
+        img: nisarqa.GeoRaster,
+        report_pdf: PdfPages,
+        cbar_min_max: Optional[Sequence[float]] = None,
+        plot_title_prefix: str = "Phase and Coherence Magnitude as HSI Image",
+    ) -> None:
+        """
+        Annotate and save a geocoded (Gxxx product) HSI Image to `report_pdf`.
+
+        Parameters
+        ----------
+        img : GeoRaster
+            Image in RGB color space to be saved. All image correction,
+            multilooking, etc. needs to have previously been applied.
+            Note: `img.data` should be in linear scale.
+        report_pdf : PdfPages
+            The output pdf file to append the backscatter image plot to.
+        cbar_min_max : pair of float
+            The suggested range to use for the Hue axis of the
+            HSI colorbar for `hsi_raster`.
+        plot_title_prefix : str, optional
+            Prefix for the title of the backscatter plots.
+            Defaults to "Phase Image and Coherence Magnitude as HSI Image".
+        """
+        # Plot and Save Backscatter Image to graphical summary pdf
+        title = f"{plot_title_prefix}\n{img.name}"
+
+        nisarqa.img2pdf_hsi(
+            img_arr=img.data,
+            title=title,
+            ylim=[nisarqa.m2km(img.y_start), nisarqa.m2km(img.y_stop)],
+            xlim=[nisarqa.m2km(img.x_start), nisarqa.m2km(img.x_stop)],
+            cbar_min_max=cbar_min_max,
+            ylabel="Northing (km)",
+            xlabel="Easting (km)",
+            plots_pdf=report_pdf,
+        )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

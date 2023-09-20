@@ -101,6 +101,11 @@ def get_possible_pols(product_type):
         return ("HH", "VV", "HV", "VH", "RH", "RV", "LH", "LV")
     elif product_type == "gcov":
         return GCOV_DIAG_POLS + GCOV_OFF_DIAG_POLS
+    elif product_type in ("rifg", "runw", "gunw", "roff", "goff"):
+        # As of 6/21/2023, baseline for NISAR InSAR mission processing
+        # is to produce only HH and/or VV.
+        # ISCE3 can also handle HV and/or VH. Compact Pol not supported.
+        return ("HH", "VV", "HV", "VH")
     else:
         raise NotImplementedError
 
@@ -123,6 +128,19 @@ STATS_H5_QA_DATA_GROUP = STATS_H5_QA_STATS_H5_BASE_GROUP + data_group
 STATS_H5_QA_FREQ_GROUP = (
     STATS_H5_QA_DATA_GROUP + "/frequency%s"
 )  # Two '%s' here!
+
+# InSAR Products
+# Add a place to mirror the groups in INSAR_GROUPS
+# Example end result: '/science/%s/QA/data/frequency%s/%s'
+STATS_H5_QA_INSAR_GROUP_GROUP = (
+    STATS_H5_QA_FREQ_GROUP + "/%s"
+)  # Three '%s' here!
+
+# Add a place to mirror the polarizations
+# Example end result: '/science/%s/QA/data/frequency%s/%s/%s'
+STATS_H5_QA_INSAR_POL_GROUP = (
+    STATS_H5_QA_INSAR_GROUP_GROUP + "/%s"
+)  # Four '%s' here!
 
 # CalTools
 STATS_H5_ABSCAL_STATS_H5_BASE_GROUP = (
@@ -165,6 +183,8 @@ __all__ = [
     "STATS_H5_QA_PROCESSING_GROUP",
     "STATS_H5_QA_DATA_GROUP",
     "STATS_H5_QA_FREQ_GROUP",
+    "STATS_H5_QA_INSAR_GROUP_GROUP",
+    "STATS_H5_QA_INSAR_POL_GROUP",
     "STATS_H5_ABSCAL_STATS_H5_BASE_GROUP",
     "STATS_H5_ABSCAL_PROCESSING_GROUP",
     "STATS_H5_ABSCAL_DATA_GROUP",

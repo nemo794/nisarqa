@@ -114,6 +114,7 @@ from .parameters.nisar_params import *
 from .parameters.rslc_caltools_params import *
 from .parameters.gslc_params import *
 from .parameters.gcov_params import *
+from .parameters.insar_params import *
 from .products.product_reader import *
 
 # keep individual products in their own namespace
@@ -122,16 +123,15 @@ from .products import (
     gcov,
     goff,
     gslc,
-    gunw,
-    rifg,
+    igram,
     roff,
     rslc,
-    runw,
 )
 from .utils.calc import *
 from .utils.input_verification import *
 from .utils.lonlat import *
 from .utils.multilook import *
+from .utils.plotting import *
 from .utils.raster_classes import *
 from .utils.tiling import *
 from .utils.utils import *
