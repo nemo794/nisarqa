@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable, Sequence
-from dataclasses import fields, replace
+from collections.abc import Sequence
+from dataclasses import replace
 from fractions import Fraction
 from typing import Optional, overload
 
+import h5py
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
@@ -434,24 +435,8 @@ def make_hsi_raster(
         If `phs_or_complex_raster` has complex valued data, then `cbar_min_max`
         will be the range [-pi, +pi].
     """
-    # Input validation:
-    # Check that phs and coh *Raster instances have consistent metadata
-    for phs, coh in zip(fields(phs_or_complex_raster), fields(coh_raster)):
-        phs_val = getattr(phs_or_complex_raster, phs.name)
-        coh_val = getattr(coh_raster, coh.name)
-
-        if phs.name == "data":
-            # raster data layers should have the same shape
-            assert np.shape(phs_val) == np.shape(coh_val)
-        elif phs.name == "name":
-            # "name" dataclass attributes should be the same
-            # except for the final layer name
-            assert phs_val.split("_")[:-1] == coh_val.split("_")[:-1]
-        elif isinstance(phs_val, str):
-            assert phs_val == coh_val
-        else:
-            assert np.abs(phs_val - coh_val) < 1e-6
-    # END validation check
+    # Validate input rasters
+    nisarqa.compare_raster_metadata(phs_or_complex_raster, coh_raster)
 
     phs_img = phs_or_complex_raster.data[...]
 
@@ -751,6 +736,270 @@ def image_histogram_equalization(
     # Unfortunately, np.interp currently always promotes to float64, so we
     # have to cast back to single precision when float32 output is desired
     return out.astype(image.dtype, copy=False)
+
+
+def process_quiver_plots(
+    product: nisarqa.OffsetProduct,
+    params: nisarqa.QuiverParamGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+    browse_png: str | os.PathLike,
+):
+    """
+    Process and save all quiver plots for this product to PDF and browse PNG.
+
+    Parameters
+    ----------
+    product : nisarqa.OffsetProduct
+        Input NISAR product.
+    params : nisarqa.QuiverParamGroup
+        A structure containing processing parameters to generate quiver plots.
+    report_pdf : PdfPages
+        The output pdf file to append the quiver plot to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    browse_png : path-like
+        Filename (with path) for the browse image PNG.
+    """
+    browse_freq, browse_pol, browse_layer_num = (
+        product.get_browse_freq_pol_layer()
+    )
+
+    for freq in product.freqs:
+        for pol in product.get_pols(freq):
+            for layer_num in product.available_layers:
+                with product.get_along_track_offset(
+                    freq=freq, pol=pol, layer_num=layer_num
+                ) as az_off, product.get_slant_range_offset(
+                    freq=freq, pol=pol, layer_num=layer_num
+                ) as rg_off:
+                    # Only generate a browse PNG for one layer
+                    if (
+                        (layer_num == browse_layer_num)
+                        and (pol == browse_pol)
+                        and (freq == browse_freq)
+                    ):
+                        browse = browse_png
+                    else:
+                        browse = None
+
+                    cbar_min, cbar_max, y_dec, x_dec = (
+                        process_single_quiver_plot(
+                            az_offset=az_off,
+                            rg_offset=rg_off,
+                            params=params,
+                            browse_png=browse,
+                            report_pdf=report_pdf,
+                        )
+                    )
+                    if browse is not None:
+                        nisarqa.create_dataset_in_h5group(
+                            h5_file=stats_h5,
+                            grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+                            % product.band,
+                            ds_name="browseDecimation",
+                            ds_data=[y_dec, x_dec],
+                            ds_units="unitless",
+                            ds_description=(
+                                "Decimation strides for the browse image."
+                                " Format: [<y decimation>, <x decimation>]."
+                            ),
+                        )
+
+                # Add final colorbar range for this freq+pol+layer to stats.h5
+                nisarqa.create_dataset_in_h5group(
+                    h5_file=stats_h5,
+                    grp_path=nisarqa.STATS_H5_QA_INSAR_POL_GROUP
+                    % (product.band, freq, pol, f"layer{layer_num}"),
+                    ds_name="quiverPlotColorbarRange",
+                    ds_data=(cbar_min, cbar_max),
+                    ds_units="meters",
+                    ds_description=(
+                        "Colorbar range for the slant range and along track"
+                        " offset layers' quiver plot(s)."
+                    ),
+                )
+
+
+def process_single_quiver_plot(
+    az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    params: nisarqa.QuiverParamGroup,
+    report_pdf: PdfPages,
+    browse_png: Optional[str | os.PathLike] = None,
+) -> (float, float, int, int):
+    """
+    Process and save a single quiver plot to PDF and (optional) PNG.
+
+    Parameters
+    ----------
+    az_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Along track offset layer to be processed. Must correspond to
+        `rg_offset`.
+    rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Slant range offset layer to be processed. Must correspond to
+        `az_offset`.
+    params : nisarqa.QuiverParamGroup
+        A structure containing processing parameters to generate quiver plots.
+    report_pdf : PdfPages
+        The output pdf file to append the quiver plot to.
+    browse_png : path-like or None, optional
+        Filename (with path) for the browse image PNG.
+        If None, no browse PNG will be saved. Defaults to None.
+
+    Returns
+    -------
+    cbar_min, cbar_max : float
+        The vmin and vmax (respectively) used for the colorbar and clipping
+        the pixel offset displacement image.
+    y_dec, x_dec : int
+        The decimation stride value used in the Y axis direction and X axis
+        direction (respectively).
+
+    Notes
+    -----
+    TODO - This function needs to be better modularized to take advantage of
+    existing code for plotting to PNG and PDF. It would be ideal if this
+    function could follow a similar design as
+    `nisarqa.rslc.process_backscatter_imgs_and_browse()`.
+    However, it is tricky to extract the final quiver plot
+    from the pyplot.figure() instance and return it as an RGB array.
+    So, we will punt that complexity for this release, and instead have a
+    giant function here.
+    """
+    # Validate input rasters
+    nisarqa.compare_raster_metadata(az_offset, rg_offset)
+
+    if (az_offset.freq == "A") and (params.decimation_freqa is not None):
+        y_decimation, x_decimation = params.decimation_freqa
+    elif (az_offset.freq == "B") and (params.decimation_freqb is not None):
+        y_decimation, x_decimation = params.decimation_freqb
+    else:
+        # Square the pixels. Decimate if requested.
+        longest_side_max = params.longest_side_max
+
+        if longest_side_max is None:
+            # Update to be the longest side of the array. This way no downsizing
+            # of the image will occur, but we can still output square pixels.
+            longest_side_max = max(np.shape(rg_offset.data))
+
+        y_decimation, x_decimation = nisarqa.compute_square_pixel_nlooks(
+            img_shape=np.shape(az_offset.data),
+            sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
+            longest_side_max=longest_side_max,
+        )
+
+    # Grab the datasets into arrays in memory.
+    # While doing this, convert to square pixels and the correct size.
+    az_off = az_offset.data[::y_decimation, ::x_decimation]
+    rg_off = rg_offset.data[::y_decimation, ::x_decimation]
+
+    print("Shape of az_offset after decimation: ", np.shape(az_off))
+
+    # Use the full resolution image as the colorful background image of the plot
+    disp = np.sqrt(rg_off**2 + az_off**2)
+
+    # Compute the vmin and vmax for the colorbar range
+    cbar_min_max = params.cbar_min_max
+    if cbar_min_max is None:
+        # Dynamically compute the colorbar range per the raster's min and max,
+        # and center the colorbar range at zero
+        vmax = max(abs(np.nanmin(disp)), abs(np.nanmax(disp)))
+        vmin = -vmax
+    else:
+        if cbar_min_max[0] >= cbar_min_max[1]:
+            raise ValueError(
+                f"{cbar_min_max=}, but the first value must be less than the"
+                " second value."
+            )
+        vmin, vmax = cbar_min_max
+
+    # Add the background image to the axes
+    # TODO - Geoff - please help???
+    # Make the axes size the exact size of the image dimensions.
+    # fig, ax = plt.subplots(figsize=(3.841, 7.195), dpi=100)
+    fig, ax = plt.subplots()
+    im = ax.imshow(disp, vmin=vmin, vmax=vmax, cmap="magma")
+
+    # Now, prepare and add the quiver plot arrows to the axes
+    arrow_stride = int(max(np.shape(disp)) / params.arrow_density)
+
+    # Only plot the arrows at the requested strides.
+    y_arrow_tip = az_off[::arrow_stride, ::arrow_stride]
+    x_arrow_tip = rg_off[::arrow_stride, ::arrow_stride]
+
+    x = np.linspace(0, x_arrow_tip.shape[1] - 1, x_arrow_tip.shape[1])
+    y = np.linspace(0, x_arrow_tip.shape[0] - 1, x_arrow_tip.shape[0])
+    X, Y = np.meshgrid(x, y)
+
+    # Add the quiver arrows to the plot.
+    # Multiply the start and end points for each arrow by the decimation factor;
+    # this is to ensure that each arrow is placed on the correct pixel on
+    # the full-resolution `disp` background image.
+    ax.quiver(
+        # starting x coordinate for each arrow
+        X * arrow_stride,
+        # starting y coordinate for each arrow
+        Y * arrow_stride,
+        # ending x direction component of for each arrow vector
+        x_arrow_tip * arrow_stride,
+        # ending y direction component of for each arrow vector
+        y_arrow_tip * arrow_stride,
+        angles="xy",
+        scale_units="xy",
+        # Use a scale less that 1 to exaggerate the arrows.
+        scale=params.arrow_scaling,
+        color="b",
+    )
+
+    # Plot to PNG
+    if browse_png is not None:
+        plt.axis("off")
+        fig.savefig(
+            browse_png, bbox_inches="tight", transparent=True, pad_inches=0
+        )
+
+    # Append to PDF
+    plt.axis("on")
+    cbar = fig.colorbar(im)
+    cbar.ax.set_ylabel(ylabel="Displacement (m)", rotation=270, labelpad=8.0)
+
+    # (Remove the layer name from the layer's `name`)
+    title = (
+        f"Pixel Offset in meters\n{'_'.join(az_offset.name.split('_')[:-1])}"
+    )
+
+    if isinstance(az_offset, nisarqa.RadarRaster):
+        xlim = [az_offset.rng_start, az_offset.rng_stop]
+        ylim = [az_offset.az_start, az_offset.az_stop]
+        ylabel = f"Zero Doppler Time\n(seconds since {az_offset.epoch})"
+        xlabel = "Slant Range (km)"
+    elif isinstance(az_offset, nisarqa.GeoRaster):
+        xlim = [az_offset.x_start, az_offset.x_stop]
+        ylim = [az_offset.y_start, az_offset.y_stop]
+        xlabel = "Easting (km)"
+        ylabel = "Northing (km)"
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax,
+        xlim=xlim,
+        ylim=ylim,
+        img_arr_shape=np.shape(disp),
+        title=title,
+        xlabel=xlabel,
+        ylabel=ylabel,
+    )
+
+    # Make sure axes labels do not get cut off
+    fig.tight_layout()
+
+    # Append figure to the output .pdf
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+    return vmin, vmax, y_decimation, x_decimation
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

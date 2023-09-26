@@ -122,10 +122,9 @@ from .products.product_reader import *
 from .products import (
     caltools,
     gcov,
-    goff,
     gslc,
     igram,
-    roff,
+    offsets,
     rslc,
 )
 from .utils.calc import *

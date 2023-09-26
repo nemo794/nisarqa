@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import h5py
 import numpy as np
@@ -337,6 +337,65 @@ class GeoRaster(SARRaster):
     @property
     def x_axis_label(self) -> str:
         return "Easting (km)"
+
+
+def compare_raster_metadata(
+    raster1: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    raster2: nisarqa.RadarRaster | nisarqa.GeoRaster,
+) -> None:
+    """
+    Compare the primary metadata and shape of two *Raster instances.
+
+    Compare metadata fields and the shape of the data for two *Raster instances.
+    This is useful for checking that two rasters can be combined smoothly into
+    a single image, such as combining a phase image raster and a coherence
+    magnitude raster to create an HSI image.
+    Since these two rasters are likely for a pair of two different rasters,
+    this function does not compare the `name` field nor the values inside the
+    data arrays.
+    Raises an error if two fields do not match.
+
+    Parameters
+    ----------
+    raster1, raster2 : nisarqa.RadarRaster | nisarqa.GeoRaster
+        *Raster to compare. `raster1` and `raster2` must have the same type.
+
+    Raises
+    ------
+    ValueError
+        If metadata does not match
+    """
+    for r1, r2 in zip(fields(raster1), fields(raster2)):
+        r1_val = getattr(raster1, r1.name)
+        r2_val = getattr(raster2, r2.name)
+
+        if r1.name == "data":
+            # raster data layers should have the same shape
+            if np.shape(r1_val) != np.shape(r2_val):
+                raise ValueError(
+                    f"Values do not match: {np.shape(raster1.data)=} but"
+                    f" {np.shape(raster2.data)=}."
+                )
+        elif r1.name == "name":
+            # "name" dataclass attributes should be the same
+            # except for the final layer name
+            if r1_val.split("_")[:-1] != r2_val.split("_")[:-1]:
+                raise RuntimeWarning(
+                    f"{raster1.name=} but {raster2.name=}. Consider checking if"
+                    " their band, frequency, polarization, etc. should match."
+                )
+        elif isinstance(r1_val, str):
+            if r1_val != r2_val:
+                raise ValueError(
+                    f"Values do not match for `{r1.name}` field. `raster1` has"
+                    f" value {r1_val}, but `raster2` has value {r2_val}."
+                )
+        else:
+            if np.abs(r1_val - r2_val) > 1e-6:
+                raise ValueError(
+                    f"Values do not match for `{r1.name}` field. `raster1` has"
+                    f" value {r1_val}, but `raster2` has value {r2_val}."
+                )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -428,7 +428,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             pass
         else:
             raise TypeError(
-                "`nlooks` must be of type iterable of int, or None: {nlooks}"
+                f"`nlooks` must be of type iterable of int, or None: {nlooks}"
             )
 
 
@@ -967,6 +967,12 @@ def build_root_params(product_type, user_rncfg):
     elif product_type == "gunw":
         workflows_param_cls_obj = nisarqa.GUNWWorkflowsParamGroup
         root_param_class_obj = nisarqa.GUNWRootParamGroup
+    elif product_type == "roff":
+        workflows_param_cls_obj = nisarqa.ROFFWorkflowsParamGroup
+        root_param_class_obj = nisarqa.ROFFRootParamGroup
+    elif product_type == "goff":
+        workflows_param_cls_obj = nisarqa.GOFFWorkflowsParamGroup
+        root_param_class_obj = nisarqa.GOFFRootParamGroup
     else:
         raise NotImplementedError(f"{product_type} code not implemented yet.")
 

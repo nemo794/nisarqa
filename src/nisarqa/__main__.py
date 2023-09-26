@@ -129,6 +129,10 @@ def dumpconfig(product_type, indent=4):
         nisarqa.RUNWRootParamGroup.dump_runconfig_template(indent=indent)
     elif product_type == "gunw":
         nisarqa.GUNWRootParamGroup.dump_runconfig_template(indent=indent)
+    elif product_type == "roff":
+        nisarqa.ROFFRootParamGroup.dump_runconfig_template(indent=indent)
+    elif product_type == "goff":
+        nisarqa.GOFFRootParamGroup.dump_runconfig_template(indent=indent)
     else:
         raise NotImplementedError(
             f"{product_type} dumpconfig code not implemented yet."
@@ -182,9 +186,9 @@ def main():
     elif subcommand == "gunw_qa":
         nisarqa.igram.verify_gunw(user_rncfg=user_rncfg)
     elif subcommand == "roff_qa":
-        nisarqa.roff.verify_roff(user_rncfg=user_rncfg)
+        nisarqa.offsets.verify_roff(user_rncfg=user_rncfg)
     elif subcommand == "goff_qa":
-        nisarqa.goff.verify_goff(user_rncfg=user_rncfg)
+        nisarqa.offsets.verify_goff(user_rncfg=user_rncfg)
     else:
         raise ValueError(f"Unknown subcommand: {subcommand}")
 

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import os
 import types
+from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
-from typing import Optional
-
-import numpy as np
+from typing import ClassVar, Optional
 
 import nisarqa
 from nisarqa import (
@@ -106,6 +105,62 @@ class GUNWInputFileGroupParamGroup(InputFileGroupParamGroup):
     )
 
 
+@dataclass(frozen=True)
+class ROFFInputFileGroupParamGroup(InputFileGroupParamGroup):
+    """
+    Parameters from the Input File Group runconfig group.
+
+    This corresponds to the `groups: input_file_group` runconfig group.
+
+    Parameters
+    ----------
+    qa_input_file : str
+        The input NISAR product file name (with path).
+    """
+
+    # Required parameter - do not set a default
+    qa_input_file: str = field(
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="qa_roff_input_file",
+                # Copy the description. InputFileGroupParamGroup only has
+                # one field, so we'll cheat and access it via the [0] index.
+                descr=fields(InputFileGroupParamGroup)[0]
+                .metadata["yaml_attrs"]
+                .descr,
+            )
+        }
+    )
+
+
+@dataclass(frozen=True)
+class GOFFInputFileGroupParamGroup(InputFileGroupParamGroup):
+    """
+    Parameters from the Input File Group runconfig group.
+
+    This corresponds to the `groups: input_file_group` runconfig group.
+
+    Parameters
+    ----------
+    qa_input_file : str
+        The input NISAR product file name (with path).
+    """
+
+    # Required parameter - do not set a default
+    qa_input_file: str = field(
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="qa_goff_input_file",
+                # Copy the description. InputFileGroupParamGroup only has
+                # one field, so we'll cheat and access it via the [0] index.
+                descr=fields(InputFileGroupParamGroup)[0]
+                .metadata["yaml_attrs"]
+                .descr,
+            )
+        }
+    )
+
+
 # TODO - move to generic NISAR module (InSAR will need more thought)
 @dataclass(frozen=True)
 class InSARProductPathGroupParamGroup(ProductPathGroupParamGroup):
@@ -173,6 +228,28 @@ class GUNWProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
 
 
 @dataclass(frozen=True)
+class ROFFProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
+    def __post_init__(self):
+        # append subdirectory for the insar product to store its outputs
+        object.__setattr__(
+            self, "qa_output_dir", os.path.join(self.qa_output_dir, "roff")
+        )
+
+        super().__post_init__()
+
+
+@dataclass(frozen=True)
+class GOFFProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
+    def __post_init__(self):
+        # append subdirectory for the insar product to store its outputs
+        object.__setattr__(
+            self, "qa_output_dir", os.path.join(self.qa_output_dir, "goff")
+        )
+
+        super().__post_init__()
+
+
+@dataclass(frozen=True)
 class RIFGWorkflowsParamGroup(WorkflowsParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -191,6 +268,20 @@ class GUNWWorkflowsParamGroup(WorkflowsParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "workflows"]
+
+
+@dataclass(frozen=True)
+class ROFFWorkflowsParamGroup(WorkflowsParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "roff", "workflows"]
+
+
+@dataclass(frozen=True)
+class GOFFWorkflowsParamGroup(WorkflowsParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "goff", "workflows"]
 
 
 @dataclass(frozen=True)
@@ -240,7 +331,7 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="longest_side_max",
                 descr="""The maximum number of pixels allowed for the longest
-                side of the final 2D browse image. Defaults to 2048.""",
+                side of the final 2D browse image.""",
             )
         },
     )
@@ -348,6 +439,289 @@ class GUNWHSIImageParamGroup(UNWHSIImageParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "hsi_img"]
+
+
+@dataclass(frozen=True)
+class QuiverParamGroup(YamlParamGroup):
+    """
+    Parameters to generate Quiver Plots with Browse Image.
+
+    Parameters
+    ----------
+    cbar_min_max : None or pair of float or int, optional
+        The vmin and vmax values when generating the quiver plot. The magnitude
+        of the offsets will be clipped to this range, and this range will be
+        used for the range of the colorbar.
+        If None, the range will be computed dynamically based on the min and
+        max of magnitudes of the azimuth and range offsets, centered at zero.
+        Defaults to None.
+    decimation_freqa, decimation_freqb : pair of int or None, optional
+        Stride along each axis of the Frequency A (or Frequency B)
+        image arrays for multilooking the quiver plot image.
+        Format: [<num_rows>, <num_cols>]
+        Example: [6,7]
+        If None, the QA code to compute the strides values
+        based on `longest_side_max` and by squaring the pixels.
+        Defaults to None.
+    arrow_density : int, optional
+        Number of arrows (vectors) to plot per the longest edge of the raster.
+        Defaults to 20.
+    arrow_scaling : float or None, optional
+        Scales the length of the arrow inversely.
+        Number of data units per arrow length unit, e.g., m/s per plot width;
+        a smaller scale parameter makes the arrow longer.
+        If None, a simple autoscaling algorithm is used, based on the average
+        vector length and the number of vectors.
+        Defaults to None.
+        See: The `scaling` parameter for `matplotlib.axes.Axes.quiver`.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image. If None, no downscaling will occur
+        (other than to form square pixels).
+        Defaults to 2048 pixels.
+    """
+
+    cbar_min_max: Optional[Sequence[int]] = field(
+        default=None,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="colorbar_min_max",
+                descr="""The vmin and vmax values to generate the quiver plot.
+                The magnitude of the offsets is clipped to this range,
+                and this range is used for the range of the colorbar.
+                If None, the range is computed using the min and max magnitudes
+                of along track and slant range offsets, centered at zero.""",
+            )
+        },
+    )
+
+    _decimation_descr_template: ClassVar[
+        str
+    ] = """Stride along each axis of the Frequency %s
+        image arrays for multilooking the quiver plot image.
+        Format: [<num_rows>, <num_cols>]
+        Example: [6,7]
+        If None, QA-SAS will compute the decimation amount
+        based on squaring the pixels and `longest_side_max`."""
+
+    decimation_freqa: Optional[Sequence[int]] = field(
+        default=None,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="decimation_freqa", descr=_decimation_descr_template % "A"
+            )
+        },
+    )
+
+    decimation_freqb: Optional[Sequence[int]] = field(
+        default=None,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="decimation_freqb", descr=_decimation_descr_template % "B"
+            )
+        },
+    )
+
+    arrow_density: int = field(
+        default=20,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="arrow_density",
+                descr="""Number of arrows (vectors) to plot per the
+                longest edge of the raster.""",
+            )
+        },
+    )
+
+    arrow_scaling: int = field(
+        default=None,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="arrow_scaling",
+                descr="""Scales the length of the arrow inversely.
+        Number of data units per arrow length unit, e.g., m/s per plot width;
+        a smaller scale parameter makes the arrow longer.
+        If None, a simple autoscaling algorithm is used, based on the average
+        vector length and the number of vectors.
+        See: The `scaling` parameter for `matplotlib.axes.Axes.quiver()`.""",
+            )
+        },
+    )
+
+    longest_side_max: int = field(
+        default=2048,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="longest_side_max",
+                descr="""The maximum number of pixels allowed for the longest
+                side of the final 2D browse image. If `decimation_freqX` is not
+                None, then this will be ignored.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        self._validate_pair_of_numeric(
+            param_value=self.cbar_min_max,
+            param_name="colorbar_min_max",
+            min=None,
+            max=None,
+            none_is_valid_value=True,
+            monotonically_increasing=True,
+        )
+
+        self._validate_pair_of_numeric(
+            param_value=self.decimation_freqa,
+            param_name="decimation_freqa",
+            min=1,
+            max=None,
+            none_is_valid_value=True,
+            monotonically_increasing=False,
+        )
+
+        self._validate_pair_of_numeric(
+            param_value=self.decimation_freqb,
+            param_name="decimation_freqb",
+            min=1,
+            max=None,
+            none_is_valid_value=True,
+            monotonically_increasing=False,
+        )
+
+        if not isinstance(self.arrow_density, int):
+            arrow_density = self.arrow_density
+            raise TypeError(
+                f"{arrow_density=} and has type {type(arrow_density)}, but must"
+                " be an int."
+            )
+        if self.arrow_density < 1:
+            arrow_density = self.arrow_density
+            raise ValueError(f"{arrow_density=}, but must be greater than 1.")
+
+        if self.arrow_scaling is None:
+            pass
+        elif isinstance(self.arrow_scaling, (int or float)):
+            if self.arrow_scaling <= 0.0:
+                arrow_scaling = self.arrow_scaling
+                raise ValueError(
+                    f"{arrow_scaling=}, but must be greater than 0.0."
+                )
+        else:
+            arrow_scaling = self.arrow_scaling
+            raise TypeError(
+                f"{arrow_scaling=} and has type {type(arrow_scaling)}, but must"
+                " be an int or float or None."
+            )
+
+        # validate longest_side_max
+        if not isinstance(self.longest_side_max, int):
+            longest_side_max = self.longest_side_max
+            raise TypeError(
+                f"{longest_side_max=} and has type {type(longest_side_max)},"
+                " but must be an int."
+            )
+        if self.longest_side_max <= 0:
+            raise ValueError(
+                f"`longest_side_max` must be positive: {self.longest_side_max}"
+            )
+
+    @staticmethod
+    def _validate_pair_of_numeric(
+        param_value: Optional[Sequence[int]],
+        param_name: str,
+        min: Optional[int | float] = None,
+        max: Optional[int | float] = None,
+        none_is_valid_value: bool = False,
+        monotonically_increasing: bool = False,
+    ) -> None:
+        """
+        Raise exception if `nlooks` is not a valid input.
+
+        Parameters
+        ----------
+        param_value : None or pair of int or float
+            Sequence of two int or float value, or None.
+        param_name : str
+            Name of this parameter. Will be used for the error message.
+        min, max : None or int or float, optional
+            The minimum or maximum values (respectively) for each value in
+            `param_value`.
+        none_is_valid_value : bool
+            True if `None` is a valid value. Defaults to False.
+        monotonically_increasing : bool
+            True if `input_value[0]` must be less than `input_value[1]`.
+            Defaults to False.
+        """
+        if param_value is None:
+            if none_is_valid_value:
+                return
+            else:
+                raise TypeError(
+                    f"`{param_name}` is None, but must be a pair of numeric."
+                )
+
+        if not isinstance(param_value, (list, tuple)):
+            msg = f"`{param_name}` must be a sequence"
+            if none_is_valid_value:
+                msg += " or None."
+            raise TypeError(msg)
+
+        if not len(param_value) == 2:
+            raise ValueError(
+                f"{param_name}={param_value}; must have a length of two."
+            )
+
+        if not all(isinstance(e, (float, int)) for e in param_value):
+            raise TypeError(
+                f"{param_name}={param_value}; must contain only float or int."
+            )
+
+        if (min is not None) and (any((e < min) for e in param_value)):
+            raise ValueError(
+                f"{param_name}={param_value}; must be in range [{min}, {max}]."
+            )
+
+        if (max is not None) and (any((e > max) for e in param_value)):
+            raise ValueError(
+                f"{param_name}={param_value}; must be in range [{min}, {max}]."
+            )
+
+        if monotonically_increasing:
+            if param_value[0] >= param_value[1]:
+                raise ValueError(
+                    f"{param_name}={param_value}; values must be in"
+                    " monotonically increasing."
+                )
+
+
+@dataclass(frozen=True)
+class ROFFQuiverParamGroup(QuiverParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "roff",
+            "qa_reports",
+            "quiver_plots",
+        ]
+
+
+@dataclass(frozen=True)
+class GOFFQuiverParamGroup(QuiverParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "goff",
+            "qa_reports",
+            "quiver_plots",
+        ]
 
 
 @dataclass
@@ -562,6 +936,150 @@ class GUNWRootParamGroup(RootParamGroup):
             GUNWProductPathGroupParamGroup,
             GUNWWorkflowsParamGroup,
             GUNWHSIImageParamGroup,
+        )
+
+
+@dataclass
+class ROFFRootParamGroup(RootParamGroup):
+    """
+    Dataclass of all *ParamGroup objects to process QA for NISAR ROFF products.
+
+    `workflows` is the only required parameter; this *ParamGroup contains
+    boolean attributes that indicate which QA workflows to run.
+
+    All other parameters are optional, but they each correspond to (at least)
+    one of the QA workflows. Based on the workflows set to True in
+    `workflows`, certain others of these parameters will become required.
+
+    Parameters
+    ----------
+    workflows : ROFFWorkflowsParamGroup
+        QA Workflows parameters.
+    input_f : ROFFInputFileGroupParamGroup or None, optional
+        Input File Group parameters.
+    prodpath : ROFFProductPathGroupParamGroup or None, optional
+        Product Path Group parameters.
+    quiver : ROFFQuiverParamGroup or None, optional
+        Quiver plots and browse image group parameters.
+    """
+
+    workflows: ROFFWorkflowsParamGroup
+
+    # Shared parameters
+    input_f: Optional[ROFFInputFileGroupParamGroup] = None
+    prodpath: Optional[ROFFProductPathGroupParamGroup] = None
+
+    quiver: Optional[ROFFQuiverParamGroup] = None
+
+    @staticmethod
+    def get_mapping_of_workflows2param_grps(workflows):
+        Grp = RootParamGroup.ReqParamGrp  # class object for our named tuple
+
+        flag_any_workflows_true = any(
+            [getattr(workflows, field.name) for field in fields(workflows)]
+        )
+
+        grps_to_parse = (
+            Grp(
+                flag_param_grp_req=flag_any_workflows_true,
+                root_param_grp_attr_name="input_f",
+                param_grp_cls_obj=ROFFInputFileGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=flag_any_workflows_true,
+                root_param_grp_attr_name="prodpath",
+                param_grp_cls_obj=ROFFProductPathGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="quiver",
+                param_grp_cls_obj=ROFFQuiverParamGroup,
+            ),
+        )
+
+        return grps_to_parse
+
+    @staticmethod
+    def get_order_of_groups_in_yaml():
+        # This order determines the order
+        # the groups will appear in the runconfig.
+        return (
+            ROFFInputFileGroupParamGroup,
+            ROFFProductPathGroupParamGroup,
+            ROFFWorkflowsParamGroup,
+            ROFFQuiverParamGroup,
+        )
+
+
+@dataclass
+class GOFFRootParamGroup(RootParamGroup):
+    """
+    Dataclass of all *ParamGroup objects to process QA for NISAR GOFF products.
+
+    `workflows` is the only required parameter; this *ParamGroup contains
+    boolean attributes that indicate which QA workflows to run.
+
+    All other parameters are optional, but they each correspond to (at least)
+    one of the QA workflows. Based on the workflows set to True in
+    `workflows`, certain others of these parameters will become required.
+
+    Parameters
+    ----------
+    workflows : GOFFWorkflowsParamGroup
+        QA Workflows parameters.
+    input_f : GOFFInputFileGroupParamGroup or None, optional
+        Input File Group parameters.
+    prodpath : GOFFProductPathGroupParamGroup or None, optional
+        Product Path Group parameters.
+    quiver : GOFFQuiverParamGroup or None, optional
+        Quiver plots and browse image group parameters.
+    """
+
+    workflows: GOFFWorkflowsParamGroup
+
+    # Shared parameters
+    input_f: Optional[GOFFInputFileGroupParamGroup] = None
+    prodpath: Optional[GOFFProductPathGroupParamGroup] = None
+
+    quiver: Optional[GOFFQuiverParamGroup] = None
+
+    @staticmethod
+    def get_mapping_of_workflows2param_grps(workflows):
+        Grp = RootParamGroup.ReqParamGrp  # class object for our named tuple
+
+        flag_any_workflows_true = any(
+            [getattr(workflows, field.name) for field in fields(workflows)]
+        )
+
+        grps_to_parse = (
+            Grp(
+                flag_param_grp_req=flag_any_workflows_true,
+                root_param_grp_attr_name="input_f",
+                param_grp_cls_obj=GOFFInputFileGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=flag_any_workflows_true,
+                root_param_grp_attr_name="prodpath",
+                param_grp_cls_obj=GOFFProductPathGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="quiver",
+                param_grp_cls_obj=GOFFQuiverParamGroup,
+            ),
+        )
+
+        return grps_to_parse
+
+    @staticmethod
+    def get_order_of_groups_in_yaml():
+        # This order determines the order
+        # the groups will appear in the runconfig.
+        return (
+            GOFFInputFileGroupParamGroup,
+            GOFFProductPathGroupParamGroup,
+            GOFFWorkflowsParamGroup,
+            GOFFQuiverParamGroup,
         )
 
 
