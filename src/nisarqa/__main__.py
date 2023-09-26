@@ -186,9 +186,13 @@ def main():
     elif subcommand == "gunw_qa":
         nisarqa.igram.verify_gunw(user_rncfg=user_rncfg)
     elif subcommand == "roff_qa":
-        nisarqa.offsets.verify_roff(user_rncfg=user_rncfg)
+        nisarqa.offsets.verify_offset(
+            user_rncfg=user_rncfg, product_type="roff"
+        )
     elif subcommand == "goff_qa":
-        nisarqa.offsets.verify_goff(user_rncfg=user_rncfg)
+        nisarqa.offsets.verify_offset(
+            user_rncfg=user_rncfg, product_type="goff"
+        )
     else:
         raise ValueError(f"Unknown subcommand: {subcommand}")
 

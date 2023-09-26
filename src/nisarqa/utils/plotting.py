@@ -894,8 +894,6 @@ def process_single_quiver_plot(
     az_off = az_offset.data[::y_decimation, ::x_decimation]
     rg_off = rg_offset.data[::y_decimation, ::x_decimation]
 
-    print("Shape of az_offset after decimation: ", np.shape(az_off))
-
     # Use the full resolution image as the colorful background image of the plot
     disp = np.sqrt(rg_off**2 + az_off**2)
 
