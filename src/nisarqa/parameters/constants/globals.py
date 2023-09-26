@@ -31,7 +31,6 @@ CUSTOM_CYCLER = (
 
 LIST_OF_NISAR_PRODUCTS = [
     "rslc",
-    "slc",
     "gslc",
     "gcov",
     "rifg",
