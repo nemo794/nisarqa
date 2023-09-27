@@ -280,10 +280,10 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image. Defaults to 2048 pixels.
-    rewrap : float or None, optional
-        Multiple of pi to rewrap the unwrapped phase image when generating the
-        HSI image(s). If None, no re-wrapping will occur.
-        Default is 3.
+    rewrap : float or int or None, optional
+        The multiple of pi to rewrap the unwrapped phase image when generating
+        the HSI image(s). If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
 
     rewrap: Optional[float | int] = field(
@@ -292,16 +292,18 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="rewrap",
                 descr="""The multiple of pi to rewrap the unwrapped phase image
-                    when generating the HSI image(s).
-                    Ex: If 3 is provided, image will be rewrapped to 3*numpy.pi.
-                    If None, no re-wrapping will occur.""",
+                    when generating the HSI image(s). If None, no rewrapping will occur.
+                    Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+                    """,
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="rewrap",
                 units="unitless",
                 descr=(
-                    "The multiple of pi the unwrapped phase image is rewrapped"
-                    " to in the HSI image(s). 'None' if no rewrapping occurred."
+                    "The multiple of pi for rewrapping the unwrapped phase"
+                    " image in the HSI image(s). 'None' if no rewrapping"
+                    " occurred. Example: If rewrap=3, the image was rewrapped"
+                    " to the interval [0, 3pi)."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),

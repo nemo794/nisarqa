@@ -4,7 +4,6 @@ import os
 from collections.abc import Iterable, Sequence
 from dataclasses import fields, replace
 from fractions import Fraction
-from math import ceil
 from typing import Optional
 
 import numpy as np
@@ -146,7 +145,7 @@ def hsi_images_to_pdf_wrapped(
 def hsi_images_to_pdf_unwrapped(
     product: nisarqa.UnwrappedGroup,
     report_pdf: PdfPages,
-    rewrap: Optional[float] = None,
+    rewrap: Optional[float | int] = None,
 ) -> None:
     """
     Create HSI images and save to pdf.
@@ -157,10 +156,10 @@ def hsi_images_to_pdf_unwrapped(
         Input NISAR product.
     report_pdf : PdfPages
         The output pdf file to append the backscatter image plot to.
-    rewrap : float or None, optional
-        Multiple of pi to rewrap the unwrapped phase image when generating the
-        HSI image(s). If None, no rewrapping will occur. Defaults to None.
-        Example: If 3.0 is provided, image will be rewrapped to 3*numpy.pi.
+    rewrap : float or int or None, optional
+        The multiple of pi to rewrap the unwrapped phase image when generating
+        the HSI image(s). If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
@@ -313,7 +312,7 @@ def make_hsi_raster(
     coh_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     wrapped_phs_img: bool,
     equalize: bool = False,
-    rewrap: Optional[float] = None,
+    rewrap: Optional[float | int] = None,
     longest_side_max: Optional[int] = None,
 ) -> tuple[nisarqa.GeoRaster | nisarqa.RadarRaster, list[float, float]]:
     """
@@ -338,11 +337,10 @@ def make_hsi_raster(
         (the coherence magnitude layer) for the HSI image.
         See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
         Default is False.
-    rewrap : float or None, optional
-        Multiple of pi to rewrap the unwrapped phase image when generating the
-        HSI image(s). If None or if `wrapped_phs_img` is True,
-        then no rewrapping will occur. Defaults to None.
-        Example: If 3.0 is provided, image will be rewrapped to 3*numpy.pi.
+    rewrap : float or int or None, optional
+        The multiple of pi to rewrap the unwrapped phase image when generating
+        the HSI image(s). If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     longest_side_max : int or None, optional
         Decimate the generated HSI raster so that the max length of
         axis 0 and axis 1 in `hsi_raster` is `longest_side_max`.
@@ -448,7 +446,7 @@ def make_hsi_raster(
     name = "_".join(phs_raster.name.split("_")[:-1])
     if rewrap:
         pi_unicode = "\u03c0"
-        name += f" - rewrapped by {rewrap}{pi_unicode}"
+        name += f" - rewrapped to [0, {rewrap}{pi_unicode})"
 
     # Construct the HSI *Raster object
     if isinstance(phs_raster, nisarqa.RadarRaster):
