@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass, field, fields, replace
@@ -194,7 +193,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="linear_units",
-                descr="""True to compute backscatter in linear units when generating 
+                descr="""True to compute backscatter in linear units when generating
                 the backscatter image for the browse images and graphical
                 summary PDF. False for decibel units.""",
             )
@@ -207,7 +206,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         image arrays for multilooking the backscatter image.
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
-        If not provided, the QA code to compute the nlooks values 
+        If not provided, the QA code to compute the nlooks values
         based on `longest_side_max`.
     """
 
@@ -271,7 +270,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             Gamma will be applied as follows:
                 array_out = normalized_array ^ gamma
             where normalized_array is a copy of the image with values
-            scaled to the range [0,1]. 
+            scaled to the range [0,1].
             The image colorbar will be defined with respect to the input
             image values prior to normalization and gamma correction.
             If None, then no normalization and no gamma correction will be applied.""",
@@ -934,14 +933,13 @@ class RSLCRootParamGroup(RootParamGroup):
                 # nuanced behavior.
 
                 # For now, assume that any parameter added to
-                # DynamicAncillaryFileParamGroup will either be required
-                # (and thus likely a string filepath), or will default to None.
-                # Note: if/when that assume becomes invalid, please update
+                # DynamicAncillaryFileParamGroup will either be required (and
+                # likely contain a string filepath), or will default to None.
+                # Note: if/when that assumption becomes invalid, please update
                 # this check.
                 for f in fields(self.anc_files):
-                    parameter = getattr(self, f.name)
-                    # If the parameter contains valid
-                    if parameter is not None:
+                    val = getattr(self.anc_files, f.name)
+                    if val is not None:
                         break
                 else:
                     self.anc_files = None
