@@ -105,7 +105,10 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
         Factor and Point Target Analyzer workflows to generate results.
     """
 
-    # Required parameter
+    # WARNING: Before adding an additional parameter to this dataclass,
+    # please review the comments in `RSLCRootParamGroup.__post_init__()`
+    # and update the code accordingly.
+
     corner_reflector_file: str = field(
         default=None,
         metadata={
@@ -871,33 +874,77 @@ class RSLCRootParamGroup(RootParamGroup):
     pta: Optional[PointTargetAnalyzerParamGroup] = None
 
     def __post_init__(self):
-        # TODO - Geoff -
-        # The behavior below means that while reading in and validating the
-        # user runconfig parameters, the QA code will check if a corner file is
-        # not provided and modify the parameters accordingly.
+        # Per request from project, the desired behavior for QA is to have
+        # all workflows default to True, and to have the default
+        # runconfig successfully complete QA (meaning: not raise an error)
+        # with only the input file be provided.
 
-        # By doing this step here, this prevents the CalTools processing
-        # parameters from being preemptively copied into the STATS.h5 file
-        # during the `save_processing_params_to_stats_h5()` step of
-        # `verify_rslc()`. It also means that these two CalTools will never
-        # be called.
+        # However, without the corner reflector file, neither the Abs Cal
+        # tool nor the point target analyzer are able to run. So, the corner
+        # reflector file should be optional.
+        # In the scenario where AbsCal or PTA are requested via their
+        # `workflows` flag, but the corner file is not provided, then we need
+        # to warn the user about this issue and have QA handle accordingly.
 
-        # Would you prefer to handle this aspect of the behavior
-        # at this point in the code? (i.e. before CalTools is even called?)
-        # Or would you like to pass all parameters as-is
-        # to the CalTools code, and have all of the behavior handled there?
+        # To help QA behave "as the User expects", let's update the `workflows`
+        # so that these two workflows are `False`. Doing this step during
+        # __post_init__ means that the corresponding runconfig groups will
+        # never be parsed during the call to `build_root_params()`,
+        # and (more importantly) that QA-generated stats.h5 file will never
+        # have groups (directories) created and populated for these two tools
+        # during the call to `root_params.save_processing_params_to_stats_h5()`
+        # and `root_params.log_parameters()`. Otherwise, we
+        # would need to do cleanup later and remove these two groups from
+        # STATS.h5.
+
         if self.workflows.abs_cal or self.workflows.point_target:
             if self.anc_files.corner_reflector_file is None:
                 warnings.warn(
-                    f"`corner_reflector_file` not provided in runconfig."
-                    f" Absolute Calibration Factor and Point Target Analyzer"
-                    f" Caltools workflows require this file. Setting those"
-                    f" two workflows to False."
+                    "`corner_reflector_file` not provided in runconfig."
+                    " Absolute Calibration Factor and Point Target Analyzer"
+                    " Caltools workflows require this file. Setting those"
+                    " two workflows to False. Their runconfig params will"
+                    " be ignored."
                 )
+
+                # Set these `workflows` to False
                 self.workflows = replace(
                     self.workflows, abs_cal=False, point_target=False
                 )
-                self.anc_files = None
+
+                # Update the corner_reflector_file to be None.
+                self.anc_files = replace(
+                    self.anc_files, corner_reflector_file=None
+                )
+
+                # Per the convention noted in
+                # RootParamGroup.save_processing_params_to_stats_h5():
+                #       If a workflow was not requested, its RootParams
+                #       attribute will be None, so there will be no params to
+                #       add to the h5 file."
+
+                # While it shouldn't break anything in the code as of Sept 2023
+                # to leave the `anc_file` group instantiated and with its
+                # only attribute set to None, this might lead to some code
+                # hygiene issues later due to not following QA convention.
+
+                # With the Sept. 2023 code, we could simply set
+                # `self.anc_files = None`. However, later if another file (such
+                # as a DEM) is later added `anc_files`, then we want a more
+                # nuanced behavior.
+
+                # For now, assume that any parameter added to
+                # DynamicAncillaryFileParamGroup will either be required
+                # (and thus likely a string filepath), or will default to None.
+                # Note: if/when that assume becomes invalid, please update
+                # this check.
+                for f in fields(self.anc_files):
+                    parameter = getattr(self, f.name)
+                    # If the parameter contains valid
+                    if parameter is not None:
+                        break
+                else:
+                    self.anc_files = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
