@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterable, Sequence
 from dataclasses import fields, replace
 from fractions import Fraction
 from math import ceil
-from collections.abc import Iterable, Sequence
 from typing import Optional
 
 import numpy as np
@@ -120,6 +120,12 @@ def hsi_images_to_pdf_wrapped(
                 freq=freq, pol=pol
             ) as coh_r:
                 # Create a *Raster with the HSI image
+
+                # The HSI colorbar generated in the HSI PDF function (below)
+                # has a linear scale from [0, 1] for the intensity channel
+                # (coherence magnitude layer). If we equalize that channel,
+                # then the colorbar scale would be inaccurate.
+                # So, ensure equalize=False when creating the HSI Raster.
                 rgb_img, cbar_min_max = make_hsi_raster(
                     phs_raster=phs_r,
                     coh_raster=coh_r,
@@ -163,6 +169,11 @@ def hsi_images_to_pdf_unwrapped(
             ) as phs_r, product.get_unwrapped_coh_mag(
                 freq=freq, pol=pol
             ) as coh_r:
+                # The HSI colorbar generated in the HSI PDF function (below)
+                # has a linear scale from [0, 1] for the intensity channel
+                # (coherence magnitude layer). If we equalize that channel,
+                # then the colorbar scale would be inaccurate.
+                # So, ensure equalize=False when creating the HSI Raster.
                 rgb_img, cbar_min_max = make_hsi_raster(
                     phs_raster=phs_r,
                     coh_raster=coh_r,
@@ -192,7 +203,7 @@ def make_hsi_as_rgb_img(
     The phase image and coherence magnitude rasters are first processed into
     the HSI (Hue, Saturation, Intensity) colorspace, which is then converted
     to RGB values in range [0, 1].
-    
+
     All non finite pixels in the input rasters will be marked NaN in `rgb`.
     TODO: This algorithm currently uses the built-in matplotlib.hsv_to_rgb()
     to convert to RGB due to delivery schedule constraints.
@@ -213,7 +224,9 @@ def make_hsi_as_rgb_img(
         The suggested range to use for the Hue axis of the
         HSI colorbar for `rgb`.
     equalize : bool, optional
-        Equalize Intensity channel (the coherence magnitude layer)
+        True to perform histogram equalization on the Intensity channel
+        (the coherence magnitude layer) for the HSI image.
+        See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
         Default is False.
 
     Returns
@@ -299,7 +312,7 @@ def make_hsi_raster(
     phs_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     coh_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     wrapped_phs_img: bool,
-    equalize: bool,
+    equalize: bool = False,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
 ) -> tuple[nisarqa.GeoRaster | nisarqa.RadarRaster, list[float, float]]:
@@ -320,9 +333,11 @@ def make_hsi_raster(
         False if the input phase image is unwrapped (e.g. RUNW).
         Note: GUNW contains both wrapped and unwrapped phase image
         interferograms.
-    equalize : bool
-        Equalize Intensity channel (the coherence magnitude layer).
-        Default is True.
+    equalize : bool, optional
+        True to perform histogram equalization on the Intensity channel
+        (the coherence magnitude layer) for the HSI image.
+        See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
+        Default is False.
     rewrap : float or None, optional
         Multiple of pi to rewrap the unwrapped phase image when generating the
         HSI image(s). If None or if `wrapped_phs_img` is True,
@@ -472,15 +487,14 @@ def img2pdf_hsi(
     ylabel: Optional[str] = None,
 ) -> None:
     """
-    Plot image array with a linear HSI/HSV "colorbar", then append to pdf.
+    Plot image array with a linear HSI "colorbar", then append to pdf.
 
     Parameters
     ----------
     img_arr : array_like
-        Image to plot; image should represent a non-equalized HSV/HSI (Hue,
+        Image to plot; image should represent a HSI (Hue,
         Saturation, Intensity) image that has been already converted to
         RGB colorspace (such as via matplotlib.colors.hsv_to_rgb()).
-        This function includes a linear HSV/HSI "Colorbar" to the saved plot.
     plots_pdf : PdfPages
         The output PDF file to append the HSI image plot to.
     cbar_min_max : pair of float or None, optional

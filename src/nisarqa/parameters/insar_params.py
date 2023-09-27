@@ -200,8 +200,11 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     Parameters
     ----------
     equalize_browse : bool, optional
-        True to equalize the intensity channel in the browse image.
-        (Browse image is in HSI color space.) Default is True.
+        True to perform histogram equalization on the Intensity channel
+        (the coherence magnitude layer) in the browse image PNG.
+        (Browse image is in HSI color space.) PDF report will not be affected.
+        See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
+        Default is True.
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image. Defaults to 2048 pixels.
@@ -212,15 +215,18 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="equalize_browse",
-                descr="""True to equalize the intensity channel in the HSI
-                        browse PNG image. (PDF report will not be affected.)""",
+                descr="""True to perform histogram equalization on the Intensity channel
+        (the coherence magnitude layer) in the browse image PNG.
+        (Browse image is in HSI color space.) PDF report will not be affected.
+        See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html""",
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="equalizeBrowse",
                 units="unitless",
                 descr=(
-                    "True to equalize the intensity channel in the HSI browse"
-                    " image. (PDF report will not be affected.)"
+                    "If True, histogram equalization was applied to the"
+                    " intensity channel (coherence magnitude layer) in the"
+                    " HSI browse image. (PDF report is not affected.)"
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -241,7 +247,7 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
-        # validate equalize
+        # validate equalize_browse
         if not isinstance(self.equalize_browse, bool):
             raise TypeError(
                 f"`equalize_browse` must be bool: {self.equalize_browse}"
@@ -266,8 +272,11 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
     Parameters
     ----------
     equalize_browse : bool, optional
-        True to equalize the intensity channel in the browse image.
-        (Browse image is in HSI color space.) Default is True.
+        True to perform histogram equalization on the Intensity channel
+        (the coherence magnitude layer) in the browse image PNG.
+        (Browse image is in HSI color space.) PDF report will not be affected.
+        See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
+        Default is True.
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image. Defaults to 2048 pixels.
