@@ -2323,7 +2323,7 @@ class InsarProduct(NisarProduct):
         # So, treat this as a wrapper function.
         return h5_file[raster_path]
 
-    def _check_dtype(self, path: str, expected_dtype: type) -> None:
+    def _check_dtype(self, path: str, expected_dtype: np.dtype) -> None:
         """
         Check that the dataset found at `path` has the correct dtype.
 
@@ -2331,7 +2331,7 @@ class InsarProduct(NisarProduct):
         ----------
         path : str
             Path to a dataset inside the input product.
-        expected_dtype : type
+        expected_dtype : np.dtype
             The expected dtype for the dataset, e.g. np.complex64.
         """
 
@@ -2384,7 +2384,7 @@ class InsarProduct(NisarProduct):
         Returns
         -------
         path : str
-            A potential valid path in the dataset for which incorporates the
+            A potential valid path in the dataset which incorporates the
             requested freq and pol.
             Note: This path may or may not exist in the NISAR input product.
 
@@ -2394,7 +2394,7 @@ class InsarProduct(NisarProduct):
         """
         pass
 
-    def get_pols(self, freq: str) -> tuple[int]:
+    def get_pols(self, freq: str) -> tuple[str, ...]:
         """
         Get the polarizations for the given frequency.
 
@@ -2449,17 +2449,19 @@ class InsarProduct(NisarProduct):
 
             # Sanity checks
             if set(pols) != set(list_of_pols_ds):
-                warnings.warn(
+                errmsg = (
                     f"Frequency {freq} contains polarizations {pols}, but"
                     f" `listOfPolarizations` says {list_of_pols_ds}"
                     " should be available."
                 )
-                raise nisarqa.InvalidNISARProductError
+                print(errmsg)
+                raise nisarqa.InvalidNISARProductError(errmsg)
 
             if not pols:
                 # No polarizations were found for this frequency
-                print(f"No polarizations were found for frequency {freq}")
-                raise nisarqa.DatasetNotFoundError
+                errmsg = f"No polarizations were found for frequency {freq}"
+                print(errmsg)
+                raise nisarqa.DatasetNotFoundError(errmsg)
 
             return pols
 
@@ -2511,7 +2513,7 @@ class InterferogramProduct(InsarProduct):
         plot_title_prefix="Phase Image and Coherence Magnitude as HSI Image",
     ) -> None:
         """
-        Annotate and save a radar-doppler (Rxxx product) HSI Image to PDF.
+        Annotate and save an HSI Image to PDF.
 
         `img.data` should be in linear.
 
@@ -2542,7 +2544,7 @@ class RadarInterferogramProduct(InterferogramProduct, NisarRadarProduct):
         plot_title_prefix: str = "Phase and Coherence Magnitude as HSI Image",
     ) -> None:
         """
-        Annotate and save a radar-doppler (Rxxx product) HSI Image to PDF.
+        Annotate and save a range-Doppler (Rxxx product) HSI Image to PDF.
 
         `img.data` should be in linear.
 
@@ -2757,7 +2759,7 @@ class GUNW(
     def browse_x_range(self) -> tuple[float, float]:
         freq, pol = self.get_browse_freq_pol()
 
-        with self.get_wrapped_phase(freq, pol) as img:
+        with self.get_unwrapped_phase(freq, pol) as img:
             x_start = img.x_start
             x_stop = img.x_stop
 
@@ -2767,7 +2769,7 @@ class GUNW(
     def browse_y_range(self) -> tuple[float, float]:
         freq, pol = self.get_browse_freq_pol()
 
-        with self.get_wrapped_phase(freq, pol) as img:
+        with self.get_unwrapped_phase(freq, pol) as img:
             y_start = img.y_start
             y_stop = img.y_stop
 
@@ -2781,7 +2783,7 @@ class GUNW(
         plot_title_prefix: str = "Phase and Coherence Magnitude as HSI Image",
     ) -> None:
         """
-        Annotate and save a geocoded (Gxxx product) HSI Image to `report_pdf`.
+        Annotate and save a GUNW HSI Image to `report_pdf`.
 
         Parameters
         ----------
@@ -2791,7 +2793,7 @@ class GUNW(
             Note: `img.data` should be in linear scale.
         report_pdf : PdfPages
             The output pdf file to append the backscatter image plot to.
-        cbar_min_max : pair of float
+        cbar_min_max : pair of float or None, optional
             The suggested range to use for the Hue axis of the
             HSI colorbar for `hsi_raster`.
         plot_title_prefix : str, optional

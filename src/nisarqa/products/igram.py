@@ -143,7 +143,6 @@ def verify_rifg(user_rncfg):
                 product=product, report_pdf=report_pdf
             )
 
-            # Process each layer in the product
 
     print(
         "Successful completion of QA SAS. Check log file for validation"
@@ -282,7 +281,6 @@ def verify_runw(user_rncfg):
                 rewrap=root_params.hsi.rewrap,
             )
 
-            # Process each layer in the product
 
     print(
         "Successful completion of QA SAS. Check log file for validation"
@@ -292,7 +290,7 @@ def verify_runw(user_rncfg):
 
 def verify_gunw(user_rncfg):
     """
-    Verify an GUNW product per provided runconfig.
+    Verify a GUNW product per provided runconfig.
 
     This is the main function for running the entire QA workflow for this
     product. It will run based on the options supplied in the
@@ -416,7 +414,6 @@ def verify_gunw(user_rncfg):
                 rewrap=root_params.hsi.rewrap,
             )
 
-            # Process each layer in the product
 
     print(
         "Successful completion of QA SAS. Check log file for validation"

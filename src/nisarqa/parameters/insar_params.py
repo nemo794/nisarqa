@@ -132,8 +132,7 @@ class InSARProductPathGroupParamGroup(ProductPathGroupParamGroup):
                 ISCE3 runconfig, QA will make new product-specific directories
                 here to store the corresponding product output files in.
                 Ex: if the output dir is set to './qa' and QA is requested for
-                RIFG and RUNW products, then QA will create './qa/rifg' and
-                './qa/runw' and save the respective QA outputs in these.""",
+                an RIFG products, then QA will create './qa/rifg' and save the QA outputs there.""",
             )
         },
     )
@@ -200,7 +199,7 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     Parameters
     ----------
-    equalize_browse : book, optional
+    equalize_browse : bool, optional
         True to equalize the intensity channel in the browse image.
         (Browse image is in HSI color space.) Default is True.
     longest_side_max : int, optional
@@ -357,7 +356,7 @@ class RIFGRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : RIFGProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    hsi : RUNWHSIImageParamGroup or None, optional
+    hsi : RIFGHSIImageParamGroup or None, optional
         HSI Image Group parameters.
     """
 
@@ -423,7 +422,7 @@ class RUNWRootParamGroup(RootParamGroup):
 
     Parameters
     ----------
-    workflows : WorkflowsParamGroup
+    workflows : RUNWWorkflowsParamGroup
         QA Workflows parameters.
     input_f : RUNWInputFileGroupParamGroup or None, optional
         Input File Group parameters.
@@ -494,7 +493,7 @@ class GUNWRootParamGroup(RootParamGroup):
 
     Parameters
     ----------
-    workflows : WorkflowsParamGroup
+    workflows : GUNWWorkflowsParamGroup
         QA Workflows parameters.
     input_f : GUNWInputFileGroupParamGroup or None, optional
         Input File Group parameters.

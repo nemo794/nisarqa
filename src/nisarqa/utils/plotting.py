@@ -4,7 +4,8 @@ import os
 from dataclasses import fields, replace
 from fractions import Fraction
 from math import ceil
-from typing import Iterable, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from typing import Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -23,7 +24,7 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def make_hsi_browse_wrapped(
     product: nisarqa.WrappedGroup,
     params: nisarqa.HSIImageParamGroup,
-    browse_png: str,
+    browse_png: str | os.PathLike,
 ) -> None:
     """
     Create and save HSI browse png for input product.
@@ -34,7 +35,7 @@ def make_hsi_browse_wrapped(
         Input NISAR product.
     params : nisarqa.HSIImageParamGroup
         A structure containing the parameters for creating the HSI image.
-    browse_png : str
+    browse_png : path-like
         Filename (with path) for the browse image PNG.
     """
     freq, pol = product.get_browse_freq_pol()
@@ -109,7 +110,7 @@ def hsi_images_to_pdf_wrapped(
     product : nisarqa.IgramInsarProduct
         Input NISAR product.
     report_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to.
+        The output pdf file to append the HSI image plot to.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
@@ -191,6 +192,7 @@ def make_hsi_as_rgb_img(
     The phase image and coherence magnitude rasters are first processed into
     the HSI (Hue, Saturation, Intensity) colorspace, which is then converted
     to RGB values in range [0, 1].
+    
     All non finite pixels in the input rasters will be marked NaN in `rgb`.
     TODO: This algorithm currently uses the built-in matplotlib.hsv_to_rgb()
     to convert to RGB due to delivery schedule constraints.
@@ -200,12 +202,12 @@ def make_hsi_as_rgb_img(
 
     Parameters
     ----------
-    phase_img : array_like
-        2D raster of a phase image (e.g. `wrappedInterferogram`).
+    phase_img : numpy.ndarray
+        2D array of a phase image (e.g. `wrappedInterferogram`).
         This should contain real-valued pixels; if your raster is a complex
         valued interferogram, please compute the phase (e.g. use np.angle())
         and then pass in the resultant raster for `phase_img`.
-    coh_mag : array_like
+    coh_mag : numpy.ndarray
         2D raster of `coherenceMagnitude` layer corresponding to `phase_img`.
     cbar_min_max : pair of float or None, optional
         The suggested range to use for the Hue axis of the
@@ -227,13 +229,13 @@ def make_hsi_as_rgb_img(
             "before passing in the array."
         )
 
-    if not (len(np.shape(phase_img)) == 2):
+    if phase_img.ndim != 2:
         raise ValueError(
             f"`phase_img` has shape {np.shape(phase_img)}"
             "but must be a 2D array."
         )
 
-    if not (len(np.shape(coh_mag)) == 2):
+    if coh_mag.ndim != 2:
         raise ValueError(
             f"`coh_mag` has shape {np.shape(coh_mag)} but must be a 2D array."
         )
@@ -270,7 +272,7 @@ def make_hsi_as_rgb_img(
             )
         hsi[:, :, 2] = coh_mag
 
-    # The coherence array contains some nan from crossmul.
+    # The input arrays may contain some nan values.
     # But, we need to set them to zero for generating the HSI array.
     # So, create a temporary mask of all NaN pixels, do the computation,
     # and then set those pixels back to NaN for the final image.
@@ -419,12 +421,10 @@ def make_hsi_raster(
         sample_spacing=[y_axis_spacing, x_axis_spacing],
         longest_side_max=longest_side_max,
     )
-    rgb = rgb[::ky, ::kx, :]
+    rgb = rgb[::ky, ::kx]
 
     # Update the ground spacing so that the new *Raster we are building will
     # have correct metadata.
-    # TODO - Geoff, could you please give an extra close think at this update
-    # to ground spacing? We have not discussed this.
     y_axis_spacing = y_axis_spacing * ky
     x_axis_spacing = x_axis_spacing * kx
 
@@ -453,7 +453,7 @@ def make_hsi_raster(
             x_spacing=x_axis_spacing,
         )
     else:
-        raise ValueError(
+        raise TypeError(
             f"Input rasters have type {type(phs_img)}, but must be either"
             " nisarqa.RadarRaster or nisarqa.GeoRaster."
         )
@@ -464,7 +464,7 @@ def make_hsi_raster(
 def img2pdf_hsi(
     img_arr: npt.ArrayLike,
     plots_pdf: PdfPages,
-    cbar_min_max: Optional[Iterable[float]] = None,
+    cbar_min_max: Optional[Sequence[float]] = None,
     title: Optional[str] = None,
     xlim: Optional[Sequence[float | int]] = None,
     ylim: Optional[Sequence[float | int]] = None,
@@ -482,8 +482,8 @@ def img2pdf_hsi(
         RGB colorspace (such as via matplotlib.colors.hsv_to_rgb()).
         This function includes a linear HSV/HSI "Colorbar" to the saved plot.
     plots_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to.
-    cbar_min_max : pair of float
+        The output PDF file to append the HSI image plot to.
+    cbar_min_max : pair of float or None, optional
         The suggested range to use for the Hue axis of the
         HSI colorbar for `hsi_raster`.
     title : str, optional
@@ -515,16 +515,17 @@ def img2pdf_hsi(
     # Get size of ax1 window in pixels
     bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 
-    if np.shape(img_to_plot)[0] >= np.shape(img_to_plot)[1]:
+    height, width = np.shape(img_to_plot)[:2]
+    if height >= width:
         # In this conditional, the image is taller than it is wide.
         # So, "shrink" the image to the height of the axis.
-        desired_longest = bbox.width * fig.dpi
-        stride = int(np.shape(img_to_plot)[0] / desired_longest)
+        desired_longest = bbox.height * fig.dpi
+        stride = int(height / desired_longest)
     else:
         # In this conditional, the image is shorter than it is tall.
         # So, "shrink" the image to the width of the axis.
-        desired_longest = bbox.height * fig.dpi
-        stride = int(np.shape(img_to_plot)[1] / desired_longest)
+        desired_longest = bbox.width * fig.dpi
+        stride = int(width / desired_longest)
 
     img_to_plot = img_to_plot[::stride, ::stride, :]
 
@@ -545,16 +546,13 @@ def img2pdf_hsi(
     s = np.ones_like(v)
     hsv = np.dstack((h, s, v))
     rgb = hsv_to_rgb(hsv)
-    del hsv
     rgb = np.rot90(rgb, k=3)
     rgb = np.fliplr(rgb)
 
     if cbar_min_max is None:
-        cbar_max = np.max(img_arr)
-        cbar_min = np.min(img_arr)
+        cbar_max = np.nanmax(img_arr)
+        cbar_min = np.nanmin(img_arr)
 
-        # Sanity check, to ensure img_arr is not filled with e.g. all NaNs.
-        assert np.abs(cbar_max - cbar_min) >= 1e-6
     else:
         if cbar_min_max[0] >= cbar_min_max[1]:
             raise ValueError(
@@ -575,18 +573,11 @@ def img2pdf_hsi(
     ax2.set_ylabel("InSAR Phase", fontsize=8.5, rotation=270, labelpad=10)
     ax2.yaxis.set_label_position("right")
 
-    # Pick a generic number of ticks
-    ax2.set_yticks(np.linspace(start=cbar_min, stop=cbar_max, num=5))
-
     # If the colorbar range covers an even multiple of pi, then re-format
     # the ticks marks to look nice.
     if (np.abs(cbar_max - cbar_min) % np.pi) < 1e-6:
         # Compute number of ticks
-        tick_vals = []
-        tmp = cbar_min
-        while tmp <= cbar_max:
-            tick_vals.append(tmp)
-            tmp += np.pi
+        tick_vals = np.arange(cbar_min, cbar_max, np.pi)
 
         # Only pretty-format if there are a small-ish number of ticks
         # If support for a higher number is desired, then add'l code will
