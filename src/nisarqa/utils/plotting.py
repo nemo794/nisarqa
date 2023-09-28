@@ -695,7 +695,7 @@ def image_histogram_equalization(
     cdf = hist.cumsum()
     cdf = cdf / float(cdf[-1])
 
-    out = np.interp(image.flat, bin_centers, cdf)
+    out = np.interp(image.flatten(), bin_centers, cdf)
     out = out.reshape(image.shape)
 
     # Sanity Check. Mathematically, the output should be within range [0, 1].
