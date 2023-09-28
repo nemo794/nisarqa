@@ -611,14 +611,10 @@ def img2pdf_hsi(
         cbar_min = np.nanmin(img_arr)
 
     else:
-        nisarqa.validate_pair_of_numeric(
-            input=cbar_min_max,
-            param_name="cbar_min_max",
-            min=None,
-            max=None,
-            none_is_valid_value=False,
-            monotonically_increasing=True,
-        )
+        if (len(cbar_min_max) != 2) or (cbar_min_max[0] >= cbar_min_max[1]):
+            raise ValueError(
+                f"{cbar_min_max=}, must be a pair of increasing values."
+            )
         cbar_max = cbar_min_max[1]
         cbar_min = cbar_min_max[0]
 
