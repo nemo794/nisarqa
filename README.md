@@ -6,7 +6,7 @@ eight types of L1/L2 data products will be generated.
 This Quality Assurance (QA) software is designed to look at the data products
 produced one at a time. For each product, the QA code can:
 - Verify the metadata matches the product spec
-- Generate metrics, a pdf report, and a summary describing the quality of the product
+- Generate metrics, a PDF report, and a summary describing the quality of the product
 - Run CalTools processes on RSLC products
 - Produce a browse image png for that product
 
@@ -108,7 +108,7 @@ and store them in the directory specified by `qa_output_dir` in the runconfig:
 
 1) `BROWSE.png` - RGB browse image for the input NISAR product
 2) `BROWSE.kml` - geolocation information for `BROWSE.png`
-3) `REPORT.pdf` - graphical summary pdf containing histograms,
+3) `REPORT.pdf` - graphical summary PDF containing histograms,
                   low-res images of the input datasets, etc.
 4) `STATS.h5` - statistical summary HDF5 file containing computed quality
                 metrics, the datasets used to generate the plots in 

@@ -1025,7 +1025,7 @@ def build_root_params(product_type, user_rncfg):
         One of: 'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', 'goff'
     user_rncfg : dict
         A dictionary whose structure matches `product_type`'s QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        YAML file and which contains the parameters needed to run its QA SAS.
 
     Returns
     -------

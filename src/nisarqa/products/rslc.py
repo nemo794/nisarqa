@@ -35,8 +35,8 @@ def verify_rslc(user_rncfg):
     Parameters
     ----------
     user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        A dictionary whose structure matches this product's QA runconfig
+        YAML file and which contains the parameters needed to run its QA SAS.
     """
 
     # Build the RSLCRootParamGroup parameters per the runconfig
@@ -339,7 +339,7 @@ def process_backscatter_imgs_and_browse(
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to
+        The output PDF file to append the backscatter image plot to
     browse_filename : str
         Filename (with path) for the browse image PNG.
     input_raster_represents_power : bool, optional
@@ -606,7 +606,7 @@ def save_rslc_backscatter_img_to_pdf(
         A structure containing the parameters for processing
         and outputting the backscatter image(s).
     report_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to
+        The output PDF file to append the backscatter image plot to
     plot_title_prefix : str, optional
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
@@ -623,7 +623,7 @@ def save_rslc_backscatter_img_to_pdf(
         See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
     """
 
-    # Plot and Save Backscatter Image to graphical summary pdf
+    # Plot and Save Backscatter Image to graphical summary PDF
     title = (
         f"{plot_title_prefix}\n(scale={params.backscatter_units}%s)\n{img.name}"
     )
@@ -918,14 +918,14 @@ def img2pdf_grayscale(
     ylabel: Optional[str] = None,
 ) -> None:
     """
-    Plot the image array in grayscale, add a colorbar, and append to the pdf.
+    Plot the image array in grayscale, add a colorbar, and append to the PDF.
 
     Parameters
     ----------
     img_arr : array_like
         Image to plot in grayscale
     plots_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to
+        The output PDF file to append the backscatter image plot to
     title : str or None, optional
         The full title for the plot
     xlim, ylim : sequence of numeric or None, optional
@@ -978,7 +978,7 @@ def img2pdf_grayscale(
     # Make sure axes labels do not get cut off
     f.tight_layout()
 
-    # Append figure to the output .pdf
+    # Append figure to the output PDF
     plots_pdf.savefig(f)
 
     # Close the plot
@@ -1044,7 +1044,7 @@ def format_axes_ticks_and_labels(
         # (The actual image will have a different aspect ratio
         # than the matplotlib figure window's aspect ratio.
         # But, altering the matplotlib figure window's aspect ratio
-        # will lead to inconsistently-sized pages in the output .pdf)
+        # will lead to inconsistently-sized pages in the output PDF.)
         if H / W >= fig_h / fig_w:
             # image will be limited by its height, so
             # it will not use the full width of the figure
@@ -1113,7 +1113,7 @@ def process_backscatter_and_phase_histograms(
 ):
     """
     Generate the Backscatter and Phase Histograms and save their plots
-    to the graphical summary .pdf file.
+    to the graphical summary PDF file.
 
     Backscatter histogram will be computed in decibel units.
     Phase histogram defaults to being computed in radians,
@@ -1131,7 +1131,7 @@ def process_backscatter_and_phase_histograms(
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to
+        The output PDF file to append the backscatter image plot to
     plot_title_prefix : str, optional
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
@@ -1200,7 +1200,7 @@ def generate_backscatter_image_histogram_single_freq(
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to
+        The output PDF file to append the backscatter image plot to
     plot_title_prefix : str
         Prefix for the title of the backscatter plots.
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
@@ -1294,7 +1294,7 @@ def generate_backscatter_image_histogram_single_freq(
     ax.set_ylim(bottom=0.0)
     ax.grid()
 
-    # Save complete plots to graphical summary pdf file
+    # Save complete plots to graphical summary PDF file
     report_pdf.savefig(fig)
 
     # Close figure
@@ -1335,7 +1335,7 @@ def generate_phase_histogram_single_freq(
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
     report_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to
+        The output PDF file to append the backscatter image plot to
     """
 
     band = product.band
@@ -1423,7 +1423,7 @@ def generate_phase_histogram_single_freq(
             ax.set_ylim(bottom=0.0, top=0.01)
         ax.grid()
 
-        # Save complete plots to graphical summary pdf file
+        # Save complete plots to graphical summary PDF file
         report_pdf.savefig(fig)
 
         # Close figure

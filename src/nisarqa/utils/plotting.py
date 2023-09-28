@@ -4,7 +4,7 @@ import os
 from collections.abc import Iterable, Sequence
 from dataclasses import fields, replace
 from fractions import Fraction
-from typing import Optional
+from typing import Optional, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -26,11 +26,11 @@ def make_hsi_browse_wrapped(
     browse_png: str | os.PathLike,
 ) -> None:
     """
-    Create and save HSI browse png for input product.
+    Create and save HSI wrapped interferogram browse PNG for input product.
 
     Parameters
     ----------
-    product : nisarqa.IgramInsarProduct
+    product : nisarqa.WrappedGroup
         Input NISAR product.
     params : nisarqa.HSIImageParamGroup
         A structure containing the parameters for creating the HSI image.
@@ -39,11 +39,11 @@ def make_hsi_browse_wrapped(
     """
     freq, pol = product.get_browse_freq_pol()
 
-    with product.get_wrapped_phase(
+    with product.get_wrapped_igram(
         freq=freq, pol=pol
-    ) as phs_r, product.get_wrapped_coh_mag(freq=freq, pol=pol) as coh_r:
+    ) as igram_r, product.get_wrapped_coh_mag(freq=freq, pol=pol) as coh_r:
         rgb_img, _ = make_hsi_raster(
-            phs_raster=phs_r,
+            phs_or_complex_raster=igram_r,
             coh_raster=coh_r,
             wrapped_phs_img=True,
             equalize=params.equalize_browse,
@@ -65,11 +65,11 @@ def make_hsi_browse_unwrapped(
     browse_png: str | os.PathLike,
 ) -> None:
     """
-    Create and save HSI browse png for input product.
+    Create and save HSI unwrapped phase image browse png for input product.
 
     Parameters
     ----------
-    product : nisarqa.IgramInsarProduct
+    product : nisarqa.UnwrappedGroup
         Input NISAR product.
     params : nisarqa.UNWHSIImageParamGroup
         A structure containing the parameters for creating the HSI image.
@@ -82,7 +82,7 @@ def make_hsi_browse_unwrapped(
         freq=freq, pol=pol
     ) as phs_r, product.get_unwrapped_coh_mag(freq=freq, pol=pol) as coh_r:
         rgb_img, _ = make_hsi_raster(
-            phs_raster=phs_r,
+            phs_or_complex_raster=phs_r,
             coh_raster=coh_r,
             wrapped_phs_img=False,
             equalize=params.equalize_browse,
@@ -102,20 +102,20 @@ def hsi_images_to_pdf_wrapped(
     report_pdf: PdfPages,
 ) -> None:
     """
-    Create HSI images and save to pdf.
+    Create HSI wrapped interferogram images and save to PDF.
 
     Parameters
     ----------
-    product : nisarqa.IgramInsarProduct
+    product : nisarqa.WrappedGroup
         Input NISAR product.
     report_pdf : PdfPages
-        The output pdf file to append the HSI image plot to.
+        The output PDF file to append the HSI image plot to.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            with product.get_wrapped_phase(
+            with product.get_wrapped_igram(
                 freq=freq, pol=pol
-            ) as phs_r, product.get_wrapped_coh_mag(
+            ) as igram_r, product.get_wrapped_coh_mag(
                 freq=freq, pol=pol
             ) as coh_r:
                 # Create a *Raster with the HSI image
@@ -126,7 +126,7 @@ def hsi_images_to_pdf_wrapped(
                 # then the colorbar scale would be inaccurate.
                 # So, ensure equalize=False when creating the HSI Raster.
                 rgb_img, cbar_min_max = make_hsi_raster(
-                    phs_raster=phs_r,
+                    phs_or_complex_raster=igram_r,
                     coh_raster=coh_r,
                     wrapped_phs_img=True,
                     equalize=False,  # Do not equalize the PDF HSI images
@@ -138,7 +138,7 @@ def hsi_images_to_pdf_wrapped(
                 img=rgb_img,
                 report_pdf=report_pdf,
                 cbar_min_max=cbar_min_max,
-                plot_title_prefix="Phase Image and Coherence Magnitude",
+                plot_title_prefix="Wrapped Phase Image and Coherence Magnitude",
             )
 
 
@@ -148,14 +148,14 @@ def hsi_images_to_pdf_unwrapped(
     rewrap: Optional[float | int] = None,
 ) -> None:
     """
-    Create HSI images and save to pdf.
+    Create HSI unwrapped phase images and save to PDF.
 
     Parameters
     ----------
-    product : nisarqa.IgramInsarProduct
+    product : nisarqa.UnwrappedGroup
         Input NISAR product.
     report_pdf : PdfPages
-        The output pdf file to append the backscatter image plot to.
+        The output PDF file to append the HSI image plot to.
     rewrap : float or int or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
         the HSI image(s). If None, no rewrapping will occur.
@@ -174,7 +174,7 @@ def hsi_images_to_pdf_unwrapped(
                 # then the colorbar scale would be inaccurate.
                 # So, ensure equalize=False when creating the HSI Raster.
                 rgb_img, cbar_min_max = make_hsi_raster(
-                    phs_raster=phs_r,
+                    phs_or_complex_raster=phs_r,
                     coh_raster=coh_r,
                     wrapped_phs_img=False,
                     equalize=False,  # Do not equalize the PDF HSI images
@@ -186,24 +186,28 @@ def hsi_images_to_pdf_unwrapped(
                 img=rgb_img,
                 report_pdf=report_pdf,
                 cbar_min_max=cbar_min_max,
-                plot_title_prefix="Phase Image and Coherence Magnitude",
+                plot_title_prefix=(
+                    "Unwrapped Phase Image and Coherence Magnitude"
+                ),
             )
 
 
 def make_hsi_as_rgb_img(
     phase_img: npt.ArrayLike,
     coh_mag: npt.ArrayLike,
-    cbar_min_max: Optional[Sequence[float | int]] = None,
+    phs_img_range: Optional[Sequence[float | int]] = None,
     equalize: bool = False,
 ) -> npt.ArrayLike:
     """
-    Create HSI image array, returned in RGB colorspace.
+    Create HSI interferogram image array, returned in RGB colorspace.
 
     The phase image and coherence magnitude rasters are first processed into
     the HSI (Hue, Saturation, Intensity) colorspace, which is then converted
-    to RGB values in range [0, 1].
+    to RGB values in normalized range [0, 1].
 
-    All non finite pixels in the input rasters will be marked NaN in `rgb`.
+    If any input layer was NaN-valued for a given pixel, then the output
+    value for that pixel will be NaN (for all channels).
+
     TODO: This algorithm currently uses the built-in matplotlib.hsv_to_rgb()
     to convert to RGB due to delivery schedule constraints.
     But, there is a subtle mathematical difference between the HSI and HSV
@@ -213,15 +217,26 @@ def make_hsi_as_rgb_img(
     Parameters
     ----------
     phase_img : numpy.ndarray
-        2D array of a phase image (e.g. `wrappedInterferogram`).
+        2D array of a phase image (e.g. `unwrappedInterferogram`).
         This should contain real-valued pixels; if your raster is a complex
         valued interferogram, please compute the phase (e.g. use np.angle())
         and then pass in the resultant raster for `phase_img`.
     coh_mag : numpy.ndarray
         2D raster of `coherenceMagnitude` layer corresponding to `phase_img`.
-    cbar_min_max : pair of float or None, optional
-        The suggested range to use for the Hue axis of the
-        HSI colorbar for `rgb`.
+        This should already be normalized to range [0, 1]. (Otherwise
+        something must have gone rather wrong in the InSAR processing!)
+    phs_img_range : pair of float or None, optional
+        The expected range for the phase image raster. `None` to use the
+        min and max of the image data. This will be used for normalization
+        of the data to range [0, 1].
+        Note: If `phs_img`'s data is within a known range, it is strongly
+        suggested to set this parameter, otherwise unintended image correction
+        will occur.
+        For example, if an image was generated via np.angle(), the known range
+        is [-pi, pi]. But if the actual image data only contains values from
+        [-pi/2, pi/3] and `None` was provided, then the phase image will appear
+        "stretched", because during normalization -pi/2 -> 0 and pi/3 -> 1.
+        Defaults to None.
     equalize : bool, optional
         True to perform histogram equalization on the Intensity channel
         (the coherence magnitude layer) for the HSI image.
@@ -231,7 +246,7 @@ def make_hsi_as_rgb_img(
     Returns
     -------
     rgb : numpy.ndarray
-        3D array of HSI image in the RGB (Red Green Blue) colorspace.
+        3D array of HSI image converted to the RGB (Red Green Blue) colorspace.
         This RGB array is ready for plotting in e.g. matplotlib.
     """
     if not np.issubdtype(phase_img.dtype, np.floating):
@@ -258,15 +273,22 @@ def make_hsi_as_rgb_img(
             f"(shape: {np.shape(coh_mag)}) must have the same shape."
         )
 
+    # coh mag should already be within range [0, 1].
+    if np.any(coh_mag < 0.0) or np.any(coh_mag > 1.0):
+        raise ValueError("`coh_mag` contains values outside of range [0, 1].")
+
     # Initialize HSI array
     # Note: per hsv_to_rgb(): "All values assumed to be in range [0, 1]".
     # So, we'll need to normalize all rasters added to this array.
     hsi = np.ones((phase_img.shape[0], phase_img.shape[1], 3), dtype=np.float32)
 
     # First channel is hue. The phase image should be represented by hue.
-    # Normalize phase_img, but force min and max to be -/+ pi
-    # This means we'll map:  -pi -> 0, and +pi -> 1
-    hsi[:, :, 0] = nisarqa.normalize(arr=phase_img, min_max=cbar_min_max)
+    # Note: If available, make sure to specify the known min/max range for
+    # the image, such as [-pi, pi] for images created with np.angle().
+    # Otherwise, `nisarqa.normalize()` will take the min and max of the actual
+    # data, which could have the undesirable effect of applying image
+    # correction to e.g. phase images.
+    hsi[:, :, 0] = nisarqa.normalize(arr=phase_img, min_max=phs_img_range)
 
     # Second channel is saturation. We set it to 1 always.
     # Note: Nothing more to do --> It was previously initialized to 1.
@@ -274,14 +296,10 @@ def make_hsi_as_rgb_img(
     # Third channel is intensity scaled between 0, 1.
     # If the user desires, equalize histogram
     if equalize:
+        # image_histogram_equalization handles normalization
         hsi[:, :, 2] = image_histogram_equalization(image=coh_mag)
     else:
-        # Sanity Check. We should not need to normalize this layer
-        # because it should already be within range [0, 1].
-        if np.any(coh_mag < 0.0) or np.any(coh_mag > 1.0):
-            raise ValueError(
-                "`coh_mag` contains values outside of range [0, 1]."
-            )
+        # coh mag is already within range [0, 1].
         hsi[:, :, 2] = coh_mag
 
     # The input arrays may contain some nan values.
@@ -307,26 +325,51 @@ def make_hsi_as_rgb_img(
     return rgb
 
 
+@overload
 def make_hsi_raster(
-    phs_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
-    coh_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    phs_or_complex_raster: nisarqa.RadarRaster,
+    coh_raster: nisarqa.RadarRaster,
     wrapped_phs_img: bool,
-    equalize: bool = False,
-    rewrap: Optional[float | int] = None,
+    equalize: bool,
+    rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.GeoRaster | nisarqa.RadarRaster, list[float, float]]:
+) -> tuple[nisarqa.RadarRaster, list[float, float]]:
+    ...  # (empty implementation)
+
+
+@overload
+def make_hsi_raster(
+    phs_or_complex_raster: nisarqa.GeoRaster,
+    coh_raster: nisarqa.GeoRaster,
+    wrapped_phs_img: bool,
+    equalize: bool,
+    rewrap: Optional[float] = None,
+    longest_side_max: Optional[int] = None,
+) -> tuple[nisarqa.GeoRaster, list[float, float]]:
+    ...  # (empty implementation)
+
+
+def make_hsi_raster(
+    phs_or_complex_raster,
+    coh_raster,
+    wrapped_phs_img,
+    equalize,
+    rewrap=None,
+    longest_side_max=None,
+):
     """
-    Create HSI RadarRaster/GeoRaster with square pixels, and colorbar range.
+    Create HSI interferogram *Raster with square pixels, and colorbar range.
 
     Parameters
     ----------
-    phs_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
-        *Raster for the phase image raster to use to construct the
-        Hue layer for the HSI *Raster. This should correspond to `coh_raster`.
+    phs_or_complex_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
+        *Raster of complex interferogram or unwrapped phase data to use to
+        construct the Hue layer for the HSI *Raster.
+        This should correspond to `coh_raster`.
     coh_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
         *Raster for the coherence magnitude raster to use to construct
         the intesity layer for the HSI *Raster.
-        This should correspond to `phs_raster`.
+        This should correspond to `phs_or_complex_raster`.
     wrapped_phs_img : bool
         True if the input phase image is wrapped (e.g. RIFG).
         False if the input phase image is unwrapped (e.g. RUNW).
@@ -349,19 +392,21 @@ def make_hsi_raster(
     -------
     hsi_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
         A *Raster of the HSI image converted to RGB color space. This raster
-        will have square pixels. (If the rasters in `phs_raster` and
+        will have square pixels. (If the rasters in `phs_or_complex_raster` and
         `coh_raster` do not have square pixels, then decimation will be applied
         to achieve square pixels.)
         The type of `hsi_raster` will be the same as the type of
-        `phs_raster` and `coh_raster`.
+        `phs_or_complex_raster` and `coh_raster`.
     cbar_min_max : pair of float
         The suggested range to use for the Hue axis of the
         HSI colorbar for `hsi_raster`.
+        If `phs_or_complex_raster` has complex valued data, then `cbar_min_max` will
+        be the range [-pi, +pi].
     """
     # Input validation:
     # Check that phs and coh *Raster instances have consistent metadata
-    for phs, coh in zip(fields(phs_raster), fields(coh_raster)):
-        phs_val = getattr(phs_raster, phs.name)
+    for phs, coh in zip(fields(phs_or_complex_raster), fields(coh_raster)):
+        phs_val = getattr(phs_or_complex_raster, phs.name)
         coh_val = getattr(coh_raster, coh.name)
 
         if phs.name == "data":
@@ -375,21 +420,16 @@ def make_hsi_raster(
             assert phs_val == coh_val
         else:
             assert np.abs(phs_val - coh_val) < 1e-6
-
-    if np.shape(phs_raster.data) != np.shape(coh_raster.data):
-        raise ValueError(
-            "The coh mag raster and phase raster must have the same shape."
-            f" Shape of coh mag: {np.shape(coh_raster.data)}, Shape of phase:"
-            f" {np.shape(phs_raster.data)}."
-        )
     # END validation check
 
-    phs_img = phs_raster.data[...]
+    phs_img = phs_or_complex_raster.data[...]
 
     if wrapped_phs_img:
         # complex data; take the phase angle.
-        # np.angle() returns output in range [-pi, pi]
         phs_img = np.angle(phs_img.data)
+
+        # np.angle() returns output in range [-pi, pi]
+        # So, set the colobar's min and max to be the range [-pi, +pi].
         cbar_min_max = [-np.pi, np.pi]
 
     else:
@@ -416,13 +456,13 @@ def make_hsi_raster(
     rgb = nisarqa.make_hsi_as_rgb_img(
         phase_img=phs_img,
         coh_mag=coh_img,
-        cbar_min_max=cbar_min_max,
+        phs_img_range=cbar_min_max,
         equalize=equalize,
     )
 
     # Square the pixels. Decimate if requested.
-    y_axis_spacing = phs_raster.y_axis_spacing
-    x_axis_spacing = phs_raster.x_axis_spacing
+    y_axis_spacing = phs_or_complex_raster.y_axis_spacing
+    x_axis_spacing = phs_or_complex_raster.x_axis_spacing
 
     if longest_side_max is None:
         # Update to be the longest side of the array. This way no downsizing
@@ -443,23 +483,23 @@ def make_hsi_raster(
 
     # Construct the name
     # (Remove the layer name from the `name`)
-    name = "_".join(phs_raster.name.split("_")[:-1])
+    name = "_".join(phs_or_complex_raster.name.split("_")[:-1])
     if rewrap:
         pi_unicode = "\u03c0"
         name += f" - rewrapped to [0, {rewrap}{pi_unicode})"
 
     # Construct the HSI *Raster object
-    if isinstance(phs_raster, nisarqa.RadarRaster):
+    if isinstance(phs_or_complex_raster, nisarqa.RadarRaster):
         hsi_raster = replace(
-            phs_raster,
+            phs_or_complex_raster,
             data=rgb,
             name=name,
             ground_az_spacing=y_axis_spacing,
             ground_range_spacing=x_axis_spacing,
         )
-    elif isinstance(phs_raster, nisarqa.GeoRaster):
+    elif isinstance(phs_or_complex_raster, nisarqa.GeoRaster):
         hsi_raster = replace(
-            phs_raster,
+            phs_or_complex_raster,
             data=rgb,
             name=name,
             y_spacing=y_axis_spacing,
@@ -485,19 +525,20 @@ def img2pdf_hsi(
     ylabel: Optional[str] = None,
 ) -> None:
     """
-    Plot image array with a linear HSI "colorbar", then append to pdf.
+    Plot image array with a linear HSI "colorbar", then append to PDF.
 
     Parameters
     ----------
     img_arr : array_like
-        Image to plot; image should represent a HSI (Hue,
+        Image to plot; image should represent an HSI (Hue,
         Saturation, Intensity) image that has been already converted to
         RGB colorspace (such as via matplotlib.colors.hsv_to_rgb()).
     plots_pdf : PdfPages
         The output PDF file to append the HSI image plot to.
     cbar_min_max : pair of float or None, optional
-        The suggested range to use for the Hue axis of the
-        HSI colorbar for `hsi_raster`.
+        The range for the Hue axis of the HSI colorbar for the image raster.
+        `None` to use the min and max of the image data for the colorbar range.
+        Defaults to None.
     title : str, optional
         The full title for the plot.
     xlim, ylim : sequence of numeric, optional
@@ -517,7 +558,7 @@ def img2pdf_hsi(
     )
 
     # Set all NaN pixels to 1 in each of the red-green-blue layers.
-    # This way, the NaN pixels will appear white in the pdf.
+    # This way, the NaN pixels will appear white in the PDF.
     img_to_plot = img_arr.copy()
     img_to_plot[~np.isfinite(img_arr)] = 1
 
@@ -566,10 +607,14 @@ def img2pdf_hsi(
         cbar_min = np.nanmin(img_arr)
 
     else:
-        if cbar_min_max[0] >= cbar_min_max[1]:
-            raise ValueError(
-                f"{cbar_min_max=}, must be a pair of increasing values."
-            )
+        nisarqa.validate_pair_of_numeric(
+            input=cbar_min_max,
+            param_name="cbar_min_max",
+            min=None,
+            max=None,
+            none_is_valid_value=False,
+            monotonically_increasing=True,
+        )
         cbar_max = cbar_min_max[1]
         cbar_min = cbar_min_max[0]
 
@@ -610,14 +655,16 @@ def img2pdf_hsi(
 
     ax2.set_title("HSI Color Space\nSaturation=1", fontsize=8.5)
 
-    # Append figure to the output .pdf
+    # Append figure to the output PDF
     plots_pdf.savefig(fig)
 
     # Close the plot
     plt.close(fig)
 
 
-def image_histogram_equalization(image, nbins=256):
+def image_histogram_equalization(
+    image: npt.ArrayLike, nbins: Optional[int] = 256
+) -> np.ndarray:
     """
     Perform histogram equalization of a grayscale image.
 
@@ -634,6 +681,7 @@ def image_histogram_equalization(image, nbins=256):
     -------
     equalized_img : numpy.ndarray
         The image with histogram equalization applied.
+        This image will be in range [0, 1].
 
     References
     ----------

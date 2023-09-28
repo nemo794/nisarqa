@@ -857,7 +857,7 @@ class RootParamGroup(ABC):
         return Path("SUMMARY.csv")
 
     def get_report_pdf_filename(self) -> Path:
-        """Return the reports pdf filename as a Path object. Does not include
+        """Return the reports PDF filename as a Path object. Does not include
         the filepath.
         """
         # # For R3.3, QA should not use the input filename for the output files.

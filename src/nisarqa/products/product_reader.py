@@ -1182,7 +1182,7 @@ class NonInsarProduct(NisarProduct):
             A structure containing the parameters for processing
             and outputting the backscatter image(s).
         report_pdf : PdfPages
-            The output pdf file to append the backscatter image plot to.
+            The output PDF file to append the backscatter image plot to.
         plot_title_prefix : str
             Prefix for the title of the backscatter plots.
             Examples: "RSLC Backscatter Coefficient (beta-0)" or
@@ -1656,7 +1656,7 @@ class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
             A structure containing the parameters for processing
             and outputting the backscatter image(s).
         report_pdf : PdfPages
-            The output pdf file to append the backscatter image plot to.
+            The output PDF file to append the backscatter image plot to.
         plot_title_prefix : str
             Prefix for the title of the backscatter plots.
             Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
@@ -1831,7 +1831,7 @@ class RSLC(SLC, NisarRadarProduct):
             A structure containing the parameters for processing
             and outputting the backscatter image(s).
         report_pdf : PdfPages
-            The output pdf file to append the backscatter image plot to.
+            The output PDF file to append the backscatter image plot to.
         plot_title_prefix : str
             Prefix for the title of the backscatter plots.
             Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
@@ -2361,18 +2361,14 @@ class InsarProduct(NisarProduct):
         _check_dtype_inner(path, expected_dtype)
 
     @abstractmethod
-    def _pols_path_shim(self, freq: str, pol: str) -> str:
+    def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
         """
-        Return a potential valid path in the dataset for the given freq and pol.
+        Return a potential valid path in input HDF5 containing `freq` and `pol`.
 
-        In essence, this is a thin wrapper to standardize each group's
-        `...parent_path()` function.
-        By allowing each group to have a unique name for its `...parent_path()`
-        function, we prevent name collisions when a product (e.g. GUNW)
-        contains multiple groups.
-        Also, the offset products' `...parent_path()` function requires
-        a third argument; using a shim allows them to supply a partial
-        function while maintaining this same interface.
+        This is a helper method (for e.g. `get_pols()`) which provides a
+        generic way to get the path to a group in the product containing
+        a particular frequency+polarization.
+        The returned path may or may not exist in the NISAR input product.
 
         Parameters
         ----------
@@ -2386,7 +2382,6 @@ class InsarProduct(NisarProduct):
         path : str
             A potential valid path in the dataset which incorporates the
             requested freq and pol.
-            Note: This path may or may not exist in the NISAR input product.
 
         See Also
         --------
@@ -2425,7 +2420,7 @@ class InsarProduct(NisarProduct):
             pols = []
             with nisarqa.open_h5_file(self.filepath) as f:
                 for pol in nisarqa.get_possible_pols(self.product_type.lower()):
-                    pol_path = self._pols_path_shim(freq, pol)
+                    pol_path = self._get_path_containing_freq_pol(freq, pol)
                     try:
                         f[pol_path]
                     except KeyError:
@@ -2508,9 +2503,9 @@ class InterferogramProduct(InsarProduct):
     @abstractmethod
     def save_hsi_img_to_pdf(
         img: nisarqa.RadarRaster | nisarqa.GeoRaster,
-        report_pdf,
-        cbar_min_max=None,
-        plot_title_prefix="Phase Image and Coherence Magnitude as HSI Image",
+        report_pdf: PdfPages,
+        cbar_min_max: Optional[Sequence[float]] = None,
+        plot_title_prefix: str = "Phase Image and Coherence Magnitude as HSI Image",
     ) -> None:
         """
         Annotate and save an HSI Image to PDF.
@@ -2523,10 +2518,11 @@ class InterferogramProduct(InsarProduct):
             Image in RGB color space to be saved. All image correction,
             multilooking, etc. needs to have previously been applied.
         report_pdf : PdfPages
-            The output pdf file to append the backscatter image plot to.
-        cbar_min_max : pair of float
-            The suggested range to use for the Hue axis of the
-            HSI colorbar for `hsi_raster`.
+            The output PDF file to append the HSI image plot to.
+        cbar_min_max : pair of float or None, optional
+            The range for the Hue axis of the HSI colorbar for the image raster.
+            `None` to use the min and max of the image for the colorbar range.
+            Defaults to None.
         plot_title_prefix : str, optional
             Prefix for the title of the backscatter plots.
             Defaults to "Phase Image and Coherence Magnitude as HSI Image".
@@ -2554,10 +2550,11 @@ class RadarInterferogramProduct(InterferogramProduct, NisarRadarProduct):
             Image in RGB color space to be saved. All image correction,
             multilooking, etc. needs to have previously been applied.
         report_pdf : PdfPages
-            The output pdf file to append the backscatter image plot to.
+            The output PDF file to append the HSI image plot to.
         cbar_min_max : pair of float or None, optional
-            The suggested range to use for the Hue axis of the
-            HSI colorbar for `hsi_raster`.
+            The range for the Hue axis of the HSI colorbar for the image raster.
+            `None` to use the min and max of the image for the colorbar range.
+            Defaults to None.
         plot_title_prefix : str, optional
             Prefix for the title of the backscatter plots.
             Defaults to "Phase Image and Coherence Magnitude as HSI Image".
@@ -2584,21 +2581,28 @@ class RadarInterferogramProduct(InterferogramProduct, NisarRadarProduct):
 
 
 class WrappedGroup(InterferogramProduct):
+    """
+    Contains common functionality for products with a wrapped igram data group.
+
+    As of Sept. 2023, this is only for RIFG and GUNW products. RUNW products
+    do not contain this group.
+    """
+
     @staticmethod
     @abstractmethod
     def _wrapped_parent_path(freq: str, pol: str) -> str:
         """Path in input file to parent group for Wrapped I-gram group."""
         pass
 
-    def _pols_path_shim(self, freq: str, pol: str) -> str:
+    def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
         return self._wrapped_parent_path(freq, pol)
 
     @contextmanager
-    def get_wrapped_phase(
+    def get_wrapped_igram(
         self, freq: str, pol: str
     ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
         """
-        Get the wrapped phase image *Raster.
+        Get the complex-valued wrapped interferogram image *Raster.
 
         Parameters
         ----------
@@ -2643,13 +2647,20 @@ class WrappedGroup(InterferogramProduct):
 
 
 class UnwrappedGroup(InterferogramProduct):
+    """
+    Contains common functionality for products with unwrapped phase data group.
+
+    As of Sept. 2023, this is only for RUNW and GUNW products. RIFG products
+    do not contain this group.
+    """
+
     @staticmethod
     @abstractmethod
     def _unwrapped_parent_path(freq: str, pol: str) -> str:
         """Path in input file to parent group for Unwrapped I-gram group."""
         pass
 
-    def _pols_path_shim(self, freq: str, pol: str) -> str:
+    def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
         return self._unwrapped_parent_path(freq, pol)
 
     @contextmanager
@@ -2737,7 +2748,7 @@ class GUNW(
             if set(wrapped_pols) != set(unwrapped_pols):
                 warnings.warn(
                     f"Wrapped interferogram group contains {wrapped_pols},"
-                    " but the unwrapped interferogram group contains "
+                    " but the unwrapped phase image group contains "
                     f" {unwrapped_pols}."
                 )
 
@@ -2792,15 +2803,16 @@ class GUNW(
             multilooking, etc. needs to have previously been applied.
             Note: `img.data` should be in linear scale.
         report_pdf : PdfPages
-            The output pdf file to append the backscatter image plot to.
+            The output PDF file to append the HSI image plot to.
         cbar_min_max : pair of float or None, optional
-            The suggested range to use for the Hue axis of the
-            HSI colorbar for `hsi_raster`.
+            The range for the Hue axis of the HSI colorbar for the image raster.
+            `None` to use the min and max of the image for the colorbar range.
+            Defaults to None.
         plot_title_prefix : str, optional
             Prefix for the title of the backscatter plots.
             Defaults to "Phase Image and Coherence Magnitude as HSI Image".
         """
-        # Plot and Save Backscatter Image to graphical summary pdf
+        # Plot and Save Backscatter Image to graphical summary PDF
         title = f"{plot_title_prefix}\n{img.name}"
 
         nisarqa.img2pdf_hsi(

@@ -213,7 +213,7 @@ def output_stub_files(output_dir, stub_files="all", input_file=None):
                     # Copy identification metadata from input file to stats.h5
                     in_file.copy(in_file[grp_path], stats_h5, grp_path)
 
-    # Save browse image stub file and pdf stub file
+    # Save browse image stub file and PDF stub file
     # Create a roughly 2048x2048 pixels^2 RGB image
     # (ASF allows for in-exact dimensions, so let's test that.)
     # (Current plan is for all NISAR products to generate RGBA browse images)
@@ -256,7 +256,7 @@ def output_stub_files(output_dir, stub_files="all", input_file=None):
             # Make sure axes labels do not get cut off
             fig.tight_layout()
 
-            # Append figure to the output .pdf
+            # Append figure to the output PDF
             f.savefig(fig)
 
             # Close the figure
@@ -396,8 +396,8 @@ def verify_insar(user_rncfg, product):
     Parameters
     ----------
     user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        A dictionary whose structure matches this product's QA runconfig
+        YAML file and which contains the parameters needed to run its QA SAS.
     product : str
         InSAR product name
         Options: 'rifg','runw','gunw','roff','goff'

@@ -28,7 +28,7 @@ def verify_gcov(user_rncfg):
     ----------
     user_rncfg : dict
         A nested dict whose structure matches this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        YAML file and which contains the parameters needed to run its QA SAS.
     """
 
     # Build the GCOVRootParamGroup parameters per the runconfig

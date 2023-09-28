@@ -267,7 +267,7 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class UNWHSIImageParamGroup(HSIImageParamGroup):
     """
-    Parameters to generate HSI Browse Image for unwrapped interferogram.
+    Parameters to generate HSI Browse Image for unwrapped phase image.
 
     Parameters
     ----------

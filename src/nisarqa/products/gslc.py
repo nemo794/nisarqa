@@ -25,8 +25,8 @@ def verify_gslc(user_rncfg):
     Parameters
     ----------
     user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        A dictionary whose structure matches this product's QA runconfig
+        YAML file and which contains the parameters needed to run its QA SAS.
     """
 
     # Build the GSLCRootParamGroup parameters per the runconfig

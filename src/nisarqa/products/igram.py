@@ -27,8 +27,8 @@ def verify_rifg(user_rncfg):
     Parameters
     ----------
     user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        A dictionary whose structure matches this product's QA runconfig
+        YAML file and which contains the parameters needed to run its QA SAS.
     """
     # Build the RIFGRootParamGroup parameters per the runconfig
     try:
@@ -95,8 +95,7 @@ def verify_rifg(user_rncfg):
                 output_dir=root_params.get_output_dir(),
                 stub_files="summary_csv",
             )
-            print(f"File validation PASS/FAIL checks saved: {summary_file}")
-            print("Input file validation complete.")
+            print(f"PASS/FAIL checks saved to: {summary_file}")
 
         try:
             nisarqa.write_latlonquad_to_kml(
@@ -138,11 +137,10 @@ def verify_rifg(user_rncfg):
                 browse_png=browse_file_png,
             )
 
-            # Save HSI images to pdf
+            # Save HSI images to PDF
             nisarqa.hsi_images_to_pdf_wrapped(
                 product=product, report_pdf=report_pdf
             )
-
 
     print(
         "Successful completion of QA SAS. Check log file for validation"
@@ -165,8 +163,8 @@ def verify_runw(user_rncfg):
     Parameters
     ----------
     user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        A dictionary whose structure matches this product's QA runconfig
+        YAML file and which contains the parameters needed to run its QA SAS.
     """
     # Build the RUNWRootParamGroup parameters per the runconfig
     try:
@@ -231,8 +229,7 @@ def verify_runw(user_rncfg):
                 output_dir=root_params.get_output_dir(),
                 stub_files="summary_csv",
             )
-            print(f"File validation PASS/FAIL checks saved: {summary_file}")
-            print("Input file validation complete.")
+            print(f"PASS/FAIL checks saved to: {summary_file}")
 
         try:
             nisarqa.write_latlonquad_to_kml(
@@ -274,13 +271,12 @@ def verify_runw(user_rncfg):
                 browse_png=browse_file_png,
             )
 
-            # Save HSI images to pdf
+            # Save HSI images to PDF
             nisarqa.hsi_images_to_pdf_unwrapped(
                 product=product,
                 report_pdf=report_pdf,
                 rewrap=root_params.hsi.rewrap,
             )
-
 
     print(
         "Successful completion of QA SAS. Check log file for validation"
@@ -303,8 +299,8 @@ def verify_gunw(user_rncfg):
     Parameters
     ----------
     user_rncfg : dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        A dictionary whose structure matches this product's QA runconfig
+        YAML file and which contains the parameters needed to run its QA SAS.
     """
     # Build the GUNWRootParamGroup parameters per the runconfig
     try:
@@ -371,8 +367,7 @@ def verify_gunw(user_rncfg):
                 output_dir=root_params.get_output_dir(),
                 stub_files="summary_csv",
             )
-            print(f"File validation PASS/FAIL checks saved: {summary_file}")
-            print("Input file validation complete.")
+            print(f"PASS/FAIL checks saved to: {summary_file}")
 
         nisarqa.write_latlonquad_to_kml(
             llq=nisarqa.get_latlonquad(product=product),
@@ -407,13 +402,12 @@ def verify_gunw(user_rncfg):
                 browse_png=browse_file_png,
             )
 
-            # Save HSI images to pdf
+            # Save HSI images to PDF
             nisarqa.hsi_images_to_pdf_unwrapped(
                 product=product,
                 report_pdf=report_pdf,
                 rewrap=root_params.hsi.rewrap,
             )
-
 
     print(
         "Successful completion of QA SAS. Check log file for validation"
