@@ -59,68 +59,6 @@ class LatLonQuad:
     lr: LonLat
 
 
-def get_latlonquad(
-    product: nisarqa.RadarProduct | nisarqa.GeoProduct,
-) -> LatLonQuad:
-    """
-    Create a LatLonQuad for the corners of the input product,
-    by geocoding the corners of the radar grid.
-
-    Currently only implemented for RSLC files, will need to support
-    other types of radar products and geocoded products.
-
-    Parameters
-    ----------
-    product : nisarqa.NisarRadarProduct or nisarqa.NisarGeoProduct
-        The input product.
-
-    Returns
-    -------
-    llq : LatLonQuad
-        A LatLonQuad object containing the four corner coordinates for the
-        Frequency A images in `input_file`. (If Frequency A is not available,
-        then Frequency B images will be used.)
-    """
-    if product.is_geocoded:
-        epsg = product.epsg
-        proj = isce3.core.make_projection(epsg)
-
-        geo_corners = ()
-        for y in product.browse_y_range:
-            for x in product.browse_x_range:
-                # Use a dummy height value in computing the inverse projection.
-                # isce3 projections are always 2-D transformations -- the height
-                # has no effect on lon/lat
-                lon, lat, _ = proj.inverse([x, y, 0])
-                geo_corners += (LonLat(lon, lat),)
-    else:
-        orbit = product.orbit
-        radar_grid = product.radar_grid(freq=product.science_freq)
-
-        image_grid_doppler = 0.0  # assume zero-doppler for NISAR
-        ellipsoid = isce3.core.Ellipsoid()  # assume WGS84 for NISAR
-
-        # zero-height DEM
-        dem = isce3.geometry.DEMInterpolator()
-
-        geo_corners = ()
-        for az in (radar_grid.sensing_start, radar_grid.sensing_stop):
-            for rg in (radar_grid.starting_range, radar_grid.end_range):
-                lon, lat, _ = isce3.geometry.rdr2geo(
-                    aztime=az,
-                    range=rg,
-                    orbit=orbit,
-                    side=radar_grid.lookside,
-                    doppler=image_grid_doppler,
-                    wavelength=radar_grid.wavelength,
-                    dem=dem,
-                    ellipsoid=ellipsoid,
-                )
-                geo_corners += (LonLat(lon, lat),)
-
-    return LatLonQuad(*geo_corners)
-
-
 def write_latlonquad_to_kml(
     llq: LatLonQuad,
     output_dir: str | os.PathLike[str],

@@ -136,7 +136,7 @@ def verify_rslc(user_rncfg):
             )
 
         nisarqa.write_latlonquad_to_kml(
-            llq=nisarqa.get_latlonquad(product=product),
+            llq=product.get_browse_latlonquad(),
             output_dir=out_dir,
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),

@@ -16,6 +16,7 @@ import nisar
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
+import shapely
 
 import nisarqa
 
@@ -198,6 +199,27 @@ class NisarProduct(ABC):
     def is_geocoded(self) -> bool:
         """True if product is geocoded, False if range Doppler grid."""
         pass
+
+    @abstractmethod
+    def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
+        """
+        Create a LatLonQuad for the corners of the input product.
+
+        Returns
+        -------
+        llq : LatLonQuad
+            A LatLonQuad object containing the four corner coordinates for this
+            product's browse image.
+        """
+        pass
+
+    @cached_property
+    def bounding_polygon(self) -> str:
+        """Bounding polygon WKT string."""
+        id_group = self.identification_path
+        with nisarqa.open_h5_file(self.filepath) as f:
+            wkt = f[id_group]["boundingPolygon"][()]
+            return _hdf5_byte_string_to_str(wkt)
 
     @cached_property
     def identification_path(self) -> str:
@@ -616,54 +638,44 @@ class NisarRadarProduct(NisarProduct):
     def _data_group_path(self) -> str:
         return "/".join([self._root_path, self.product_type, "swaths"])
 
-    @cached_property
-    def orbit(self) -> isce3.core.Orbit:
-        """The ISCE3 orbit object for this input file."""
-        try:
-            product = nisar.products.readers.open_product(self.filepath)
-            orbit = product.getOrbit()
-        except:
-            print("WARNING: orbit could not be accessed via ISCE3 API.")
-            with nisarqa.open_h5_file(self.filepath) as f:
-                path = f"{self._metadata_group_path}/orbit"
-                if path in f:
-                    orbit = isce3.core.load_orbit_from_h5_group(f[path])
-                else:
-                    raise ValueError("Cannot locate the orbit group")
-        return orbit
+    def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
+        # Shapely boundary coords is a tuple of coordinate lists of form ([x...], [y...])
+        coords = shapely.from_wkt(self.bounding_polygon).boundary.coords
+        # Rezip the coordinates to a list of (x, y) tuples,
+        # and convert to radians for the internal LonLat class
+        coords = [nisarqa.LonLat(np.deg2rad(c[0]), np.deg2rad(c[1])) for c in zip(*coords.xy)]
 
-    def radar_grid(self, freq: str) -> isce3.product.RadarGridParameters:
-        """
-        Return the ISCE3 RadarGridParameters object for this input file.
+        # Workaround for bug in ISCE3 generated products. We expect 41 points
+        # (10 along each side + endpoint same as start point), but there
+        # are 42 points (41 points in expected order + duplicated endpoint).
+        # So if the endpoint is duplicated, we drop it here to handle this bug.
+        # (See https://github-fn.jpl.nasa.gov/isce-3/isce/issues/1486)
+        if coords[-1] == coords[-2]:
+            coords = coords[:-1]
 
-        Parameters
-        ----------
-        freq : str
-            Must be either "A" or "B".
+        # Drop last (same as first) coordinate
+        if coords[-1] != coords[0]:
+            msg = (
+                "Input product's boundingPolygon is not closed"
+                " (endpoint does not match start point)"
+            )
+            warnings.warn(msg, RuntimeWarning)
+        coords = coords[:-1]
 
-        Returns
-        -------
-        grid : isce3.ext.isce3.core.radarGrid
-            The radar grid corresponding to `freq`.
-        """
-        if freq not in ("A", "B"):
-            raise ValueError(f"{freq=}, must be either 'A' or 'B'")
+        if len(coords) < 4:
+            raise ValueError("Not enough coordinates for bounding polygon")
+        if len(coords) % 4 != 0:
+            raise ValueError("Bounding polygon requires evenly spaced corners")
 
-        # We cannot use functools.lru_cache() on a instance method due to
-        # the `self` parameter, so use an inner function to cache the results.
+        # Corners are assumed to start at the 0th index and be evenly spaced
+        clockwise_corners = [coords[len(coords) // 4 * i] for i in range(4)]
 
-        @lru_cache
-        def _radar_grid(freq) -> isce3.ext.isce3.core.radarGrid:
-            try:
-                product = nisar.products.readers.open_product(self.filepath)
-                grid = product.getRadarGrid(freq)
-            except:
-                raise ValueError(
-                    f"radarGrid {freq} could not be accessed via ISCE3 API."
-                )
-            return grid
-
-        return _radar_grid(freq)
+        # The boundingPolygon is specified in clockwise order, starting at the
+        # upper-left of the image. Here we reorder them for the LatLonQuad,
+        # constructor, which expects them in left-to-right top-to-bottom order.
+        geo_corners = clockwise_corners[0], clockwise_corners[1], \
+                      clockwise_corners[3], clockwise_corners[2]
+        return nisarqa.LatLonQuad(*geo_corners)
 
     @abstractmethod
     def _get_raster_name(self, raster_path: str) -> str:
@@ -857,6 +869,20 @@ class NisarGeoProduct(NisarProduct):
     @property
     def is_geocoded(self) -> bool:
         return True
+
+    def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
+        epsg = self.epsg
+        proj = isce3.core.make_projection(epsg)
+
+        geo_corners = ()
+        for y in self.browse_y_range:
+            for x in self.browse_x_range:
+                # Use a dummy height value in computing the inverse projection.
+                # isce3 projections are always 2-D transformations -- the height
+                # has no effect on lon/lat
+                lon, lat, _ = proj.inverse([x, y, 0])
+                geo_corners += (nisarqa.LonLat(lon, lat),)
+        return nisarqa.LatLonQuad(*geo_corners)
 
     @cached_property
     def _data_group_path(self) -> str:

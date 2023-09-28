@@ -100,7 +100,7 @@ def verify_gslc(user_rncfg):
             print(f"Input file validation complete.")
 
         nisarqa.write_latlonquad_to_kml(
-            llq=nisarqa.get_latlonquad(product=product),
+            llq=product.get_browse_latlonquad(),
             output_dir=root_params.get_output_dir(),
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),

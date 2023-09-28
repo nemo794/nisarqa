@@ -97,6 +97,7 @@ setup(
         "pillow",
         "python>=3.8",
         "ruamel.yaml",
+        "shapely",
     ],
     extras_require={
         "test": ["pytest"],
