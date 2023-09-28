@@ -45,7 +45,6 @@ def make_hsi_browse_wrapped(
         rgb_img, _ = make_hsi_raster(
             phs_or_complex_raster=igram_r,
             coh_raster=coh_r,
-            wrapped_phs_img=True,
             equalize=params.equalize_browse,
             rewrap=None,
             longest_side_max=params.longest_side_max,
@@ -84,7 +83,6 @@ def make_hsi_browse_unwrapped(
         rgb_img, _ = make_hsi_raster(
             phs_or_complex_raster=phs_r,
             coh_raster=coh_r,
-            wrapped_phs_img=False,
             equalize=params.equalize_browse,
             rewrap=params.rewrap,
             longest_side_max=params.longest_side_max,
@@ -128,7 +126,6 @@ def hsi_images_to_pdf_wrapped(
                 rgb_img, cbar_min_max = make_hsi_raster(
                     phs_or_complex_raster=igram_r,
                     coh_raster=coh_r,
-                    wrapped_phs_img=True,
                     equalize=False,  # Do not equalize the PDF HSI images
                     rewrap=None,
                     longest_side_max=None,  # Unnecessary for the PDF
@@ -176,7 +173,6 @@ def hsi_images_to_pdf_unwrapped(
                 rgb_img, cbar_min_max = make_hsi_raster(
                     phs_or_complex_raster=phs_r,
                     coh_raster=coh_r,
-                    wrapped_phs_img=False,
                     equalize=False,  # Do not equalize the PDF HSI images
                     rewrap=rewrap,
                     longest_side_max=None,  # Unnecessary for the PDF
@@ -329,7 +325,6 @@ def make_hsi_as_rgb_img(
 def make_hsi_raster(
     phs_or_complex_raster: nisarqa.RadarRaster,
     coh_raster: nisarqa.RadarRaster,
-    wrapped_phs_img: bool,
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
@@ -341,7 +336,6 @@ def make_hsi_raster(
 def make_hsi_raster(
     phs_or_complex_raster: nisarqa.GeoRaster,
     coh_raster: nisarqa.GeoRaster,
-    wrapped_phs_img: bool,
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
@@ -352,7 +346,6 @@ def make_hsi_raster(
 def make_hsi_raster(
     phs_or_complex_raster,
     coh_raster,
-    wrapped_phs_img,
     equalize,
     rewrap=None,
     longest_side_max=None,
@@ -365,16 +358,13 @@ def make_hsi_raster(
     phs_or_complex_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
         *Raster of complex interferogram or unwrapped phase data to use to
         construct the Hue layer for the HSI *Raster.
+        If *Raster is complex valued, numpy.angle() will be used to compute
+        the phase image (float-valued).
         This should correspond to `coh_raster`.
     coh_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
         *Raster for the coherence magnitude raster to use to construct
         the intesity layer for the HSI *Raster.
         This should correspond to `phs_or_complex_raster`.
-    wrapped_phs_img : bool
-        True if the input phase image is wrapped (e.g. RIFG).
-        False if the input phase image is unwrapped (e.g. RUNW).
-        Note: GUNW contains both wrapped and unwrapped phase image
-        interferograms.
     equalize : bool, optional
         True to perform histogram equalization on the Intensity channel
         (the coherence magnitude layer) for the HSI image.
@@ -400,8 +390,8 @@ def make_hsi_raster(
     cbar_min_max : pair of float
         The suggested range to use for the Hue axis of the
         HSI colorbar for `hsi_raster`.
-        If `phs_or_complex_raster` has complex valued data, then `cbar_min_max` will
-        be the range [-pi, +pi].
+        If `phs_or_complex_raster` has complex valued data, then `cbar_min_max`
+        will be the range [-pi, +pi].
     """
     # Input validation:
     # Check that phs and coh *Raster instances have consistent metadata
@@ -424,13 +414,22 @@ def make_hsi_raster(
 
     phs_img = phs_or_complex_raster.data[...]
 
-    if wrapped_phs_img:
+    if np.issubdtype(phs_img.dtype, np.complexfloating):
         # complex data; take the phase angle.
         phs_img = np.angle(phs_img.data)
 
         # np.angle() returns output in range [-pi, pi]
         # So, set the colobar's min and max to be the range [-pi, +pi].
         cbar_min_max = [-np.pi, np.pi]
+
+        # Helpful hint for user!
+        if rewrap is not None:
+            raise RuntimeWarning(
+                "Input raster has a complex dtype (implying a wrapped"
+                f" interferogram), but input parameter {rewrap=}. `rewrap` is"
+                " only used in the case of real-valued data (implying an"
+                " unwrapped phase image). Please check that this is intended."
+            )
 
     else:
         # unwrapped phase image
@@ -565,18 +564,20 @@ def img2pdf_hsi(
     # Decimate image to a size that fits on the axes without interpolation
     # and without making the size (in MB) of the PDF explode.
 
-    # Get size of ax1 window in pixels
+    # Get size of ax1 window in inches
     bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 
     height, width = np.shape(img_to_plot)[:2]
     if height >= width:
         # In this conditional, the image is taller than it is wide.
         # So, "shrink" the image to the height of the axis.
+        # (Multiply by fig.dpi to convert from inches to pixels.)
         desired_longest = bbox.height * fig.dpi
         stride = int(height / desired_longest)
     else:
         # In this conditional, the image is shorter than it is tall.
         # So, "shrink" the image to the width of the axis.
+        # (Multiply by fig.dpi to convert from inches to pixels.)
         desired_longest = bbox.width * fig.dpi
         stride = int(width / desired_longest)
 
