@@ -2337,7 +2337,7 @@ class InsarProduct(NisarProduct):
 
         # Use lru_cache to minimize the amount of (slow) file i/o
         @lru_cache
-        def _check_dtype_inner(path: str, expected_dtype: type) -> None:
+        def _check_dtype_inner(path: str, expected_dtype: np.dtype) -> None:
             with nisarqa.open_h5_file(self.filepath) as f:
                 try:
                     dataset_handle = f[path]

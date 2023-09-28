@@ -189,11 +189,11 @@ def hsi_images_to_pdf_unwrapped(
 
 
 def make_hsi_as_rgb_img(
-    phase_img: npt.ArrayLike,
-    coh_mag: npt.ArrayLike,
+    phase_img: np.ndarray,
+    coh_mag: np.ndarray,
     phs_img_range: Optional[Sequence[float | int]] = None,
     equalize: bool = False,
-) -> npt.ArrayLike:
+) -> np.ndarray:
     """
     Create HSI interferogram image array, returned in RGB colorspace.
 
@@ -329,7 +329,7 @@ def make_hsi_raster(
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
 ) -> tuple[nisarqa.RadarRaster, list[float, float]]:
-    ...  # (empty implementation)
+    ...
 
 
 @overload
@@ -340,7 +340,7 @@ def make_hsi_raster(
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
 ) -> tuple[nisarqa.GeoRaster, list[float, float]]:
-    ...  # (empty implementation)
+    ...
 
 
 def make_hsi_raster(
@@ -660,14 +660,14 @@ def img2pdf_hsi(
 
 
 def image_histogram_equalization(
-    image: npt.ArrayLike, nbins: Optional[int] = 256
+    image: np.ndarray, nbins: Optional[int] = 256
 ) -> np.ndarray:
     """
     Perform histogram equalization of a grayscale image.
 
     Parameters
     ----------
-    image : array_like
+    image : numpy.ndarray
         N-dimensional image array. All dimensions will be combined when
         computing the histogram.
     nbins : int, optional

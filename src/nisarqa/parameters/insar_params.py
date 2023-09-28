@@ -132,7 +132,8 @@ class InSARProductPathGroupParamGroup(ProductPathGroupParamGroup):
                 ISCE3 runconfig, QA will make new product-specific directories
                 here to store the corresponding product output files in.
                 Ex: if the output dir is set to './qa' and QA is requested for
-                an RIFG products, then QA will create './qa/rifg' and save the QA outputs there.""",
+                an RIFG product, then QA will create './qa/rifg' and save the
+                QA outputs there.""",
             )
         },
     )
