@@ -2736,7 +2736,7 @@ class OffsetProduct(InsarProduct):
                 return freq, pol, layer_num
         else:
             print(
-                f"`layerX` prioritization order is {priority_order}, but"
+                f"Prioritization order of layer groups is {priority_order}, but"
                 f" the product only contains layers {self.available_layers}."
             )
             raise nisarqa.InvalidNISARProductError

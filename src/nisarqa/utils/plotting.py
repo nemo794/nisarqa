@@ -609,7 +609,7 @@ def img2pdf_hsi(
         # (Multiply by fig.dpi to convert from inches to pixels.)
         desired_longest = bbox.width * fig.dpi
         stride = int(width / desired_longest)
-
+    print(img_to_plot)
     img_to_plot = img_to_plot[::stride, ::stride, :]
 
     # Plot the raster image and label it
@@ -903,6 +903,12 @@ def process_single_quiver_plot(
         # and center the colorbar range at zero
         vmax = max(abs(np.nanmin(disp)), abs(np.nanmax(disp)))
         vmin = -vmax
+
+        # # Dynamically compute the colorbar interval to be [0, max].
+        # # (Because `disp` represents the magnitude, it only has positive values)
+        # vmin = 0
+        # vmax = np.nanmax(disp)
+
     else:
         if cbar_min_max[0] >= cbar_min_max[1]:
             raise ValueError(
@@ -911,12 +917,37 @@ def process_single_quiver_plot(
             )
         vmin, vmax = cbar_min_max
 
+    # Truncate the magma cmap accordingly
+    # Adapted from: https://stackoverflow.com/a/18926541
+    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=256):
+        new_cmap = colors.LinearSegmentedColormap.from_list(
+            "trunc({n},{a:.2f},{b:.2f})".format(
+                n=cmap.name, a=minval, b=maxval
+            ),
+            cmap(np.linspace(minval, maxval, n)),
+        )
+        return new_cmap
+
+    arr = np.linspace(0, 50, 100).reshape((10, 10))
+    fig, ax = plt.subplots(ncols=2)
+
+    cmap = plt.get_cmap("jet")
+    new_cmap = truncate_colormap(cmap, 0.2, 0.8)
+    ax[0].imshow(arr, interpolation="nearest", cmap=cmap)
+    ax[1].imshow(arr, interpolation="nearest", cmap=new_cmap)
+
     # Add the background image to the axes
     # TODO - Geoff - please help???
     # Make the axes size the exact size of the image dimensions.
-    # fig, ax = plt.subplots(figsize=(3.841, 7.195), dpi=100)
-    fig, ax = plt.subplots()
-    im = ax.imshow(disp, vmin=vmin, vmax=vmax, cmap="magma")
+    print("desired shape of output browse PNG: ", np.shape(disp))
+    dpi = 100
+    ax_height_inches = np.shape(disp)[0] / dpi
+    ax_width_inches = np.shape(disp)[1] / dpi
+    fig, ax = plt.subplots(figsize=(ax_height_inches, ax_width_inches), dpi=dpi)
+    # fig, ax = plt.subplots()
+    im = ax.imshow(
+        disp, vmin=vmin, vmax=vmax, cmap="magma", interpolation="none"
+    )
 
     # Now, prepare and add the quiver plot arrows to the axes
     arrow_stride = int(max(np.shape(disp)) / params.arrow_density)
