@@ -97,19 +97,12 @@ def verify_rifg(user_rncfg):
             )
             print(f"PASS/FAIL checks saved to: {summary_file}")
 
-        try:
-            nisarqa.write_latlonquad_to_kml(
-                llq=nisarqa.get_latlonquad(product=product),
-                output_dir=root_params.get_output_dir(),
-                kml_filename=root_params.get_kml_browse_filename(),
-                png_filename=root_params.get_browse_png_filename(),
-            )
-        except ValueError:
-            warnings.warn("Could not create KML file. Update product reader.")
-            nisarqa.output_stub_files(
-                output_dir=out_dir, stub_files="browse_kml"
-            )
-
+        nisarqa.write_latlonquad_to_kml(
+            llq=product.get_browse_latlonquad(),
+            output_dir=out_dir,
+            kml_filename=root_params.get_kml_browse_filename(),
+            png_filename=root_params.get_browse_png_filename(),
+        )
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
@@ -231,19 +224,12 @@ def verify_runw(user_rncfg):
             )
             print(f"PASS/FAIL checks saved to: {summary_file}")
 
-        try:
-            nisarqa.write_latlonquad_to_kml(
-                llq=nisarqa.get_latlonquad(product=product),
-                output_dir=root_params.get_output_dir(),
-                kml_filename=root_params.get_kml_browse_filename(),
-                png_filename=root_params.get_browse_png_filename(),
-            )
-        except ValueError:
-            warnings.warn("Could not create KML file. Update product reader.")
-            nisarqa.output_stub_files(
-                output_dir=out_dir, stub_files="browse_kml"
-            )
-
+        nisarqa.write_latlonquad_to_kml(
+            llq=product.get_browse_latlonquad(),
+            output_dir=out_dir,
+            kml_filename=root_params.get_kml_browse_filename(),
+            png_filename=root_params.get_browse_png_filename(),
+        )
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
@@ -370,8 +356,8 @@ def verify_gunw(user_rncfg):
             print(f"PASS/FAIL checks saved to: {summary_file}")
 
         nisarqa.write_latlonquad_to_kml(
-            llq=nisarqa.get_latlonquad(product=product),
-            output_dir=root_params.get_output_dir(),
+            llq=product.get_browse_latlonquad(),
+            output_dir=out_dir,
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),
         )
