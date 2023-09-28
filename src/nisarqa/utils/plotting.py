@@ -547,14 +547,17 @@ def img2pdf_hsi(
     xlabel, ylabel : str, optional
         Axes labels for the x-axis and y-axis (respectively).
     """
+    fig = plt.figure(constrained_layout=True)
+
+    if title is not None:
+        fig.suptitle(title)
+
     # Create two subplots; one to hold the actual raster image, the second
-    # (smaller one) for the HSI "colorbar"
-    fig, (ax1, ax2) = plt.subplots(
-        nrows=1,
-        ncols=2,
-        layout="constrained",
-        gridspec_kw={"width_ratios": [15, 1]},
-    )
+    # (smaller one) for the HSI "colorbar".
+    # (Use add_subplot() to force the colorbar to be tall and skinny.)
+    ax = fig.add_gridspec(5, 6)
+    ax1 = fig.add_subplot(ax[:, :-2])
+    ax2 = fig.add_subplot(ax[1:4, -1])
 
     # Set all NaN pixels to 1 in each of the red-green-blue layers.
     # This way, the NaN pixels will appear white in the PDF.
@@ -588,7 +591,7 @@ def img2pdf_hsi(
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
         img_arr_shape=np.shape(img_to_plot),
-        title=title,
+        # title=title,
         xlim=xlim,
         ylim=ylim,
         xlabel=xlabel,
@@ -619,13 +622,10 @@ def img2pdf_hsi(
         cbar_max = cbar_min_max[1]
         cbar_min = cbar_min_max[0]
 
-    cbar_aspect_ratio = 6.5 / cbar_max
-
     ax2.imshow(
         rgb,
         origin="lower",
         extent=[0, 1, cbar_min, cbar_max],
-        aspect=cbar_aspect_ratio,
     )
     ax2.set_xlabel("InSAR\nCoherence\nMagnitude", fontsize=8.5)
     ax2.set_ylabel("InSAR Phase", fontsize=8.5, rotation=270, labelpad=10)
@@ -635,7 +635,7 @@ def img2pdf_hsi(
     # the ticks marks to look nice.
     if (np.abs(cbar_max - cbar_min) % np.pi) < 1e-6:
         # Compute number of ticks
-        tick_vals = np.arange(cbar_min, cbar_max, np.pi)
+        tick_vals = np.arange(cbar_min, cbar_max + np.pi, np.pi)
 
         # Only pretty-format if there are a small-ish number of ticks
         # If support for a higher number is desired, then add'l code will
