@@ -588,10 +588,14 @@ def img2pdf_hsi(
 
     # Plot the raster image and label it
     ax1.imshow(img_to_plot, aspect="equal", cmap="hsv", interpolation="none")
+
+    # There are two subplots, and we want the main plot title to appear
+    # over both subplots (aka centered in the figure). So, do not supply
+    # the title here, otherwise the main plot title will only be centered
+    # over `ax1``. (The main plot title was set above, via `fig.suptitle()`.)
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
         img_arr_shape=np.shape(img_to_plot),
-        # title=title,
         xlim=xlim,
         ylim=ylim,
         xlabel=xlabel,
@@ -660,7 +664,7 @@ def img2pdf_hsi(
 
 
 def image_histogram_equalization(
-    image: np.ndarray, nbins: Optional[int] = 256
+    image: np.ndarray, nbins: int = 256
 ) -> np.ndarray:
     """
     Perform histogram equalization of a grayscale image.
