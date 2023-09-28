@@ -2741,7 +2741,7 @@ class OffsetProduct(InsarProduct):
             )
             raise nisarqa.InvalidNISARProductError
 
-    def _pols_path_shim(self, freq: str, pol: str) -> str:
+    def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
         # Each polarization should contain the same layer numbers.
         # WLOG, use the first available layer number.
         return self._layer_group_parent_path(

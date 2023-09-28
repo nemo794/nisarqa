@@ -842,7 +842,7 @@ def process_single_quiver_plot(
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
     report_pdf : PdfPages
-        The output pdf file to append the quiver plot to.
+        The output PDF file to append the quiver plot to.
     browse_png : path-like or None, optional
         Filename (with path) for the browse image PNG.
         If None, no browse PNG will be saved. Defaults to None.
@@ -864,8 +864,7 @@ def process_single_quiver_plot(
     `nisarqa.rslc.process_backscatter_imgs_and_browse()`.
     However, it is tricky to extract the final quiver plot
     from the pyplot.figure() instance and return it as an RGB array.
-    So, we will punt that complexity for this release, and instead have a
-    giant function here.
+    Let's open an issue modularize this after that release.
     """
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
@@ -991,7 +990,7 @@ def process_single_quiver_plot(
     # Make sure axes labels do not get cut off
     fig.tight_layout()
 
-    # Append figure to the output .pdf
+    # Append figure to the output PDF
     report_pdf.savefig(fig)
 
     # Close the plot
