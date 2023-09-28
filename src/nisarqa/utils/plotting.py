@@ -7,11 +7,12 @@ from fractions import Fraction
 from typing import Optional, overload
 
 import h5py
+import matplotlib as mpl
+import matplotlib.colors as colors
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.colors import hsv_to_rgb
 from matplotlib.ticker import FuncFormatter
 
 import nisarqa
@@ -355,7 +356,7 @@ def make_hsi_as_rgb_img(
     # TODO - We need to use HSI not HSV. There is a subtle mathematical
     # difference between the two colorspaces.
     # However, this will require a custom implementation of HSI->RGB.
-    rgb = hsv_to_rgb(hsi)
+    rgb = colors.hsv_to_rgb(hsi)
 
     # Restore the NaN values
     rgb[nan_mask] = np.nan
@@ -609,7 +610,7 @@ def img2pdf_hsi(
         # (Multiply by fig.dpi to convert from inches to pixels.)
         desired_longest = bbox.width * fig.dpi
         stride = int(width / desired_longest)
-    print(img_to_plot)
+
     img_to_plot = img_to_plot[::stride, ::stride, :]
 
     # Plot the raster image and label it
@@ -632,7 +633,7 @@ def img2pdf_hsi(
     v, h = np.mgrid[0:1:100j, 0:1:300j]
     s = np.ones_like(v)
     hsv = np.dstack((h, s, v))
-    rgb = hsv_to_rgb(hsv)
+    rgb = colors.hsv_to_rgb(hsv)
     rgb = np.rot90(rgb, k=3)
     rgb = np.fliplr(rgb)
 
@@ -899,15 +900,15 @@ def process_single_quiver_plot(
     # Compute the vmin and vmax for the colorbar range
     cbar_min_max = params.cbar_min_max
     if cbar_min_max is None:
-        # Dynamically compute the colorbar range per the raster's min and max,
-        # and center the colorbar range at zero
-        vmax = max(abs(np.nanmin(disp)), abs(np.nanmax(disp)))
-        vmin = -vmax
+        # # Dynamically compute the colorbar range per the raster's min and max,
+        # # and center the colorbar range at zero
+        # vmax = max(abs(np.nanmin(disp)), abs(np.nanmax(disp)))
+        # vmin = -vmax
 
-        # # Dynamically compute the colorbar interval to be [0, max].
-        # # (Because `disp` represents the magnitude, it only has positive values)
-        # vmin = 0
-        # vmax = np.nanmax(disp)
+        # Dynamically compute the colorbar interval to be [0, max].
+        # (Because `disp` represents the magnitude, it only has positive values)
+        vmin = 0
+        vmax = np.nanmax(disp)
 
     else:
         if cbar_min_max[0] >= cbar_min_max[1]:
@@ -917,27 +918,31 @@ def process_single_quiver_plot(
             )
         vmin, vmax = cbar_min_max
 
-    # Truncate the magma cmap accordingly
+    # Truncate the magma cmap to only use the top hald
     # Adapted from: https://stackoverflow.com/a/18926541
-    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=256):
+    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=-1):
+        if (minval < 0.0) or (maxval > 1.0):
+            raise ValueError(
+                f"{minval=} and {maxval=}, but must be in range [0.0, 1.0]."
+            )
+        if n == -1:
+            n = cmap.N
         new_cmap = colors.LinearSegmentedColormap.from_list(
-            "trunc({n},{a:.2f},{b:.2f})".format(
-                n=cmap.name, a=minval, b=maxval
+            "trunc({name},{a:.2f},{b:.2f})".format(
+                name=cmap.name, a=minval, b=maxval
             ),
             cmap(np.linspace(minval, maxval, n)),
         )
         return new_cmap
 
-    arr = np.linspace(0, 50, 100).reshape((10, 10))
-    fig, ax = plt.subplots(ncols=2)
+    # Use interval from [0.5, 1.0] to truncate to the top half of the magma
+    # colormap range. (We do not want to use the very-dark lower half
+    # for these quiver plots.)
+    # Note: the colormap range is different than the colorbar range.
+    # Colorbar range refers to the range of tick labels, while the
+    # colormap range is the hue/value/etc of the colors themselves.
+    magma_cmap = truncate_colormap(plt.get_cmap("magma"), 0.5, 1.0)
 
-    cmap = plt.get_cmap("jet")
-    new_cmap = truncate_colormap(cmap, 0.2, 0.8)
-    ax[0].imshow(arr, interpolation="nearest", cmap=cmap)
-    ax[1].imshow(arr, interpolation="nearest", cmap=new_cmap)
-
-    # Add the background image to the axes
-    # TODO - Geoff - please help???
     # Make the axes size the exact size of the image dimensions.
     print("desired shape of output browse PNG: ", np.shape(disp))
     dpi = 100
@@ -945,10 +950,13 @@ def process_single_quiver_plot(
     ax_width_inches = np.shape(disp)[1] / dpi
     fig, ax = plt.subplots(figsize=(ax_height_inches, ax_width_inches), dpi=dpi)
     # fig, ax = plt.subplots()
+
+    # Add the background image to the axes
     im = ax.imshow(
-        disp, vmin=vmin, vmax=vmax, cmap="magma", interpolation="none"
+        disp, vmin=vmin, vmax=vmax, cmap=magma_cmap, interpolation="none"
     )
 
+    # cbar = fig.colorbar(im)
     # Now, prepare and add the quiver plot arrows to the axes
     arrow_stride = int(max(np.shape(disp)) / params.arrow_density)
 
