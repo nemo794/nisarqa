@@ -104,19 +104,12 @@ def verify_offset(user_rncfg: dict[str, dict], product_type: str) -> None:
             print(f"File validation PASS/FAIL checks saved: {summary_file}")
             print("Input file validation complete.")
 
-        try:
-            nisarqa.write_latlonquad_to_kml(
-                llq=nisarqa.get_latlonquad(product=product),
-                output_dir=out_dir,
-                kml_filename=root_params.get_kml_browse_filename(),
-                png_filename=root_params.get_browse_png_filename(),
-            )
-        except ValueError:
-            warnings.warn("Could not create KML file. Update product reader.")
-            nisarqa.output_stub_files(
-                output_dir=out_dir, stub_files="browse_kml"
-            )
-
+        nisarqa.write_latlonquad_to_kml(
+            llq=product.get_browse_latlonquad(),
+            output_dir=out_dir,
+            kml_filename=root_params.get_kml_browse_filename(),
+            png_filename=root_params.get_browse_png_filename(),
+        )
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
