@@ -130,8 +130,9 @@ def verify_offset(user_rncfg: dict[str, dict], product_type: str) -> None:
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
-            # Generate browse image and quiver plots for PDF
-            nisarqa.process_quiver_plots(
+            # Generate along track + slant range browse image, quiver plots,
+            # and side-by-side plots for PDF
+            nisarqa.process_az_and_range_combo_plots(
                 product=product,
                 params=root_params.quiver,
                 report_pdf=report_pdf,

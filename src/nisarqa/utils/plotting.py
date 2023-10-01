@@ -593,25 +593,7 @@ def img2pdf_hsi(
 
     # Decimate image to a size that fits on the axes without interpolation
     # and without making the size (in MB) of the PDF explode.
-
-    # Get size of ax1 window in inches
-    bbox = ax1.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-
-    height, width = np.shape(img_to_plot)[:2]
-    if height >= width:
-        # In this conditional, the image is taller than it is wide.
-        # So, "shrink" the image to the height of the axis.
-        # (Multiply by fig.dpi to convert from inches to pixels.)
-        desired_longest = bbox.height * fig.dpi
-        stride = int(height / desired_longest)
-    else:
-        # In this conditional, the image is shorter than it is tall.
-        # So, "shrink" the image to the width of the axis.
-        # (Multiply by fig.dpi to convert from inches to pixels.)
-        desired_longest = bbox.width * fig.dpi
-        stride = int(width / desired_longest)
-
-    img_to_plot = img_to_plot[::stride, ::stride, :]
+    img_to_plot = decimate_img_to_size_of_axes(ax=ax1, arr=img_to_plot)
 
     # Plot the raster image and label it
     ax1.imshow(img_to_plot, aspect="equal", cmap="hsv", interpolation="none")
@@ -690,6 +672,78 @@ def img2pdf_hsi(
     plt.close(fig)
 
 
+def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
+    """
+    Decimate array to size of axes for use with `interpolation='none'`.
+
+    In matplotlib, setting `interpolation='none'` is useful for creating crisp
+    images in e.g. output PDFs. However, when an image array is very large,
+    this setting causes the generated plots (and the PDFs they're saved to)
+    to be very large in size (potentially several hundred MB).
+
+    This function is designed to decimate a large image array to have X and Y
+    dimensions appropriate for the size of the given axes object.
+    It maintains the same aspect ratio as the source image array.
+
+    Parameters
+    ----------
+    ax : matplotlib.Axes
+        Axes object. The window extent and other properties of this axes
+        will be used to compute the decimation factor for the image array.
+    arr : numpy.ndarray
+        The (image) array to be decimated.
+
+    Returns
+    -------
+    out_arr : numpy.ndarry
+        Copy of `arr` that has been decimated along the first two dimensions
+        so that the number of pixels in the X and Y dimensions
+        approximately fits "nicely" in the window extent of the given axes.
+        If the image is smaller than the axes, no decimation will occur.
+
+    See Also
+    --------
+    nisarqa.compute_square_pixel_nlooks : Function to compute the decimation
+        strides for an image array; until `decimate_img_to_size_of_axes()`,
+        this function also accounts for making the pixels "square".
+    """
+    fig = ax.get_figure()
+
+    # Get size of ax1 window in inches
+    bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+
+    height, width = np.shape(arr)[:2]
+    if height >= width:
+        # In this conditional, the image is taller than it is wide.
+        # So, we'll want to "shrink" the image to the height of the axis.
+        # (Multiply by fig.dpi to convert from inches to pixels.)
+        desired_longest = bbox.height * fig.dpi
+
+        if desired_longest <= height:
+            # array is smaller than the window extent. No decimation needed.
+            return arr
+
+        # Use floor division. (Better to have resolution that is *slightly*
+        # better than the axes size, rather than the image being too small
+        # and needing to re-stretch it bigger to the size of the axes.)
+        stride = int(height / desired_longest)
+    else:
+        # In this conditional, the image is shorter than it is tall.
+        # So,  we'll want to "shrink" the image to the width of the axis.
+        # (Multiply by fig.dpi to convert from inches to pixels.)
+        desired_longest = bbox.width * fig.dpi
+
+        if desired_longest <= width:
+            # array is smaller than the window extent. No decimation needed.
+            return arr
+
+        # Use floor division. See explanation above.)
+        stride = int(width / desired_longest)
+
+    # Decimate to the correct size along the X and Y directions.
+    return arr[::stride, ::stride]
+
+
 def image_histogram_equalization(
     image: np.ndarray, nbins: int = 256
 ) -> np.ndarray:
@@ -739,7 +793,116 @@ def image_histogram_equalization(
     return out.astype(image.dtype, copy=False)
 
 
-def process_quiver_plots(
+def process_single_side_by_side_offsets_plot(
+    az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Create and append a side-by-side plot of azimuth and range offsets to PDF.
+
+    The colorbar interval is determined by the maximum offset value in
+    either raster, and then centered at zero. This way the side-by-side plots
+    will be plotted with the same colorbar scale.
+
+    Parameters
+    ----------
+    az_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Along track offset layer to be processed. Must correspond to
+        `rg_offset`.
+    rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Slant range offset layer to be processed. Must correspond to
+        `az_offset`.
+    params : nisarqa.QuiverParamGroup
+        A structure containing processing parameters to generate quiver plots.
+    report_pdf : PdfPages
+        The output PDF file to append the quiver plot to.
+    """
+    # Validate that the pertinent metadata in the rasters is equal.
+    nisarqa.compare_raster_metadata(az_offset, rg_offset)
+
+    az_img = az_offset.data[...]
+    rg_img = rg_offset.data[...]
+
+    # Compute the colorbar interval, centered around zero.
+    # Both plots should use the larger of the intervals.
+    # TODO - Geoff, should this be computed on the full input array?
+    # or should we wait to compute it below, using the decimated array? Thanks!
+    az_max = max(np.abs(np.nanmax(az_img)), np.nanmin(az_img))
+    rg_max = max(np.abs(np.nanmax(rg_img)), np.nanmin(rg_img))
+    cbar_max = max(az_max, rg_max)
+    cbar_min = -cbar_max  # center around zero
+
+    # Decimate to square pixels. (az and rng rasters have the )
+    ky, kx = nisarqa.compute_square_pixel_nlooks(
+        # only need the x and y dimensions
+        img_shape=np.shape(az_img)[:2],
+        sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
+        # Only make square pixels. Use `max()` to not "shrink" the rasters.
+        longest_side_max=max(np.shape(az_offset.data)[:2]),
+    )
+    az_img = az_img[::ky, ::kx]
+    rg_img = rg_img[::ky, ::kx]
+
+    # Create figure and add the rasters.
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, constrained_layout="tight")
+    fig.suptitle("Along Track and Slant Range Offsets")
+
+    # Decimate Along Track Offset raster and plot on left (ax1)
+    az_img = decimate_img_to_size_of_axes(ax=ax1, arr=az_img)
+    ax1.imshow(
+        az_img,
+        aspect="equal",
+        cmap="magma",
+        interpolation="none",
+        vmin=cbar_min,
+        vmax=cbar_max,
+    )
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax1,
+        img_arr_shape=np.shape(az_img),
+        xlim=az_offset.x_axis_limits,
+        ylim=az_offset.y_axis_limits,
+        xlabel=az_offset.x_axis_label,
+        ylabel=az_offset.y_axis_label,
+        title="Along Track Offset (m)",
+    )
+
+    # Decimate slant range Offset raster and plot on right (ax2)
+    rg_img = decimate_img_to_size_of_axes(ax=ax2, arr=rg_img)
+    im2 = ax2.imshow(
+        rg_img,
+        aspect="equal",
+        cmap="magma",
+        interpolation="none",
+        vmin=cbar_min,
+        vmax=cbar_max,
+    )
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax2,
+        img_arr_shape=np.shape(rg_img),
+        xlim=rg_offset.x_axis_limits,
+        ylim=rg_offset.y_axis_limits,
+        xlabel=rg_offset.x_axis_label,
+        ylabel=rg_offset.y_axis_label,
+        title="Slant Range Offset (m)",
+    )
+
+    # To save space on the PDF page, we can take advantage of the fact that
+    # the two rasters have the same X and Y limits and the same colorbar.
+    # First, hide the y-axis labels+ticks from the right plot:
+    ax2.get_yaxis().set_visible(False)
+    # Second, add the colorbar to only the right plot:
+    fig.colorbar(im2, ax=ax2, label="Displacement (m)")
+
+    # Save complete plots to graphical summary PDF file
+    report_pdf.savefig(fig)
+
+    # Close figure
+    plt.close(fig)
+
+
+def process_az_and_range_combo_plots(
     product: nisarqa.OffsetProduct,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
@@ -747,7 +910,15 @@ def process_quiver_plots(
     browse_png: str | os.PathLike,
 ):
     """
-    Process and save all quiver plots for this product to PDF and browse PNG.
+    Process side-by-side az and range offsets plots and quiver plots.
+
+    This function takes each pair of along track offset and slant range offset
+    raster layers, and does three things with them:
+        * Plots them side-by-side and appends this plot to PDF
+        * Plots them as a quiver plot and appends this plot to PDF
+        * Saves the browse image quiver plot as a PNG.
+            - (The specific freq+pol+layer_number to use for the browse image
+               is determined by the input `product`.)
 
     Parameters
     ----------
@@ -774,6 +945,16 @@ def process_quiver_plots(
                 ) as az_off, product.get_slant_range_offset(
                     freq=freq, pol=pol, layer_num=layer_num
                 ) as rg_off:
+                    # First, create the canonical side-by-side plot of the
+                    # along track offsets vs. the slant range offsets.
+                    process_single_side_by_side_offsets_plot(
+                        az_offset=az_off,
+                        rg_offset=rg_off,
+                        report_pdf=report_pdf,
+                    )
+
+                    # Second, create the quiver plots. (And the browse image.)
+
                     # Only generate a browse PNG for one layer
                     if (
                         (layer_num == browse_layer_num)
@@ -808,11 +989,18 @@ def process_quiver_plots(
                         )
 
                 # Add final colorbar range for this freq+pol+layer to stats.h5
+                # (This was a processing parameter in the YAML, so we should
+                # add it to the PDF. However, when dynamically computed,
+                # this range is not consistent between the numbered layers.
+                name = (
+                    f"quiverPlotColorbarRangeFrequency{freq}"
+                    f"Polarization{pol}Layer{layer_num}"
+                )
                 nisarqa.create_dataset_in_h5group(
                     h5_file=stats_h5,
-                    grp_path=nisarqa.STATS_H5_QA_INSAR_POL_GROUP
-                    % (product.band, freq, pol, f"layer{layer_num}"),
-                    ds_name="quiverPlotColorbarRange",
+                    grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+                    % product.band,
+                    ds_name=name,
                     ds_data=(cbar_min, cbar_max),
                     ds_units="meters",
                     ds_description=(
