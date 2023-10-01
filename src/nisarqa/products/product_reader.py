@@ -14,9 +14,9 @@ import h5py
 import isce3
 import nisar
 import numpy as np
+import shapely
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
-import shapely
 
 import nisarqa
 
@@ -643,7 +643,10 @@ class NisarRadarProduct(NisarProduct):
         coords = shapely.from_wkt(self.bounding_polygon).boundary.coords
         # Rezip the coordinates to a list of (x, y) tuples,
         # and convert to radians for the internal LonLat class
-        coords = [nisarqa.LonLat(np.deg2rad(c[0]), np.deg2rad(c[1])) for c in zip(*coords.xy)]
+        coords = [
+            nisarqa.LonLat(np.deg2rad(c[0]), np.deg2rad(c[1]))
+            for c in zip(*coords.xy)
+        ]
 
         # Workaround for bug in ISCE3 generated products. We expect 41 points
         # (10 along each side + endpoint same as start point), but there
@@ -673,8 +676,12 @@ class NisarRadarProduct(NisarProduct):
         # The boundingPolygon is specified in clockwise order, starting at the
         # upper-left of the image. Here we reorder them for the LatLonQuad,
         # constructor, which expects them in left-to-right top-to-bottom order.
-        geo_corners = clockwise_corners[0], clockwise_corners[1], \
-                      clockwise_corners[3], clockwise_corners[2]
+        geo_corners = (
+            clockwise_corners[0],
+            clockwise_corners[1],
+            clockwise_corners[3],
+            clockwise_corners[2],
+        )
         return nisarqa.LatLonQuad(*geo_corners)
 
     @abstractmethod
@@ -1155,7 +1162,6 @@ class NonInsarProduct(NisarProduct):
         """
         pass
 
-    @abstractmethod
     def save_backscatter_img_to_pdf(
         self,
         img_arr: np.ndarray,
@@ -1197,7 +1203,28 @@ class NonInsarProduct(NisarProduct):
             If None, default tick values will be used. Defaults to None. See:
             https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html.
         """
-        pass
+        with self.get_raster(freq=freq, pol=pol) as img:
+            # Plot and Save Backscatter Image to graphical summary pdf
+            title = (
+                f"{plot_title_prefix}\n"
+                f"(scale={params.backscatter_units}%s)\n{img.name}"
+            )
+            if params.gamma is None:
+                title = title % ""
+            else:
+                title = title % rf", $\gamma$-correction={params.gamma}"
+
+            with self.get_raster(freq=freq, pol=pol) as img:
+                nisarqa.rslc.img2pdf_grayscale(
+                    img_arr=img_arr,
+                    title=title,
+                    ylim=img.y_axis_limits,
+                    xlim=img.x_axis_limits,
+                    colorbar_formatter=colorbar_formatter,
+                    ylabel=img.y_axis_label,
+                    xlabel=img.x_axis_label,
+                    plots_pdf=report_pdf,
+                )
 
     @contextmanager
     def get_raster(
@@ -1630,73 +1657,6 @@ class SLC(NonInsarProduct):
 
 @dataclass
 class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
-    def save_backscatter_img_to_pdf(
-        self,
-        img_arr: np.ndarray,
-        freq: str,
-        pol: str,
-        params: nisarqa.BackscatterImageParamGroup,
-        report_pdf: PdfPages,
-        plot_title_prefix: str,
-        colorbar_formatter: Optional[FuncFormatter] = None,
-    ) -> None:
-        """
-        Annotate and save a Geocoded Backscatter Image to `report_pdf`.
-
-        Parameters
-        ----------
-        img_arr : numpy.ndarray
-            2D image array to be saved. All image correction, multilooking, etc.
-            needs to have previously been applied.
-        freq : str
-            Frequency of `img_arr`. Must be one of "A" or "B".
-        pol : str
-            The polarization of `img_arr`. Examples: "HH" or "HV".
-        params : BackscatterImageParamGroup
-            A structure containing the parameters for processing
-            and outputting the backscatter image(s).
-        report_pdf : PdfPages
-            The output PDF file to append the backscatter image plot to.
-        plot_title_prefix : str
-            Prefix for the title of the backscatter plots.
-            Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
-            "GCOV Backscatter Coefficient (gamma-0)".
-        colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
-            Tick formatter function to define how the numeric value
-            associated with each tick on the colorbar axis is formatted
-            as a string. This function must take exactly two arguments:
-            `x` for the tick value and `pos` for the tick position,
-            and must return a `str`. The `pos` argument is used
-            internally by matplotlib.
-            If None, default tick values will be used. Defaults to None. See:
-            https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html.
-        """
-        with self.get_raster(freq=freq, pol=pol) as img:
-            # Plot and Save Backscatter Image to graphical summary pdf
-            title = (
-                f"{plot_title_prefix}\n"
-                f"(scale={params.backscatter_units}%s)\n{img.name}"
-            )
-            if params.gamma is None:
-                title = title % ""
-            else:
-                title = title % rf", $\gamma$-correction={params.gamma}"
-
-            # TODO: double-check that start and stop were parsed correctly from
-            # the metadata
-
-            with self.get_raster(freq=freq, pol=pol) as img:
-                nisarqa.rslc.img2pdf_grayscale(
-                    img_arr=img_arr,
-                    title=title,
-                    ylim=[nisarqa.m2km(img.y_start), nisarqa.m2km(img.y_stop)],
-                    xlim=[nisarqa.m2km(img.x_start), nisarqa.m2km(img.x_stop)],
-                    colorbar_formatter=colorbar_formatter,
-                    ylabel="Northing (km)",
-                    xlabel="Easting (km)",
-                    plots_pdf=report_pdf,
-                )
-
     @cached_property
     def browse_x_range(self) -> tuple(float, float):
         # All rasters used for the browse should have the same grid specs
@@ -1804,79 +1764,6 @@ class RSLC(SLC, NisarRadarProduct):
         )
 
         return dataset
-
-    def save_backscatter_img_to_pdf(
-        self,
-        img_arr: np.ndarray,
-        freq: str,
-        pol: str,
-        params: nisarqa.BackscatterImageParamGroup,
-        report_pdf: PdfPages,
-        plot_title_prefix: str,
-        colorbar_formatter: Optional[FuncFormatter] = None,
-    ) -> None:
-        """
-        Annotate and save a RSLC Backscatter Image to `report_pdf`.
-
-        Parameters
-        ----------
-        img_arr : numpy.ndarray
-            2D image array to be saved. All image correction, multilooking, etc.
-            needs to have previously been applied.
-        freq : str
-            Frequency of `img_arr`. Must be one of "A" or "B".
-        pol : str
-            The polarization of `img_arr`. Examples: "HH" or "HV".
-        params : BackscatterImageParamGroup
-            A structure containing the parameters for processing
-            and outputting the backscatter image(s).
-        report_pdf : PdfPages
-            The output PDF file to append the backscatter image plot to.
-        plot_title_prefix : str
-            Prefix for the title of the backscatter plots.
-            Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
-            "GCOV Backscatter Coefficient (gamma-0)".
-        colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
-            Tick formatter function to define how the numeric value
-            associated with each tick on the colorbar axis is formatted
-            as a string. This function must take exactly two arguments:
-            `x` for the tick value and `pos` for the tick position,
-            and must return a `str`. The `pos` argument is used
-            internally by matplotlib.
-            If None, default tick values will be used. Defaults to None. See:
-            https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html .
-        """
-        with self.get_raster(freq=freq, pol=pol) as img:
-            # Plot and Save Backscatter Image to graphical summary pdf
-            title = (
-                f"{plot_title_prefix}\n"
-                f"(scale={params.backscatter_units}%s)\n{img.name}"
-            )
-            if params.gamma is None:
-                title = title % ""
-            else:
-                title = title % rf", $\gamma$-correction={params.gamma}"
-
-            # Get Azimuth (y-axis) label
-            az_title = f"Zero Doppler Time\n(seconds since {img.epoch})"
-
-            # Get Range (x-axis) labels and scale
-            rng_title = "Slant Range (km)"
-
-            with self.get_raster(freq=freq, pol=pol) as img:
-                nisarqa.rslc.img2pdf_grayscale(
-                    img_arr=img_arr,
-                    title=title,
-                    ylim=[img.az_start, img.az_stop],
-                    xlim=[
-                        nisarqa.m2km(img.rng_start),
-                        nisarqa.m2km(img.rng_stop),
-                    ],
-                    colorbar_formatter=colorbar_formatter,
-                    ylabel=az_title,
-                    xlabel=rng_title,
-                    plots_pdf=report_pdf,
-                )
 
 
 @dataclass
@@ -2500,9 +2387,9 @@ class InsarProduct(NisarProduct):
 
 @dataclass
 class InterferogramProduct(InsarProduct):
-    @abstractmethod
+    @staticmethod
     def save_hsi_img_to_pdf(
-        img: nisarqa.RadarRaster | nisarqa.GeoRaster,
+        img: nisarqa.SARRaster,
         report_pdf: PdfPages,
         cbar_min_max: Optional[Sequence[float]] = None,
         plot_title_prefix: str = "Phase Image and Coherence Magnitude as HSI Image",
@@ -2527,55 +2414,17 @@ class InterferogramProduct(InsarProduct):
             Prefix for the title of the backscatter plots.
             Defaults to "Phase Image and Coherence Magnitude as HSI Image".
         """
-        pass
-
-
-@dataclass
-class RadarInterferogramProduct(InterferogramProduct, NisarRadarProduct):
-    def save_hsi_img_to_pdf(
-        self,
-        img: nisarqa.RadarRaster,
-        report_pdf: PdfPages,
-        cbar_min_max: Optional[Sequence[float]] = None,
-        plot_title_prefix: str = "Phase and Coherence Magnitude as HSI Image",
-    ) -> None:
-        """
-        Annotate and save a range-Doppler (Rxxx product) HSI Image to PDF.
-
-        `img.data` should be in linear.
-
-        Parameters
-        ----------
-        img : RadarRaster
-            Image in RGB color space to be saved. All image correction,
-            multilooking, etc. needs to have previously been applied.
-        report_pdf : PdfPages
-            The output PDF file to append the HSI image plot to.
-        cbar_min_max : pair of float or None, optional
-            The range for the Hue axis of the HSI colorbar for the image raster.
-            `None` to use the min and max of the image for the colorbar range.
-            Defaults to None.
-        plot_title_prefix : str, optional
-            Prefix for the title of the backscatter plots.
-            Defaults to "Phase Image and Coherence Magnitude as HSI Image".
-        """
-        # Plot and Save Backscatter Image to graphical summary pdf
+        # Plot and Save HSI Image to graphical summary pdf
         title = f"{plot_title_prefix}\n{img.name}"
-
-        # Get Azimuth (y-axis) label
-        az_title = f"Zero Doppler Time\n(seconds since {img.epoch})"
-
-        # Get Range (x-axis) labels and scale
-        rng_title = "Slant Range (km)"
 
         nisarqa.img2pdf_hsi(
             img_arr=img.data,
             title=title,
-            ylim=[img.az_start, img.az_stop],
-            xlim=[nisarqa.m2km(img.rng_start), nisarqa.m2km(img.rng_stop)],
+            ylim=img.y_axis_limits,
+            xlim=img.x_axis_limits,
             cbar_min_max=cbar_min_max,
-            xlabel=rng_title,
-            ylabel=az_title,
+            xlabel=img.x_axis_label,
+            ylabel=img.y_axis_label,
             plots_pdf=report_pdf,
         )
 
@@ -2713,7 +2562,7 @@ class UnwrappedGroup(InterferogramProduct):
 
 
 @dataclass
-class RIFG(RadarInterferogramProduct, WrappedGroup):
+class RIFG(WrappedGroup, NisarRadarProduct):
     @property
     def product_type(self) -> str:
         return "RIFG"
@@ -2723,7 +2572,7 @@ class RIFG(RadarInterferogramProduct, WrappedGroup):
 
 
 @dataclass
-class RUNW(RadarInterferogramProduct, UnwrappedGroup):
+class RUNW(UnwrappedGroup, NisarRadarProduct):
     @property
     def product_type(self) -> str:
         return "RUNW"
@@ -2785,46 +2634,6 @@ class GUNW(
             y_stop = img.y_stop
 
         return (y_start, y_stop)
-
-    def save_hsi_img_to_pdf(
-        self,
-        img: nisarqa.GeoRaster,
-        report_pdf: PdfPages,
-        cbar_min_max: Optional[Sequence[float]] = None,
-        plot_title_prefix: str = "Phase and Coherence Magnitude as HSI Image",
-    ) -> None:
-        """
-        Annotate and save a GUNW HSI Image to `report_pdf`.
-
-        Parameters
-        ----------
-        img : GeoRaster
-            Image in RGB color space to be saved. All image correction,
-            multilooking, etc. needs to have previously been applied.
-            Note: `img.data` should be in linear scale.
-        report_pdf : PdfPages
-            The output PDF file to append the HSI image plot to.
-        cbar_min_max : pair of float or None, optional
-            The range for the Hue axis of the HSI colorbar for the image raster.
-            `None` to use the min and max of the image for the colorbar range.
-            Defaults to None.
-        plot_title_prefix : str, optional
-            Prefix for the title of the backscatter plots.
-            Defaults to "Phase Image and Coherence Magnitude as HSI Image".
-        """
-        # Plot and Save Backscatter Image to graphical summary PDF
-        title = f"{plot_title_prefix}\n{img.name}"
-
-        nisarqa.img2pdf_hsi(
-            img_arr=img.data,
-            title=title,
-            ylim=[nisarqa.m2km(img.y_start), nisarqa.m2km(img.y_stop)],
-            xlim=[nisarqa.m2km(img.x_start), nisarqa.m2km(img.x_stop)],
-            cbar_min_max=cbar_min_max,
-            ylabel="Northing (km)",
-            xlabel="Easting (km)",
-            plots_pdf=report_pdf,
-        )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

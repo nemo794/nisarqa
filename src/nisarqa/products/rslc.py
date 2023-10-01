@@ -583,71 +583,8 @@ def apply_image_correction(img_arr, params):
     return img_arr, vmin, vmax
 
 
-def save_rslc_backscatter_img_to_pdf(
-    img_arr,
-    img,
-    params,
-    report_pdf,
-    plot_title_prefix="Backscatter Coefficient",
-    colorbar_formatter=None,
-):
-    """
-    Annotate and save a RSLC Backscatter Image to `report_pdf`.
-
-    Parameters
-    ----------
-    img_arr : numpy.ndarray
-        2D image array to be saved. All image correction, multilooking, etc.
-        needs to have previously been applied
-    img : RadarRaster
-        The RadarRaster object that corresponds to `img_arr`. The metadata
-        from this will be used for annotating the image plot.
-    params : BackscatterImageParamGroup
-        A structure containing the parameters for processing
-        and outputting the backscatter image(s).
-    report_pdf : PdfPages
-        The output PDF file to append the backscatter image plot to
-    plot_title_prefix : str, optional
-        Prefix for the title of the backscatter plots.
-        Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
-        "GCOV Backscatter Coefficient (gamma-0)".
-        Defaults to "Backscatter Coefficient".
-    colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
-        Tick formatter function to define how the numeric value
-        associated with each tick on the colorbar axis is formatted
-        as a string. This function must take exactly two arguments:
-        `x` for the tick value and `pos` for the tick position,
-        and must return a `str`. The `pos` argument is used
-        internally by matplotlib.
-        If None, then default tick values will be used. Defaults to None.
-        See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
-    """
-
-    # Plot and Save Backscatter Image to graphical summary PDF
-    title = (
-        f"{plot_title_prefix}\n(scale={params.backscatter_units}%s)\n{img.name}"
-    )
-    if params.gamma is None:
-        title = title % ""
-    else:
-        title = title % rf", $\gamma$-correction={params.gamma}"
-
-    # Get Azimuth (y-axis) label
-    az_title = f"Zero Doppler Time\n(seconds since {img.epoch})"
-
-    # Get Range (x-axis) labels and scale
-    rng_title = "Slant Range (km)"
-
-    img2pdf_grayscale(
-        img_arr=img_arr,
-        title=title,
-        ylim=[img.az_start, img.az_stop],
-        xlim=[nisarqa.m2km(img.rng_start), nisarqa.m2km(img.rng_stop)],
-        colorbar_formatter=colorbar_formatter,
-        ylabel=az_title,
-        xlabel=rng_title,
-        plots_pdf=report_pdf,
-    )
+# Function removed because it was dead code; its logic was moved into
+# the product readers. (Reviewer please delete this comment. Thank you!)
 
 
 def clip_array(arr, percentile_range=(0.0, 100.0)):

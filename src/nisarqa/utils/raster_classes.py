@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -152,13 +154,37 @@ class SARRaster(ABC, Raster):
     @property
     @abstractmethod
     def y_axis_spacing(self):
-        """Pixel Spacing in Y direction (azimuth for radar domain rasters)"""
+        """Pixel Spacing in Y direction (azimuth for range-Doppler rasters)"""
+        pass
+
+    @property
+    @abstractmethod
+    def y_axis_limits(self) -> tuple[float, float]:
+        """Interval of the Y direction (azimuth for range-Doppler rasters)."""
+        pass
+
+    @property
+    @abstractmethod
+    def y_axis_label(self) -> str:
+        """Label for the Y direction (azimuth for range-Doppler rasters)."""
         pass
 
     @property
     @abstractmethod
     def x_axis_spacing(self):
-        """Pixel Spacing in X direction (range for radar domain rasters)"""
+        """Pixel Spacing in X direction (range for range-Doppler rasters)"""
+        pass
+
+    @property
+    @abstractmethod
+    def x_axis_limits(self) -> tuple[float, float]:
+        """Interval of the X direction (range for range-Doppler rasters)."""
+        pass
+
+    @property
+    @abstractmethod
+    def x_axis_label(self) -> str:
+        """Label for the X direction (range for range-Doppler rasters)."""
         pass
 
 
@@ -182,20 +208,26 @@ class RadarRaster(SARRaster):
         name of the frequency for `img`, e.g. 'A' or 'B'
     ground_az_spacing : float
         Azimuth spacing of pixels of input array
+        Units: seconds
     az_start : float
         The start time of the observation for this RSLC Raster.
         This corresponds to the upper edge of the top pixels.
+        Units: seconds since the start of the epoch
     az_stop : float
         The stopping time of the observation for this RSLC Raster.
         This corresponds to the lower side of the bottom pixels.
+        Units: seconds since the start of the epoch
     ground_range_spacing : float
-        Range spacing of pixels of input array
+        Range spacing of pixels of input array.
+        Units: meters
     rng_start : float
         Start (near) distance of the range of input array
         This corresponds to the left side of the left-most pixels.
+        Units: meters
     rng_stop : float
         End (far) distance of the range of input array
         This corresponds to the right side of the right-most pixels.
+        Units: meters
     epoch : str
         The start of the epoch for this observation,
         in the format 'YYYY-MM-DD HH:MM:SS'
@@ -217,8 +249,24 @@ class RadarRaster(SARRaster):
         return self.ground_az_spacing
 
     @property
+    def y_axis_limits(self) -> tuple[float, float]:
+        return (self.az_start, self.az_stop)
+
+    @property
+    def y_axis_label(self) -> str:
+        return f"Zero Doppler Time\n(seconds since {self.epoch})"
+
+    @property
     def x_axis_spacing(self):
         return self.ground_range_spacing
+
+    @property
+    def x_axis_limits(self) -> tuple[float, float]:
+        return (nisarqa.m2km(self.rng_start), nisarqa.m2km(self.rng_stop))
+
+    @property
+    def x_axis_label(self) -> str:
+        return "Slant Range (km)"
 
 
 @dataclass
@@ -240,7 +288,7 @@ class GeoRaster(SARRaster):
     freq : str
         name of the frequency for `data`, e.g. 'A' or 'B'
     x_spacing : float
-        X spacing of pixels of input array
+        X spacing of pixels (in meters) of input array.
     x_start : float
         The starting (West) X position of the input array
         This corresponds to the left side of the left-most pixels.
@@ -248,7 +296,7 @@ class GeoRaster(SARRaster):
         The stopping (East) X position of the input array
         This corresponds to the right side of the right-most pixels.
     y_spacing : float
-        Y spacing of pixels of input array
+        Y spacing of pixels (in meters) of input array
     y_start : float
         The starting (North) Y position of the input array
         This corresponds to the upper edge of the top pixels.
@@ -271,8 +319,24 @@ class GeoRaster(SARRaster):
         return self.y_spacing
 
     @property
+    def y_axis_limits(self) -> tuple[float, float]:
+        return (nisarqa.m2km(self.y_start), nisarqa.m2km(self.y_stop))
+
+    @property
+    def y_axis_label(self) -> str:
+        return "Northing (km)"
+
+    @property
     def x_axis_spacing(self):
         return self.x_spacing
+
+    @property
+    def x_axis_limits(self) -> tuple[float, float]:
+        return (nisarqa.m2km(self.x_start), nisarqa.m2km(self.x_stop))
+
+    @property
+    def x_axis_label(self) -> str:
+        return "Easting (km)"
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
