@@ -1162,70 +1162,6 @@ class NonInsarProduct(NisarProduct):
         """
         pass
 
-    def save_backscatter_img_to_pdf(
-        self,
-        img_arr: np.ndarray,
-        freq: str,
-        pol: str,
-        params: nisarqa.BackscatterImageParamGroup,
-        report_pdf: PdfPages,
-        plot_title_prefix: str,
-        colorbar_formatter: Optional[FuncFormatter] = None,
-    ) -> None:
-        """
-        Annotate and save a Backscatter Image to `report_pdf`.
-
-        Parameters
-        ----------
-        img_arr : numpy.ndarray
-            2D image array to be saved. All image correction, multilooking, etc.
-            needs to have previously been applied.
-        freq : str
-            Frequency of `img_arr`. Must be one of "A" or "B".
-        pol : str
-            The polarization of `img_arr`. Examples: "HH" or "HV".
-        params : BackscatterImageParamGroup
-            A structure containing the parameters for processing
-            and outputting the backscatter image(s).
-        report_pdf : PdfPages
-            The output PDF file to append the backscatter image plot to.
-        plot_title_prefix : str
-            Prefix for the title of the backscatter plots.
-            Examples: "RSLC Backscatter Coefficient (beta-0)" or
-            "GCOV Backscatter Coefficient (gamma-0)".
-        colorbar_formatter : matplotlib.ticker.FuncFormatter or None, optional
-            Tick formatter function to define how the numeric value
-            associated with each tick on the colorbar axis is formatted
-            as a string. This function must take exactly two arguments:
-            `x` for the tick value and `pos` for the tick position,
-            and must return a `str`. The `pos` argument is used
-            internally by matplotlib.
-            If None, default tick values will be used. Defaults to None. See:
-            https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html.
-        """
-        with self.get_raster(freq=freq, pol=pol) as img:
-            # Plot and Save Backscatter Image to graphical summary pdf
-            title = (
-                f"{plot_title_prefix}\n"
-                f"(scale={params.backscatter_units}%s)\n{img.name}"
-            )
-            if params.gamma is None:
-                title = title % ""
-            else:
-                title = title % rf", $\gamma$-correction={params.gamma}"
-
-            with self.get_raster(freq=freq, pol=pol) as img:
-                nisarqa.rslc.img2pdf_grayscale(
-                    img_arr=img_arr,
-                    title=title,
-                    ylim=img.y_axis_limits,
-                    xlim=img.x_axis_limits,
-                    colorbar_formatter=colorbar_formatter,
-                    ylabel=img.y_axis_label,
-                    xlabel=img.x_axis_label,
-                    plots_pdf=report_pdf,
-                )
-
     @contextmanager
     def get_raster(
         self, freq: str, pol: str
@@ -2385,51 +2321,7 @@ class InsarProduct(NisarProduct):
             )
 
 
-@dataclass
-class InterferogramProduct(InsarProduct):
-    @staticmethod
-    def save_hsi_img_to_pdf(
-        img: nisarqa.SARRaster,
-        report_pdf: PdfPages,
-        cbar_min_max: Optional[Sequence[float]] = None,
-        plot_title_prefix: str = "Phase Image and Coherence Magnitude as HSI Image",
-    ) -> None:
-        """
-        Annotate and save an HSI Image to PDF.
-
-        `img.data` should be in linear.
-
-        Parameters
-        ----------
-        img : *Raster
-            Image in RGB color space to be saved. All image correction,
-            multilooking, etc. needs to have previously been applied.
-        report_pdf : PdfPages
-            The output PDF file to append the HSI image plot to.
-        cbar_min_max : pair of float or None, optional
-            The range for the Hue axis of the HSI colorbar for the image raster.
-            `None` to use the min and max of the image for the colorbar range.
-            Defaults to None.
-        plot_title_prefix : str, optional
-            Prefix for the title of the backscatter plots.
-            Defaults to "Phase Image and Coherence Magnitude as HSI Image".
-        """
-        # Plot and Save HSI Image to graphical summary pdf
-        title = f"{plot_title_prefix}\n{img.name}"
-
-        nisarqa.img2pdf_hsi(
-            img_arr=img.data,
-            title=title,
-            ylim=img.y_axis_limits,
-            xlim=img.x_axis_limits,
-            cbar_min_max=cbar_min_max,
-            xlabel=img.x_axis_label,
-            ylabel=img.y_axis_label,
-            plots_pdf=report_pdf,
-        )
-
-
-class WrappedGroup(InterferogramProduct):
+class WrappedGroup(InsarProduct):
     """
     Contains common functionality for products with a wrapped igram data group.
 
@@ -2495,7 +2387,7 @@ class WrappedGroup(InterferogramProduct):
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
 
-class UnwrappedGroup(InterferogramProduct):
+class UnwrappedGroup(InsarProduct):
     """
     Contains common functionality for products with unwrapped phase data group.
 

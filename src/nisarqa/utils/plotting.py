@@ -131,7 +131,7 @@ def hsi_images_to_pdf_wrapped(
                     longest_side_max=None,  # Unnecessary for the PDF
                 )
 
-            product.save_hsi_img_to_pdf(
+            save_hsi_img_to_pdf(
                 img=rgb_img,
                 report_pdf=report_pdf,
                 cbar_min_max=cbar_min_max,
@@ -178,7 +178,7 @@ def hsi_images_to_pdf_unwrapped(
                     longest_side_max=None,  # Unnecessary for the PDF
                 )
 
-            product.save_hsi_img_to_pdf(
+            save_hsi_img_to_pdf(
                 img=rgb_img,
                 report_pdf=report_pdf,
                 cbar_min_max=cbar_min_max,
@@ -186,6 +186,47 @@ def hsi_images_to_pdf_unwrapped(
                     "Unwrapped Phase Image and Coherence Magnitude"
                 ),
             )
+
+
+def save_hsi_img_to_pdf(
+    img: nisarqa.SARRaster,
+    report_pdf: PdfPages,
+    cbar_min_max: Optional[Sequence[float]] = None,
+    plot_title_prefix: str = "Phase Image and Coherence Magnitude as HSI Image",
+) -> None:
+    """
+    Annotate and save an HSI Image to PDF.
+
+    `img.data` should be in linear.
+
+    Parameters
+    ----------
+    img : *Raster
+        Image in RGB color space to be saved. All image correction,
+        multilooking, etc. needs to have previously been applied.
+    report_pdf : PdfPages
+        The output PDF file to append the HSI image plot to.
+    cbar_min_max : pair of float or None, optional
+        The range for the Hue axis of the HSI colorbar for the image raster.
+        `None` to use the min and max of the image for the colorbar range.
+        Defaults to None.
+    plot_title_prefix : str, optional
+        Prefix for the title of the backscatter plots.
+        Defaults to "Phase Image and Coherence Magnitude as HSI Image".
+    """
+    # Plot and Save HSI Image to graphical summary pdf
+    title = f"{plot_title_prefix}\n{img.name}"
+
+    nisarqa.img2pdf_hsi(
+        img_arr=img.data,
+        title=title,
+        ylim=img.y_axis_limits,
+        xlim=img.x_axis_limits,
+        cbar_min_max=cbar_min_max,
+        xlabel=img.x_axis_label,
+        ylabel=img.y_axis_label,
+        plots_pdf=report_pdf,
+    )
 
 
 def make_hsi_as_rgb_img(

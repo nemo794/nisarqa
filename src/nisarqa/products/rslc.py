@@ -403,15 +403,27 @@ def process_backscatter_imgs_and_browse(
                 else:
                     colorbar_formatter = None
 
-                product.save_backscatter_img_to_pdf(
-                    img_arr=corrected_img,
-                    freq=freq,
-                    pol=pol,
-                    params=params,
-                    report_pdf=report_pdf,
-                    colorbar_formatter=colorbar_formatter,
-                    plot_title_prefix=f"Multilooked {plot_title_prefix}",
-                )
+                # Label and Save Backscatter Image to PDF
+                with product.get_raster(freq=freq, pol=pol) as img:
+                    title = (
+                        f"{plot_title_prefix}\n"
+                        f"(scale={params.backscatter_units}%s)\n{img.name}"
+                    )
+                    if params.gamma is None:
+                        title = title % ""
+                    else:
+                        title = title % rf", $\gamma$-correction={params.gamma}"
+
+                    nisarqa.rslc.img2pdf_grayscale(
+                        img_arr=corrected_img,
+                        title=title,
+                        ylim=img.y_axis_limits,
+                        xlim=img.x_axis_limits,
+                        colorbar_formatter=colorbar_formatter,
+                        ylabel=img.y_axis_label,
+                        xlabel=img.x_axis_label,
+                        plots_pdf=report_pdf,
+                    )
 
                 # If this backscatter image is needed to construct the browse image...
                 if (freq in layers_for_browse) and (
