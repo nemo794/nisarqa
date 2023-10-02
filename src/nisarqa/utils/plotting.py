@@ -833,20 +833,20 @@ def process_single_side_by_side_offsets_plot(
     cbar_max = max(az_max, rg_max)
     cbar_min = -cbar_max  # center around zero
 
-    # Decimate to square pixels. (az and rng rasters have the )
+    # Decimate to square pixels. (az and rng rasters have the same metadata)
     ky, kx = nisarqa.compute_square_pixel_nlooks(
         # only need the x and y dimensions
         img_shape=np.shape(az_img)[:2],
         sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
         # Only make square pixels. Use `max()` to not "shrink" the rasters.
-        longest_side_max=max(np.shape(az_offset.data)[:2]),
+        longest_side_max=max(np.shape(az_img)[:2]),
     )
     az_img = az_img[::ky, ::kx]
     rg_img = rg_img[::ky, ::kx]
 
     # Create figure and add the rasters.
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, constrained_layout="tight")
-    fig.suptitle("Along Track and Slant Range Offsets")
+    fig.suptitle("Along Track and Slant Range Offsets (in meters)")
 
     # Decimate Along Track Offset raster and plot on left (ax1)
     az_img = decimate_img_to_size_of_axes(ax=ax1, arr=az_img)
@@ -858,6 +858,10 @@ def process_single_side_by_side_offsets_plot(
         vmin=cbar_min,
         vmax=cbar_max,
     )
+
+    # Form axes title. (Split raster's name onto a new line to look nicer.)
+    raster_name = az_offset.name.split("_")[-1]
+    axes_title = az_offset.name.replace(f"_{raster_name}", f"\n{raster_name}")
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
         img_arr_shape=np.shape(az_img),
@@ -865,7 +869,7 @@ def process_single_side_by_side_offsets_plot(
         ylim=az_offset.y_axis_limits,
         xlabel=az_offset.x_axis_label,
         ylabel=az_offset.y_axis_label,
-        title="Along Track Offset (m)",
+        title=axes_title,
     )
 
     # Decimate slant range Offset raster and plot on right (ax2)
@@ -878,6 +882,9 @@ def process_single_side_by_side_offsets_plot(
         vmin=cbar_min,
         vmax=cbar_max,
     )
+    # Form axes title. (Split raster's name onto a new line to look nicer.)
+    raster_name = rg_offset.name.split("_")[-1]
+    axes_title = rg_offset.name.replace(f"_{raster_name}", f"\n{raster_name}")
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax2,
         img_arr_shape=np.shape(rg_img),
@@ -885,7 +892,7 @@ def process_single_side_by_side_offsets_plot(
         ylim=rg_offset.y_axis_limits,
         xlabel=rg_offset.x_axis_label,
         ylabel=rg_offset.y_axis_label,
-        title="Slant Range Offset (m)",
+        title=axes_title,
     )
 
     # To save space on the PDF page, we can take advantage of the fact that
@@ -955,26 +962,26 @@ def process_az_and_range_combo_plots(
 
                     # Second, create the quiver plots. (And the browse image.)
 
+                    process_single_quiver_plot_to_pdf(
+                        az_offset=az_off,
+                        rg_offset=rg_off,
+                        params=params,
+                        report_pdf=report_pdf,
+                    )
+
                     # Only generate a browse PNG for one layer
                     if (
                         (layer_num == browse_layer_num)
                         and (pol == browse_pol)
                         and (freq == browse_freq)
                     ):
-                        browse = browse_png
-                    else:
-                        browse = None
-
-                    cbar_min, cbar_max, y_dec, x_dec = (
-                        process_single_quiver_plot(
+                        y_dec, x_dec = process_single_quiver_plot_to_png(
                             az_offset=az_off,
                             rg_offset=rg_off,
                             params=params,
-                            browse_png=browse,
-                            report_pdf=report_pdf,
+                            browse_png=browse_png,
                         )
-                    )
-                    if browse is not None:
+
                         nisarqa.create_dataset_in_h5group(
                             h5_file=stats_h5,
                             grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
@@ -988,34 +995,33 @@ def process_az_and_range_combo_plots(
                             ),
                         )
 
-                # Add final colorbar range for this freq+pol+layer to stats.h5
-                # (This was a processing parameter in the YAML, so we should
-                # add it to the PDF. However, when dynamically computed,
-                # this range is not consistent between the numbered layers.
-                name = (
-                    f"quiverPlotColorbarRangeFrequency{freq}"
-                    f"Polarization{pol}Layer{layer_num}"
-                )
-                nisarqa.create_dataset_in_h5group(
-                    h5_file=stats_h5,
-                    grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-                    % product.band,
-                    ds_name=name,
-                    ds_data=(cbar_min, cbar_max),
-                    ds_units="meters",
-                    ds_description=(
-                        "Colorbar range for the slant range and along track"
-                        " offset layers' quiver plot(s)."
-                    ),
-                )
+                # # Add final colorbar range for this freq+pol+layer to stats.h5
+                # # (This was a processing parameter in the YAML, so we should
+                # # add it to the PDF. However, when dynamically computed,
+                # # this range is not consistent between the numbered layers.
+                # name = (
+                #     f"quiverPlotColorbarRangeFrequency{freq}"
+                #     f"Polarization{pol}Layer{layer_num}"
+                # )
+                # nisarqa.create_dataset_in_h5group(
+                #     h5_file=stats_h5,
+                #     grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+                #     % product.band,
+                #     ds_name=name,
+                #     ds_data=(cbar_min, cbar_max),
+                #     ds_units="meters",
+                #     ds_description=(
+                #         "Colorbar range for the slant range and along track"
+                #         " offset layers' quiver plot(s)."
+                #     ),
+                # )
 
 
-def process_single_quiver_plot(
+def process_single_quiver_plot_to_pdf(
     az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
     rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-    browse_png: Optional[str | os.PathLike] = None,
 ) -> (float, float, int, int):
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
@@ -1032,9 +1038,6 @@ def process_single_quiver_plot(
         A structure containing processing parameters to generate quiver plots.
     report_pdf : PdfPages
         The output PDF file to append the quiver plot to.
-    browse_png : path-like or None, optional
-        Filename (with path) for the browse image PNG.
-        If None, no browse PNG will be saved. Defaults to None.
 
     Returns
     -------
@@ -1058,12 +1061,168 @@ def process_single_quiver_plot(
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
 
+    az_off = az_offset.data[...]
+    rg_off = rg_offset.data[...]
+
+    # Create correct aspect ratio via decimation. (only need to do this on
+    # one raster because az and rng rasters have the same basic metadata.)
+    ky, kx = nisarqa.compute_square_pixel_nlooks(
+        # only need the x and y dimensions
+        img_shape=np.shape(az_off)[:2],
+        sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
+        # Only make square pixels. Use `max()` to not "shrink" the rasters.
+        longest_side_max=max(np.shape(az_off)[:2]),
+    )
+    az_off = az_off[::ky, ::kx]
+    rg_off = rg_off[::ky, ::kx]
+
+    # Grab the axes window extent size, and decimate array to correct size for
+    # plotting to the PDF
+    fig, ax = plt.subplots(ncols=1, nrows=1, constrained_layout="tight")
+
+    # Form the plot title (Remove the layer name from the layer's `name`)
+    # Because of the constrained layout (which optimizes for all Artists in
+    # the Figure), let's add the title before decimating the rasters.
+    title = (
+        f"Pixel Offset in meters\n{'_'.join(az_offset.name.split('_')[:-1])}"
+    )
+    fig.suptitle(title)
+
+    az_off = decimate_img_to_size_of_axes(ax=ax, arr=az_off)
+    rg_off = decimate_img_to_size_of_axes(ax=ax, arr=rg_off)
+
+    # Create the colorful background image of the plot
+    disp = np.sqrt(rg_off**2 + az_off**2)
+
+    # Compute the vmin and vmax for the colorbar range
+    # Note: because we're getting `cbar_min_max` from the `params`, the values
+    # have already been validated. No further checks needed.
+    # TODO - Geoff, should the vmin, vmiax be computed prior to decimation?
+    cbar_min_max = params.cbar_min_max
+    if cbar_min_max is None:
+        # Dynamically compute the colorbar interval to be [0, max].
+        # (`disp` represents magnitude, so it only contains positive values)
+        vmin, vmax = 0, np.nanmax(disp)
+    else:
+        vmin, vmax = cbar_min_max
+
+    # Truncate the magma cmap to only use the top half of the magma colormap
+    # Adapted from: https://stackoverflow.com/a/18926541
+    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=-1):
+        if (minval < 0.0) or (maxval > 1.0):
+            raise ValueError(
+                f"{minval=} and {maxval=}, but must be in range [0.0, 1.0]."
+            )
+        if n == -1:
+            n = cmap.N
+        new_cmap = colors.LinearSegmentedColormap.from_list(
+            "trunc({name},{a:.2f},{b:.2f})".format(
+                name=cmap.name, a=minval, b=maxval
+            ),
+            cmap(np.linspace(minval, maxval, n)),
+        )
+        return new_cmap
+
+    # Use interval from [0.5, 1.0] to truncate to the top half of the magma
+    # colormap range. (We do not want to use the very-dark lower half
+    # for these quiver plots.)
+    # Definitions: the colormap range is different than the colorbar range.
+    # Colorbar range refers to the range of tick label values, while the
+    # colormap determines the mapping of those values to actual visual colors.
+    magma_cmap = truncate_colormap(plt.get_cmap("magma"), 0.5, 1.0)
+
+    # Add the background image to the axes
+    im = ax.imshow(
+        disp, vmin=vmin, vmax=vmax, cmap=magma_cmap, interpolation="none"
+    )
+
+    # Now, prepare and add the quiver plot arrows to the axes
+    arrow_stride = int(max(np.shape(disp)) / params.arrow_density)
+
+    # Only plot the arrows at the requested strides.
+    y_arrow_tip = az_off[::arrow_stride, ::arrow_stride]
+    x_arrow_tip = rg_off[::arrow_stride, ::arrow_stride]
+
+    x = np.linspace(0, x_arrow_tip.shape[1] - 1, x_arrow_tip.shape[1])
+    y = np.linspace(0, x_arrow_tip.shape[0] - 1, x_arrow_tip.shape[0])
+    X, Y = np.meshgrid(x, y)
+
+    # Add the quiver arrows to the plot.
+    # Multiply the start and end points for each arrow by the decimation factor;
+    # this is to ensure that each arrow is placed on the correct pixel on
+    # the full-resolution `disp` background image.
+    ax.quiver(
+        # starting x coordinate for each arrow
+        X * arrow_stride,
+        # starting y coordinate for each arrow
+        Y * arrow_stride,
+        # ending x direction component of for each arrow vector
+        x_arrow_tip * arrow_stride,
+        # ending y direction component of for each arrow vector
+        y_arrow_tip * arrow_stride,
+        angles="xy",
+        scale_units="xy",
+        # Use a scale less that 1 to exaggerate the arrows.
+        scale=params.arrow_scaling,
+        color="b",
+    )
+
+    # Add a colorbar to the figure
+    cbar = fig.colorbar(im)
+    cbar.ax.set_ylabel(ylabel="Displacement (m)", rotation=270, labelpad=8.0)
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax,
+        xlim=az_offset.x_axis_limits,
+        ylim=az_offset.y_axis_limits,
+        img_arr_shape=np.shape(disp),
+        xlabel=az_offset.x_axis_label,
+        ylabel=az_offset.y_axis_label,
+    )
+
+    # Make sure axes labels do not get cut off
+    # fig.tight_layout()
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
+def process_single_quiver_plot_to_png(
+    az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    params: nisarqa.QuiverParamGroup,
+    browse_png: Optional[str | os.PathLike] = None,
+) -> None:
+    """
+    Process and save a single quiver plot to PDF and (optional) PNG.
+
+    Parameters
+    ----------
+    az_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Along track offset layer to be processed. Must correspond to
+        `rg_offset`.
+    rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Slant range offset layer to be processed. Must correspond to
+        `az_offset`.
+    params : nisarqa.QuiverParamGroup
+        A structure containing processing parameters to generate quiver plots.
+    browse_png : path-like or None, optional
+        Filename (with path) for the browse image PNG.
+        If None, no browse PNG will be saved. Defaults to None.
+    """
+    # Validate input rasters
+    nisarqa.compare_raster_metadata(az_offset, rg_offset)
+
+    # Compute decimation values for the browse image PNG.
     if (az_offset.freq == "A") and (params.decimation_freqa is not None):
         y_decimation, x_decimation = params.decimation_freqa
     elif (az_offset.freq == "B") and (params.decimation_freqb is not None):
         y_decimation, x_decimation = params.decimation_freqb
     else:
-        # Square the pixels. Decimate if requested.
+        # Square the pixels. Decimate if needed to stay within longest side max.
         longest_side_max = params.longest_side_max
 
         if longest_side_max is None:
@@ -1086,27 +1245,17 @@ def process_single_quiver_plot(
     disp = np.sqrt(rg_off**2 + az_off**2)
 
     # Compute the vmin and vmax for the colorbar range
+    # Note: because we're getting `cbar_min_max` from the `params`, the values
+    # have already been validated. No further checks needed.
     cbar_min_max = params.cbar_min_max
     if cbar_min_max is None:
-        # # Dynamically compute the colorbar range per the raster's min and max,
-        # # and center the colorbar range at zero
-        # vmax = max(abs(np.nanmin(disp)), abs(np.nanmax(disp)))
-        # vmin = -vmax
-
         # Dynamically compute the colorbar interval to be [0, max].
-        # (Because `disp` represents the magnitude, it only has positive values)
-        vmin = 0
-        vmax = np.nanmax(disp)
-
+        # (`disp` represents magnitude, so it only contains positive values)
+        vmin, vmax = 0, np.nanmax(disp)
     else:
-        if cbar_min_max[0] >= cbar_min_max[1]:
-            raise ValueError(
-                f"{cbar_min_max=}, but the first value must be less than the"
-                " second value."
-            )
         vmin, vmax = cbar_min_max
 
-    # Truncate the magma cmap to only use the top hald
+    # Truncate the magma cmap to only use the top half of the magma colormap
     # Adapted from: https://stackoverflow.com/a/18926541
     def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=-1):
         if (minval < 0.0) or (maxval > 1.0):
@@ -1126,9 +1275,9 @@ def process_single_quiver_plot(
     # Use interval from [0.5, 1.0] to truncate to the top half of the magma
     # colormap range. (We do not want to use the very-dark lower half
     # for these quiver plots.)
-    # Note: the colormap range is different than the colorbar range.
-    # Colorbar range refers to the range of tick labels, while the
-    # colormap range is the hue/value/etc of the colors themselves.
+    # Definitions: the colormap range is different than the colorbar range.
+    # Colorbar range refers to the range of tick label values, while the
+    # colormap determines the mapping of those values to actual visual colors.
     magma_cmap = truncate_colormap(plt.get_cmap("magma"), 0.5, 1.0)
 
     # Make the axes size the exact size of the image dimensions.
@@ -1140,9 +1289,7 @@ def process_single_quiver_plot(
     # fig, ax = plt.subplots()
 
     # Add the background image to the axes
-    im = ax.imshow(
-        disp, vmin=vmin, vmax=vmax, cmap=magma_cmap, interpolation="none"
-    )
+    ax.imshow(disp, vmin=vmin, vmax=vmax, cmap=magma_cmap, interpolation="none")
 
     # cbar = fig.colorbar(im)
     # Now, prepare and add the quiver plot arrows to the axes
@@ -1177,53 +1324,13 @@ def process_single_quiver_plot(
     )
 
     # Plot to PNG
-    if browse_png is not None:
-        plt.axis("off")
-        fig.savefig(
-            browse_png, bbox_inches="tight", transparent=True, pad_inches=0
-        )
-
-    # Append to PDF
-    plt.axis("on")
-    cbar = fig.colorbar(im)
-    cbar.ax.set_ylabel(ylabel="Displacement (m)", rotation=270, labelpad=8.0)
-
-    # (Remove the layer name from the layer's `name`)
-    title = (
-        f"Pixel Offset in meters\n{'_'.join(az_offset.name.split('_')[:-1])}"
-    )
-
-    if isinstance(az_offset, nisarqa.RadarRaster):
-        xlim = [az_offset.rng_start, az_offset.rng_stop]
-        ylim = [az_offset.az_start, az_offset.az_stop]
-        ylabel = f"Zero Doppler Time\n(seconds since {az_offset.epoch})"
-        xlabel = "Slant Range (km)"
-    elif isinstance(az_offset, nisarqa.GeoRaster):
-        xlim = [az_offset.x_start, az_offset.x_stop]
-        ylim = [az_offset.y_start, az_offset.y_stop]
-        xlabel = "Easting (km)"
-        ylabel = "Northing (km)"
-
-    nisarqa.rslc.format_axes_ticks_and_labels(
-        ax=ax,
-        xlim=xlim,
-        ylim=ylim,
-        img_arr_shape=np.shape(disp),
-        title=title,
-        xlabel=xlabel,
-        ylabel=ylabel,
-    )
-
-    # Make sure axes labels do not get cut off
-    fig.tight_layout()
-
-    # Append figure to the output PDF
-    report_pdf.savefig(fig)
+    plt.axis("off")
+    fig.savefig(browse_png, bbox_inches="tight", transparent=True, pad_inches=0)
 
     # Close the plot
     plt.close(fig)
 
-    return vmin, vmax, y_decimation, x_decimation
+    return y_decimation, x_decimation
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
