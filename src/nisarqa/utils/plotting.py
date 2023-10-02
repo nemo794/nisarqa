@@ -900,7 +900,8 @@ def process_single_side_by_side_offsets_plot(
     # First, hide the y-axis labels+ticks from the right plot:
     ax2.get_yaxis().set_visible(False)
     # Second, add the colorbar to only the right plot:
-    fig.colorbar(im2, ax=ax2, label="Displacement (m)")
+    cax = fig.colorbar(im2, ax=ax2)
+    cax.ax.set_ylabel(ylabel="Displacement (m)", rotation=270, labelpad=8.0)
 
     # Save complete plots to graphical summary PDF file
     report_pdf.savefig(fig)
@@ -1084,7 +1085,8 @@ def process_single_quiver_plot_to_pdf(
     # Because of the constrained layout (which optimizes for all Artists in
     # the Figure), let's add the title before decimating the rasters.
     title = (
-        f"Pixel Offset in meters\n{'_'.join(az_offset.name.split('_')[:-1])}"
+        "Total Along Track + Slant Range Pixel Offset in meters\n"
+        f"{'_'.join(az_offset.name.split('_')[:-1])}"
     )
     fig.suptitle(title)
 
@@ -1168,8 +1170,8 @@ def process_single_quiver_plot_to_pdf(
     )
 
     # Add a colorbar to the figure
-    cbar = fig.colorbar(im)
-    cbar.ax.set_ylabel(ylabel="Displacement (m)", rotation=270, labelpad=8.0)
+    cax = fig.colorbar(im)
+    cax.ax.set_ylabel(ylabel="Displacement (m)", rotation=270, labelpad=10.0)
 
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax,
@@ -1281,12 +1283,23 @@ def process_single_quiver_plot_to_png(
     magma_cmap = truncate_colormap(plt.get_cmap("magma"), 0.5, 1.0)
 
     # Make the axes size the exact size of the image dimensions.
-    print("desired shape of output browse PNG: ", np.shape(disp))
-    dpi = 100
-    ax_height_inches = np.shape(disp)[0] / dpi
-    ax_width_inches = np.shape(disp)[1] / dpi
-    fig, ax = plt.subplots(figsize=(ax_height_inches, ax_width_inches), dpi=dpi)
+    # print("desired shape of output browse PNG: ", np.shape(disp))
+    # dpi = 100
+    # ax_height_inches = np.shape(disp)[0] / dpi
+    # ax_width_inches = np.shape(disp)[1] / dpi
+    # fig, ax = plt.subplots(figsize=(ax_height_inches, ax_width_inches), dpi=dpi)
     # fig, ax = plt.subplots()
+
+    dpi = 100
+    figure_shape_in_inches = (disp.shape[1] / dpi, disp.shape[0] / dpi)
+    print("Shape of disp: ", disp.shape)
+    print("fig size in inches: ", figure_shape_in_inches)
+    fig = plt.figure(figsize=figure_shape_in_inches)
+    fig.tight_layout(pad=0)
+    # Order of arguments for rect: left, bottom, right, top
+    plt.axis("off")
+    ax = fig.add_axes(rect=[0, 0, 1, 1])
+    plt.axis("off")
 
     # Add the background image to the axes
     ax.imshow(disp, vmin=vmin, vmax=vmax, cmap=magma_cmap, interpolation="none")
@@ -1324,8 +1337,10 @@ def process_single_quiver_plot_to_png(
     )
 
     # Plot to PNG
-    plt.axis("off")
-    fig.savefig(browse_png, bbox_inches="tight", transparent=True, pad_inches=0)
+    fig.savefig(browse_png, transparent=True, dpi=dpi)
+    # fig.savefig(
+    #     browse_png, bbox_inches="tight", transparent=True, pad_inches=0, dpi=dpi
+    # )
 
     # Close the plot
     plt.close(fig)
