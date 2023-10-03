@@ -160,7 +160,7 @@ class SARRaster(ABC, Raster):
     @property
     @abstractmethod
     def y_axis_limits(self) -> tuple[float, float]:
-        """Interval of the Y direction (azimuth for range-Doppler rasters)."""
+        """Min and max extents of the Y direction (azimuth for range-Doppler rasters)."""
         pass
 
     @property
@@ -178,7 +178,7 @@ class SARRaster(ABC, Raster):
     @property
     @abstractmethod
     def x_axis_limits(self) -> tuple[float, float]:
-        """Interval of the X direction (range for range-Doppler rasters)."""
+        """Min and max extents of the X direction (range for range-Doppler rasters)."""
         pass
 
     @property
@@ -208,15 +208,15 @@ class RadarRaster(SARRaster):
         name of the frequency for `img`, e.g. 'A' or 'B'
     ground_az_spacing : float
         Azimuth spacing of pixels of input array
-        Units: seconds
+        Units: meters
     az_start : float
         The start time of the observation for this RSLC Raster.
         This corresponds to the upper edge of the top pixels.
-        Units: seconds since the start of the epoch
+        Units: seconds since epoch
     az_stop : float
         The stopping time of the observation for this RSLC Raster.
         This corresponds to the lower side of the bottom pixels.
-        Units: seconds since the start of the epoch
+        Units: seconds since epoch
     ground_range_spacing : float
         Range spacing of pixels of input array.
         Units: meters

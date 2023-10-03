@@ -595,8 +595,6 @@ def apply_image_correction(img_arr, params):
     return img_arr, vmin, vmax
 
 
-# Function removed because it was dead code; its logic was moved into
-# the product readers. (Reviewer please delete this comment. Thank you!)
 
 
 def clip_array(arr, percentile_range=(0.0, 100.0)):
