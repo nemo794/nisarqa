@@ -2625,7 +2625,7 @@ class OffsetProduct(InsarProduct):
         return name
 
     @cached_property
-    def available_layers(self) -> tuple[int]:
+    def available_layer_numbers(self) -> tuple[int]:
         """
         The numbers of the available layers in the input product.
 
@@ -2652,7 +2652,7 @@ class OffsetProduct(InsarProduct):
             Tuple of the available layers.
         """
 
-        def _get_available_layers(freq):
+        def _get_available_layer_numbers(freq):
             golden_layers = []
             with nisarqa.open_h5_file(self.filepath) as f:
                 # if multiple pols, make sure they contain the same layers
@@ -2698,11 +2698,11 @@ class OffsetProduct(InsarProduct):
         # self.freqs is a property containing only confirmed frequencies
         # in the input product. If a DatasetNotFoundError is raised, then
         # the input product is incorrectly formed. Let the error propogate up.
-        layers_1 = _get_available_layers(self.freqs[0])
+        layers_1 = _get_available_layer_numbers(self.freqs[0])
 
         # If multiple frequencies, ensure they contain the same layers
         if len(self.freqs) == 2:
-            layers_2 = _get_available_layers(self.freqs[1])
+            layers_2 = _get_available_layer_numbers(self.freqs[1])
             if set(layers_1) != set(layers_2):
                 warnings.warn(
                     f"Frequency {self.freqs[0]} contains layers {layers_1}, but"
@@ -2732,12 +2732,13 @@ class OffsetProduct(InsarProduct):
         priority_order = (3, 2, 1, 4, 5, 6, 7)
 
         for layer_num in priority_order:
-            if layer_num in self.available_layers:
+            if layer_num in self.available_layer_numbers:
                 return freq, pol, layer_num
         else:
             print(
                 f"Prioritization order of layer groups is {priority_order}, but"
-                f" the product only contains layers {self.available_layers}."
+                " the product only contains layers"
+                f" {self.available_layer_numbers}."
             )
             raise nisarqa.InvalidNISARProductError
 
@@ -2745,7 +2746,7 @@ class OffsetProduct(InsarProduct):
         # Each polarization should contain the same layer numbers.
         # WLOG, use the first available layer number.
         return self._layer_group_parent_path(
-            freq=freq, pol=pol, layer_num=self.available_layers[0]
+            freq=freq, pol=pol, layer_num=self.available_layer_numbers[0]
         )
 
     def _layer_group_parent_path(self, freq, pol, layer_num) -> str:

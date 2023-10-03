@@ -449,13 +449,13 @@ class QuiverParamGroup(YamlParamGroup):
     Parameters
     ----------
     cbar_min_max : None or pair of float or int, optional
-        The vmin and vmax values when generating the quiver plot. The magnitude
-        of the offsets will be clipped to this range, and this range will be
-        used for the range of the colorbar.
-        If None, the range will be computed dynamically based on the min and
-        max of magnitudes of the azimuth and range offsets, centered at zero.
+        The vmin and vmax values to generate the quiver plot.
+        The magnitude of the offsets is clipped to this interval,
+        which (in turn) is used for the interval of the colorbar.
+        If None, the range is computed using the min and max magnitudes
+        of along track and slant range offset.
         Defaults to None.
-    decimation_freqa, decimation_freqb : pair of int or None, optional
+    browse_decimation_freqa, browse_decimation_freqb : pair of int or None, optional
         Stride along each axis of the Frequency A (or Frequency B)
         image arrays for multilooking the quiver plot image.
         Format: [<num_rows>, <num_cols>]
@@ -487,10 +487,10 @@ class QuiverParamGroup(YamlParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="colorbar_min_max",
                 descr="""The vmin and vmax values to generate the quiver plot.
-                The magnitude of the offsets is clipped to this range,
-                and this range is used for the range of the colorbar.
-                If None, the range is computed using the min and max magnitudes
-                of along track and slant range offsets, centered at zero.""",
+                The magnitude of the offsets is clipped to this interval,
+                which (in turn) is used for the interval of the colorbar.
+                If None, the interval is computed using the min and max 
+                magnitudes of along track and slant range offset.""",
             )
         },
     )
@@ -498,26 +498,29 @@ class QuiverParamGroup(YamlParamGroup):
     _decimation_descr_template: ClassVar[
         str
     ] = """Stride along each axis of the Frequency %s
-        image arrays for multilooking the quiver plot image.
+        image arrays for decimating the quiver plot image for the browse PNG.
+        This takes precedence over `longest_side_max`.
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
-        If None, QA-SAS will compute the decimation amount
-        based on squaring the pixels and `longest_side_max`."""
+        If None, QA-SAS will compute the decimation strides
+        based on `longest_side_max` and creating square pixels."""
 
-    decimation_freqa: Optional[Sequence[int]] = field(
+    browse_decimation_freqa: Optional[Sequence[int]] = field(
         default=None,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="decimation_freqa", descr=_decimation_descr_template % "A"
+                name="browse_decimation_freqa",
+                descr=_decimation_descr_template % "A",
             )
         },
     )
 
-    decimation_freqb: Optional[Sequence[int]] = field(
+    browse_decimation_freqb: Optional[Sequence[int]] = field(
         default=None,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="decimation_freqb", descr=_decimation_descr_template % "B"
+                name="browse_decimation_freqb",
+                descr=_decimation_descr_template % "B",
             )
         },
     )
@@ -555,7 +558,7 @@ class QuiverParamGroup(YamlParamGroup):
                 name="longest_side_max",
                 descr="""The maximum number of pixels allowed for the longest
                 side of the final 2D browse image. If `decimation_freqX` is not
-                None, then this will be ignored.""",
+                None, then `longest_side_max` will be ignored.""",
             )
         },
     )
@@ -573,8 +576,8 @@ class QuiverParamGroup(YamlParamGroup):
         )
 
         self._validate_pair_of_numeric(
-            param_value=self.decimation_freqa,
-            param_name="decimation_freqa",
+            param_value=self.browse_decimation_freqa,
+            param_name="browse_decimation_freqa",
             min=1,
             max=None,
             none_is_valid_value=True,
@@ -582,8 +585,8 @@ class QuiverParamGroup(YamlParamGroup):
         )
 
         self._validate_pair_of_numeric(
-            param_value=self.decimation_freqb,
-            param_name="decimation_freqb",
+            param_value=self.browse_decimation_freqb,
+            param_name="browse_decimation_freqb",
             min=1,
             max=None,
             none_is_valid_value=True,

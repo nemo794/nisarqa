@@ -947,7 +947,7 @@ def process_az_and_range_combo_plots(
 
     for freq in product.freqs:
         for pol in product.get_pols(freq):
-            for layer_num in product.available_layers:
+            for layer_num in product.available_layer_numbers:
                 with product.get_along_track_offset(
                     freq=freq, pol=pol, layer_num=layer_num
                 ) as az_off, product.get_slant_range_offset(
@@ -961,9 +961,8 @@ def process_az_and_range_combo_plots(
                         report_pdf=report_pdf,
                     )
 
-                    # Second, create the quiver plots. (And the browse image.)
-
-                    process_single_quiver_plot_to_pdf(
+                    # Second, create the quiver plots for PDF and PNG
+                    cbar_min, cbar_max = process_single_quiver_plot_to_pdf(
                         az_offset=az_off,
                         rg_offset=rg_off,
                         params=params,
@@ -996,26 +995,28 @@ def process_az_and_range_combo_plots(
                             ),
                         )
 
-                # # Add final colorbar range for this freq+pol+layer to stats.h5
-                # # (This was a processing parameter in the YAML, so we should
-                # # add it to the PDF. However, when dynamically computed,
-                # # this range is not consistent between the numbered layers.
-                # name = (
-                #     f"quiverPlotColorbarRangeFrequency{freq}"
-                #     f"Polarization{pol}Layer{layer_num}"
-                # )
-                # nisarqa.create_dataset_in_h5group(
-                #     h5_file=stats_h5,
-                #     grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-                #     % product.band,
-                #     ds_name=name,
-                #     ds_data=(cbar_min, cbar_max),
-                #     ds_units="meters",
-                #     ds_description=(
-                #         "Colorbar range for the slant range and along track"
-                #         " offset layers' quiver plot(s)."
-                #     ),
-                # )
+                # Add final colorbar range processing parameter for this
+                # freq+pol+layer quiver plot to stats.h5.
+                # (This was a YAML runconfig processing parameter, so we should
+                # document it in the stats.h5. However, when dynamically
+                # computed, this range is not consistent between the numbered
+                # layers. So, let's use a longer name.
+                name = (
+                    f"quiverPlotColorbarIntervalFrequency{freq}"
+                    f"Polarization{pol}Layer{layer_num}"
+                )
+                nisarqa.create_dataset_in_h5group(
+                    h5_file=stats_h5,
+                    grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
+                    % product.band,
+                    ds_name=name,
+                    ds_data=(cbar_min, cbar_max),
+                    ds_units="meters",
+                    ds_description=(
+                        "Colorbar interval for the slant range and along track"
+                        " offset layers' quiver plot(s)."
+                    ),
+                )
 
 
 def process_single_quiver_plot_to_pdf(
@@ -1023,7 +1024,7 @@ def process_single_quiver_plot_to_pdf(
     rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-) -> (float, float, int, int):
+) -> tuple[float, float]:
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
 
@@ -1045,9 +1046,6 @@ def process_single_quiver_plot_to_pdf(
     cbar_min, cbar_max : float
         The vmin and vmax (respectively) used for the colorbar and clipping
         the pixel offset displacement image.
-    y_dec, x_dec : int
-        The decimation stride value used in the Y axis direction and X axis
-        direction (respectively).
     """
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
@@ -1083,7 +1081,7 @@ def process_single_quiver_plot_to_pdf(
     az_off = decimate_img_to_size_of_axes(ax=ax, arr=az_off)
     rg_off = decimate_img_to_size_of_axes(ax=ax, arr=rg_off)
 
-    im = add_image_arr_and_quiver_arrows_to_axes(
+    im, cbar_min, cbar_max = add_magnitude_image_and_quiver_plot_to_axes(
         ax=ax, az_off=az_off, rg_off=rg_off, params=params
     )
 
@@ -1100,14 +1098,13 @@ def process_single_quiver_plot_to_pdf(
         ylabel=az_offset.y_axis_label,
     )
 
-    # Make sure axes labels do not get cut off
-    # fig.tight_layout()
-
     # Append figure to the output PDF
     report_pdf.savefig(fig)
 
     # Close the plot
     plt.close(fig)
+
+    return cbar_min, cbar_max
 
 
 def process_single_quiver_plot_to_png(
@@ -1115,7 +1112,7 @@ def process_single_quiver_plot_to_png(
     rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     browse_png: Optional[str | os.PathLike] = None,
-) -> None:
+) -> tuple[int, int]:
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
 
@@ -1132,15 +1129,23 @@ def process_single_quiver_plot_to_png(
     browse_png : path-like or None, optional
         Filename (with path) for the browse image PNG.
         If None, no browse PNG will be saved. Defaults to None.
+
+    Returns
+    -------
+    y_dec, x_dec : int
+        The decimation stride value used in the Y axis direction and X axis
+        direction (respectively).
     """
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
 
     # Compute decimation values for the browse image PNG.
-    if (az_offset.freq == "A") and (params.decimation_freqa is not None):
-        y_decimation, x_decimation = params.decimation_freqa
-    elif (az_offset.freq == "B") and (params.decimation_freqb is not None):
-        y_decimation, x_decimation = params.decimation_freqb
+    if (az_offset.freq == "A") and (params.browse_decimation_freqa is not None):
+        y_decimation, x_decimation = params.browse_decimation_freqa
+    elif (az_offset.freq == "B") and (
+        params.browse_decimation_freqb is not None
+    ):
+        y_decimation, x_decimation = params.browse_decimation_freqb
     else:
         # Square the pixels. Decimate if needed to stay within longest side max.
         longest_side_max = params.longest_side_max
@@ -1157,29 +1162,56 @@ def process_single_quiver_plot_to_png(
         )
 
     # Grab the datasets into arrays in memory.
-    # While doing this, convert to square pixels and the correct size.
+    # While doing this, convert to square pixels and correct pixel dimensions.
     az_off = az_offset.data[::y_decimation, ::x_decimation]
     rg_off = rg_offset.data[::y_decimation, ::x_decimation]
 
-    # Make the axes size the exact size of the image dimensions.
+    # Next, we need to add the background image + quiver plot arrows onto
+    # an Axes, and then save this to a PNG with exact pixel dimensions as
+    # `az_off` and `rg_off`.
+    # We can set the exact size of a Figure window, but not the exact
+    # size of an Axes object that sits within that Figure.
+    # Since matplotilb defaults to adding extra "stuff" (white space,
+    # labels, tick marks, title, etc.) in the border around the Axes, this
+    # forces the Axes size to be smaller than the Figure size.
+    # This means that using the typical process to create and saving the image
+    # plot out to PNG results in a PNG whose pixel dimensions are
+    # significantly smaller than the dimensions of the source np.array.
+    # Not ideal in for our browse.
+
+    # Strategy to get around this: Create a Figure with our desired dimensions,
+    # and then add an Axes object whose extents are set to ENTIRE Figure.
+    # We'll need to take care that there is no added space around the border for
+    # labels, tick marks, title, etc. which could cause matplotlib to
+    # automagically downscale (and mess up) the dimensions of the Axes.
+
+    # Step 1: Create a figure with the exact shape in pixels as our array
+    # (matplotlib's Figure uses units of inches, but the image array
+    # and our browse image PNG requirements are in units of pixels.)
     dpi = 100
     figure_shape_in_inches = (az_off.shape[1] / dpi, az_off.shape[0] / dpi)
     fig = plt.figure(figsize=figure_shape_in_inches)
-    fig.tight_layout(pad=0)
-    # Order of arguments for rect: left, bottom, right, top
-    plt.axis("off")
-    ax = fig.add_axes(rect=[0, 0, 1, 1])
-    plt.axis("off")
 
-    add_image_arr_and_quiver_arrows_to_axes(
+    # Step 2: Use tight layout with 0 padding so that matplotlib does not
+    # attempt to add padding around the axes.
+    fig.tight_layout(pad=0)
+
+    # Step 3: add a new Axes object; set `rect` to be the ENTIRE Figure shape
+    # Order of arguments for rect: left, bottom, right, top
+    ax = fig.add_axes(rect=[0, 0, 1, 1])
+
+    # Since we set `rect`, the axes labels, titles, etc. should all be
+    # outside of `rect` and thus hidden from the final PNG.
+    # But for good measure, let's go ahead and hide them anyways.
+    ax.set_axis_off()
+
+    # Build the quiver plot on the Axes
+    add_magnitude_image_and_quiver_plot_to_axes(
         ax=ax, az_off=az_off, rg_off=rg_off, params=params
     )
 
-    # Plot to PNG
+    # Plot to PNG - Make sure to keep the same DPI!
     fig.savefig(browse_png, transparent=True, dpi=dpi)
-    # fig.savefig(
-    #     browse_png, bbox_inches="tight", transparent=True, pad_inches=0, dpi=dpi
-    # )
 
     # Close the plot
     plt.close(fig)
@@ -1187,14 +1219,52 @@ def process_single_quiver_plot_to_png(
     return y_decimation, x_decimation
 
 
-def add_image_arr_and_quiver_arrows_to_axes(
+def add_magnitude_image_and_quiver_plot_to_axes(
     ax: mpl.axes.Axes,
     az_off: np.ndarray,
     rg_off: np.ndarray,
     params: nisarqa.QuiverParamGroup,
-) -> mpl.AxesImage:
+) -> tuple[mpl.AxesImage, float, float]:
+    """
+    Compute the total offset magnitude and add as a quiver plot to an Axes.
+
+    This function computes the total offset magnitude via this formula:
+        total_offset = sqrt(rg_off**2 + az_off**2)
+    `total_offset` is used as the background image, with the magma color map.
+    The quiver arrows (vector arrows) are added to the Axes top of the
+    `total_offset` image.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+    az_off : numpy.ndarray
+        Along track offset raster array
+    rg_off : numpy.ndarray
+        Slant range offset raster array
+    params : nisarqa.QuiverParamGroup
+        A structure containing processing parameters to generate quiver plots.
+
+    Returns
+    -------
+    im : matplotlib.AxesImage
+        AxesImage containing the final plotted image (including quiver arrows).
+    vmin, vmax : float
+        The vmin and vmax (respectively) used for clipping the pixel offset
+        displacement image and for the colorbar interval.
+
+    Notes
+    -----
+    No decimation occurs in this function, and the image arrays are
+    plotted on `ax` with interpolation set to "none". This is to maintain the
+    same pixel dimensions of the input arrays.
+
+    Prior to calling this function, it is suggested that the user size the
+    axes and the input arrays to have matching dimensions. This helps to
+    ensure that the aspect ratio of `im` is as expected.
+    """
+
     # Use the full resolution image as the colorful background image of the plot
-    disp = np.sqrt(rg_off**2 + az_off**2)
+    total_offset = np.sqrt(rg_off**2 + az_off**2)
 
     # Compute the vmin and vmax for the colorbar range
     # Note: because we're getting `cbar_min_max` from the `params`, the values
@@ -1203,8 +1273,8 @@ def add_image_arr_and_quiver_arrows_to_axes(
     cbar_min_max = params.cbar_min_max
     if cbar_min_max is None:
         # Dynamically compute the colorbar interval to be [0, max].
-        # (`disp` represents magnitude, so it only contains positive values)
-        vmin, vmax = 0, np.nanmax(disp)
+        # (`total_offset` represents magnitude; these are positive values)
+        vmin, vmax = 0, np.nanmax(total_offset)
     else:
         vmin, vmax = cbar_min_max
 
@@ -1235,11 +1305,15 @@ def add_image_arr_and_quiver_arrows_to_axes(
 
     # Add the background image to the axes
     im = ax.imshow(
-        disp, vmin=vmin, vmax=vmax, cmap=magma_cmap, interpolation="none"
+        total_offset,
+        vmin=vmin,
+        vmax=vmax,
+        cmap=magma_cmap,
+        interpolation="none",
     )
 
     # Now, prepare and add the quiver plot arrows to the axes
-    arrow_stride = int(max(np.shape(disp)) / params.arrow_density)
+    arrow_stride = int(max(np.shape(total_offset)) / params.arrow_density)
 
     # Only plot the arrows at the requested strides.
     y_arrow_tip = az_off[::arrow_stride, ::arrow_stride]
@@ -1252,7 +1326,7 @@ def add_image_arr_and_quiver_arrows_to_axes(
     # Add the quiver arrows to the plot.
     # Multiply the start and end points for each arrow by the decimation factor;
     # this is to ensure that each arrow is placed on the correct pixel on
-    # the full-resolution `disp` background image.
+    # the full-resolution `total_offset` background image.
     ax.quiver(
         # starting x coordinate for each arrow
         X * arrow_stride,
@@ -1269,7 +1343,7 @@ def add_image_arr_and_quiver_arrows_to_axes(
         color="b",
     )
 
-    return im
+    return im, vmin, vmax
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
