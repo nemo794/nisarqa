@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
+from typing import overload
 
 import h5py
 import numpy as np
@@ -346,12 +347,14 @@ def compare_raster_metadata(
 ) -> None:
     ...
 
+
 @overload
 def compare_raster_metadata(
     raster1: nisarqa.GeoRaster,
     raster2: nisarqa.GeoRaster,
 ) -> None:
     ...
+
 
 def compare_raster_metadata(
     raster1,
@@ -378,10 +381,16 @@ def compare_raster_metadata(
     ValueError
         If metadata does not match
     """
+    if type(raster1) != type(raster1):
+        raise TypeError(
+            "Input *Rasters must have same type. Type of `raster1`:"
+            f" {type(raster1)}, Type of `raster2`: {type(raster2)}."
+        )
+
     for r1, r2 in zip(fields(raster1), fields(raster2)):
         r1_val = getattr(raster1, r1.name)
         r2_val = getattr(raster2, r2.name)
-        
+
         assert r1.name == r2.name
 
         if r1.name == "data":

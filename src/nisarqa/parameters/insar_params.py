@@ -481,7 +481,7 @@ class QuiverParamGroup(YamlParamGroup):
         Defaults to 2048 pixels.
     """
 
-    cbar_min_max: Optional[Sequence[int]] = field(
+    cbar_min_max: Optional[Sequence[float]] = field(
         default=None,
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -572,7 +572,7 @@ class QuiverParamGroup(YamlParamGroup):
             min=None,
             max=None,
             none_is_valid_value=True,
-            monotonically_increasing=True,
+            strictly_increasing=True,
         )
 
         self._validate_pair_of_numeric(
@@ -581,7 +581,7 @@ class QuiverParamGroup(YamlParamGroup):
             min=1,
             max=None,
             none_is_valid_value=True,
-            monotonically_increasing=False,
+            strictly_increasing=False,
         )
 
         self._validate_pair_of_numeric(
@@ -590,14 +590,14 @@ class QuiverParamGroup(YamlParamGroup):
             min=1,
             max=None,
             none_is_valid_value=True,
-            monotonically_increasing=False,
+            strictly_increasing=False,
         )
 
-        if not isinstance(self.arrow_density, int):
+        if not isinstance(self.arrow_density, (int, float)):
             arrow_density = self.arrow_density
             raise TypeError(
                 f"{arrow_density=} and has type {type(arrow_density)}, but must"
-                " be an int."
+                " be an int or float."
             )
         if self.arrow_density < 1:
             arrow_density = self.arrow_density
@@ -605,7 +605,7 @@ class QuiverParamGroup(YamlParamGroup):
 
         if self.arrow_scaling is None:
             pass
-        elif isinstance(self.arrow_scaling, (int or float)):
+        elif isinstance(self.arrow_scaling, (int, float)):
             if self.arrow_scaling <= 0.0:
                 arrow_scaling = self.arrow_scaling
                 raise ValueError(
@@ -637,7 +637,7 @@ class QuiverParamGroup(YamlParamGroup):
         min: Optional[int | float] = None,
         max: Optional[int | float] = None,
         none_is_valid_value: bool = False,
-        monotonically_increasing: bool = False,
+        strictly_increasing: bool = False,
     ) -> None:
         """
         Raise exception if `param_value` is not a valid input.
@@ -653,7 +653,7 @@ class QuiverParamGroup(YamlParamGroup):
             `param_value`. `param_value` may not be outside this range.
         none_is_valid_value : bool, optional
             True if `None` is a valid value. Defaults to False.
-        monotonically_increasing : bool, optional
+        strictly_increasing : bool, optional
             True if `input_value[0]` must be less than `input_value[1]`.
             Defaults to False.
         """
@@ -691,7 +691,7 @@ class QuiverParamGroup(YamlParamGroup):
                 f"{param_name}={param_value}; must be in range [{min}, {max}]."
             )
 
-        if monotonically_increasing:
+        if strictly_increasing:
             if param_value[0] >= param_value[1]:
                 raise ValueError(
                     f"{param_name}={param_value}; values must be"

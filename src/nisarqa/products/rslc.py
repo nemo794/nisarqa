@@ -595,8 +595,6 @@ def apply_image_correction(img_arr, params):
     return img_arr, vmin, vmax
 
 
-
-
 def clip_array(arr, percentile_range=(0.0, 100.0)):
     """
     Clip input array to the provided percentile range.
@@ -885,7 +883,7 @@ def img2pdf_grayscale(
         as a string. `FuncFormatter`s take exactly two arguments:
         `x` for the tick value and `pos` for the tick position,
         and must return a `str`. The `pos` argument is used
-        internally by matplotlib.
+        internally by Matplotlib.
         If None, then default tick values will be used. Defaults to None.
         See: https://matplotlib.org/2.0.2/examples/pylab_examples/custom_ticker1.html
         (Wrapping the function with FuncFormatter is optional.)
@@ -967,7 +965,7 @@ def format_axes_ticks_and_labels(
         Defaults to None (no labels added).
     """
 
-    # If xlim or ylim are not provided, let matplotlib auto-assign the ticks.
+    # If xlim or ylim are not provided, let Matplotlib auto-assign the ticks.
     # Otherwise, dynamically calculate and set the ticks w/ labels for
     # the x-axis and/or y-axis.
     # (Attempts to set the limits by using the `extent` argument for
@@ -989,8 +987,8 @@ def format_axes_ticks_and_labels(
 
         # Update variables to the actual, displayed image size
         # (The actual image will have a different aspect ratio
-        # than the matplotlib figure window's aspect ratio.
-        # But, altering the matplotlib figure window's aspect ratio
+        # than the Matplotlib figure window's aspect ratio.
+        # But, altering the Matplotlib figure window's aspect ratio
         # will lead to inconsistently-sized pages in the output PDF.)
         if H / W >= fig_h / fig_w:
             # image will be limited by its height, so

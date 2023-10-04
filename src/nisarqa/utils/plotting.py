@@ -286,7 +286,7 @@ def make_hsi_as_rgb_img(
     -------
     rgb : numpy.ndarray
         3D array of HSI image converted to the RGB (Red Green Blue) colorspace.
-        This RGB array is ready for plotting in e.g. matplotlib.
+        This RGB array is ready for plotting in e.g. Matplotlib.
     """
     if not np.issubdtype(phase_img.dtype, np.floating):
         raise TypeError(
@@ -676,7 +676,7 @@ def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
     """
     Decimate array to size of axes for use with `interpolation='none'`.
 
-    In matplotlib, setting `interpolation='none'` is useful for creating crisp
+    In Matplotlib, setting `interpolation='none'` is useful for creating crisp
     images in e.g. output PDFs. However, when an image array is very large,
     this setting causes the generated plots (and the PDFs they're saved to)
     to be very large in size (potentially several hundred MB).
@@ -793,11 +793,25 @@ def image_histogram_equalization(
     return out.astype(image.dtype, copy=False)
 
 
+@overload
 def process_single_side_by_side_offsets_plot(
-    az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
-    rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    az_offset: nisarqa.RadarRaster,
+    rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
 ) -> None:
+    ...
+
+
+@overload
+def process_single_side_by_side_offsets_plot(
+    az_offset: nisarqa.GeoRaster,
+    rg_offset: nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+) -> None:
+    ...
+
+
+def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
     """
     Create and append a side-by-side plot of azimuth and range offsets to PDF.
 
@@ -824,10 +838,9 @@ def process_single_side_by_side_offsets_plot(
 
     # Compute the colorbar interval, centered around zero.
     # Both plots should use the larger of the intervals.
-    # TODO - Geoff, should this be computed on the full input array?
-    # or should we wait to compute it below, using the decimated array? Thanks!
-    def get_max_abs_val(img: ArrayLike) -> float:
+    def get_max_abs_val(img: npt.ArrayLike) -> float:
         return max(np.abs(np.nanmax(img)), np.nanmin(img))
+
     az_max = get_max_abs_val(az_img)
     rg_max = get_max_abs_val(rg_img)
     cbar_max = max(az_max, rg_max)
@@ -922,11 +935,11 @@ def process_az_and_range_combo_plots(
 
     This function takes each pair of along track offset and slant range offset
     raster layers, and does three things with them:
-        * Plots them side-by-side and appends this plot to PDF
-        * Plots them as a quiver plot and appends this plot to PDF
         * Saves the browse image quiver plot as a PNG.
             - (The specific freq+pol+layer_number to use for the browse image
                is determined by the input `product`.)
+        * Plots them side-by-side and appends this plot to PDF
+        * Plots them as a quiver plot and appends this plot to PDF
 
     Parameters
     ----------
@@ -941,10 +954,34 @@ def process_az_and_range_combo_plots(
     browse_png : path-like
         Filename (with path) for the browse image PNG.
     """
-    browse_freq, browse_pol, browse_layer_num = (
-        product.get_browse_freq_pol_layer()
-    )
+    # Generate a browse PNG for one layer
+    freq, pol, layer_num = product.get_browse_freq_pol_layer()
 
+    with product.get_along_track_offset(
+        freq=freq, pol=pol, layer_num=layer_num
+    ) as az_off, product.get_slant_range_offset(
+        freq=freq, pol=pol, layer_num=layer_num
+    ) as rg_off:
+        y_dec, x_dec = process_single_quiver_plot_to_png(
+            az_offset=az_off,
+            rg_offset=rg_off,
+            params=params,
+            browse_png=browse_png,
+        )
+
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP % product.band,
+            ds_name="browseDecimation",
+            ds_data=[y_dec, x_dec],
+            ds_units="unitless",
+            ds_description=(
+                "Decimation strides for the browse image."
+                " Format: [<y decimation>, <x decimation>]."
+            ),
+        )
+
+    # Populate PDF with side-by-side plots and quiver plots.
     for freq in product.freqs:
         for pol in product.get_pols(freq):
             for layer_num in product.available_layer_numbers:
@@ -961,39 +998,13 @@ def process_az_and_range_combo_plots(
                         report_pdf=report_pdf,
                     )
 
-                    # Second, create the quiver plots for PDF and PNG
+                    # Second, create the quiver plots for PDF
                     cbar_min, cbar_max = process_single_quiver_plot_to_pdf(
                         az_offset=az_off,
                         rg_offset=rg_off,
                         params=params,
                         report_pdf=report_pdf,
                     )
-
-                    # Only generate a browse PNG for one layer
-                    if (
-                        (layer_num == browse_layer_num)
-                        and (pol == browse_pol)
-                        and (freq == browse_freq)
-                    ):
-                        y_dec, x_dec = process_single_quiver_plot_to_png(
-                            az_offset=az_off,
-                            rg_offset=rg_off,
-                            params=params,
-                            browse_png=browse_png,
-                        )
-
-                        nisarqa.create_dataset_in_h5group(
-                            h5_file=stats_h5,
-                            grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP
-                            % product.band,
-                            ds_name="browseDecimation",
-                            ds_data=[y_dec, x_dec],
-                            ds_units="unitless",
-                            ds_description=(
-                                "Decimation strides for the browse image."
-                                " Format: [<y decimation>, <x decimation>]."
-                            ),
-                        )
 
                 # Add final colorbar range processing parameter for this
                 # freq+pol+layer quiver plot to stats.h5.
@@ -1019,12 +1030,27 @@ def process_az_and_range_combo_plots(
                 )
 
 
+@overload
 def process_single_quiver_plot_to_pdf(
-    az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
-    rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    az_offset: nisarqa.RadarRaster,
+    rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
 ) -> tuple[float, float]:
+    ...
+
+
+@overload
+def process_single_quiver_plot_to_pdf(
+    az_offset: nisarqa.GeoRaster,
+    rg_offset: nisarqa.GeoRaster,
+    params: nisarqa.QuiverParamGroup,
+    report_pdf: PdfPages,
+) -> tuple[float, float]:
+    ...
+
+
+def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     """
     Process and save a single quiver plot to PDF.
 
@@ -1053,12 +1079,13 @@ def process_single_quiver_plot_to_pdf(
     # Create correct aspect ratio via decimation. (az and rng rasters have
     # the same shape, so WLOG compute the decimation factors for one raster
     # and apply to both.
+    raster_shape = np.shape(az_offset.data)
+    assert len(raster_shape) == 2  # the offset rasters should always be 2D
     ky, kx = nisarqa.compute_square_pixel_nlooks(
-        # only need the x and y dimensions
-        img_shape=np.shape(az_offset.data),
+        img_shape=raster_shape,
         sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
         # Only make square pixels. Use `max()` to not "shrink" the rasters.
-        longest_side_max=max(np.shape(az_offset.data)[:2]),
+        longest_side_max=max(raster_shape),
     )
     # Grab the datasets into arrays in memory.
     # While doing this, convert to square pixels.
@@ -1107,12 +1134,32 @@ def process_single_quiver_plot_to_pdf(
     return cbar_min, cbar_max
 
 
+@overload
 def process_single_quiver_plot_to_png(
-    az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
-    rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    az_offset: nisarqa.RadarRaster,
+    rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     browse_png: str | os.PathLike,
 ) -> tuple[int, int]:
+    ...
+
+
+@overload
+def process_single_quiver_plot_to_png(
+    az_offset: nisarqa.GeoRaster,
+    rg_offset: nisarqa.GeoRaster,
+    params: nisarqa.QuiverParamGroup,
+    browse_png: str | os.PathLike,
+) -> tuple[int, int]:
+    ...
+
+
+def process_single_quiver_plot_to_png(
+    az_offset,
+    rg_offset,
+    params,
+    browse_png,
+):
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
 
@@ -1181,17 +1228,17 @@ def process_single_quiver_plot_to_png(
     # Strategy to get around this: Create a Figure with our desired dimensions,
     # and then add an Axes object whose extents are set to ENTIRE Figure.
     # We'll need to take care that there is no added space around the border for
-    # labels, tick marks, title, etc. which could cause matplotlib to
+    # labels, tick marks, title, etc. which could cause Matplotlib to
     # automagically downscale (and mess up) the dimensions of the Axes.
 
     # Step 1: Create a figure with the exact shape in pixels as our array
-    # (matplotlib's Figure uses units of inches, but the image array
+    # (Matplotlib's Figure uses units of inches, but the image array
     # and our browse image PNG requirements are in units of pixels.)
     dpi = 72
     figure_shape_in_inches = (az_off.shape[1] / dpi, az_off.shape[0] / dpi)
     fig = plt.figure(figsize=figure_shape_in_inches, dpi=dpi)
 
-    # Step 2: Use tight layout with 0 padding so that matplotlib does not
+    # Step 2: Use tight layout with 0 padding so that Matplotlib does not
     # attempt to add padding around the axes.
     fig.tight_layout(pad=0)
 
@@ -1236,10 +1283,12 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     Parameters
     ----------
     ax : matplotlib.axes.Axes
+        Axes object that will be modified; the total offset magnitude image
+        and the quiver plot arrows will be added to this axes.
     az_off : numpy.ndarray
-        Along track offset raster array
+        Along track offset raster array.
     rg_off : numpy.ndarray
-        Slant range offset raster array
+        Slant range offset raster array.
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
 
@@ -1278,7 +1327,46 @@ def add_magnitude_image_and_quiver_plot_to_axes(
 
     # Truncate the magma cmap to only use the top half of the magma colormap
     # Adapted from: https://stackoverflow.com/a/18926541
-    def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=-1):
+    def truncate_colormap(
+        cmap: colors.ListedColormap,
+        minval: float = 0.0,
+        maxval: float = 1.0,
+        n: int = -1,
+    ) -> colors.LinearSegmentedColormap:
+        """
+        Truncate a colormap to only use a subset of the colormap.
+
+        A colormap maps values in the interval [0.0, 1.0] to specific visual
+        colors. For a known colormap, sometimes we only want to use a
+        sub-interval of its visual color range for our plot. This function
+        allows the user to specify the sub-interval of the existing colorbar
+        that they want to use, and returns a new colormap with the
+        visual colors from that sub-interval "stretched" to fill the entire
+        [0.0, 1.0] colormap range.
+
+        Parameters
+        ----------
+        cmap : colors.ListedColormap
+            An existing colormap. This can be fetched by calling e.g.
+            matplotlib.pyplot.get_cmap("magma").
+        minval : float
+            Minimum value of the sub-interval of `cmap` to use. Must be >= 0.0.
+            Defaults to 0.0.
+        maxval : float, optional
+            Maximum value of the sub-interval of `cmap` to use. Must be <= 1.0.
+            Defaults to 1.0.
+        n : int
+            Number of entries to generate in the truncated colormap. (256 is
+            a typical value.) -1 to use the same numbers of entries as `cmap`.
+            Defaults to -1.
+
+        Returns
+        -------
+        truncated_cmap : matplotlib.colors.LinearSegmentedColormap
+            A new colormap with the visual colors from the sub-interval
+            [`minval`, `maxval`] of `cmap`'s colormap "stretched" to
+            fill the entire colormap range.
+        """
         if (minval < 0.0) or (maxval > 1.0):
             raise ValueError(
                 f"{minval=} and {maxval=}, but must be in range [0.0, 1.0]."
@@ -1314,11 +1402,11 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     arrow_stride = int(max(np.shape(total_offset)) / params.arrow_density)
 
     # Only plot the arrows at the requested strides.
-    y_arrow_tip = az_off[::arrow_stride, ::arrow_stride]
-    x_arrow_tip = rg_off[::arrow_stride, ::arrow_stride]
+    arrow_y = az_off[::arrow_stride, ::arrow_stride]
+    arrow_x = rg_off[::arrow_stride, ::arrow_stride]
 
-    x = np.linspace(0, x_arrow_tip.shape[1] - 1, x_arrow_tip.shape[1])
-    y = np.linspace(0, x_arrow_tip.shape[0] - 1, x_arrow_tip.shape[0])
+    x = np.linspace(0, arrow_x.shape[1] - 1, arrow_x.shape[1])
+    y = np.linspace(0, arrow_x.shape[0] - 1, arrow_x.shape[0])
     X, Y = np.meshgrid(x, y)
 
     # Add the quiver arrows to the plot.
@@ -1331,9 +1419,9 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         # starting y coordinate for each arrow
         Y * arrow_stride,
         # ending x direction component of for each arrow vector
-        x_arrow_tip * arrow_stride,
+        arrow_x * arrow_stride,
         # ending y direction component of for each arrow vector
-        y_arrow_tip * arrow_stride,
+        arrow_y * arrow_stride,
         angles="xy",
         scale_units="xy",
         # Use a scale less that 1 to exaggerate the arrows.

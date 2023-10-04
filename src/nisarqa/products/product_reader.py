@@ -2750,7 +2750,9 @@ class OffsetProduct(InsarProduct):
             freq=freq, pol=pol, layer_num=self.available_layer_numbers[0]
         )
 
-    def _layer_group_parent_path(self, freq: str, pol: str, layer_num: int) -> str:
+    def _layer_group_parent_path(
+        self, freq: str, pol: str, layer_num: int
+    ) -> str:
         """Get path in input file to the parent group for this layer group."""
         return f"{self.get_freq_path(freq)}/pixelOffsets/{pol}/layer{layer_num}"
 
@@ -2765,6 +2767,9 @@ class OffsetProduct(InsarProduct):
         ----------
         freq, pol : str
             Frequency and polarization (respectively) for the desired raster.
+        layer_num : int
+            Layer number of the desired raster. For example, to get the
+            requested raster from the `layer1` group, set `layer_num` to `1`.
 
         Yields
         ------
@@ -2789,6 +2794,9 @@ class OffsetProduct(InsarProduct):
         ----------
         freq, pol : str
             Frequency and polarization (respectively) for the desired raster.
+        layer_num : int
+            Layer number of the desired raster. For example, to get the
+            requested raster from the `layer1` group, set `layer_num` to `1`.
 
         Yields
         ------
