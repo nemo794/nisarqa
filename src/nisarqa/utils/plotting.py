@@ -704,12 +704,12 @@ def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
     See Also
     --------
     nisarqa.compute_square_pixel_nlooks : Function to compute the decimation
-        strides for an image array; until `decimate_img_to_size_of_axes()`,
+        strides for an image array;
         this function also accounts for making the pixels "square".
     """
     fig = ax.get_figure()
 
-    # Get size of ax1 window in inches
+    # Get size of ax window in inches
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 
     height, width = np.shape(arr)[:2]
@@ -813,10 +813,8 @@ def process_single_side_by_side_offsets_plot(
     rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
         Slant range offset layer to be processed. Must correspond to
         `az_offset`.
-    params : nisarqa.QuiverParamGroup
-        A structure containing processing parameters to generate quiver plots.
     report_pdf : PdfPages
-        The output PDF file to append the quiver plot to.
+        The output PDF file to append the offsets plots to.
     """
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
@@ -828,15 +826,17 @@ def process_single_side_by_side_offsets_plot(
     # Both plots should use the larger of the intervals.
     # TODO - Geoff, should this be computed on the full input array?
     # or should we wait to compute it below, using the decimated array? Thanks!
-    az_max = max(np.abs(np.nanmax(az_img)), np.nanmin(az_img))
-    rg_max = max(np.abs(np.nanmax(rg_img)), np.nanmin(rg_img))
+    def get_max_abs_val(img: ArrayLike) -> float:
+        return max(np.abs(np.nanmax(img)), np.nanmin(img))
+    az_max = get_max_abs_val(az_img)
+    rg_max = get_max_abs_val(rg_img)
     cbar_max = max(az_max, rg_max)
     cbar_min = -cbar_max  # center around zero
 
     # Decimate to square pixels. (az and rng rasters have the same metadata)
     ky, kx = nisarqa.compute_square_pixel_nlooks(
         # only need the x and y dimensions
-        img_shape=np.shape(az_img)[:2],
+        img_shape=np.shape(az_img),
         sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
         # Only make square pixels. Use `max()` to not "shrink" the rasters.
         longest_side_max=max(np.shape(az_img)[:2]),
@@ -1026,7 +1026,7 @@ def process_single_quiver_plot_to_pdf(
     report_pdf: PdfPages,
 ) -> tuple[float, float]:
     """
-    Process and save a single quiver plot to PDF and (optional) PNG.
+    Process and save a single quiver plot to PDF.
 
     Parameters
     ----------
@@ -1055,7 +1055,7 @@ def process_single_quiver_plot_to_pdf(
     # and apply to both.
     ky, kx = nisarqa.compute_square_pixel_nlooks(
         # only need the x and y dimensions
-        img_shape=np.shape(az_offset.data)[:2],
+        img_shape=np.shape(az_offset.data),
         sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
         # Only make square pixels. Use `max()` to not "shrink" the rasters.
         longest_side_max=max(np.shape(az_offset.data)[:2]),
@@ -1073,7 +1073,7 @@ def process_single_quiver_plot_to_pdf(
     # Because of the constrained layout (which optimizes for all Artists in
     # the Figure), let's add the title before decimating the rasters.
     title = (
-        "Total Along Track + Slant Range Pixel Offset in meters\n"
+        "Combined Pixel Offsets in meters\n"
         f"{'_'.join(az_offset.name.split('_')[:-1])}"
     )
     fig.suptitle(title)
@@ -1111,7 +1111,7 @@ def process_single_quiver_plot_to_png(
     az_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
     rg_offset: nisarqa.RadarRaster | nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
-    browse_png: Optional[str | os.PathLike] = None,
+    browse_png: str | os.PathLike,
 ) -> tuple[int, int]:
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
@@ -1126,9 +1126,8 @@ def process_single_quiver_plot_to_png(
         `az_offset`.
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
-    browse_png : path-like or None, optional
+    browse_png : path-like
         Filename (with path) for the browse image PNG.
-        If None, no browse PNG will be saved. Defaults to None.
 
     Returns
     -------
@@ -1188,9 +1187,9 @@ def process_single_quiver_plot_to_png(
     # Step 1: Create a figure with the exact shape in pixels as our array
     # (matplotlib's Figure uses units of inches, but the image array
     # and our browse image PNG requirements are in units of pixels.)
-    dpi = 100
+    dpi = 72
     figure_shape_in_inches = (az_off.shape[1] / dpi, az_off.shape[0] / dpi)
-    fig = plt.figure(figsize=figure_shape_in_inches)
+    fig = plt.figure(figsize=figure_shape_in_inches, dpi=dpi)
 
     # Step 2: Use tight layout with 0 padding so that matplotlib does not
     # attempt to add padding around the axes.
@@ -1231,7 +1230,7 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     This function computes the total offset magnitude via this formula:
         total_offset = sqrt(rg_off**2 + az_off**2)
     `total_offset` is used as the background image, with the magma color map.
-    The quiver arrows (vector arrows) are added to the Axes top of the
+    The quiver arrows (vector arrows) are added to the Axes on top of the
     `total_offset` image.
 
     Parameters
@@ -1269,7 +1268,6 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     # Compute the vmin and vmax for the colorbar range
     # Note: because we're getting `cbar_min_max` from the `params`, the values
     # have already been validated. No further checks needed.
-    # TODO - Geoff, should the vmin, vmiax be computed prior to decimation?
     cbar_min_max = params.cbar_min_max
     if cbar_min_max is None:
         # Dynamically compute the colorbar interval to be [0, max].
