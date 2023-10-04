@@ -35,7 +35,7 @@ def verify_offset(user_rncfg: dict[str, dict], product_type: str) -> None:
     if product_type not in ("roff", "goff"):
         raise ValueError(f"{product_type=}, must be one of 'roff' or 'goff'.")
 
-    # Build the ROFFRootParamGroup parameters per the runconfig
+    # Build the *RootParamGroup parameters per the runconfig
     try:
         root_params = nisarqa.build_root_params(
             product_type=product_type, user_rncfg=user_rncfg

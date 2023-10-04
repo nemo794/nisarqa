@@ -457,13 +457,13 @@ class QuiverParamGroup(YamlParamGroup):
         Defaults to None.
     browse_decimation_freqa, browse_decimation_freqb : pair of int or None, optional
         Stride along each axis of the Frequency A (or Frequency B)
-        image arrays for multilooking the quiver plot image.
+        image arrays for decimating the quiver plot image.
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
-        If None, the QA code to compute the strides values
+        If None, the QA code computes the strides values
         based on `longest_side_max` and by squaring the pixels.
         Defaults to None.
-    arrow_density : int, optional
+    arrow_density : float, optional
         Number of arrows (vectors) to plot per the longest edge of the raster.
         Defaults to 20.
     arrow_scaling : float or None, optional
@@ -476,7 +476,7 @@ class QuiverParamGroup(YamlParamGroup):
         See: The `scaling` parameter for `matplotlib.axes.Axes.quiver`.
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
-        2D multilooked browse image. If None, no downscaling will occur
+        2D decimated browse image. If None, no downscaling will occur
         (other than to form square pixels).
         Defaults to 2048 pixels.
     """
@@ -525,7 +525,7 @@ class QuiverParamGroup(YamlParamGroup):
         },
     )
 
-    arrow_density: int = field(
+    arrow_density: float = field(
         default=20,
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -536,7 +536,7 @@ class QuiverParamGroup(YamlParamGroup):
         },
     )
 
-    arrow_scaling: int = field(
+    arrow_scaling: Optional[float] = field(
         default=None,
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -640,7 +640,7 @@ class QuiverParamGroup(YamlParamGroup):
         monotonically_increasing: bool = False,
     ) -> None:
         """
-        Raise exception if `nlooks` is not a valid input.
+        Raise exception if `param_value` is not a valid input.
 
         Parameters
         ----------
@@ -649,11 +649,11 @@ class QuiverParamGroup(YamlParamGroup):
         param_name : str
             Name of this parameter. Will be used for the error message.
         min, max : None or int or float, optional
-            The minimum or maximum values (respectively) for each value in
-            `param_value`.
-        none_is_valid_value : bool
+            The minimum or maximum allowed values (respectively) for each value in
+            `param_value`. `param_value` may not be outside this range.
+        none_is_valid_value : bool, optional
             True if `None` is a valid value. Defaults to False.
-        monotonically_increasing : bool
+        monotonically_increasing : bool, optional
             True if `input_value[0]` must be less than `input_value[1]`.
             Defaults to False.
         """
@@ -665,13 +665,13 @@ class QuiverParamGroup(YamlParamGroup):
                     f"`{param_name}` is None, but must be a pair of numeric."
                 )
 
-        if not isinstance(param_value, (list, tuple)):
+        if not isinstance(param_value, Sequence):
             msg = f"`{param_name}` must be a sequence"
             if none_is_valid_value:
                 msg += " or None."
             raise TypeError(msg)
 
-        if not len(param_value) == 2:
+        if len(param_value) != 2:
             raise ValueError(
                 f"{param_name}={param_value}; must have a length of two."
             )
@@ -694,8 +694,8 @@ class QuiverParamGroup(YamlParamGroup):
         if monotonically_increasing:
             if param_value[0] >= param_value[1]:
                 raise ValueError(
-                    f"{param_name}={param_value}; values must be in"
-                    " monotonically increasing."
+                    f"{param_name}={param_value}; values must be"
+                    " strictly increasing."
                 )
 
 

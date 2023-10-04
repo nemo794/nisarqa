@@ -339,10 +339,24 @@ class GeoRaster(SARRaster):
         return "Easting (km)"
 
 
+@overload
 def compare_raster_metadata(
-    raster1: nisarqa.RadarRaster | nisarqa.GeoRaster,
-    raster2: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    raster1: nisarqa.RadarRaster,
+    raster2: nisarqa.RadarRaster,
 ) -> None:
+    ...
+
+@overload
+def compare_raster_metadata(
+    raster1: nisarqa.GeoRaster,
+    raster2: nisarqa.GeoRaster,
+) -> None:
+    ...
+
+def compare_raster_metadata(
+    raster1,
+    raster2,
+):
     """
     Compare the primary metadata and shape of two *Raster instances.
 
@@ -350,10 +364,9 @@ def compare_raster_metadata(
     This is useful for checking that two rasters can be combined smoothly into
     a single image, such as combining a phase image raster and a coherence
     magnitude raster to create an HSI image.
-    Since these two rasters are likely for a pair of two different rasters,
-    this function does not compare the `name` field nor the values inside the
+    This function does not compare the `name` field nor the values inside the
     data arrays.
-    Raises an error if two fields do not match.
+    Raises a ValueError if two fields do not match.
 
     Parameters
     ----------
@@ -368,6 +381,8 @@ def compare_raster_metadata(
     for r1, r2 in zip(fields(raster1), fields(raster2)):
         r1_val = getattr(raster1, r1.name)
         r2_val = getattr(raster2, r2.name)
+        
+        assert r1.name == r2.name
 
         if r1.name == "data":
             # raster data layers should have the same shape
@@ -380,7 +395,7 @@ def compare_raster_metadata(
             # "name" dataclass attributes should be the same
             # except for the final layer name
             if r1_val.split("_")[:-1] != r2_val.split("_")[:-1]:
-                raise RuntimeWarning(
+                warnings.warn(
                     f"{raster1.name=} but {raster2.name=}. Consider checking if"
                     " their band, frequency, polarization, etc. should match."
                 )

@@ -2625,7 +2625,7 @@ class OffsetProduct(InsarProduct):
         return name
 
     @cached_property
-    def available_layer_numbers(self) -> tuple[int]:
+    def available_layer_numbers(self) -> tuple[int, ...]:
         """
         The numbers of the available layers in the input product.
 
@@ -2648,11 +2648,11 @@ class OffsetProduct(InsarProduct):
 
         Returns
         -------
-        layers : tuple[int]
+        layers : tuple[int, ...]
             Tuple of the available layers.
         """
 
-        def _get_available_layer_numbers(freq):
+        def _get_available_layer_numbers(freq: str) -> tuple[int, ...]:
             golden_layers = []
             with nisarqa.open_h5_file(self.filepath) as f:
                 # if multiple pols, make sure they contain the same layers
@@ -2721,10 +2721,10 @@ class OffsetProduct(InsarProduct):
             The frequency to use for the browse image.
         pol : str
             The polarization to use for the browse image.
-        layer_num : str
+        layer_num : int
             The layer number to use for the browse image.
         """
-        freq, pol = super().get_browse_freq_pol()
+        freq, pol = self.get_browse_freq_pol()
 
         # Prioritization order, as determined by insar product lead (Sept 2023).
         # Layer 3 should be nicest-looking for the browse image; compared
@@ -2735,12 +2735,13 @@ class OffsetProduct(InsarProduct):
             if layer_num in self.available_layer_numbers:
                 return freq, pol, layer_num
         else:
-            print(
+            errmsg = (
                 f"Prioritization order of layer groups is {priority_order}, but"
                 " the product only contains layers"
                 f" {self.available_layer_numbers}."
             )
-            raise nisarqa.InvalidNISARProductError
+            print(errmsg)
+            raise nisarqa.InvalidNISARProductError(errmsg)
 
     def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
         # Each polarization should contain the same layer numbers.
@@ -2749,7 +2750,7 @@ class OffsetProduct(InsarProduct):
             freq=freq, pol=pol, layer_num=self.available_layer_numbers[0]
         )
 
-    def _layer_group_parent_path(self, freq, pol, layer_num) -> str:
+    def _layer_group_parent_path(self, freq: str, pol: str, layer_num: int) -> str:
         """Get path in input file to the parent group for this layer group."""
         return f"{self.get_freq_path(freq)}/pixelOffsets/{pol}/layer{layer_num}"
 
