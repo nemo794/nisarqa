@@ -91,7 +91,7 @@ setup(
     install_requires=[
         "cycler",
         "h5py>=3",
-        "isce3"
+        "isce3>=0.16"
         "matplotlib",
         "numpy>=1.20",
         "pillow",

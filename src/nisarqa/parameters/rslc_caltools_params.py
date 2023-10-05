@@ -10,9 +10,11 @@ from numpy.typing import ArrayLike
 
 import nisarqa
 from nisarqa import (
+    AbsCalParamGroup,
     HDF5Attrs,
     HDF5ParamGroup,
     InputFileGroupParamGroup,
+    PointTargetAnalyzerParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
     WorkflowsParamGroup,
@@ -668,56 +670,6 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
-    """
-    Parameters from the QA-CalTools Absolute Radiometric Calibration
-    runconfig group.
-
-    Parameters
-    ----------
-    attr1 : float, optional
-        Placeholder Attribute 1.
-    """
-
-    # Attributes
-    attr1: float = field(
-        default=2.3,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="attr1",
-                descr="""Placeholder: Attribute 1 description for runconfig.
-            Each new line of text will be a separate line in the runconfig
-            template. `attr1` is a non-negative float value.""",
-            ),
-            "hdf5_attrs": HDF5Attrs(
-                name="attribute1",
-                units="smoot",
-                descr="Description of `attr1` for stats.h5 file",
-                group_path=nisarqa.STATS_H5_ABSCAL_PROCESSING_GROUP,
-            ),
-        },
-    )
-
-    def __post_init__(self):
-        # validate all attributes in __post_init__
-
-        # validate attr1
-        if not isinstance(self.attr1, float):
-            raise TypeError(f"`attr1` must be a float: {self.attr1}")
-        if self.attr1 < 0:
-            raise TypeError(f"`attr1` must be positive: {self.attr1}")
-
-    @staticmethod
-    def get_path_to_group_in_runconfig():
-        return [
-            "runconfig",
-            "groups",
-            "qa",
-            "absolute_radiometric_calibration",
-        ]
-
-
-@dataclass(frozen=True)
 class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters from the QA-CalTools Noise Estimator (NET) runconfig group.
@@ -781,48 +733,6 @@ class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "noise_estimation"]
-
-
-@dataclass(frozen=True)
-class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
-    """
-    Parameters from the QA-CalTools Point Target Analyzer runconfig group.
-
-    Parameters
-    ----------
-    attr1 : float, optional
-        Placeholder Attribute 1.
-    """
-
-    attr1: float = field(
-        default=2300.5,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="attr1",
-                descr="""Placeholder: Attribute 1 description for runconfig.
-            Each new line of text will be a separate line in the runconfig
-            template.
-            `attr1` is a non-negative float value.""",
-            ),
-            "hdf5_attrs": HDF5Attrs(
-                name="attribute1",
-                units="beard-second",
-                descr="Description of `attr1` for stats.h5 file",
-                group_path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP,
-            ),
-        },
-    )
-
-    def __post_init__(self):
-        # validate attr1
-        if not isinstance(self.attr1, float):
-            raise TypeError(f"`attr1` must be a float: {self.attr1}")
-        if self.attr1 < 0.0:
-            raise TypeError(f"`attr1` must be non-negative: {self.attr1}")
-
-    @staticmethod
-    def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "point_target_analyzer"]
 
 
 @dataclass
