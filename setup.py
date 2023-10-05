@@ -26,7 +26,8 @@ class CleanCommand(Command):
     def run(self):
         # Make sure to remove the .egg-info file
         os.system(
-            "rm -vrf .scratch_dir ./build ./dist ./*.pyc ./*.tgz ./*.egg-info ./src/*.egg-info"
+            "rm -vrf .scratch_dir ./build ./dist ./*.pyc ./*.tgz ./*.egg-info"
+            " ./src/*.egg-info"
         )
 
 
@@ -53,7 +54,8 @@ def _get_version():
     if match is None:
         raise ValueError(
             f"__init__.py file {init_file} not properly formatted."
-            " It should contain text matching e.g.` __version__ = '2.3.4'`")
+            " It should contain text matching e.g.` __version__ = '2.3.4'`"
+        )
 
     return match.group(1)
 
@@ -65,8 +67,10 @@ setup(
     description="NISAR ADT Quality Assurance",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    license="Copyright by the California Institute of Technology."
-    "All rights reserved",
+    license=(
+        "Copyright by the California Institute of Technology."
+        "All rights reserved"
+    ),
     url="http://nisar.jpl.nasa.gov",
     version=_get_version(),
     # Gather all packages located under `src`.
@@ -78,7 +82,9 @@ setup(
     data_files=[
         (
             "product_specs",
-            glob.glob(os.path.join("src", "parameters", "product_specs", "*.xml")),
+            glob.glob(
+                os.path.join("src", "parameters", "product_specs", "*.xml")
+            ),
         )
     ],
     # Build dependencies
@@ -91,7 +97,7 @@ setup(
     install_requires=[
         "cycler",
         "h5py>=3",
-        "isce3>=0.16"
+        "isce3>=0.16",
         "matplotlib",
         "numpy>=1.20",
         "pillow",
