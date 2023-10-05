@@ -298,7 +298,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
         be >= 1. Defaults to 64.
     upsample_factor : int, optional
         The upsampling ratio. Must be >= 1. Defaults to 32.
-    peak_find_domain : {'time', 'freq'}, optional
+    peak_find_domain : {'time', 'frequency'}, optional
         Option controlling how the target peak position is estimated.
 
         'time':
@@ -307,7 +307,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
           the expected target location. The signal data is upsampled to improve
           precision.
 
-        'freq':
+        'frequency':
           The peak location is found by estimating the phase ramp in the
           frequency domain. This mode is useful when the target is well-focused,
           has high SNR, and is the only target in the neighborhood (often the
@@ -412,7 +412,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="peak_find_domain",
                 descr="""Option controlling how the target peak position is
-                estimated. Valid options are 'time' or 'freq'.
+                estimated. Valid options are 'time' or 'frequency'.
 
                 'time':
                   The peak location is found in the time domain by detecting the
@@ -420,7 +420,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
                   expected target location. The signal data is upsampled to
                   improve precision.
 
-                'freq':
+                'frequency':
                   The peak location is found by estimating the phase ramp in the
                   frequency domain. This mode is useful when the target is
                   well-focused, has high SNR, and is the only target in the
@@ -597,7 +597,9 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
                 "`peak_find_domain` must be a str, got"
                 f" {type(self.peak_find_domain)}"
             )
-        peak_find_domain_choices = {"time", "freq"}
+        # XXX this differs from the `peak_find_domain` parameter of the AbsCal
+        # tool, which expects 'time' or 'freq'!
+        peak_find_domain_choices = {"time", "frequency"}
         if self.peak_find_domain not in peak_find_domain_choices:
             raise ValueError(
                 f"`peak_find_domain` must be one of {peak_find_domain_choices},"
