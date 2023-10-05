@@ -859,7 +859,7 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
 
     # Create figure and add the rasters.
     fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, constrained_layout="tight")
-    fig.suptitle("Along Track and Slant Range Offsets (in meters)")
+    fig.suptitle("Along Track Offsets and Slant Range Offsets (meters)")
 
     # Decimate Along Track Offset raster and plot on left (ax1)
     az_img = decimate_img_to_size_of_axes(ax=ax1, arr=az_img)
@@ -1100,7 +1100,7 @@ def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     # Because of the constrained layout (which optimizes for all Artists in
     # the Figure), let's add the title before decimating the rasters.
     title = (
-        "Combined Pixel Offsets in meters\n"
+        "Combined Pixel Offsets (meters)\n"
         f"{'_'.join(az_offset.name.split('_')[:-1])}"
     )
     fig.suptitle(title)
