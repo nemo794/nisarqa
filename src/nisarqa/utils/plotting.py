@@ -1090,7 +1090,7 @@ def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     # Grab the datasets into arrays in memory.
     # While doing this, convert to square pixels.
     az_off = az_offset.data[::ky, ::kx]
-    rg_off = az_offset.data[::ky, ::kx]
+    rg_off = rg_offset.data[::ky, ::kx]
 
     # Grab the axes window extent size, and decimate array to correct size for
     # plotting to the PDF
