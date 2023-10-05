@@ -2389,12 +2389,12 @@ class WrappedGroup(InsarProduct):
 
     @staticmethod
     @abstractmethod
-    def _wrapped_parent_path(freq: str, pol: str) -> str:
-        """Path in input file to parent group for Wrapped I-gram group."""
+    def _wrapped_group_path(freq: str, pol: str) -> str:
+        """Path in input file to wrapped interferogram group."""
         pass
 
     def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
-        return self._wrapped_parent_path(freq, pol)
+        return self._wrapped_group_path(freq, pol)
 
     @contextmanager
     def get_wrapped_igram(
@@ -2413,7 +2413,7 @@ class WrappedGroup(InsarProduct):
         raster : RadarRaster or GeoRaster
             Generated *Raster for the requested dataset.
         """
-        parent_path = self._wrapped_parent_path(freq=freq, pol=pol)
+        parent_path = self._wrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/wrappedInterferogram"
         self._check_dtype(path=path, expected_dtype=np.complex64)
 
@@ -2437,7 +2437,7 @@ class WrappedGroup(InsarProduct):
         raster : RadarRaster or GeoRaster
             Generated *Raster for the requested dataset.
         """
-        parent_path = self._wrapped_parent_path(freq=freq, pol=pol)
+        parent_path = self._wrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/coherenceMagnitude"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
@@ -2455,12 +2455,12 @@ class UnwrappedGroup(InsarProduct):
 
     @staticmethod
     @abstractmethod
-    def _unwrapped_parent_path(freq: str, pol: str) -> str:
-        """Path in input file to parent group for Unwrapped I-gram group."""
+    def _unwrapped_group_path(freq: str, pol: str) -> str:
+        """Path in input file to unwrapped interferogram group.."""
         pass
 
     def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
-        return self._unwrapped_parent_path(freq, pol)
+        return self._unwrapped_group_path(freq, pol)
 
     @contextmanager
     def get_unwrapped_phase(
@@ -2479,7 +2479,7 @@ class UnwrappedGroup(InsarProduct):
         raster : RadarRaster or GeoRaster
             Generated *Raster for the requested dataset.
         """
-        parent_path = self._unwrapped_parent_path(freq=freq, pol=pol)
+        parent_path = self._unwrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/unwrappedPhase"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
@@ -2503,7 +2503,7 @@ class UnwrappedGroup(InsarProduct):
         raster : RadarRaster or GeoRaster
             Generated *Raster for the requested dataset.
         """
-        parent_path = self._unwrapped_parent_path(freq=freq, pol=pol)
+        parent_path = self._unwrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/coherenceMagnitude"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
@@ -2517,7 +2517,7 @@ class RIFG(WrappedGroup, NisarRadarProduct):
     def product_type(self) -> str:
         return "RIFG"
 
-    def _wrapped_parent_path(self, freq: str, pol: str) -> str:
+    def _wrapped_group_path(self, freq: str, pol: str) -> str:
         return f"{self.get_freq_path(freq)}/interferogram/{pol}"
 
 
@@ -2527,7 +2527,7 @@ class RUNW(UnwrappedGroup, NisarRadarProduct):
     def product_type(self) -> str:
         return "RUNW"
 
-    def _unwrapped_parent_path(self, freq: str, pol: str) -> str:
+    def _unwrapped_group_path(self, freq: str, pol: str) -> str:
         return f"{self.get_freq_path(freq)}/interferogram/{pol}"
 
 
@@ -2555,10 +2555,10 @@ class GUNW(
     def product_type(self) -> str:
         return "GUNW"
 
-    def _wrapped_parent_path(self, freq, pol) -> str:
+    def _wrapped_group_path(self, freq, pol) -> str:
         return f"{self.get_freq_path(freq)}/wrappedInterferogram/{pol}"
 
-    def _unwrapped_parent_path(self, freq, pol) -> str:
+    def _unwrapped_group_path(self, freq, pol) -> str:
         if self.product_spec_version == "0.0.0":
             return f"{self.get_freq_path(freq)}/interferogram/{pol}"
         else:
@@ -2664,7 +2664,7 @@ class OffsetProduct(InsarProduct):
                     # however NISAR Science Team is asking for up to 7 layers.
                     layers_tmp = []
                     for l_num in range(1, 8):
-                        path = self._layer_group_parent_path(freq, pol, l_num)
+                        path = self._numbered_layer_group_path(freq, pol, l_num)
                         try:
                             f[path]
                         except KeyError:
@@ -2746,14 +2746,14 @@ class OffsetProduct(InsarProduct):
     def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
         # Each polarization should contain the same layer numbers.
         # WLOG, use the first available layer number.
-        return self._layer_group_parent_path(
+        return self._numbered_layer_group_path(
             freq=freq, pol=pol, layer_num=self.available_layer_numbers[0]
         )
 
-    def _layer_group_parent_path(
+    def _numbered_layer_group_path(
         self, freq: str, pol: str, layer_num: int
     ) -> str:
-        """Get path in input file to the parent group for this layer group."""
+        """Get path in input file to the group for this numbered layer group."""
         return f"{self.get_freq_path(freq)}/pixelOffsets/{pol}/layer{layer_num}"
 
     @contextmanager
@@ -2776,7 +2776,7 @@ class OffsetProduct(InsarProduct):
         raster : RadarRaster or GeoRaster
             Generated *Raster for the requested dataset.
         """
-        parent_path = self._layer_group_parent_path(freq, pol, layer_num)
+        parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/alongTrackOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
@@ -2803,7 +2803,7 @@ class OffsetProduct(InsarProduct):
         raster : RadarRaster or GeoRaster
             Generated *Raster for the requested dataset.
         """
-        parent_path = self._layer_group_parent_path(freq, pol, layer_num)
+        parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/slantRangeOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
