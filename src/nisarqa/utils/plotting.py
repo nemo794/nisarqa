@@ -839,7 +839,7 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
     # Compute the colorbar interval, centered around zero.
     # Both plots should use the larger of the intervals.
     def get_max_abs_val(img: npt.ArrayLike) -> float:
-        return max(np.abs(np.nanmax(img)), np.nanmin(img))
+        return max(np.abs(np.nanmax(img)), np.abs(np.nanmin(img)))
 
     az_max = get_max_abs_val(az_img)
     rg_max = get_max_abs_val(rg_img)
@@ -852,7 +852,7 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
         img_shape=np.shape(az_img),
         sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
         # Only make square pixels. Use `max()` to not "shrink" the rasters.
-        longest_side_max=max(np.shape(az_img)[:2]),
+        longest_side_max=max(np.shape(az_img)),
     )
     az_img = az_img[::ky, ::kx]
     rg_img = rg_img[::ky, ::kx]
@@ -1349,13 +1349,13 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         cmap : colors.ListedColormap
             An existing colormap. This can be fetched by calling e.g.
             matplotlib.pyplot.get_cmap("magma").
-        minval : float
+        minval : float, optional
             Minimum value of the sub-interval of `cmap` to use. Must be >= 0.0.
             Defaults to 0.0.
         maxval : float, optional
             Maximum value of the sub-interval of `cmap` to use. Must be <= 1.0.
             Defaults to 1.0.
-        n : int
+        n : int, optional
             Number of entries to generate in the truncated colormap. (256 is
             a typical value.) -1 to use the same numbers of entries as `cmap`.
             Defaults to -1.
