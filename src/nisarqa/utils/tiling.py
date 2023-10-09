@@ -1,6 +1,7 @@
 import warnings
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 import nisarqa
 
@@ -226,8 +227,7 @@ def compute_multilooked_backscatter_by_tiling(
 
     if len(arr_shape) != 2:
         raise ValueError(
-            f"Input array has shape {arr_shape}"
-            " but can only have 2 dimensions."
+            f"Input array has shape {arr_shape} but can only have 2 dimensions."
         )
 
     if tile_shape[0] == -1:
@@ -432,6 +432,88 @@ def compute_histogram_by_tiling(
         hist_counts = nisarqa.counts2density(hist_counts, bin_edges)
 
     return hist_counts
+
+
+def compute_range_spectra_by_tiling(
+    arr: ArrayLike,
+    range_decimation: int = 1,
+    tile_height: int = 512,
+    fft_shift: bool = True,
+) -> np.ndarray:
+    """
+    Compute the decimated range spectra (linear units) by tiling.
+
+    Power will be computed in linear units. Frequency will be computed in Hz.
+
+    Parameters
+    ----------
+    arr : array_like
+        The input array
+    range_decimation : int, optional
+        The stride to decimate the input array along the azimuth axis.
+        For example, `4` means every 4th range line will
+        be used to compute the range spectra.
+        If `1`, no decimation will occur (but is slower to compute).
+        Defaults to 1.
+    tile_height : int, optional
+        User-preferred tile height (number of range lines) for processing
+        images by batches. Actual tile shape may be modified by QA to be
+        an integer multiple of `range_decimation`.
+        Note: full rows must be read in, so the number of columns for each tile
+        will be fixed to the number of columns in the input raster.
+        -1 to use all rows.
+        Defaults to 512.
+    fft_shift : bool, optional
+        True to have the frequencies in `range_power_spec` be continuous from
+        negative (min) -> positive (max) values.
+
+        False to leave `range_power_spec` as the output from
+        `numpy.fft.fftfreq()`, where this discrete fft operation orders values
+        from 0 -> max positive -> min negative -> 0- . (This creates
+        a discontinuity in the interval's values.)
+
+        Defaults to True.
+
+
+    Returns
+    -------
+    range_power_spec : numpy.ndarray
+        Range power spectrum (linear units) for the input array.
+    """
+    if tile_height == -1:
+        tile_height = np.shape(arr)[0]
+
+    # Shrink the tile height to be an even multiple of `range_decimation`.
+    # Otherwise, the decimation will get messy to book-keep.
+    tile_height = tile_height - (tile_height % range_decimation)
+
+    # Compute total number of range lines that will be used
+    # (This will become the denominator during the averaging step.)
+    num_range_lines = np.shape(arr)[0] // range_decimation
+
+    # Create the Iterator over the input array
+    input_iter = TileIterator(
+        np.shape(arr), tile_nrows=tile_height, row_stride=range_decimation
+    )
+
+    # Initialize the accumulator array
+    range_power_spec = np.zeros((np.shape(arr)[1],))
+
+    for tile_slice in input_iter:
+        arr_slice = arr[tile_slice]
+
+        # Compute fft over range axis (axis 1)
+        fft = nisarqa.compute_fft(arr_slice, axis=1)
+
+        # Accumulate average power density along the azimuth axis
+        range_power_spec += np.sum(np.abs(fft) ** 2, axis=0) / num_range_lines
+
+    if fft_shift:
+        # Shift range_power_spec to be aligned with the
+        # shifted fft frequencies.
+        range_power_spec = np.fft.fftshift(range_power_spec)
+
+    return range_power_spec
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

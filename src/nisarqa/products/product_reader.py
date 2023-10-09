@@ -870,6 +870,15 @@ class NisarRadarProduct(NisarProduct):
         """
         pass
 
+<<<<<<< HEAD
+=======
+
+# TODO - remove comment
+# These deleted functions were moved to be inside only the RSLC product. They do not actually
+# work for RIFG/RUNW/ROFF. For now, only RSLC needs direct access to these
+# datasets.
+
+>>>>>>> c8bc02b (first commit RSLC range spectra plot. Density is not correctly normalized.)
 
 @dataclass
 class NisarGeoProduct(NisarProduct):

@@ -13,6 +13,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
 from numpy.typing import ArrayLike
 from PIL import Image
+from scipy import constants
 
 import nisarqa
 
@@ -184,6 +185,12 @@ def verify_rslc(user_rncfg):
             # Process Interferograms
 
             # Generate Spectra
+            process_range_spectra(
+                product=product,
+                params=root_params.range_spectra,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
+            )
 
             # Check for invalid values
 
@@ -1403,6 +1410,173 @@ def add_hist_to_axis(axis, counts, edges, label):
     """
     bin_centers = 0.5 * (edges[:-1] + edges[1:])
     axis.plot(bin_centers, counts, label=label)
+
+
+def process_range_spectra(
+    product: nisarqa.RSLC,
+    params: nisarqa.RangeSpectraParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Generate the RSLC Range Spectra plot and save to PDF and stats.h5.
+
+    Generate the RSLC Range Spectra; save the plot
+    to the graphical summary .pdf file and the data to the
+    statistics .h5 file.
+
+    Power Spectra will be computed in decibel units,
+    and Frequency in MHz.
+
+    Parameters
+    ----------
+    product : nisarqa.RSLC
+        Input RSLC product.
+    params : nisarqa.RangeSpectraParamGroup
+        A structure containing the parameters for processing
+        and outputting the range spectra.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    report_pdf : PdfPages
+        The output PDF file to append the range spectra plots plot to.
+    """
+
+    # Generate and store the range spectra plots
+    for freq in product.freqs:
+        generate_range_spectra_single_freq(
+            product, freq, params, stats_h5, report_pdf
+        )
+
+
+def generate_range_spectra_single_freq(
+    product: nisarqa.RSLC,
+    freq: str,
+    params: nisarqa.RangeSpectraParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Generate the RSLC Range Spectra for a single frequency.
+
+    Generate the RSLC Range Spectra; save the plot
+    to the graphical summary .pdf file and the data to the
+    statistics .h5 file. Power Spectra will be computed in
+    decibel units, and Frequency in MHz.
+
+    Parameters
+    ----------
+    pols : nested dict of RSLCRasterQA
+        Nested dict of RSLCRasterQA objects, where each object represents
+        a polarization dataset in `h5_file`.
+        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
+        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
+                                       in a RSLCRasterQA object
+    freq : str
+        Frequency name for the range power spectra to be processed,
+        e.g. 'A' or 'B'
+    params : RangeSpectraParamGroup
+        A structure containing the parameters for processing
+        and outputting the spectra.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    report_pdf : PdfPages
+        The output PDF file to append the range spectra plots plot to.
+    """
+
+    print(f"Generating Range Spectra for Frequency {freq}...")
+
+    # Plot the range spectra using strinctly increasing sample frequencies
+    # (no discontinuity).
+    fft_shift = True
+
+    # Get the fft spacing
+    # Because `freq` is fixed, and all polarizations within
+    # the same frequency will have the same `fft_freqs`.
+    # So, we only need to do this computation one time.
+    first_pol = product.get_pols(freq=freq)[0]
+    with product.get_raster(freq, first_pol) as img:
+        # Compute the sample rate
+        # c/2 for radar energy round-trip; units for `sample_rate` will be Hz
+        sample_rate = (constants.c / 2.0) / product.get_slant_range_spacing(
+            freq
+        )
+
+        fft_freqs = nisarqa.generate_fft_freqs(
+            num_samples=img.data.shape[1],
+            sampling_rate=sample_rate,
+            fft_shift=fft_shift,
+        )
+
+        if params.hz_to_mhz:
+            fft_freqs = nisarqa.hz2mhz(fft_freqs)
+            freq_units = "MHz"
+        else:
+            freq_units = "Hz"
+
+    # Save to stats.h5 file
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq),
+        ds_name="rangeWavenumberSpacing",
+        ds_data=fft_freqs,
+        ds_units=freq_units,
+        ds_description=(
+            f"Range wavenumber spacing for Frequency {freq} range power"
+            " spectra."
+        ),
+    )
+
+    # Plot the Range Power Spectra for each pol onto the same axes.
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+
+    # Use custom cycler for accessibility
+    ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+
+    for pol in product.get_pols(freq):
+        with product.get_raster(freq=freq, pol=pol) as img:
+            # Get the Range Spectra in linear
+            rng_spectrum = nisarqa.compute_range_spectra_by_tiling(
+                arr=img.data,
+                range_decimation=params.range_decimation,
+                tile_height=params.tile_height,
+                fft_shift=fft_shift,
+            )
+
+            # Convert to dB
+            rng_spectrum = nisarqa.pow2db(rng_spectrum)
+
+            # Save to stats.h5 file
+            nisarqa.create_dataset_in_h5group(
+                h5_file=stats_h5,
+                grp_path=nisarqa.STATS_H5_QA_POL_GROUP
+                % (product.band, freq, pol),
+                ds_name="rangeSpectrum",
+                ds_data=rng_spectrum,
+                ds_units="dB",
+                ds_description=(
+                    f"Range power spectra for Frequency {freq},"
+                    f" Polarization {pol}."
+                ),
+            )
+
+            # Add this power spectrum to the figure
+            ax.plot(fft_freqs, rng_spectrum, label=pol)
+
+    # Label the Plot
+    ax.set_title(f"Range Power Spectra for Frequency {freq}")
+    ax.set_xlabel(f"Frequency ({freq_units})")
+    ax.set_ylabel("Power Spectrum (dB)")
+
+    ax.legend(loc="upper right")
+    ax.grid()
+
+    # Save complete plots to graphical summary pdf file
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close()
+
+    print(f"Range Power Spectra for Frequency {freq} complete.")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

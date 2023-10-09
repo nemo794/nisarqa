@@ -670,6 +670,116 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
+class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
+    """
+    Parameters to generate the RSLC Range Spectra plots;
+    this corresponds to the `qa_reports: range_spectra` runconfig group.
+
+    Parameters
+    ----------
+    range_decimation : int, optional
+        The stride to decimate the input array along the azimuth axis.
+        For example, `4` means every 4th range line will
+        be used to compute the range spectra.
+        If `1`, no decimation will occur (but is slow to compute).
+        Defaults to 10.
+    hz_to_mhz : bool, optional
+        True if the input frequencies are in Hz, but user wants outputs in MHz.
+        Defaults to True.
+    tile_height : int, optional
+        User-preferred tile height (number of range lines) for processing
+        images by batches. Actual tile shape may be modified by QA to be
+        an integer multiple of `range_decimation`.
+        Note: full rows must be read in, so the number of columns for each tile
+        will be fixed to the number of columns in the input raster.
+        -1 to use all rows.
+        Defaults to 512.
+    """
+
+    range_decimation: int = field(
+        default=10,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="range_decimation",
+                descr="""The stride to decimate the input array along the azimuth axis.
+                    For example, `4` means every 4th range line will
+                    be used to compute the range spectra.
+                    If `1`, no decimation will occur (but is slower to compute).""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="rangeSpectraDecimation",
+                units="unitless",
+                descr=(
+                    "Decimation stride along the azimuth axis used to"
+                    " compute the range spectra."
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
+
+    # TODO - Geoff - Should this parameter also be saved to the HDF5?
+    hz_to_mhz: bool = field(
+        default=True,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="hz_to_mhz",
+                descr="""True if the input frequencies are in Hz, 
+                but output should be converted to MHz.""",
+            )
+        },
+    )
+
+    tile_height: Iterable[int] = field(
+        default=512,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="tile_height",
+                descr=""" User-preferred tile height (number of range lines) for processing
+        images by batches. Actual tile shape may be modified by QA to be
+        an integer multiple of `range_decimation`.
+        Note: full rows must be read in, so the number of columns for each tile
+        will be fixed to the number of columns in the input raster.
+        -1 to use all rows.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        # validate range_decimation
+        if not isinstance(self.range_decimation, int):
+            raise TypeError(
+                f"`{self.range_decimation=}` and has type"
+                f" {type(self.range_decimation)}, but must be an int."
+            )
+        if self.range_decimation <= 0:
+            raise ValueError(
+                f"`{self.range_decimation=}`, must be a positive value."
+            )
+
+        # validate hz_to_mhz
+        if not isinstance(self.hz_to_mhz, bool):
+            raise TypeError(f"hz_to_mhz` must be bool: {val}")
+
+        # validate tile_height
+        if not isinstance(self.tile_height, int):
+            raise TypeError(
+                f"`{self.tile_height=}` and has type"
+                f" {type(self.tile_height)}, but must be an int."
+            )
+        if (self.tile_height < -1) or (self.tile_height == 0):
+            raise ValueError(
+                f"`{self.tile_height=}`, must be a positive value or -1."
+            )
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "qa_reports", "range_spectra"]
+
+
+@dataclass(frozen=True)
 class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters from the QA-CalTools Noise Estimator (NET) runconfig group.
@@ -759,6 +869,8 @@ class RSLCRootParamGroup(RootParamGroup):
         Backscatter Image Group parameters for RSLC QA
     histogram : HistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
+    range_spectra : RangeSpectraParamGroup or None, optional
+        Range Spectra Group parameters for RSLC QA
     anc_files : DynamicAncillaryFileParamGroup or None, optional
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
     abs_cal : AbsCalParamGroup or None, optional
@@ -775,6 +887,7 @@ class RSLCRootParamGroup(RootParamGroup):
     # QA parameters
     backscatter_img: Optional[BackscatterImageParamGroup] = None
     histogram: Optional[HistogramParamGroup] = None
+    range_spectra: Optional[RangeSpectraParamGroup] = None
 
     # CalTools parameters
     anc_files: Optional[DynamicAncillaryFileParamGroup] = None
@@ -884,6 +997,11 @@ class RSLCRootParamGroup(RootParamGroup):
                 param_grp_cls_obj=HistogramParamGroup,
             ),
             Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="range_spectra",
+                param_grp_cls_obj=RangeSpectraParamGroup,
+            ),
+            Grp(
                 flag_param_grp_req=workflows.abs_cal,
                 root_param_grp_attr_name="abs_cal",
                 param_grp_cls_obj=AbsCalParamGroup,
@@ -918,6 +1036,7 @@ class RSLCRootParamGroup(RootParamGroup):
             RSLCWorkflowsParamGroup,
             BackscatterImageParamGroup,
             HistogramParamGroup,
+            RangeSpectraParamGroup,
             AbsCalParamGroup,
             NoiseEstimationParamGroup,
             PointTargetAnalyzerParamGroup,

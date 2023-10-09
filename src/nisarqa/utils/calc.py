@@ -157,4 +157,86 @@ def normalize(
     return (arr - arr_min) / (arr_max - arr_min)
 
 
+def compute_fft(slc_arr: ArrayLike, axis: int = 1) -> np.ndarray:
+    """
+    Compute fft of the input array along the given axis.
+
+    Nan values in `slc_arr` will be filled with zero.
+
+    Parameters
+    ----------
+    slc_arr : array_like
+        Input SLC array
+    axis : int
+        Axis along which to take the fft. Default is axis = 1.
+        (For NISAR, axis 1 is the range axis, and axis 0 is the azimuth axis.)
+
+    Returns
+    -------
+    fft : numpy.ndarray
+        The fft of `slc_arr` along `axis`. Nan values filled with zero.
+
+    Notes
+    -----
+    Similar to ISCE3, nan values in `slc_arr` will be filled with zeros.
+    An alternative would be to implement non-equispace fft's, but that could be
+    too computationally and algorithmically complicated for the QA Code.
+    """
+
+    finite_slc_arr = np.where(np.isfinite(slc_arr), slc_arr, 0.0)
+
+    fft = np.fft.fft(finite_slc_arr, axis=axis)
+
+    return fft
+
+
+def generate_fft_freqs(
+    num_samples: int, sampling_rate: float, fft_shift: bool = True
+) -> np.ndarray:
+    """
+    Return the Discrete Fourier Transform sample frequencies.
+
+    Parameters
+    ----------
+    num_samples : int
+        Window length.
+    sampling_rate : numeric
+        Sample rate (inverse of the sample spacing).
+    fft_shift : bool, optional
+        True to have the frequencies in `fft_freqs` be continuous from
+        negative (min) -> positive (max) values.
+
+        False to leave `fft_freqs` as the output from `numpy.fft.fftfreq()`,
+        where this discrete fft operation orders values
+        from 0 -> max positive -> min negative -> 0- . (This creates
+        a discontinuity in the interval's values.)
+
+        Defaults to True.
+
+    Returns
+    -------
+    fft_freqs : numpy.ndarray
+        Array of length `num_samples` containing the sample frequencies
+        (frequency bin centers) in the same units as `sampling_rate`.
+        For instance, if the sampling rate is in Hz, then the frequency
+        unit is also cycles/second.
+    """
+    fft_freqs = np.fft.fftfreq(num_samples, 1.0 / sampling_rate)
+
+    if fft_shift:
+        # Shift fft_freqs to be continuous from
+        # negative (min) -> positive (max) values.
+        # (The output from the discrete fft operation orders values
+        # from 0 -> max positive -> min negative -> 0- .
+        # Doing this will remove that discontinuity.)
+        fft_freqs = np.fft.fftshift(fft_freqs)
+
+    return fft_freqs
+
+
+def hz2mhz(arr: np.ndarray) -> np.ndarray:
+    """Convert input array from Hz to MHz."""
+    return arr * 1.0e-06
+
+
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
