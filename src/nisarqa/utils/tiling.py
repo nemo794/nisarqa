@@ -474,11 +474,10 @@ def compute_range_spectra_by_tiling(
 
         Defaults to True.
 
-
     Returns
     -------
     range_power_spec : numpy.ndarray
-        Range power spectrum (linear units) for the input array.
+        Normalized range power spectrum in Hz (linear scale) of `arr`.
     """
     if tile_height == -1:
         tile_height = np.shape(arr)[0]
@@ -487,8 +486,13 @@ def compute_range_spectra_by_tiling(
     # Otherwise, the decimation will get messy to book-keep.
     tile_height = tile_height - (tile_height % range_decimation)
 
-    # Compute total number of range lines that will be used
-    # (This will become the denominator during the averaging step.)
+    # Compute total number of range lines that will be used for the
+    # entire raster array. (During the accumulation process, if we divide
+    # each tile's power density by the total number of range lines used,
+    # then the end result is the average for the entire raster.
+    # By averaging during the accumulation, we prevent possible float overflow.
+    # Also, the TileIterator will truncate the array azimuth direction to be
+    # an integer multiple of the stride, so use integer division here.
     num_range_lines = np.shape(arr)[0] // range_decimation
 
     # Create the Iterator over the input array

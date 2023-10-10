@@ -175,6 +175,7 @@ def compute_fft(slc_arr: ArrayLike, axis: int = 1) -> np.ndarray:
     -------
     fft : numpy.ndarray
         The fft of `slc_arr` along `axis`. Nan values filled with zero.
+        Normalized with "ortho" mode.
 
     Notes
     -----
@@ -185,7 +186,7 @@ def compute_fft(slc_arr: ArrayLike, axis: int = 1) -> np.ndarray:
 
     finite_slc_arr = np.where(np.isfinite(slc_arr), slc_arr, 0.0)
 
-    fft = np.fft.fft(finite_slc_arr, axis=axis)
+    fft = np.fft.fft(finite_slc_arr, axis=axis, norm="ortho")
 
     return fft
 

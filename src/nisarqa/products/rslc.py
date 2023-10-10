@@ -1513,7 +1513,7 @@ def generate_range_spectra_single_freq(
         else:
             freq_units = "Hz"
 
-    # Save to stats.h5 file
+    # Save x-axis values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq),
@@ -1534,7 +1534,8 @@ def generate_range_spectra_single_freq(
 
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
-            # Get the Range Spectra in linear
+            # Get the Range Spectra
+            # (The returned array will have been normalized to 1/Hz)
             rng_spectrum = nisarqa.compute_range_spectra_by_tiling(
                 arr=img.data,
                 range_decimation=params.range_decimation,
@@ -1545,16 +1546,16 @@ def generate_range_spectra_single_freq(
             # Convert to dB
             rng_spectrum = nisarqa.pow2db(rng_spectrum)
 
-            # Save to stats.h5 file
+            # Save normalized range power spectra values to stats.h5 file
             nisarqa.create_dataset_in_h5group(
                 h5_file=stats_h5,
                 grp_path=nisarqa.STATS_H5_QA_POL_GROUP
                 % (product.band, freq, pol),
-                ds_name="rangeSpectrum",
+                ds_name="rangeSpectrum",  # TODO - Geoff - rangeSpectra? or rangeSpectrum?
                 ds_data=rng_spectrum,
-                ds_units="dB",
+                ds_units="dB/Hz",
                 ds_description=(
-                    f"Range power spectra for Frequency {freq},"
+                    f"Normalized range power spectra for Frequency {freq},"
                     f" Polarization {pol}."
                 ),
             )
@@ -1565,7 +1566,7 @@ def generate_range_spectra_single_freq(
     # Label the Plot
     ax.set_title(f"Range Power Spectra for Frequency {freq}")
     ax.set_xlabel(f"Frequency ({freq_units})")
-    ax.set_ylabel("Power Spectrum (dB)")
+    ax.set_ylabel("Power Spectrum (dB/Hz)")
 
     ax.legend(loc="upper right")
     ax.grid()
