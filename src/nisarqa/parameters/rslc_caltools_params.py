@@ -677,7 +677,7 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     Parameters
     ----------
-    range_decimation : int, optional
+    az_decimation : int, optional
         The stride to decimate the input array along the azimuth axis.
         For example, `4` means every 4th range line will
         be used to compute the range spectra.
@@ -689,25 +689,25 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
     tile_height : int, optional
         User-preferred tile height (number of range lines) for processing
         images by batches. Actual tile shape may be modified by QA to be
-        an integer multiple of `range_decimation`.
+        an integer multiple of `az_decimation`.
         Note: full rows must be read in, so the number of columns for each tile
         will be fixed to the number of columns in the input raster.
         -1 to use all rows.
         Defaults to 512.
     """
 
-    range_decimation: int = field(
+    az_decimation: int = field(
         default=10,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="range_decimation",
+                name="az_decimation",
                 descr="""The stride to decimate the input array along the azimuth axis.
                     For example, `4` means every 4th range line will
                     be used to compute the range spectra.
                     If `1`, no decimation will occur (but is slower to compute).""",
             ),
             "hdf5_attrs": HDF5Attrs(
-                name="rangeSpectraDecimation",
+                name="rangeSpectraDecimationAlongAzimuth",
                 units="unitless",
                 descr=(
                     "Decimation stride along the azimuth axis used to"

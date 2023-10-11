@@ -436,7 +436,7 @@ def compute_histogram_by_tiling(
 
 def compute_range_spectra_by_tiling(
     arr: ArrayLike,
-    range_decimation: int = 1,
+    az_decimation: int = 1,
     tile_height: int = 512,
     fft_shift: bool = True,
 ) -> np.ndarray:
@@ -449,7 +449,7 @@ def compute_range_spectra_by_tiling(
     ----------
     arr : array_like
         The input array
-    range_decimation : int, optional
+    az_decimation : int, optional
         The stride to decimate the input array along the azimuth axis.
         For example, `4` means every 4th range line will
         be used to compute the range spectra.
@@ -458,7 +458,7 @@ def compute_range_spectra_by_tiling(
     tile_height : int, optional
         User-preferred tile height (number of range lines) for processing
         images by batches. Actual tile shape may be modified by QA to be
-        an integer multiple of `range_decimation`.
+        an integer multiple of `az_decimation`.
         Note: full rows must be read in, so the number of columns for each tile
         will be fixed to the number of columns in the input raster.
         -1 to use all rows.
@@ -482,9 +482,9 @@ def compute_range_spectra_by_tiling(
     if tile_height == -1:
         tile_height = np.shape(arr)[0]
 
-    # Shrink the tile height to be an even multiple of `range_decimation`.
+    # Shrink the tile height to be an even multiple of `az_decimation`.
     # Otherwise, the decimation will get messy to book-keep.
-    tile_height = tile_height - (tile_height % range_decimation)
+    tile_height = tile_height - (tile_height % az_decimation)
 
     # Compute total number of range lines that will be used for the
     # entire raster array. (During the accumulation process, if we divide
@@ -493,11 +493,11 @@ def compute_range_spectra_by_tiling(
     # By averaging during the accumulation, we prevent possible float overflow.
     # Also, the TileIterator will truncate the array azimuth direction to be
     # an integer multiple of the stride, so use integer division here.
-    num_range_lines = np.shape(arr)[0] // range_decimation
+    num_range_lines = np.shape(arr)[0] // az_decimation
 
     # Create the Iterator over the input array
     input_iter = TileIterator(
-        np.shape(arr), tile_nrows=tile_height, row_stride=range_decimation
+        np.shape(arr), tile_nrows=tile_height, row_stride=az_decimation
     )
 
     # Initialize the accumulator array
