@@ -870,64 +870,6 @@ class NisarRadarProduct(NisarProduct):
         """
         pass
 
-    def get_scene_center_along_track_spacing(self, freq: str) -> float:
-        """
-        Get along-track spacing at mid-swath.
-
-        Get the along-track spacing at the center of the swath, in meters, of
-        the radar grid corresponding to the specified frequency sub-band.
-
-        Parameters
-        ----------
-        freq : {'A', 'B'}
-            The frequency sub-band. Must be a valid sub-band in the product.
-
-        Returns
-        -------
-        az_spacing : float
-            The mid-swath along-track sample spacing, in meters.
-        """
-
-        @lru_cache
-        def _get_scene_center_along_track_spacing(freq: str) -> float:
-            path = f"{self.get_freq_path(freq)}/sceneCenterAlongTrackSpacing"
-            with nisarqa.open_h5_file(self.filepath) as f:
-                try:
-                    return f[path][()]
-                except KeyError as e:
-                    raise nisarqa.DatasetNotFoundError from e
-
-        return _get_scene_center_along_track_spacing(freq)
-
-    def get_slant_range_spacing(self, freq: str) -> float:
-        """
-        Get slant range spacing.
-
-        Get the slant range spacing, in meters, of the radar grid corresponding
-        to the specified frequency sub-band.
-
-        Parameters
-        ----------
-        freq : {'A', 'B'}
-            The frequency sub-band. Must be a valid sub-band in the product.
-
-        Returns
-        -------
-        rg_spacing : float
-            The slant range sample spacing, in meters.
-        """
-
-        @lru_cache
-        def _get_slant_range_spacing(freq: str) -> float:
-            path = f"{self.get_freq_path(freq)}/slantRangeSpacing"
-            with nisarqa.open_h5_file(self.filepath) as f:
-                try:
-                    return f[path][()]
-                except KeyError as e:
-                    raise nisarqa.DatasetNotFoundError from e
-
-        return _get_slant_range_spacing(freq)
-
 
 @dataclass
 class NisarGeoProduct(NisarProduct):
@@ -1758,6 +1700,86 @@ class RSLC(SLC, NisarRadarProduct):
         )
 
         return dataset
+
+    def get_scene_center_along_track_spacing(self, freq: str) -> float:
+        """
+        Get along-track spacing at mid-swath.
+
+        Get the along-track spacing at the center of the swath, in meters, of
+        the radar grid corresponding to the specified frequency sub-band.
+
+        Parameters
+        ----------
+        freq : {'A', 'B'}
+            The frequency sub-band. Must be a valid sub-band in the product.
+
+        Returns
+        -------
+        az_spacing : float
+            The mid-swath along-track sample spacing, in meters.
+        """
+
+        # Future Alert!
+        # The name of the dataset accessed via this function is also
+        # accessed in NisarRadarProduct._get_raster_from_path().
+        # It is not ideal to have the hardcoded path in two places.
+        # It is also not ideal to need to fully initialize an entire
+        # RadarRaster just to access a single dataset.
+        # Also, only RSLC can access `sceneCenterAlongTrackSpacing` with only
+        # `freq` as an input; RIFG/RUNW/ROFF also need to know the layer group.
+        # For simplicity, let's hard-code this path in two places,
+        # and update later if/when a better design pattern is needed.
+        # See: RSLC.get_slant_range_spacing() for a related issue.
+
+        @lru_cache
+        def _get_scene_center_along_track_spacing(freq: str) -> float:
+            path = f"{self.get_freq_path(freq)}/sceneCenterAlongTrackSpacing"
+            with nisarqa.open_h5_file(self.filepath) as f:
+                try:
+                    return f[path][()]
+                except KeyError as e:
+                    raise nisarqa.DatasetNotFoundError from e
+
+        return _get_scene_center_along_track_spacing(freq)
+
+    def get_slant_range_spacing(self, freq: str) -> float:
+        """
+        Get slant range spacing.
+
+        Get the slant range spacing, in meters, of the radar grid corresponding
+        to the specified frequency sub-band.
+
+        Parameters
+        ----------
+        freq : {'A', 'B'}
+            The frequency sub-band. Must be a valid sub-band in the product.
+
+        Returns
+        -------
+        rg_spacing : float
+            The slant range sample spacing, in meters.
+        """
+
+        # Future Alert!
+        # It makes sense for this dataset to be an attribute in RadarRaster.
+        # However, for now, only RSLC() products need access to this dataset,
+        # and we should not clutter RIFG/RUNW/ROFF RadarRasters.
+        # Additionally, like RSLC.get_scene_center_along_track_spacing(),
+        # it is not ideal to need to fully initialize an entire
+        # RadarRaster just to access a single dataset.
+        # For simplicity, let's use this design pattern for now,
+        # and update later if/when a better design pattern is needed.
+
+        @lru_cache
+        def _get_slant_range_spacing(freq: str) -> float:
+            path = f"{self.get_freq_path(freq)}/slantRangeSpacing"
+            with nisarqa.open_h5_file(self.filepath) as f:
+                try:
+                    return f[path][()]
+                except KeyError as e:
+                    raise nisarqa.DatasetNotFoundError from e
+
+        return _get_slant_range_spacing(freq)
 
 
 @dataclass
