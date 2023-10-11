@@ -170,7 +170,6 @@ def populate_abscal_hdf5_output(
         The output of the AbsCal tool. A list of dicts containing one entry per
         valid corner reflector found within the area imaged by the RSLC product.
     """
-
     # Helper function to create a new dataset within `grp_path` that stores info
     # about each corner reflector in the AbsCal output.
     #
@@ -469,7 +468,6 @@ def populate_pta_hdf5_output(
         The output of the PTA tool. A list of dicts containing one entry per
         valid corner reflector found within the area imaged by the RSLC product.
     """
-
     # Helper function to create a new dataset within `grp_path` that stores info
     # about each corner reflector in the PTA output. This function is a bit more
     # complicated than in the AbsCal case due to the presence of nested dicts in
@@ -666,9 +664,7 @@ def populate_pta_hdf5_output(
             subkey="resolution",
             grp_path=grp_path + f"/{direction}IRF",
             ds_name="resolution",
-            ds_descr=(
-                f"The measured 3dB width of the {direction} IRF, in samples."
-            ),
+            ds_descr=f"The measured 3dB width of the {direction} IRF, in samples.",
             ds_dtype=np.float_,
             ds_units="samples",
         )
@@ -789,13 +785,13 @@ def run_pta_tool(
                         )
 
                         assert "sceneCenterAlongTrackSpacing" not in freq_group
-                        with rslc.get_raster(freq, pol) as img:
-                            ground_az_spacing = img.ground_az_spacing
                         nisarqa.create_dataset_in_h5group(
                             h5_file=stats_h5,
                             grp_path=freq_group_path,
                             ds_name="sceneCenterAlongTrackSpacing",
-                            ds_data=ground_az_spacing,
+                            ds_data=(
+                                rslc.get_scene_center_along_track_spacing(freq)
+                            ),
                             ds_description=(
                                 "Nominal along track spacing in meters between"
                                 " consecutive lines near mid swath of the RSLC"
