@@ -737,7 +737,7 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name="tile_height",
                 descr=""" User-preferred tile height (number of range lines) for processing
         images by batches. Actual tile shape may be modified by QA to be
-        an integer multiple of `range_decimation`.
+        an integer multiple of `az_decimation`.
         Note: full rows must be read in, so the number of columns for each tile
         will be fixed to the number of columns in the input raster.
         -1 to use all rows.""",
@@ -748,15 +748,15 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
-        # validate range_decimation
-        if not isinstance(self.range_decimation, int):
+        # validate az_decimation
+        if not isinstance(self.az_decimation, int):
             raise TypeError(
-                f"`{self.range_decimation=}` and has type"
-                f" {type(self.range_decimation)}, but must be an int."
+                f"`{self.az_decimation=}` and has type"
+                f" {type(self.az_decimation)}, but must be an int."
             )
-        if self.range_decimation <= 0:
+        if self.az_decimation <= 0:
             raise ValueError(
-                f"`{self.range_decimation=}`, must be a positive value."
+                f"`{self.az_decimation=}`, must be a positive value."
             )
 
         # validate hz_to_mhz

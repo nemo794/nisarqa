@@ -1507,11 +1507,17 @@ def generate_range_spectra_single_freq(
             fft_shift=fft_shift,
         )
 
+        proc_center_freq = product.get_processed_center_frequency(freq)
+
         if params.hz_to_mhz:
             fft_freqs = nisarqa.hz2mhz(fft_freqs)
+            proc_center_freq = nisarqa.hz2mhz(proc_center_freq)
             freq_units = "MHz"
         else:
             freq_units = "Hz"
+
+        # Shift x-axis to be centered at the center frequency
+        # fft_freqs += proc_center_freq
 
     # Save x-axis values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
@@ -1538,7 +1544,7 @@ def generate_range_spectra_single_freq(
             # (The returned array will have been normalized to 1/Hz)
             rng_spectrum = nisarqa.compute_range_spectra_by_tiling(
                 arr=img.data,
-                range_decimation=params.range_decimation,
+                az_decimation=params.az_decimation,
                 tile_height=params.tile_height,
                 fft_shift=fft_shift,
             )
@@ -1564,9 +1570,11 @@ def generate_range_spectra_single_freq(
             ax.plot(fft_freqs, rng_spectrum, label=pol)
 
     # Label the Plot
-    ax.set_title(f"Range Power Spectra for Frequency {freq}")
-    ax.set_xlabel(f"Frequency ({freq_units})")
-    ax.set_ylabel("Power Spectrum (dB/Hz)")
+    ax.set_title(f"Range Power Spectra for Frequency {freq}\n")
+    # ax.set_xlabel(f"Frequency ({freq_units})")
+    ax.set_xlabel(f"Frequency rel. {proc_center_freq} {freq_units}")
+
+    ax.set_ylabel("Power Spectral Density (dB/Hz)")
 
     ax.legend(loc="upper right")
     ax.grid()

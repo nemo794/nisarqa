@@ -1781,6 +1781,35 @@ class RSLC(SLC, NisarRadarProduct):
 
         return _get_slant_range_spacing(freq)
 
+    def get_processed_center_frequency(self, freq: str) -> float:
+        """
+        Get processed center frequency.
+
+        Get the processed center frequency, in Hz, of the radar signal
+        corresponding to the specified frequency sub-band.
+
+        Parameters
+        ----------
+        freq : {'A', 'B'}
+            The frequency sub-band. Must be a valid sub-band in the product.
+
+        Returns
+        -------
+        proc_center_freq : float
+            The processed center frequency, in Hz.
+        """
+
+        @lru_cache
+        def _get_proc_center_freq(freq: str) -> float:
+            path = f"{self.get_freq_path(freq)}/processedCenterFrequency"
+            with nisarqa.open_h5_file(self.filepath) as f:
+                try:
+                    return f[path][()]
+                except KeyError as e:
+                    raise nisarqa.DatasetNotFoundError from e
+
+        return _get_proc_center_freq(freq)
+
 
 @dataclass
 class GSLC(SLC, NonInsarGeoProduct):
