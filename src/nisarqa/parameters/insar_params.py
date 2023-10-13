@@ -389,7 +389,7 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
                     """,
             ),
             "hdf5_attrs": HDF5Attrs(
-                name="rewrap",
+                name="HSIImageRewrap",
                 units="unitless",
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
@@ -439,6 +439,73 @@ class GUNWHSIImageParamGroup(UNWHSIImageParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "hsi_img"]
+
+
+@dataclass(frozen=True)
+class UNWPhaseImageParamGroup:
+    """
+    Parameters to plot unwrapped phase image.
+
+    Parameters
+    ----------
+    rewrap : float or int or None, optional
+        The multiple of pi to rewrap the unwrapped phase image.
+        If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+    """
+
+    rewrap: Optional[float | int] = field(
+        default=3,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="rewrap",
+                descr="""The multiple of pi to rewrap the unwrapped phase image.
+                    If None, no rewrapping will occur.
+                    Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+                    """,
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="phaseImageRewrap",
+                units="unitless",
+                descr=(
+                    "The multiple of pi for rewrapping the unwrapped phase"
+                    " image. 'None' if no rewrapping"
+                    " occurred. Example: If rewrap=3, the image was rewrapped"
+                    " to the interval [0, 3pi)."
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        # validate rewrap
+        if not isinstance(self.rewrap, (float, int)) and (
+            self.rewrap is not None
+        ):
+            raise TypeError(
+                f"{self.rewrap=} is {type(self.rewrap)}; "
+                "must be float, int, or None."
+            )
+
+        if (self.rewrap is not None) and (self.rewrap <= 0):
+            raise ValueError(f"{self.rewrap=}; must be a positive value.")
+
+
+@dataclass(frozen=True)
+class RUNWPhaseImageParamGroup(UNWPhaseImageParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "runw", "qa_reports", "phase_img"]
+
+
+@dataclass(frozen=True)
+class GUNWPhaseImageParamGroup(UNWPhaseImageParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "gunw", "qa_reports", "phase_img"]
 
 
 @dataclass(frozen=True)
@@ -821,6 +888,8 @@ class RUNWRootParamGroup(RootParamGroup):
         Product Path Group parameters.
     hsi : RUNWHSIImageParamGroup or None, optional
         HSI Image Group parameters.
+    unw_phs_img : RUNWPhaseImageParamGroup or None, optional
+        Unwrapped Phase Image Group parameters.
     """
 
     # Shared parameters
@@ -829,6 +898,7 @@ class RUNWRootParamGroup(RootParamGroup):
     prodpath: Optional[RUNWProductPathGroupParamGroup] = None
 
     hsi: Optional[RUNWHSIImageParamGroup] = None
+    unw_phs_img: Optional[RUNWPhaseImageParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -851,6 +921,11 @@ class RUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="unw_phs_img",
+                param_grp_cls_obj=RUNWPhaseImageParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="hsi",
                 param_grp_cls_obj=RUNWHSIImageParamGroup,
             ),
@@ -866,6 +941,7 @@ class RUNWRootParamGroup(RootParamGroup):
             RUNWInputFileGroupParamGroup,
             RUNWProductPathGroupParamGroup,
             RUNWWorkflowsParamGroup,
+            RUNWPhaseImageParamGroup,
             RUNWHSIImageParamGroup,
         )
 
@@ -892,6 +968,8 @@ class GUNWRootParamGroup(RootParamGroup):
         Product Path Group parameters.
     hsi : GUNWHSIImageParamGroup or None, optional
         HSI Image Group parameters.
+    unw_phs_img : GUNWPhaseImageParamGroup or None, optional
+        Unwrapped Phase Image Group parameters.
     """
 
     workflows: GUNWWorkflowsParamGroup
@@ -901,6 +979,7 @@ class GUNWRootParamGroup(RootParamGroup):
     prodpath: Optional[GUNWProductPathGroupParamGroup] = None
 
     hsi: Optional[GUNWHSIImageParamGroup] = None
+    unw_phs_img: Optional[GUNWPhaseImageParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -923,6 +1002,11 @@ class GUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="unw_phs_img",
+                param_grp_cls_obj=GUNWPhaseImageParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="hsi",
                 param_grp_cls_obj=GUNWHSIImageParamGroup,
             ),
@@ -938,6 +1022,7 @@ class GUNWRootParamGroup(RootParamGroup):
             GUNWInputFileGroupParamGroup,
             GUNWProductPathGroupParamGroup,
             GUNWWorkflowsParamGroup,
+            GUNWPhaseImageParamGroup,
             GUNWHSIImageParamGroup,
         )
 

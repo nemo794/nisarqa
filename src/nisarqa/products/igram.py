@@ -137,7 +137,22 @@ def verify_igram(user_rncfg, product_type: str) -> None:
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
-            # Plot azimuth pixel offsets and slant range offsets
+            if isinstance(product, nisarqa.UnwrappedGroup):
+                nisarqa.process_phase_image_unwrapped(
+                    product=product,
+                    params=root_params.unw_phs_img,
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                )
+
+            if isinstance(product, nisarqa.WrappedGroup):
+                nisarqa.process_phase_image_wrapped(
+                    product=product,
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                )
+
+            # Plot azimuth offsets and slant range offsets (RIFG, RUNW, & GUNW)
             nisarqa.process_az_and_slant_rg_offsets_from_igram_product(
                 product=product, report_pdf=report_pdf
             )
@@ -164,8 +179,7 @@ def process_hsi(
     browse_png: str | os.PathLike,
     report_pdf: PdfPages,
     wrapped_hsi: bool,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -175,8 +189,7 @@ def process_hsi(
     browse_png: str | os.PathLike,
     report_pdf: PdfPages,
     wrapped_hsi: bool,
-) -> None:
-    ...
+) -> None: ...
 
 
 def process_hsi(product, params, browse_png, report_pdf, wrapped_hsi):

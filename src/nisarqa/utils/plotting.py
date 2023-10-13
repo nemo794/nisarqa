@@ -22,6 +22,187 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
+def process_phase_image_unwrapped(
+    product: nisarqa.UnwrappedGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+    params: nisarqa.UNWPhaseImageParamGroup,
+) -> None:
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_unwrapped_phase(freq=freq, pol=pol) as img:
+                plot_unwrapped_phase_image_to_pdf(
+                    phs_raster=img, report_pdf=report_pdf, rewrap=params.rewrap
+                )
+
+                # Plot Histogram
+
+                # Compute Statistics
+
+
+def plot_unwrapped_phase_image_to_pdf(
+    phs_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    report_pdf: PdfPages,
+    rewrap: Optional[float] = None,
+) -> None:
+    # Overview: If no re-wrapping is requested, simply make one plot.
+    # If re-wrapping is requested, make the plot on the left the original
+    # unwrapped plot, and the plot on the right the rewrapped plot.
+    # Set up the left (and possibly right) plots
+    if rewrap is None:
+        fig, ax1 = plt.subplots(ncols=1, nrows=1, constrained_layout="tight")
+    else:
+        fig, (ax1, ax2) = plt.subplots(
+            ncols=2, nrows=1, constrained_layout="tight"
+        )
+
+    title = f"Unwrapped Phase Image\n{phs_raster.name}"
+    fig.suptitle(title)
+
+    # Plot the "left" plot (fully unwrapped interferogram)
+    phs_img_unw, cbar_min_max_unw = get_phase_array(
+        phs_or_complex_raster=phs_raster,
+        make_square_pixels=True,
+        rewrap=None,
+    )
+
+    # Decimate to fit nicely on the figure.
+    phs_img_unw = decimate_img_to_size_of_axes(ax=ax1, arr=phs_img_unw)
+
+    im1 = ax1.imshow(
+        phs_img_unw, aspect="equal", cmap="hsv", interpolation="none"
+    )
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax1,
+        xlim=phs_raster.x_axis_limits,
+        ylim=phs_raster.y_axis_limits,
+        img_arr_shape=phs_img_unw.shape,
+        xlabel=phs_raster.x_axis_label,
+        ylabel=phs_raster.y_axis_label,
+        title="Unwrapped Phase",
+    )
+
+    # Add a colorbar to the figure
+    cax1 = fig.colorbar(im1, ax=ax1)
+    cax1.ax.set_ylabel(ylabel="InSAR Phase", rotation=270, labelpad=10.0)
+
+    format_cbar_ticks_for_multiples_of_pi(
+        cbar_min=cbar_min_max_unw[0], cbar_max=cbar_min_max_unw[1], cax=cax1
+    )
+
+    # If requested, plot the "right" plot (rewrapped interferogram)
+    if rewrap is not None:
+        phs_img_rewrapped, cbar_min_max_rewrapped = get_phase_array(
+            phs_or_complex_raster=phs_raster,
+            make_square_pixels=True,
+            rewrap=rewrap,
+        )
+
+        phs_img_rewrapped = decimate_img_to_size_of_axes(
+            ax=ax2, arr=phs_img_rewrapped
+        )
+
+        im2 = ax2.imshow(
+            phs_img_rewrapped, aspect="equal", cmap="hsv", interpolation="none"
+        )
+
+        pi_unicode = "\u03c0"
+        title = f"Unwrapped Phase\nrewrapped to [0, {rewrap}{pi_unicode})"
+        nisarqa.rslc.format_axes_ticks_and_labels(
+            ax=ax2,
+            xlim=phs_raster.x_axis_limits,
+            ylim=phs_raster.y_axis_limits,
+            img_arr_shape=phs_img_rewrapped.shape,
+            xlabel=phs_raster.x_axis_label,
+            ylabel=phs_raster.y_axis_label,
+            title=title,
+        )
+
+        # Hide the right plot's y-axis labels. (Redundant to the "left" plot.)
+        ax2.get_yaxis().set_visible(False)
+
+        # Add a colorbar to the figure
+        cax2 = fig.colorbar(im2, ax=ax2)
+        cax2.ax.set_ylabel(ylabel="InSAR Phase", rotation=270, labelpad=10.0)
+
+        format_cbar_ticks_for_multiples_of_pi(
+            cbar_min=cbar_min_max_rewrapped[0],
+            cbar_max=cbar_min_max_rewrapped[1],
+            cax=cax2,
+        )
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
+def process_phase_image_wrapped(
+    product: nisarqa.WrappedGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None:
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_wrapped_igram(freq=freq, pol=pol) as img:
+                plot_wrapped_phase_image_to_pdf(
+                    complex_raster=img, report_pdf=report_pdf
+                )
+
+                # Plot Histogram
+
+                # Compute Statistics
+
+
+def plot_wrapped_phase_image_to_pdf(
+    complex_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    report_pdf: PdfPages,
+) -> None:
+    phs_img, cbar_min_max = get_phase_array(
+        phs_or_complex_raster=complex_raster,
+        make_square_pixels=True,
+        rewrap=None,
+    )
+
+    # Grab the axes window extent size, and decimate array to
+    # correct size for plotting to the PDF
+    fig, ax = plt.subplots(ncols=1, nrows=1, constrained_layout="tight")
+
+    # Decimate to fit nicely on the figure.
+    phs_img = decimate_img_to_size_of_axes(ax=ax, arr=phs_img)
+
+    # If
+    title = f"Wrapped Phase Image\n{complex_raster.name}"
+    fig.suptitle(title)
+
+    im = ax.imshow(phs_img, aspect="equal", cmap="hsv", interpolation="none")
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax,
+        xlim=complex_raster.x_axis_limits,
+        ylim=complex_raster.y_axis_limits,
+        img_arr_shape=np.shape(phs_img),
+        xlabel=complex_raster.x_axis_label,
+        ylabel=complex_raster.y_axis_label,
+    )
+
+    # Add a colorbar to the figure
+    cax = fig.colorbar(im)
+    cax.ax.set_ylabel(ylabel="InSAR Phase", rotation=270, labelpad=10.0)
+
+    format_cbar_ticks_for_multiples_of_pi(
+        cbar_min=cbar_min_max[0], cbar_max=cbar_min_max[1], cax=cax
+    )
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
 def make_hsi_browse_wrapped(
     product: nisarqa.WrappedGroup,
     params: nisarqa.HSIImageParamGroup,
@@ -364,6 +545,98 @@ def make_hsi_as_rgb_img(
     return rgb
 
 
+def get_phase_array(
+    phs_or_complex_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    make_square_pixels: bool,
+    rewrap: Optional[float] = None,
+) -> np.ndarray:
+    """
+    Get the phase image from the input *Raster.
+
+    Parameters
+    ----------
+    phs_or_complex_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
+        *Raster of complex interferogram or unwrapped phase data.
+        If *Raster is complex valued, numpy.angle() will be used to compute
+        the phase image (float-valued).
+    make_square_pixels : bool
+        True to decimate the image to have square pixels.
+        False for `phs_img` to always keep the same shape as
+        `phs_or_complex_raster.data`
+    rewrap : float or int or None, optional
+        The multiple of pi to rewrap the unwrapped phase image.
+        If None, no rewrapping will occur.
+        If `phs_or_complex_raster` is complex valued, this will be ignored.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+
+    Returns
+    -------
+    phs_img : numpy.ndarray
+        The phase image from the input raster, processed according to the input
+        parameters.
+    cbar_min_max : pair of float
+        The suggested range to use for plotting the phase image.
+        If `phs_or_complex_raster` has complex valued data, then `cbar_min_max`
+        will be the range [-pi, +pi].
+    """
+
+    phs_img = phs_or_complex_raster.data[...]
+
+    if np.issubdtype(phs_img.dtype, np.complexfloating):
+        # complex data; take the phase angle.
+        phs_img = np.angle(phs_img.data)
+
+        # np.angle() returns output in range [-pi, pi]
+        # So, set the colobar's min and max to be the range [-pi, +pi].
+        cbar_min_max = [-np.pi, np.pi]
+
+        # Helpful hint for user!
+        if rewrap is not None:
+            raise RuntimeWarning(
+                "Input raster has a complex dtype (implying a wrapped"
+                f" interferogram), but input parameter {rewrap=}. `rewrap` is"
+                " only used in the case of real-valued data (implying an"
+                " unwrapped phase image). Please check that this is intended."
+            )
+
+    else:
+        # unwrapped phase image
+        if rewrap is None:
+            # TODO - look into adding a "percentile_for_clipping" option
+            cbar_min_max = [
+                np.nanmin(phs_img),
+                np.nanmax(phs_img),
+            ]
+        else:
+            # `rewrap` is a multiple of pi. Convert to the full float value.
+            rewrap_final = rewrap * np.pi
+
+            # The sign of the output of the modulo operator
+            # is the same as the sign of `rewrap_final`.
+            # This means that it will always put the output
+            # into range [0, <rewrap_final>]
+            phs_img %= rewrap_final
+            cbar_min_max = [0, rewrap_final]
+
+    if make_square_pixels:
+        raster_shape = phs_img.shape
+
+        ky, kx = nisarqa.compute_square_pixel_nlooks(
+            img_shape=raster_shape,
+            sample_spacing=[
+                phs_or_complex_raster.y_axis_spacing,
+                phs_or_complex_raster.x_axis_spacing,
+            ],
+            # Only make square pixels. Use `max()` to not "shrink" the rasters.
+            longest_side_max=max(raster_shape),
+        )
+
+        # Decimate to square pixels.
+        phs_img = phs_img[::ky, ::kx]
+
+    return phs_img, cbar_min_max
+
+
 @overload
 def make_hsi_raster(
     phs_or_complex_raster: nisarqa.RadarRaster,
@@ -437,43 +710,11 @@ def make_hsi_raster(
     # Validate input rasters
     nisarqa.compare_raster_metadata(phs_or_complex_raster, coh_raster)
 
-    phs_img = phs_or_complex_raster.data[...]
-
-    if np.issubdtype(phs_img.dtype, np.complexfloating):
-        # complex data; take the phase angle.
-        phs_img = np.angle(phs_img.data)
-
-        # np.angle() returns output in range [-pi, pi]
-        # So, set the colobar's min and max to be the range [-pi, +pi].
-        cbar_min_max = [-np.pi, np.pi]
-
-        # Helpful hint for user!
-        if rewrap is not None:
-            raise RuntimeWarning(
-                "Input raster has a complex dtype (implying a wrapped"
-                f" interferogram), but input parameter {rewrap=}. `rewrap` is"
-                " only used in the case of real-valued data (implying an"
-                " unwrapped phase image). Please check that this is intended."
-            )
-
-    else:
-        # unwrapped phase image
-        if rewrap is None:
-            # TODO - look into adding a "percentile_for_clipping" option
-            cbar_min_max = [
-                np.nanmin(phs_img),
-                np.nanmax(phs_img),
-            ]
-        else:
-            # `rewrap` is a multiple of pi. Convert to the full float value.
-            rewrap_final = rewrap * np.pi
-
-            # The sign of the output of the modulo operator
-            # is the same as the sign of `rewrap_final`.
-            # This means that it will always put the output
-            # into range [0, <rewrap_final>]
-            phs_img %= rewrap_final
-            cbar_min_max = [0, rewrap_final]
+    phs_img, cbar_min_max = get_phase_array(
+        phs_or_complex_raster=phs_or_complex_raster,
+        make_square_pixels=False,  # we'll do this on the HSI Raster later
+        rewrap=rewrap,
+    )
 
     coh_img = coh_raster.data[...]
 
@@ -636,7 +877,47 @@ def img2pdf_hsi(
     )
     ax2.set_xlabel("InSAR\nCoherence\nMagnitude", fontsize=8.5)
     ax2.set_ylabel("InSAR Phase", fontsize=8.5, rotation=270, labelpad=10)
-    ax2.yaxis.set_label_position("right")
+
+    format_cbar_ticks_for_multiples_of_pi(
+        cbar_min=cbar_min, cbar_max=cbar_max, cax=ax2
+    )
+
+    ax2.set_title("HSI Color Space\nSaturation=1", fontsize=8.5)
+
+    # Append figure to the output PDF
+    plots_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
+def format_cbar_ticks_for_multiples_of_pi(
+    cbar_min: float,
+    cbar_max: float,
+    cax: mpl.colorbar.Colorbar | mpl.axes.Axes,
+) -> None:
+    """
+    Pretty-format a colorbar-like axis so its y-axis labels are multiples of pi.
+
+    If the min/max interval is too large, or if the interval does not evenly
+    divide into multiples of pi, then `cax` will not be modified.
+
+    Parameters
+    ----------
+    cbar_min, cbar_max : float
+        The lower and upper values (respectively) for the colorbar interval.
+    cax : mpl.colorbar.Colorbar | mpl.axes.Axes
+        The "colorbar" axes whose y labels and ticks will be modified.
+    """
+    if isinstance(cax, mpl.colorbar.Colorbar):
+        cax_yaxis = cax.ax.yaxis
+    elif isinstance(cax, mpl.axes.Axes):
+        cax_yaxis = cax.yaxis
+    else:
+        raise TypeError(
+            f"`cax` has type {type(cax)}, must be type mpl.colorbar.Colorbar or"
+            " mpl.axes.Axes."
+        )
 
     # If the colorbar range covers an even multiple of pi, then re-format
     # the ticks marks to look nice.
@@ -648,8 +929,8 @@ def img2pdf_hsi(
         # If support for a higher number is desired, then add'l code will
         # need to be written to decimate `tick_vals` appropriately.
         if len(tick_vals) < 9:
-            ax2.set_yticks(tick_vals)
-            ax2.yaxis.set_major_formatter(
+            cax_yaxis.set_ticks(tick_vals)
+            cax_yaxis.set_major_formatter(
                 FuncFormatter(
                     lambda val, pos: (
                         f"{Fraction(f'{val/np.pi:.2f}')}$\pi$"
@@ -659,15 +940,14 @@ def img2pdf_hsi(
                 )
             )
 
-    ax2.yaxis.tick_right()
-
-    ax2.set_title("HSI Color Space\nSaturation=1", fontsize=8.5)
-
-    # Append figure to the output PDF
-    plots_pdf.savefig(fig)
-
-    # Close the plot
-    plt.close(fig)
+        cax_yaxis.set_label_position("right")
+        cax_yaxis.tick_right()
+    else:
+        print(
+            f"Notice: Provided interval [{cbar_min=}, {cbar_max}] does not"
+            " nicely divide into multiples of pi for the colorbar, so axis"
+            " will not be modified."
+        )
 
 
 def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
