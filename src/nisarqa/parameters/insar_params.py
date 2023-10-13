@@ -442,7 +442,7 @@ class GUNWHSIImageParamGroup(UNWHSIImageParamGroup):
 
 
 @dataclass(frozen=True)
-class UNWPhaseImageParamGroup:
+class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters to plot unwrapped phase image.
 
@@ -461,8 +461,7 @@ class UNWPhaseImageParamGroup:
                 name="rewrap",
                 descr="""The multiple of pi to rewrap the unwrapped phase image.
                     If None, no rewrapping will occur.
-                    Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
-                    """,
+                    Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).""",
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="phaseImageRewrap",
