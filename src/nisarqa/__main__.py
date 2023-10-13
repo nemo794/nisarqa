@@ -180,11 +180,11 @@ def main():
     elif subcommand == "gcov_qa":
         nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg)
     elif subcommand == "rifg_qa":
-        nisarqa.igram.verify_rifg(user_rncfg=user_rncfg)
+        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="rifg")
     elif subcommand == "runw_qa":
-        nisarqa.igram.verify_runw(user_rncfg=user_rncfg)
+        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="runw")
     elif subcommand == "gunw_qa":
-        nisarqa.igram.verify_gunw(user_rncfg=user_rncfg)
+        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="gunw")
     elif subcommand == "roff_qa":
         nisarqa.offsets.verify_offset(
             user_rncfg=user_rncfg, product_type="roff"
