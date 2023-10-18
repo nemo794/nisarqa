@@ -230,6 +230,12 @@ def compute_multilooked_backscatter_by_tiling(
             f"Input array has shape {arr_shape} but can only have 2 dimensions."
         )
 
+    if (arr_shape[0] < nlooks[0]) or (arr_shape[1] < nlooks[1]):
+        raise ValueError(
+            f"{nlooks=} but the array has has dimensions {arr_shape}. For each "
+            "dimension, `nlooks` must be <= the length of that dimension."
+        )
+
     if tile_shape[0] == -1:
         tile_shape = (arr_shape[0], tile_shape[1])
     if tile_shape[1] == -1:
@@ -251,19 +257,19 @@ def compute_multilooked_backscatter_by_tiling(
     # Compute the shape of the output multilooked array
     final_out_arr_shape = tuple([m // n for m, n in zip(arr_shape, nlooks)])
 
-    # Reduce the tiling shape to be integer multiples of nlooks
+    # Adjust the tiling shape to be integer multiples of nlooks
     # Otherwise, the tiling will get messy to book-keep.
+
+    # If a tile dimension is smaller than nlooks, grow it to be the same length
+    if tile_shape[0] < nlooks[0]:
+        tile_shape = (nlooks[0], tile_shape[1])
+    if tile_shape[1] < nlooks[1]:
+        tile_shape = (tile_shape[0], nlooks[1])
+
+    # Next, shrink the tile shape to be an integer multiple of nlooks
     in_tiling_shape = tuple([(m // n) * n for m, n in zip(tile_shape, nlooks)])
 
     out_tiling_shape = tuple([m // n for m, n in zip(tile_shape, nlooks)])
-
-    # Ensure that the tiling size is big enough for at least one multilook window
-    if nlooks[0] > in_tiling_shape[0] or nlooks[1] > in_tiling_shape[1]:
-        raise ValueError(
-            f"Given nlooks values {nlooks} must be less than or "
-            f"equal to the adjusted tiling shape {in_tiling_shape}. "
-            f"(Provided, unadjusted tiling shape was {tile_shape}."
-        )
 
     # Create the Iterators
     input_iter = TileIterator(
@@ -377,11 +383,21 @@ def compute_histogram_by_tiling(
     If a cell in the input array is almost zero, then it will not
     be included in the counts for phase.
     """
+    arr_shape = np.shape(arr)
+
+    if (arr_shape[0] < decimation_ratio[0]) or (
+        arr_shape[1] < decimation_ratio[1]
+    ):
+        raise ValueError(
+            f"{decimation_ratio=} but the array has has dimensions {arr_shape}."
+            " For axis 0 and axis 1, `decimation_ratio` must be <= the length"
+            " of that dimension."
+        )
 
     if tile_shape[0] == -1:
-        tile_shape = (arr.shape[0], tile_shape[1])
+        tile_shape = (arr_shape[0], tile_shape[1])
     if tile_shape[1] == -1:
-        tile_shape = (tile_shape[0], arr.shape[1])
+        tile_shape = (tile_shape[0], arr_shape[1])
 
     # Shrink the tile shape to be an even multiple of the decimation ratio.
     # Otherwise, the decimation will get messy to book-keep.
@@ -391,7 +407,7 @@ def compute_histogram_by_tiling(
 
     # Create the Iterator over the input array
     input_iter = TileIterator(
-        arr.shape,
+        arr_shape,
         tile_nrows=in_tiling_shape[0],
         tile_ncols=in_tiling_shape[1],
         row_stride=decimation_ratio[0],
@@ -486,12 +502,23 @@ def compute_range_spectra_by_tiling(
 
     nrows, ncols = shape
 
+    if az_decimation > nrows:
+        raise ValueError(
+            f"{az_decimation=}, must be <= the height of the input array"
+            f" ({nrows} pixels)."
+        )
+
     if tile_height == -1:
         tile_height = nrows
 
-    # Shrink the tile height to be an even multiple of `az_decimation`.
+    # Adjust the tile height to be an integer multiple of `az_decimation`.
     # Otherwise, the decimation will get messy to book-keep.
-    tile_height = tile_height - (tile_height % az_decimation)
+    if tile_height < az_decimation:
+        # Grow tile height
+        tile_height = az_decimation
+    else:
+        # Shrink tile height (less risk of memory issues)
+        tile_height = tile_height - (tile_height % az_decimation)
 
     # Compute total number of range lines that will be used for the
     # entire raster array. (During the accumulation process, if we divide
