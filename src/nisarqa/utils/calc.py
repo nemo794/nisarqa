@@ -167,7 +167,7 @@ def compute_fft(slc_arr: ArrayLike, axis: int = 1) -> np.ndarray:
     ----------
     slc_arr : array_like
         Input SLC array
-    axis : int
+    axis : int, optional
         Axis along which to take the fft. Default is axis = 1.
         (For NISAR, axis 1 is the range axis, and axis 0 is the azimuth axis.)
 

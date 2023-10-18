@@ -441,14 +441,14 @@ def compute_range_spectra_by_tiling(
     fft_shift: bool = True,
 ) -> np.ndarray:
     """
-    Compute the decimated range spectra (linear units) by tiling.
+    Compute the decimated range power spectra (linear units) by tiling.
 
     Power will be computed in linear units. Frequency will be computed in Hz.
 
     Parameters
     ----------
     arr : array_like
-        The input array
+        The input array, representing a two-dimensional discrete-time signal.
     az_decimation : int, optional
         The stride to decimate the input array along the azimuth axis.
         For example, `4` means every 4th range line will
@@ -477,7 +477,7 @@ def compute_range_spectra_by_tiling(
     Returns
     -------
     range_power_spec : numpy.ndarray
-        Normalized range power spectrum in Hz (linear scale) of `arr`.
+        Normalized range power spectral density in 1/Hz (linear scale) of `arr`.
     """
     if tile_height == -1:
         tile_height = np.shape(arr)[0]
@@ -501,7 +501,7 @@ def compute_range_spectra_by_tiling(
     )
 
     # Initialize the accumulator array
-    range_power_spec = np.zeros((np.shape(arr)[1],))
+    range_power_spec = np.zeros(ncols)
 
     for tile_slice in input_iter:
         arr_slice = arr[tile_slice]

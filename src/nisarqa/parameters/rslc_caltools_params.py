@@ -730,12 +730,12 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
-    tile_height: Iterable[int] = field(
+    tile_height: int = field(
         default=512,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="tile_height",
-                descr=""" User-preferred tile height (number of range lines) for processing
+                descr="""User-preferred tile height (number of range lines) for processing
         images by batches. Actual tile shape may be modified by QA to be
         an integer multiple of `az_decimation`.
         Note: full rows must be read in, so the number of columns for each tile
@@ -761,7 +761,7 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
 
         # validate hz_to_mhz
         if not isinstance(self.hz_to_mhz, bool):
-            raise TypeError(f"hz_to_mhz` must be bool: {val}")
+            raise TypeError(f"hz_to_mhz` must be bool: {type(self.hz_to_mhz)}")
 
         # validate tile_height
         if not isinstance(self.tile_height, int):

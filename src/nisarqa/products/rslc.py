@@ -1465,12 +1465,8 @@ def generate_range_spectra_single_freq(
 
     Parameters
     ----------
-    pols : nested dict of RSLCRasterQA
-        Nested dict of RSLCRasterQA objects, where each object represents
-        a polarization dataset in `h5_file`.
-        Format: pols[<band>][<freq>][<pol>] -> a RSLCRasterQA
-        Ex: pols['LSAR']['A']['HH'] -> the HH dataset, stored
-                                       in a RSLCRasterQA object
+    product : nisarqa.RSLC
+        Input RSLC product.
     freq : str
         Frequency name for the range power spectra to be processed,
         e.g. 'A' or 'B'
@@ -1485,7 +1481,7 @@ def generate_range_spectra_single_freq(
 
     print(f"Generating Range Spectra for Frequency {freq}...")
 
-    # Plot the range spectra using strinctly increasing sample frequencies
+    # Plot the range spectra using strictly increasing sample frequencies
     # (no discontinuity).
     fft_shift = True
 
@@ -1497,9 +1493,8 @@ def generate_range_spectra_single_freq(
     with product.get_raster(freq, first_pol) as img:
         # Compute the sample rate
         # c/2 for radar energy round-trip; units for `sample_rate` will be Hz
-        sample_rate = (constants.c / 2.0) / product.get_slant_range_spacing(
-            freq
-        )
+        dr = product.get_slant_range_spacing(freq)
+        sample_rate = (constants.c / 2.0) / dr
 
         fft_freqs = nisarqa.generate_fft_freqs(
             num_samples=img.data.shape[1],
@@ -1516,18 +1511,15 @@ def generate_range_spectra_single_freq(
         else:
             freq_units = "Hz"
 
-        # Shift x-axis to be centered at the center frequency
-        # fft_freqs += proc_center_freq
-
     # Save x-axis values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq),
-        ds_name="rangeWavenumberSpacing",
+        ds_name="rangeSpectraFrequencies",
         ds_data=fft_freqs,
         ds_units=freq_units,
         ds_description=(
-            f"Range wavenumber spacing for Frequency {freq} range power"
+            f"Frequency coordinates for Frequency {freq} range power"
             " spectra."
         ),
     )
@@ -1557,11 +1549,11 @@ def generate_range_spectra_single_freq(
                 h5_file=stats_h5,
                 grp_path=nisarqa.STATS_H5_QA_POL_GROUP
                 % (product.band, freq, pol),
-                ds_name="rangeSpectrum",  # TODO - Geoff - rangeSpectra? or rangeSpectrum?
+                ds_name="rangePowerSpectralDensity",
                 ds_data=rng_spectrum,
                 ds_units="dB/Hz",
                 ds_description=(
-                    f"Normalized range power spectra for Frequency {freq},"
+                    f"Normalized range power spectral density for Frequency {freq},"
                     f" Polarization {pol}."
                 ),
             )
@@ -1571,7 +1563,6 @@ def generate_range_spectra_single_freq(
 
     # Label the Plot
     ax.set_title(f"Range Power Spectra for Frequency {freq}\n")
-    # ax.set_xlabel(f"Frequency ({freq_units})")
     ax.set_xlabel(f"Frequency rel. {proc_center_freq} {freq_units}")
 
     ax.set_ylabel("Power Spectral Density (dB/Hz)")
