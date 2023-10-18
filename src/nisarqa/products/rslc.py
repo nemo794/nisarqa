@@ -1419,14 +1419,14 @@ def process_range_spectra(
     report_pdf: PdfPages,
 ) -> None:
     """
-    Generate the RSLC Range Spectra plot and save to PDF and stats.h5.
+    Generate the RSLC Range Spectra plot(s) and save to PDF and stats.h5.
 
     Generate the RSLC Range Spectra; save the plot
     to the graphical summary .pdf file and the data to the
     statistics .h5 file.
 
-    Power Spectra will be computed in decibel units,
-    and Frequency in MHz.
+    Power Spectral Density (PSD) is computed in decibel/hertz (dB/Hz) units,
+    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
 
     Parameters
     ----------
@@ -1460,8 +1460,10 @@ def generate_range_spectra_single_freq(
 
     Generate the RSLC Range Spectra; save the plot
     to the graphical summary .pdf file and the data to the
-    statistics .h5 file. Power Spectra will be computed in
-    decibel units, and Frequency in MHz.
+    statistics .h5 file.
+
+    Power Spectral Density (PSD) is computed in decibel/hertz (dB/Hz) units,
+    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
 
     Parameters
     ----------
@@ -1485,7 +1487,7 @@ def generate_range_spectra_single_freq(
     # (no discontinuity).
     fft_shift = True
 
-    # Get the fft spacing
+    # Get the FFT spacing
     # Because `freq` is fixed, and all polarizations within
     # the same frequency will have the same `fft_freqs`.
     # So, we only need to do this computation one time.
@@ -1519,8 +1521,7 @@ def generate_range_spectra_single_freq(
         ds_data=fft_freqs,
         ds_units=freq_units,
         ds_description=(
-            f"Frequency coordinates for Frequency {freq} range power"
-            " spectra."
+            f"Frequency coordinates for Frequency {freq} range power spectra."
         ),
     )
 
@@ -1553,8 +1554,8 @@ def generate_range_spectra_single_freq(
                 ds_data=rng_spectrum,
                 ds_units="dB/Hz",
                 ds_description=(
-                    f"Normalized range power spectral density for Frequency {freq},"
-                    f" Polarization {pol}."
+                    "Normalized range power spectral density for Frequency"
+                    f" {freq}, Polarization {pol}."
                 ),
             )
 

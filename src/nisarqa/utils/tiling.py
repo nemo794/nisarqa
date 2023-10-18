@@ -454,21 +454,20 @@ def compute_range_spectra_by_tiling(
         For example, `4` means every 4th range line will
         be used to compute the range spectra.
         If `1`, no decimation will occur (but is slower to compute).
-        Defaults to 1.
+        Must be greater than zero. Defaults to 1.
     tile_height : int, optional
         User-preferred tile height (number of range lines) for processing
         images by batches. Actual tile shape may be modified by QA to be
-        an integer multiple of `az_decimation`.
+        an integer multiple of `az_decimation`. -1 to use all rows.
         Note: full rows must be read in, so the number of columns for each tile
         will be fixed to the number of columns in the input raster.
-        -1 to use all rows.
         Defaults to 512.
     fft_shift : bool, optional
         True to have the frequencies in `range_power_spec` be continuous from
         negative (min) -> positive (max) values.
 
         False to leave `range_power_spec` as the output from
-        `numpy.fft.fftfreq()`, where this discrete fft operation orders values
+        `numpy.fft.fftfreq()`, where this discrete FFT operation orders values
         from 0 -> max positive -> min negative -> 0- . (This creates
         a discontinuity in the interval's values.)
 
@@ -479,8 +478,16 @@ def compute_range_spectra_by_tiling(
     range_power_spec : numpy.ndarray
         Normalized range power spectral density in 1/Hz (linear scale) of `arr`.
     """
+    shape = np.shape(arr)
+    if len(shape) != 2:
+        raise ValueError(
+            f"Input array has {len(shape)} dimensions, but must be 2D."
+        )
+
+    nrows, ncols = shape
+
     if tile_height == -1:
-        tile_height = np.shape(arr)[0]
+        tile_height = nrows
 
     # Shrink the tile height to be an even multiple of `az_decimation`.
     # Otherwise, the decimation will get messy to book-keep.
@@ -493,7 +500,7 @@ def compute_range_spectra_by_tiling(
     # By averaging during the accumulation, we prevent possible float overflow.
     # Also, the TileIterator will truncate the array azimuth direction to be
     # an integer multiple of the stride, so use integer division here.
-    num_range_lines = np.shape(arr)[0] // az_decimation
+    num_range_lines = nrows // az_decimation
 
     # Create the Iterator over the input array
     input_iter = TileIterator(
@@ -514,7 +521,7 @@ def compute_range_spectra_by_tiling(
 
     if fft_shift:
         # Shift range_power_spec to be aligned with the
-        # shifted fft frequencies.
+        # shifted FFT frequencies.
         range_power_spec = np.fft.fftshift(range_power_spec)
 
     return range_power_spec

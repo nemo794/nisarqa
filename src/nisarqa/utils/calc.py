@@ -159,34 +159,34 @@ def normalize(
 
 def compute_fft(slc_arr: ArrayLike, axis: int = 1) -> np.ndarray:
     """
-    Compute fft of the input array along the given axis.
+    Compute FFT of the input array along the given axis.
 
-    Nan values in `slc_arr` will be filled with zero.
+    Non-finite values in `slc_arr` will be filled with zero.
+    No normalization will be applied.
 
     Parameters
     ----------
     slc_arr : array_like
         Input SLC array
     axis : int, optional
-        Axis along which to take the fft. Default is axis = 1.
+        Axis along which to take the FFT. Default is axis = 1.
         (For NISAR, axis 1 is the range axis, and axis 0 is the azimuth axis.)
 
     Returns
     -------
     fft : numpy.ndarray
-        The fft of `slc_arr` along `axis`. Nan values filled with zero.
-        Normalized with "ortho" mode.
+        The FFT of `slc_arr` along `axis`. Non-finite values filled with zero.
 
     Notes
     -----
-    Similar to ISCE3, nan values in `slc_arr` will be filled with zeros.
-    An alternative would be to implement non-equispace fft's, but that could be
+    Similar to ISCE3, non-finite values in `slc_arr` will be filled with zeros.
+    An alternative would be to implement non-equispace FFT's, but that could be
     too computationally and algorithmically complicated for the QA Code.
     """
 
     finite_slc_arr = np.where(np.isfinite(slc_arr), slc_arr, 0.0)
 
-    fft = np.fft.fft(finite_slc_arr, axis=axis, norm="ortho")
+    fft = np.fft.fft(finite_slc_arr, axis=axis)
 
     return fft
 
@@ -208,7 +208,7 @@ def generate_fft_freqs(
         negative (min) -> positive (max) values.
 
         False to leave `fft_freqs` as the output from `numpy.fft.fftfreq()`,
-        where this discrete fft operation orders values
+        where this discrete FFT operation orders values
         from 0 -> max positive -> min negative -> 0- . (This creates
         a discontinuity in the interval's values.)
 
@@ -227,7 +227,7 @@ def generate_fft_freqs(
     if fft_shift:
         # Shift fft_freqs to be continuous from
         # negative (min) -> positive (max) values.
-        # (The output from the discrete fft operation orders values
+        # (The output from the discrete FFT operation orders values
         # from 0 -> max positive -> min negative -> 0- .
         # Doing this will remove that discontinuity.)
         fft_freqs = np.fft.fftshift(fft_freqs)

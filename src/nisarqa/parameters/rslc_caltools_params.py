@@ -682,28 +682,27 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         For example, `4` means every 4th range line will
         be used to compute the range spectra.
         If `1`, no decimation will occur (but is slow to compute).
-        Defaults to 10.
+        Must be greater than zero. Defaults to 8.
     hz_to_mhz : bool, optional
         True if the input frequencies are in Hz, but user wants outputs in MHz.
         Defaults to True.
     tile_height : int, optional
         User-preferred tile height (number of range lines) for processing
         images by batches. Actual tile shape may be modified by QA to be
-        an integer multiple of `az_decimation`.
+        an integer multiple of `az_decimation` . -1 to use all rows.
         Note: full rows must be read in, so the number of columns for each tile
         will be fixed to the number of columns in the input raster.
-        -1 to use all rows.
         Defaults to 512.
     """
 
     az_decimation: int = field(
-        default=10,
+        default=8,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="az_decimation",
                 descr="""The stride to decimate the input array along the azimuth axis.
                     For example, `4` means every 4th range line will
-                    be used to compute the range spectra.
+                    be used to compute the range spectra. Must be greater than zero.
                     If `1`, no decimation will occur (but is slower to compute).""",
             ),
             "hdf5_attrs": HDF5Attrs(
@@ -718,7 +717,6 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
-    # TODO - Geoff - Should this parameter also be saved to the HDF5?
     hz_to_mhz: bool = field(
         default=True,
         metadata={
@@ -737,10 +735,9 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name="tile_height",
                 descr="""User-preferred tile height (number of range lines) for processing
         images by batches. Actual tile shape may be modified by QA to be
-        an integer multiple of `az_decimation`.
+        an integer multiple of `az_decimation`. -1 to use all rows.
         Note: full rows must be read in, so the number of columns for each tile
-        will be fixed to the number of columns in the input raster.
-        -1 to use all rows.""",
+        will be fixed to the number of columns in the input raster.""",
             )
         },
     )

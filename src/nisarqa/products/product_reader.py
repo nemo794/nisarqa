@@ -1786,7 +1786,8 @@ class RSLC(SLC, NisarRadarProduct):
         Get processed center frequency.
 
         Get the processed center frequency, in Hz, of the radar signal
-        corresponding to the specified frequency sub-band.
+        corresponding to the specified frequency sub-band. (It is assumed
+        that the input product's processed center frequency is in Hz.)
 
         Parameters
         ----------
@@ -1804,9 +1805,32 @@ class RSLC(SLC, NisarRadarProduct):
             path = f"{self.get_freq_path(freq)}/processedCenterFrequency"
             with nisarqa.open_h5_file(self.filepath) as f:
                 try:
-                    return f[path][()]
+                    proc_center_freq = f[path][()]
                 except KeyError as e:
                     raise nisarqa.DatasetNotFoundError from e
+
+                # As of R3.4, units for `processedCenterFrequency` are "Hz",
+                # not MHz. Do a soft check that this the units are correct.
+                try:
+                    units = f[path].attrs["units"]
+                except KeyError:
+                    errmsg = (
+                        "`processedCenterFrequency` missing 'units' attribute."
+                    )
+                    print(errmsg)
+                    warnings.warn(errmsg)
+
+                units = _hdf5_byte_string_to_str(units)
+                # units should be either "hz" or "hertz", and not MHz
+                if (units[0].lower() != "h") or (units[-1].lower() != "z"):
+                    errmsg = (
+                        "Input product's `processedCenterFrequency` dataset"
+                        f" has units of {units}, but should be in Hertz."
+                    )
+                    print(errmsg)
+                    warnings.warn(errmsg)
+
+            return proc_center_freq
 
         return _get_proc_center_freq(freq)
 
