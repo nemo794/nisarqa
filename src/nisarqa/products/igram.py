@@ -99,6 +99,7 @@ def verify_igram(user_rncfg, product_type: str) -> None:
         elif product_type == "runw":
             product = nisarqa.RUNW(input_file)
         else:
+            assert product_type == "gunw"
             product = nisarqa.GUNW(input_file)
 
         # TODO qa_reports will add to the SUMMARY.csv file.
@@ -155,7 +156,7 @@ def verify_igram(user_rncfg, product_type: str) -> None:
 def process_hsi(
     product: nisarqa.WrappedGroup,
     params: nisarqa.HSIImageParamGroup,
-    browse_png: str,
+    browse_png: str | os.PathLike,
     report_pdf: PdfPages,
     wrapped_hsi: bool,
 ) -> None:
@@ -166,7 +167,7 @@ def process_hsi(
 def process_hsi(
     product: nisarqa.UnwrappedGroup,
     params: nisarqa.UNWHSIImageParamGroup,
-    browse_png: str,
+    browse_png: str | os.PathLike,
     report_pdf: PdfPages,
     wrapped_hsi: bool,
 ) -> None:
@@ -186,7 +187,7 @@ def process_hsi(product, params, browse_png, report_pdf, wrapped_hsi):
         Input NISAR product.
     params : nisarqa.HSIImageParamGroup or nisarqa.UNWHSIImageParamGroup
         A structure containing the parameters for creating the HSI image.
-    browse_png : str
+    browse_png : path-like
         Filename (with path) for the browse image PNG.
     report_pdf : PdfPages
         The output PDF file to append the HSI image plot to.
