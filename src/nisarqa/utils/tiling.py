@@ -452,19 +452,20 @@ def compute_histogram_by_tiling(
 
 def compute_range_spectra_by_tiling(
     arr: ArrayLike,
+    sampling_rate: float,
     az_decimation: int = 1,
     tile_height: int = 512,
     fft_shift: bool = True,
 ) -> np.ndarray:
     """
-    Compute the decimated range power spectra (linear units) by tiling.
-
-    Power will be computed in linear units. Frequency will be computed in Hz.
+    Compute the normalized range power spectral density in dB/Hz by tiling.
 
     Parameters
     ----------
     arr : array_like
         The input array, representing a two-dimensional discrete-time signal.
+    sampling_rate : numeric
+        Sample rate (inverse of the sample spacing) in Hz.
     az_decimation : int, optional
         The stride to decimate the input array along the azimuth axis.
         For example, `4` means every 4th range line will
@@ -491,8 +492,8 @@ def compute_range_spectra_by_tiling(
 
     Returns
     -------
-    range_power_spec : numpy.ndarray
-        Normalized range power spectral density in 1/Hz (linear scale) of `arr`.
+    S_out : numpy.ndarray
+        Normalized range power spectral density in dB/Hz of `arr`.
     """
     shape = np.shape(arr)
     if len(shape) != 2:
@@ -520,12 +521,9 @@ def compute_range_spectra_by_tiling(
         # Shrink tile height (less risk of memory issues)
         tile_height = tile_height - (tile_height % az_decimation)
 
-    # Compute total number of range lines that will be used for the
-    # entire raster array. (During the accumulation process, if we divide
-    # each tile's power density by the total number of range lines used,
-    # then the end result is the average for the entire raster.
-    # By averaging during the accumulation, we prevent possible float overflow.
-    # Also, the TileIterator will truncate the array azimuth direction to be
+    # Compute total number of range lines that will be used to generate
+    # the range power spectra. This will be used for averaging.
+    # The TileIterator will truncate the array azimuth direction to be
     # an integer multiple of the stride, so use integer division here.
     num_range_lines = nrows // az_decimation
 
@@ -535,23 +533,43 @@ def compute_range_spectra_by_tiling(
     )
 
     # Initialize the accumulator array
-    range_power_spec = np.zeros(ncols)
+    S_avg = np.zeros(ncols)
 
     for tile_slice in input_iter:
         arr_slice = arr[tile_slice]
 
         # Compute fft over range axis (axis 1)
+        # Note: Ensure no normalization occurs in this FFT! We'll handle that
+        # manually below.
         fft = nisarqa.compute_fft(arr_slice, axis=1)
 
-        # Accumulate average power density along the azimuth axis
-        range_power_spec += np.sum(np.abs(fft) ** 2, axis=0) / num_range_lines
+        # Compute the power
+        S = np.abs(fft) ** 2
+
+        # Normalize the transform
+        S /= ncols  # ncols is the number of fft bins
+
+        # Average over the azimuth axis
+        # (We are processing the raster by tiles, but the total summation of
+        # power for the entire array might cause float overflow.
+        # So, during the accumulation process, if we divide each tile's
+        # power density by the total number of range lines used, then the
+        # final accumulated array will be mathmatically equivalent to
+        # the average of the entire array.)
+        S_avg += np.sum(S, axis=0) / num_range_lines
+
+    # Convert to dB
+    S_out = nisarqa.pow2db(S_avg)
+
+    # Normalize by the sampling rate -> This makes the units dB/Hz
+    S_out /= sampling_rate
 
     if fft_shift:
-        # Shift range_power_spec to be aligned with the
+        # Shift S_out to be aligned with the
         # shifted FFT frequencies.
-        range_power_spec = np.fft.fftshift(range_power_spec)
+        S_out = np.fft.fftshift(S_out)
 
-    return range_power_spec
+    return S_out
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

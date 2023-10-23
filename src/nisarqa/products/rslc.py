@@ -1534,16 +1534,14 @@ def generate_range_spectra_single_freq(
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
             # Get the Range Spectra
-            # (The returned array will have been normalized to 1/Hz)
+            # (The returned array is in dB/Hz)
             rng_spectrum = nisarqa.compute_range_spectra_by_tiling(
                 arr=img.data,
+                sampling_rate=sample_rate,
                 az_decimation=params.az_decimation,
                 tile_height=params.tile_height,
                 fft_shift=fft_shift,
             )
-
-            # Convert to dB
-            rng_spectrum = nisarqa.pow2db(rng_spectrum)
 
             # Save normalized range power spectra values to stats.h5 file
             nisarqa.create_dataset_in_h5group(
