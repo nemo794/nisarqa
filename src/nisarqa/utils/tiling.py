@@ -541,6 +541,7 @@ def compute_range_spectra_by_tiling(
         # Compute fft over range axis (axis 1)
         # Note: Ensure no normalization occurs in this FFT! We'll handle that
         # manually below.
+        # Units of `fft` are the same as the units of `arr_slice`: unitless
         fft = nisarqa.compute_fft(arr_slice, axis=1)
 
         # Compute the power
@@ -558,11 +559,12 @@ def compute_range_spectra_by_tiling(
         # the average of the entire array.)
         S_avg += np.sum(S, axis=0) / num_range_lines
 
-    # Convert to dB
-    S_out = nisarqa.pow2db(S_avg)
+    # Normalize by the sampling rate
+    # This makes the units unitless/Hz
+    S_out = S_avg / sampling_rate
 
-    # Normalize by the sampling rate -> This makes the units dB/Hz
-    S_out /= sampling_rate
+    # Convert to dB
+    S_out = nisarqa.pow2db(S_out)
 
     if fft_shift:
         # Shift S_out to be aligned with the

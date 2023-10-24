@@ -1531,6 +1531,8 @@ def generate_range_spectra_single_freq(
     # Use custom cycler for accessibility
     ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
 
+    rng_spec_units = "dB re 1/Hz"
+
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
             # Get the Range Spectra
@@ -1550,7 +1552,7 @@ def generate_range_spectra_single_freq(
                 % (product.band, freq, pol),
                 ds_name="rangePowerSpectralDensity",
                 ds_data=rng_spectrum,
-                ds_units="dB/Hz",
+                ds_units=rng_spec_units,
                 ds_description=(
                     "Normalized range power spectral density for Frequency"
                     f" {freq}, Polarization {pol}."
@@ -1564,7 +1566,7 @@ def generate_range_spectra_single_freq(
     ax.set_title(f"Range Power Spectra for Frequency {freq}\n")
     ax.set_xlabel(f"Frequency rel. {proc_center_freq} {freq_units}")
 
-    ax.set_ylabel("Power Spectral Density (dB/Hz)")
+    ax.set_ylabel(f"Power Spectral Density ({rng_spec_units})")
 
     ax.legend(loc="upper right")
     ax.grid()
