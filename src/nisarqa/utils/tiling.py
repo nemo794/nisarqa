@@ -458,14 +458,14 @@ def compute_range_spectra_by_tiling(
     fft_shift: bool = True,
 ) -> np.ndarray:
     """
-    Compute the normalized range power spectral density in dB/Hz by tiling.
+    Compute the normalized range power spectral density in dB re 1/Hz by tiling.
 
     Parameters
     ----------
     arr : array_like
         The input array, representing a two-dimensional discrete-time signal.
     sampling_rate : numeric
-        Sample rate (inverse of the sample spacing) in Hz.
+        Range sample rate (inverse of the sample spacing) in Hz.
     az_decimation : int, optional
         The stride to decimate the input array along the azimuth axis.
         For example, `4` means every 4th range line will
@@ -493,7 +493,7 @@ def compute_range_spectra_by_tiling(
     Returns
     -------
     S_out : numpy.ndarray
-        Normalized range power spectral density in dB/Hz of `arr`.
+        Normalized range power spectral density in dB re 1/Hz of `arr`.
     """
     shape = np.shape(arr)
     if len(shape) != 2:

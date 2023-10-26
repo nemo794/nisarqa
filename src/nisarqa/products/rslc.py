@@ -1425,7 +1425,7 @@ def process_range_spectra(
     to the graphical summary .pdf file and the data to the
     statistics .h5 file.
 
-    Power Spectral Density (PSD) is computed in decibel/hertz (dB/Hz) units,
+    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
     and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
 
     Parameters
@@ -1462,7 +1462,7 @@ def generate_range_spectra_single_freq(
     to the graphical summary .pdf file and the data to the
     statistics .h5 file.
 
-    Power Spectral Density (PSD) is computed in decibel/hertz (dB/Hz) units,
+    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
     and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
 
     Parameters
@@ -1536,7 +1536,7 @@ def generate_range_spectra_single_freq(
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
             # Get the Range Spectra
-            # (The returned array is in dB/Hz)
+            # (The returned array is in dB re 1/Hz)
             rng_spectrum = nisarqa.compute_range_spectra_by_tiling(
                 arr=img.data,
                 sampling_rate=sample_rate,
