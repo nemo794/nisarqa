@@ -25,9 +25,21 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def process_phase_image_unwrapped(
     product: nisarqa.UnwrappedGroup,
     report_pdf: PdfPages,
-    stats_h5: h5py.File,
     params: nisarqa.UNWPhaseImageParamGroup,
 ) -> None:
+    """
+    Process the unwrapped phase image and plot to PDF.
+
+    Parameters
+    ----------
+    product : nisarqa.UnwrappedGroup
+        Input NISAR product.
+    report_pdf : PdfPages
+        The output PDF file to append the unwrapped phase image plots to.
+    params : nisarqa.UNWPhaseImageParamGroup
+        A structure containing processing parameters to generate the
+        unwrapped phase image plots.
+    """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
             with product.get_unwrapped_phase(freq=freq, pol=pol) as img:
@@ -45,6 +57,26 @@ def plot_unwrapped_phase_image_to_pdf(
     report_pdf: PdfPages,
     rewrap: Optional[float] = None,
 ) -> None:
+    """
+    Plot the unwrapped phase image to PDF.
+
+    If `rewrap` is float-valued, then two images will be plotted:
+        1) The unwrapped phase image without any rewrapping applied, and
+        2) The unwrapped phase image that has been rewrapped.
+    If `rewrap` is None, then only the first of those images will be plotted.
+
+    Parameters
+    ----------
+    phs_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
+        *Raster of unwrapped phase data (float-valued).
+    report_pdf : PdfPages
+        The output PDF file to append the unwrapped phase image plot(s) to.
+    rewrap : float or int or None, optional
+        The multiple of pi to rewrap the unwrapped phase image when generating
+        the HSI image(s). If None, no rewrapped phase image will be plotted.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+        Defaults to None.
+    """
     # Overview: If no re-wrapping is requested, simply make one plot.
     # If re-wrapping is requested, make the plot on the left the original
     # unwrapped plot, and the plot on the right the rewrapped plot.
@@ -152,10 +184,20 @@ def plot_unwrapped_phase_image_to_pdf(
 
 
 def process_phase_image_wrapped(
-    product: nisarqa.WrappedGroup,
-    report_pdf: PdfPages,
-    stats_h5: h5py.File,
+    product: nisarqa.WrappedGroup, report_pdf: PdfPages
 ) -> None:
+    """
+    Process the wrapped groups' phase and coherence magnitude layers.
+
+    Appends plots of each layer to the report PDF file.
+
+    Parameters
+    ----------
+    product : nisarqa.WrappedGroup
+        Input NISAR product.
+    report_pdf : PdfPages
+        Output PDF file to append the phase and coherence magnitude plots to.
+    """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
             with product.get_wrapped_igram(
@@ -163,22 +205,54 @@ def process_phase_image_wrapped(
             ) as complex_img, product.get_wrapped_coh_mag(
                 freq=freq, pol=pol
             ) as coh_img:
-                plot_wrapped_phase_image_to_pdf(
+                plot_wrapped_phase_image_and_coh_mag_to_pdf(
                     complex_raster=complex_img,
                     coh_raster=coh_img,
                     report_pdf=report_pdf,
                 )
 
-                # Plot Histogram
 
-                # Compute Statistics
-
-
-def plot_wrapped_phase_image_to_pdf(
-    complex_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
-    coh_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+@overload
+def plot_wrapped_phase_image_and_coh_mag_to_pdf(
+    complex_raster: nisarqa.RadarRaster,
+    coh_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
 ) -> None:
+    ...
+
+
+@overload
+def plot_wrapped_phase_image_and_coh_mag_to_pdf(
+    complex_raster: nisarqa.GeoRaster,
+    coh_raster: nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+) -> None:
+    ...
+
+
+def plot_wrapped_phase_image_and_coh_mag_to_pdf(
+    complex_raster,
+    coh_raster,
+    report_pdf,
+) -> None:
+    """
+    Plot a complex raster and coherence magnitude layers side-by-side on PDF.
+
+    Parameters
+    ----------
+    complex_raster : nisarqa.RadarRaster or nisarqa.GeoRaster
+        *Raster of complex interferogram data. This should correspond to
+        `coh_raster`.
+    coh_raster : nisarqa.GeoRaster or nisarqa.RadarRaster
+        *Raster for the coherence magnitude raster. This should correspond to
+        `complex_raster`.
+    report_pdf : PdfPages
+        Output PDF file to append the phase and coherence magnitude plots to.
+    """
+
+    # Validate that the pertinent metadata in the rasters is equal.
+    nisarqa.compare_raster_metadata(complex_raster, coh_raster)
+
     phs_img, cbar_min_max = get_phase_array(
         phs_or_complex_raster=complex_raster,
         make_square_pixels=True,
@@ -1200,8 +1274,8 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
 
-    az_img = az_offset.data[...]
-    rg_img = rg_offset.data[...]
+    az_img = nisarqa.get_raster_array_with_square_pixels(az_offset)
+    rg_img = nisarqa.get_raster_array_with_square_pixels(rg_offset)
 
     # Compute the colorbar interval, centered around zero.
     # Both plots should use the larger of the intervals.
@@ -1212,17 +1286,6 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
     rg_max = get_max_abs_val(rg_img)
     cbar_max = max(az_max, rg_max)
     cbar_min = -cbar_max  # center around zero
-
-    # Decimate to square pixels. (az and rng rasters have the same metadata)
-    ky, kx = nisarqa.compute_square_pixel_nlooks(
-        # only need the x and y dimensions
-        img_shape=np.shape(az_img),
-        sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
-        # Only make square pixels. Use `max()` to not "shrink" the rasters.
-        longest_side_max=max(np.shape(az_img)),
-    )
-    az_img = az_img[::ky, ::kx]
-    rg_img = rg_img[::ky, ::kx]
 
     # Create figure and add the rasters.
     fig, (ax1, ax2) = plt.subplots(
@@ -1446,21 +1509,9 @@ def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
 
-    # Create correct aspect ratio via decimation. (az and rng rasters have
-    # the same shape, so WLOG compute the decimation factors for one raster
-    # and apply to both.
-    raster_shape = np.shape(az_offset.data)
-    assert len(raster_shape) == 2  # the offset rasters should always be 2D
-    ky, kx = nisarqa.compute_square_pixel_nlooks(
-        img_shape=raster_shape,
-        sample_spacing=[az_offset.y_axis_spacing, az_offset.x_axis_spacing],
-        # Only make square pixels. Use `max()` to not "shrink" the rasters.
-        longest_side_max=max(raster_shape),
-    )
-    # Grab the datasets into arrays in memory.
-    # While doing this, convert to square pixels.
-    az_off = az_offset.data[::ky, ::kx]
-    rg_off = rg_offset.data[::ky, ::kx]
+    # Grab the datasets into arrays in memory (with square pixels).
+    az_off = nisarqa.get_raster_array_with_square_pixels(raster_obj=az_offset)
+    rg_off = nisarqa.get_raster_array_with_square_pixels(raster_obj=rg_offset)
 
     # Grab the axes window extent size, and decimate array to correct size for
     # plotting to the PDF

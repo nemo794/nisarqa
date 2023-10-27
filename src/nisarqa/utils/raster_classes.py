@@ -426,7 +426,7 @@ def get_raster_array_with_square_pixels(
     raster_obj: RadarRaster | GeoRaster,
 ) -> np.ndarray:
     """
-    Get the *Raster's full data array, decimated to square pixels.
+    Get *Raster's data array, decimated to square pixels in X and Y direction.
 
     Parameters
     ----------
@@ -443,13 +443,13 @@ def get_raster_array_with_square_pixels(
     arr = raster_obj.data[...]
 
     ky, kx = nisarqa.compute_square_pixel_nlooks(
-        img_shape=arr.shape,
+        img_shape=arr.shape[:2],
         sample_spacing=[
             raster_obj.y_axis_spacing,
             raster_obj.x_axis_spacing,
         ],
         # Only make square pixels. Use `max()` to not "shrink" the rasters.
-        longest_side_max=max(arr.shape),
+        longest_side_max=max(arr.shape[:2]),
     )
 
     # Decimate to square pixels.

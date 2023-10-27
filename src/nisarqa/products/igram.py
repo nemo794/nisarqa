@@ -142,14 +142,12 @@ def verify_igram(user_rncfg, product_type: str) -> None:
                     product=product,
                     params=root_params.unw_phs_img,
                     report_pdf=report_pdf,
-                    stats_h5=stats_h5,
                 )
 
             if isinstance(product, nisarqa.WrappedGroup):
                 nisarqa.process_phase_image_wrapped(
                     product=product,
                     report_pdf=report_pdf,
-                    stats_h5=stats_h5,
                 )
 
             # Plot azimuth offsets and slant range offsets (RIFG, RUNW, & GUNW)
