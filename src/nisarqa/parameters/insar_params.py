@@ -379,7 +379,7 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
     """
 
     rewrap: Optional[float | int] = field(
-        default=3,
+        default=7,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="rewrap",
@@ -455,7 +455,7 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
 
     rewrap: Optional[float | int] = field(
-        default=3,
+        default=7,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="rewrap",
