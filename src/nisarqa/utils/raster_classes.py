@@ -422,4 +422,38 @@ def compare_raster_metadata(
                 )
 
 
+def get_raster_array_with_square_pixels(
+    raster_obj: RadarRaster | GeoRaster,
+) -> np.ndarray:
+    """
+    Get the *Raster's full data array, decimated to square pixels.
+
+    Parameters
+    ----------
+    raster_obj : RadarRaster or GeoRaster
+        *Raster object whose .data attribute will be read into memory
+        and decimated along the first two dimensions to square pixels.
+
+    Returns
+    -------
+    out : numpy.ndarray
+        Copy of raster_obj.data array that has been decimated along the
+        first two dimensions to have square pixels.
+    """
+    arr = raster_obj.data[...]
+
+    ky, kx = nisarqa.compute_square_pixel_nlooks(
+        img_shape=arr.shape,
+        sample_spacing=[
+            raster_obj.y_axis_spacing,
+            raster_obj.x_axis_spacing,
+        ],
+        # Only make square pixels. Use `max()` to not "shrink" the rasters.
+        longest_side_max=max(arr.shape),
+    )
+
+    # Decimate to square pixels.
+    return arr[::ky, ::kx]
+
+
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

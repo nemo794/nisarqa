@@ -158,9 +158,15 @@ def process_phase_image_wrapped(
 ) -> None:
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            with product.get_wrapped_igram(freq=freq, pol=pol) as img:
+            with product.get_wrapped_igram(
+                freq=freq, pol=pol
+            ) as complex_img, product.get_wrapped_coh_mag(
+                freq=freq, pol=pol
+            ) as coh_img:
                 plot_wrapped_phase_image_to_pdf(
-                    complex_raster=img, report_pdf=report_pdf
+                    complex_raster=complex_img,
+                    coh_raster=coh_img,
+                    report_pdf=report_pdf,
                 )
 
                 # Plot Histogram
@@ -170,6 +176,7 @@ def process_phase_image_wrapped(
 
 def plot_wrapped_phase_image_to_pdf(
     complex_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    coh_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     report_pdf: PdfPages,
 ) -> None:
     phs_img, cbar_min_max = get_phase_array(
@@ -178,26 +185,38 @@ def plot_wrapped_phase_image_to_pdf(
         rewrap=None,
     )
 
+    coh_img = nisarqa.get_raster_array_with_square_pixels(coh_raster)
+
     # Grab the axes window extent size, and decimate array to
     # correct size for plotting to the PDF
-    fig, ax = plt.subplots(ncols=1, nrows=1, constrained_layout="tight")
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=2,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+        sharey=True,
+    )
 
     # Decimate to fit nicely on the figure.
-    phs_img = decimate_img_to_size_of_axes(ax=ax, arr=phs_img)
+    phs_img = decimate_img_to_size_of_axes(ax=ax1, arr=phs_img)
+    coh_img = decimate_img_to_size_of_axes(ax=ax2, arr=coh_img)
 
-    # If
-    title = f"Wrapped Phase Image\n{complex_raster.name}"
+    # Construct the name -- Remove the layer name from the `name`
+    name = "_".join(complex_raster.name.split("_")[:-1])
+    title = f"Wrapped Phase Image Group\n{name}"
     fig.suptitle(title)
 
-    im = ax.imshow(phs_img, aspect="equal", cmap="hsv", interpolation="none")
+    # Add the wrapped phase image plot
+    im = ax1.imshow(phs_img, aspect="equal", cmap="hsv", interpolation="none")
 
     nisarqa.rslc.format_axes_ticks_and_labels(
-        ax=ax,
+        ax=ax1,
         xlim=complex_raster.x_axis_limits,
         ylim=complex_raster.y_axis_limits,
         img_arr_shape=np.shape(phs_img),
         xlabel=complex_raster.x_axis_label,
         ylabel=complex_raster.y_axis_label,
+        title=complex_raster.name.split("_")[-1],
     )
 
     # Add a colorbar to the figure
@@ -209,6 +228,29 @@ def plot_wrapped_phase_image_to_pdf(
     format_cbar_ticks_for_multiples_of_pi(
         cbar_min=cbar_min_max[0], cbar_max=cbar_min_max[1], cax=cax
     )
+
+    # Add the coh mag layer corresponding to the wrapped phase image plot
+    im2 = ax2.imshow(
+        coh_img,
+        aspect="equal",
+        cmap="gray",
+        interpolation="none",
+        vmin=0.0,
+        vmax=1.0,
+    )
+
+    # No y-axis label nor ticks. This is the right side plot; y-axis is shared.
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax2,
+        xlim=coh_raster.x_axis_limits,
+        img_arr_shape=np.shape(coh_img),
+        xlabel=coh_raster.x_axis_label,
+        title=coh_raster.name.split("_")[-1],
+    )
+
+    # Add a colorbar to the figure
+    cax = fig.colorbar(im2)
+    cax.ax.set_ylabel(ylabel="Coherence Magnitude", rotation=270, labelpad=10.0)
 
     # Append figure to the output PDF
     report_pdf.savefig(fig)
