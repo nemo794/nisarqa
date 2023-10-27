@@ -85,7 +85,9 @@ def plot_unwrapped_phase_image_to_pdf(
 
     # Add a colorbar to the figure
     cax1 = fig.colorbar(im1, ax=ax1)
-    cax1.ax.set_ylabel(ylabel="InSAR Phase", rotation=270, labelpad=10.0)
+    cax1.ax.set_ylabel(
+        ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
+    )
 
     format_cbar_ticks_for_multiples_of_pi(
         cbar_min=cbar_min_max_unw[0], cbar_max=cbar_min_max_unw[1], cax=cax1
@@ -124,7 +126,9 @@ def plot_unwrapped_phase_image_to_pdf(
 
         # Add a colorbar to the figure
         cax2 = fig.colorbar(im2, ax=ax2)
-        cax2.ax.set_ylabel(ylabel="InSAR Phase", rotation=270, labelpad=10.0)
+        cax2.ax.set_ylabel(
+            ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
+        )
 
         format_cbar_ticks_for_multiples_of_pi(
             cbar_min=cbar_min_max_rewrapped[0],
@@ -190,7 +194,9 @@ def plot_wrapped_phase_image_to_pdf(
 
     # Add a colorbar to the figure
     cax = fig.colorbar(im)
-    cax.ax.set_ylabel(ylabel="InSAR Phase", rotation=270, labelpad=10.0)
+    cax.ax.set_ylabel(
+        ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
+    )
 
     format_cbar_ticks_for_multiples_of_pi(
         cbar_min=cbar_min_max[0], cbar_max=cbar_min_max[1], cax=cax
@@ -876,7 +882,9 @@ def img2pdf_hsi(
         extent=[0, 1, cbar_min, cbar_max],
     )
     ax2.set_xlabel("InSAR\nCoherence\nMagnitude", fontsize=8.5)
-    ax2.set_ylabel("InSAR Phase", fontsize=8.5, rotation=270, labelpad=10)
+    ax2.set_ylabel(
+        "InSAR Phase (radians)", fontsize=8.5, rotation=270, labelpad=10
+    )
 
     format_cbar_ticks_for_multiples_of_pi(
         cbar_min=cbar_min, cbar_max=cbar_max, cax=ax2
