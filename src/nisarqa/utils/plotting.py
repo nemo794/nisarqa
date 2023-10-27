@@ -50,10 +50,18 @@ def plot_unwrapped_phase_image_to_pdf(
     # unwrapped plot, and the plot on the right the rewrapped plot.
     # Set up the left (and possibly right) plots
     if rewrap is None:
-        fig, ax1 = plt.subplots(ncols=1, nrows=1, constrained_layout="tight")
+        fig, ax1 = plt.subplots(
+            ncols=1,
+            nrows=1,
+            constrained_layout="tight",
+            figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
+        )
     else:
         fig, (ax1, ax2) = plt.subplots(
-            ncols=2, nrows=1, constrained_layout="tight"
+            ncols=2,
+            nrows=1,
+            constrained_layout="tight",
+            figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
         )
 
     title = f"Unwrapped Phase Image\n{phs_raster.name}"
@@ -819,7 +827,9 @@ def img2pdf_hsi(
     xlabel, ylabel : str, optional
         Axes labels for the x-axis and y-axis (respectively).
     """
-    fig = plt.figure(constrained_layout=True)
+    fig = plt.figure(
+        figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE, constrained_layout=True
+    )
 
     if title is not None:
         fig.suptitle(title)
@@ -1173,7 +1183,12 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
     rg_img = rg_img[::ky, ::kx]
 
     # Create figure and add the rasters.
-    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, constrained_layout="tight")
+    fig, (ax1, ax2) = plt.subplots(
+        nrows=1,
+        ncols=2,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+    )
     fig.suptitle("Along Track Offsets and Slant Range Offsets (meters)")
 
     # Decimate Along Track Offset raster and plot on left (ax1)
@@ -1407,7 +1422,12 @@ def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
 
     # Grab the axes window extent size, and decimate array to correct size for
     # plotting to the PDF
-    fig, ax = plt.subplots(ncols=1, nrows=1, constrained_layout="tight")
+    fig, ax = plt.subplots(
+        ncols=1,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
+    )
 
     # Form the plot title (Remove the layer name from the layer's `name`)
     # Because of the constrained layout (which optimizes for all Artists in

@@ -29,6 +29,9 @@ CUSTOM_CYCLER = (
     + cycler(lw=np.linspace(3, 1, 6))
 )
 
+FIG_SIZE_ONE_PLOT_PER_PAGE = (6.4, 4.8)
+FIG_SIZE_TWO_PLOTS_PER_PAGE = (12.0, 4.8)
+
 LIST_OF_NISAR_PRODUCTS = [
     "rslc",
     "gslc",
@@ -179,6 +182,8 @@ __all__ = [
     "LIST_OF_NISAR_PRODUCTS",
     "NISAR_BANDS",
     "NISAR_FREQS",
+    "FIG_SIZE_ONE_PLOT_PER_PAGE",
+    "FIG_SIZE_TWO_PLOTS_PER_PAGE",
     "get_possible_pols",
     "GCOV_DIAG_POLS",
     "GCOV_OFF_DIAG_POLS",

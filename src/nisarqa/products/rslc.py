@@ -901,7 +901,7 @@ def img2pdf_grayscale(
     # Instantiate the figure object
     # (Need to instantiate it outside of the plotting function
     # in order to later modify the plot for saving purposes.)
-    f = plt.figure()
+    f = plt.figure(figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE)
     ax = plt.gca()
 
     # grayscale
@@ -1174,7 +1174,9 @@ def generate_backscatter_image_histogram_single_freq(
     # Open one figure+axes.
     # Each band+frequency will have a distinct plot, with all of the
     # polarization images for that setup plotted together on the same plot.
-    fig, ax = plt.subplots(nrows=1, ncols=1)
+    fig, ax = plt.subplots(
+        nrows=1, ncols=1, figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE
+    )
 
     # Use custom cycler for accessibility
     ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
@@ -1304,7 +1306,9 @@ def generate_phase_histogram_single_freq(
     # Open one figure+axes.
     # Each band+frequency will have a distinct plot, with all of the
     # polarization images for that setup plotted together on the same plot.
-    fig, ax = plt.subplots(nrows=1, ncols=1)
+    fig, ax = plt.subplots(
+        nrows=1, ncols=1, figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE
+    )
 
     # Use custom cycler for accessibility
     ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
@@ -1526,7 +1530,9 @@ def generate_range_spectra_single_freq(
     )
 
     # Plot the Range Power Spectra for each pol onto the same axes.
-    fig, ax = plt.subplots(nrows=1, ncols=1)
+    fig, ax = plt.subplots(
+        nrows=1, ncols=1, figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE
+    )
 
     # Use custom cycler for accessibility
     ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
