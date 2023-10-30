@@ -137,6 +137,11 @@ def verify_igram(user_rncfg, product_type: str) -> None:
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
+            # Plot azimuth pixel offsets and slant range offsets
+            nisarqa.process_az_and_slant_rg_offsets_from_igram_product(
+                product=product, report_pdf=report_pdf
+            )
+
             # Save Browse Image and HSI Plots
             process_hsi(
                 product=product,

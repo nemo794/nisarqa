@@ -2586,8 +2586,80 @@ class UnwrappedGroup(InsarProduct):
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
 
+class IgramOffsetsGroup(InsarProduct):
+    """Pixels Offsets Group in RIFG, RUNW, and GUNW products."""
+
+    def _igram_offsets_group_path(self, freq, pol):
+        """Path in input file to the IgramOffsetsGroup group."""
+        return f"{self.get_freq_path(freq)}/pixelOffsets/{pol}"
+
+    def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
+        return self._igram_offsets_group_path(freq, pol)
+
+    @contextmanager
+    def get_along_track_offset(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the along track offsets image *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._igram_offsets_group_path(freq=freq, pol=pol)
+        path = f"{parent_path}/alongTrackOffset"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+    @contextmanager
+    def get_slant_range_offset(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the slant range offsets image *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._igram_offsets_group_path(freq=freq, pol=pol)
+        path = f"{parent_path}/slantRangeOffset"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+
 @dataclass
-class RIFG(WrappedGroup, NisarRadarProduct):
+class RIFG(WrappedGroup, IgramOffsetsGroup, NisarRadarProduct):
+    def __post_init__(self) -> None:
+        super().__post_init__()
+
+        # Make sure that all groups contain the same polarizations
+        for freq in self.freqs:
+            wrapped_pols = super(WrappedGroup, self).get_pols(freq)
+            offset_pols = super(IgramOffsetsGroup, self).get_pols(freq)
+            if set(wrapped_pols) != set(offset_pols):
+                warnings.warn(
+                    f"Wrapped interferogram group contains {wrapped_pols},"
+                    f" but the pixel offsets group contains {offset_pols}."
+                )
+
     @property
     def product_type(self) -> str:
         return "RIFG"
@@ -2597,7 +2669,20 @@ class RIFG(WrappedGroup, NisarRadarProduct):
 
 
 @dataclass
-class RUNW(UnwrappedGroup, NisarRadarProduct):
+class RUNW(UnwrappedGroup, IgramOffsetsGroup, NisarRadarProduct):
+    def __post_init__(self) -> None:
+        super().__post_init__()
+
+        # Make sure that all groups contain the same polarizations
+        for freq in self.freqs:
+            unwrapped_pols = super(UnwrappedGroup, self).get_pols(freq)
+            offset_pols = super(IgramOffsetsGroup, self).get_pols(freq)
+            if set(unwrapped_pols) != set(offset_pols):
+                warnings.warn(
+                    f"Unwrapped interferogram group contains {unwrapped_pols},"
+                    f" but the pixel offsets group contains {offset_pols}."
+                )
+
     @property
     def product_type(self) -> str:
         return "RUNW"
@@ -2610,6 +2695,7 @@ class RUNW(UnwrappedGroup, NisarRadarProduct):
 class GUNW(
     WrappedGroup,
     UnwrappedGroup,
+    IgramOffsetsGroup,
     NisarGeoProduct,
 ):
     def __post_init__(self) -> None:
@@ -2619,11 +2705,23 @@ class GUNW(
         for freq in self.freqs:
             wrapped_pols = super(WrappedGroup, self).get_pols(freq)
             unwrapped_pols = super(UnwrappedGroup, self).get_pols(freq)
+            offset_pols = super(IgramOffsetsGroup, self).get_pols(freq)
+
             if set(wrapped_pols) != set(unwrapped_pols):
                 warnings.warn(
                     f"Wrapped interferogram group contains {wrapped_pols},"
                     " but the unwrapped phase image group contains "
                     f" {unwrapped_pols}."
+                )
+            if set(wrapped_pols) != set(offset_pols):
+                warnings.warn(
+                    f"Wrapped interferogram group contains {wrapped_pols},"
+                    f" but the pixel offsets group contains {offset_pols}."
+                )
+            if set(unwrapped_pols) != set(offset_pols):
+                warnings.warn(
+                    f"Unwrapped interferogram group contains {unwrapped_pols},"
+                    f" but the pixel offsets group contains {offset_pols}."
                 )
 
     @property

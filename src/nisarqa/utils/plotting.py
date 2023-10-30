@@ -793,6 +793,37 @@ def image_histogram_equalization(
     return out.astype(image.dtype, copy=False)
 
 
+def process_az_and_slant_rg_offsets_from_igram_product(
+    product: nisarqa.IgramOffsetsGroup, report_pdf: PdfPages
+) -> None:
+    """
+    Create and append azimuth and slant range offsets plots to PDF.
+
+    This function for use with nisarqa.IgramOffsetsGroup products
+    (RIFG, RUNW, and GUNW). It it not compatible with nisarqa.OffsetProduct
+    products (ROFF and GOFF).
+
+    Parameters
+    ----------
+    product : nisarqa.OffsetProduct
+        Input NISAR product.
+    report_pdf : PdfPages
+        The output pdf file to append the quiver plot to.
+    """
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_along_track_offset(
+                freq=freq, pol=pol
+            ) as az_raster, product.get_slant_range_offset(
+                freq=freq, pol=pol
+            ) as rg_raster:
+                nisarqa.process_single_side_by_side_offsets_plot(
+                    az_offset=az_raster,
+                    rg_offset=rg_raster,
+                    report_pdf=report_pdf,
+                )
+
+
 @overload
 def process_single_side_by_side_offsets_plot(
     az_offset: nisarqa.RadarRaster,
