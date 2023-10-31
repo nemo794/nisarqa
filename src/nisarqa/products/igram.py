@@ -150,6 +150,12 @@ def verify_igram(user_rncfg, product_type: str) -> None:
                     report_pdf=report_pdf,
                 )
 
+            if isinstance(product, nisarqa.UnwrappedGroup):
+                nisarqa.process_ionosphere_phase_screen(
+                    product=product,
+                    report_pdf=report_pdf,
+                )
+
             # Plot azimuth offsets and slant range offsets (RIFG, RUNW, & GUNW)
             nisarqa.process_az_and_slant_rg_offsets_from_igram_product(
                 product=product, report_pdf=report_pdf

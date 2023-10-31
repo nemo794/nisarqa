@@ -22,6 +22,175 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
+def process_ionosphere_phase_screen(
+    product: nisarqa.UnwrappedGroup,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Process all ionosphere phase screen and uncertainty layers, and plot to PDF.
+
+    Parameters
+    ----------
+    product : nisarqa.UnwrappedGroup
+        Input NISAR product.
+    report_pdf : PdfPages
+        The output PDF file to append the unwrapped phase image plots to.
+    """
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_ionosphere_phase_screen(
+                freq=freq, pol=pol
+            ) as iono_phs, product.get_ionosphere_phase_screen_uncertainty(
+                freq=freq, pol=pol
+            ) as iono_uncertainty:
+                plot_ionosphere_phase_screen_to_pdf(
+                    iono_raster=iono_phs,
+                    iono_uncertainty_raster=iono_uncertainty,
+                    report_pdf=report_pdf,
+                )
+
+
+@overload
+def plot_ionosphere_phase_screen_to_pdf(
+    iono_raster: nisarqa.RadarRaster,
+    iono_uncertainty_raster: nisarqa.RadarRaster,
+    report_pdf: PdfPages,
+) -> None:
+    ...
+
+
+@overload
+def plot_ionosphere_phase_screen_to_pdf(
+    iono_raster: nisarqa.GeoRaster,
+    iono_uncertainty_raster: nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+) -> None:
+    ...
+
+
+def plot_ionosphere_phase_screen_to_pdf(
+    iono_raster,
+    iono_uncertainty_raster,
+    report_pdf,
+):
+    """
+    Create and append plots of ionosphere phase screen and uncertainty to PDF.
+
+    Ionosphere phase screen layer will be rewrapped to the interval [-pi, pi].
+    Ionosphere phase screen uncertainty layer will be plotted on the interval
+    [min, max] of that layer.
+
+    Parameters
+    ----------
+    iono_raster : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Ionosphere Phase Screen layer to be processed. Must correspond to
+        `iono_uncertainty_raster`.
+    iono_uncertainty_raster : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Ionosphere Phase Screen Uncertainty layer to be processed. Must
+        correspond to `iono_raster`.
+    report_pdf : PdfPages
+        The output PDF file to append the offsets plots to.
+    """
+    # Validate that the pertinent metadata in the rasters is equal.
+    nisarqa.compare_raster_metadata(iono_raster, iono_uncertainty_raster)
+
+    # Rewrap the ionosphere phase screen array to [-pi, pi]
+    # (First, rewrap to [0,2pi) via `get_phase_array()`.
+    # Then, adjust that to [-pi, pi).)
+    iono_arr, _ = get_phase_array(
+        phs_or_complex_raster=iono_raster,
+        make_square_pixels=True,
+        rewrap=2.0,
+    )
+
+    iono_arr = np.where(iono_arr >= np.pi, iono_arr - (2.0 * np.pi), iono_arr)
+    cbar_min_max = [-np.pi, np.pi]
+
+    # TODO - Geoff, should we build in an epsilon tolerance for this assert?
+    assert np.nanmin(iono_arr) >= -np.pi
+    assert np.nanmax(iono_arr) <= np.pi
+
+    uncertainty_arr = nisarqa.get_raster_array_with_square_pixels(
+        iono_uncertainty_raster
+    )
+
+    # Grab the axes window extent size, and decimate array to
+    # correct size for plotting to the PDF
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=2,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+        sharey=True,
+    )
+
+    # Decimate to fit nicely on the figure.
+    iono_arr = decimate_img_to_size_of_axes(ax=ax1, arr=iono_arr)
+    uncertainty_arr = decimate_img_to_size_of_axes(ax=ax2, arr=uncertainty_arr)
+
+    # Construct the name -- Remove the layer name from the `name`
+    name = "_".join(iono_raster.name.split("_")[:-1])
+    title = f"Ionosphere Phase Screen\n{name}"
+    fig.suptitle(title)
+
+    # Add the wrapped phase image plot
+    im = ax1.imshow(iono_arr, aspect="equal", cmap="hsv", interpolation="none")
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax1,
+        xlim=iono_raster.x_axis_limits,
+        ylim=iono_raster.y_axis_limits,
+        img_arr_shape=np.shape(iono_arr),
+        xlabel=iono_raster.x_axis_label,
+        ylabel=iono_raster.y_axis_label,
+        title=(
+            f"{iono_raster.name.split('_')[-1]}\nrewrapped to"
+            f" [-{nisarqa.PI_UNICODE}, {nisarqa.PI_UNICODE})"
+        ),
+    )
+
+    # Add a colorbar to the figure
+    cax = fig.colorbar(im)
+    cax.ax.set_ylabel(
+        ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
+    )
+
+    format_cbar_ticks_for_multiples_of_pi(
+        cbar_min=cbar_min_max[0], cbar_max=cbar_min_max[1], cax=cax
+    )
+
+    # Add the coh mag layer corresponding to the wrapped phase image plot
+    im2 = ax2.imshow(
+        uncertainty_arr,
+        aspect="equal",
+        cmap="hsv",
+        interpolation="none",
+        vmin=np.nanmin(uncertainty_arr),
+        vmax=np.nanmax(uncertainty_arr),
+    )
+
+    # No y-axis label nor ticks. This is the right side plot; y-axis is shared.
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax2,
+        xlim=iono_uncertainty_raster.x_axis_limits,
+        img_arr_shape=np.shape(uncertainty_arr),
+        xlabel=iono_uncertainty_raster.x_axis_label,
+        title=iono_uncertainty_raster.name.split("_")[-1],
+    )
+
+    # Add a colorbar to the figure
+    cax = fig.colorbar(im2)
+    cax.ax.set_ylabel(
+        ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
+    )
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
 def process_phase_image_unwrapped(
     product: nisarqa.UnwrappedGroup,
     report_pdf: PdfPages,
@@ -885,8 +1054,7 @@ def make_hsi_raster(
     # two rasters, so remove the final layer name of e.g. "_unwrappedPhase".)
     name = "_".join(phs_or_complex_raster.name.split("_")[:-1])
     if rewrap:
-        pi_unicode = "\u03c0"
-        name += f" - rewrapped to [0, {rewrap}{pi_unicode})"
+        name += f" - rewrapped to [0, {rewrap}{nisarqa.PI_UNICODE})"
 
     # Construct the HSI *Raster object
     if isinstance(phs_or_complex_raster, nisarqa.RadarRaster):
