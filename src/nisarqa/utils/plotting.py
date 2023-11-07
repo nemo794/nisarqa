@@ -152,7 +152,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     # Add a colorbar to the figure
     cax = fig.colorbar(im)
     cax.ax.set_ylabel(
-        ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
+        ylabel="Ionosphere Phase Screen (radians)", rotation=270, labelpad=10.0
     )
 
     format_cbar_ticks_for_multiples_of_pi(
@@ -181,7 +181,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     # Add a colorbar to the figure
     cax = fig.colorbar(im2)
     cax.ax.set_ylabel(
-        ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
+        ylabel="Ionosphere Phase Screen STD (radians)", rotation=270, labelpad=10.0
     )
 
     # Append figure to the output PDF
