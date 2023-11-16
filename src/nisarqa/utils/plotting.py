@@ -1151,7 +1151,12 @@ def img2pdf_hsi(
     img_to_plot = decimate_img_to_size_of_axes(ax=ax1, arr=img_to_plot)
 
     # Plot the raster image and label it
-    ax1.imshow(img_to_plot, aspect="equal", cmap="hsv", interpolation="none")
+    ax1.imshow(
+        img_to_plot,
+        aspect="equal",
+        cmap="twilight_shifted",
+        interpolation="none",
+    )
 
     # There are two subplots, and we want the main plot title to appear
     # over both subplots (aka centered in the figure). So, do not supply
@@ -1190,6 +1195,7 @@ def img2pdf_hsi(
         rgb,
         origin="lower",
         extent=[0, 1, cbar_min, cbar_max],
+        cmap="twilight_shifted",
     )
     cax_pseudo.set_xlabel("InSAR\nCoherence\nMagnitude", fontsize=8.5)
     cax_pseudo.set_ylabel(

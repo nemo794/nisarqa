@@ -156,17 +156,6 @@ def _get_paths_in_h5(h5_file: h5py.File, name: str) -> list[str]:
     return paths
 
 
-def _hdf5_byte_string_to_str(h5_str: np.ndarray) -> str:
-    """Convert HDF5 byte string to str."""
-    # Step 1: Use .astype(str) to cast from numpy byte string to numpy string
-    out = h5_str.astype(str)
-
-    # Step 2: Use str(...) to cast from numpy string to normal python string
-    out = str(out)
-
-    return out
-
-
 @dataclass
 class NisarProduct(ABC):
     """
@@ -219,7 +208,7 @@ class NisarProduct(ABC):
         id_group = self.identification_path
         with nisarqa.open_h5_file(self.filepath) as f:
             wkt = f[id_group]["boundingPolygon"][()]
-            return _hdf5_byte_string_to_str(wkt)
+            return nisarqa.byte_string_to_python_str(wkt)
 
     @cached_property
     def identification_path(self) -> str:
@@ -267,7 +256,7 @@ class NisarProduct(ABC):
         with nisarqa.open_h5_file(self.filepath) as f:
             if "productSpecificationVersion" in f[id_group]:
                 spec_version = f[id_group]["productSpecificationVersion"][...]
-                spec_version = _hdf5_byte_string_to_str(spec_version)
+                spec_version = nisarqa.byte_string_to_python_str(spec_version)
             else:
                 # spec for very old test datasets.
                 # `productSpecificationVersion` metadata was added after this.
@@ -355,7 +344,7 @@ class NisarProduct(ABC):
                     "`radarBand` missing from `identification` group."
                 )
             else:
-                band = _hdf5_byte_string_to_str(band)
+                band = nisarqa.byte_string_to_python_str(band)
 
         # TODO - remove the below code once all test data sets are updated to
         # new product spec
@@ -486,7 +475,7 @@ class NisarProduct(ABC):
 
         with nisarqa.open_h5_file(self.filepath) as f:
             in_file_prod_type = f[id_group]["productType"][...]
-            in_file_prod_type = _hdf5_byte_string_to_str(in_file_prod_type)
+            in_file_prod_type = nisarqa.byte_string_to_python_str(in_file_prod_type)
 
         if self.product_type != in_file_prod_type:
             raise ValueError(
@@ -500,11 +489,7 @@ class NisarProduct(ABC):
 
         with nisarqa.open_h5_file(self.filepath) as f:
             if "isGeocoded" in f[id_group]:
-                if self.is_geocoded is not bool(f[id_group]["isGeocoded"][...]):
-                    warnings.warn(
-                        "WARNING `identification > isGeocoded` field is"
-                        " incorrectly populated"
-                    )
+                nisarqa.verify_isce3_boolean(f[id_group]["isGeocoded"])
             else:
                 # The `isGeocoded` field is not necessary for successful
                 # completion QA SAS: whether a product is geocoded
@@ -1820,7 +1805,7 @@ class RSLC(SLC, NisarRadarProduct):
                     print(errmsg)
                     warnings.warn(errmsg)
 
-                units = _hdf5_byte_string_to_str(units)
+                units = nisarqa.byte_string_to_python_str(units)
                 # units should be either "hz" or "hertz", and not MHz
                 if (units[0].lower() != "h") or (units[-1].lower() != "z"):
                     errmsg = (
@@ -2392,6 +2377,8 @@ class InsarProduct(NisarProduct):
                 # While file is open, grab it to use in a sanity check later.
                 path = f"{self.get_freq_path(freq)}/listOfPolarizations"
                 list_of_pols_ds = f[path][...].tolist()
+
+                nisarqa.verify_str_meets_isce3_conventions(f[path])
 
                 # convert from byte strings to str
                 list_of_pols_ds = [

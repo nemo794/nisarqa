@@ -289,4 +289,15 @@ def m2km(m):
     return m / 1000.0
 
 
+def byte_string_to_python_str(h5_str: np.bytes_) -> str:
+    """Convert Numpy byte string to Python string object."""
+    # Step 1: Use .astype(str) to cast from numpy byte string to numpy string
+    out = h5_str.astype(str)
+
+    # Step 2: Use str(...) to cast from numpy string to normal python string
+    out = str(out)
+
+    return out
+
+
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
