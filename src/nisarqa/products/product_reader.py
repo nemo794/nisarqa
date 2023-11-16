@@ -2587,10 +2587,27 @@ class UnwrappedGroup(InsarProduct):
 
 
 class IgramOffsetsGroup(InsarProduct):
-    """Pixels Offsets Group in RIFG, RUNW, and GUNW products."""
+    """
+    InSAR product where pixel offsets datasets only need freq and pol to locate.
+
+    This includes RIFG, RUNW, GUNW products, but not ROFF and GOFF products.
+
+    RIFG, RUNW, and GUNW's structure follow a pattern like:
+        .../frequencyA/pixelOffsets/HH/<data set>
+    ROFF and GOFF follow a pattern like:
+        .../frequencyA/pixelOffsets/pixelOffsets/HH/layer2/<data set>
+
+    Note that RIFG/RUNW/GUNW only require freq and pol to correctly locate the
+    desired dataset, while ROFF and GOFF additionally require a layer number.
+
+    See Also
+    --------
+    OffsetProduct :
+        Class that handles the pixel offsets group for ROFF and GOFF products.
+    """
 
     def _igram_offsets_group_path(self, freq: str, pol: str) -> str:
-        """Path in input file to the IgramOffsetsGroup group."""
+        """Path in input file to the pixel offsets group."""
         return f"{self.get_freq_path(freq)}/pixelOffsets/{pol}"
 
     def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
@@ -2718,11 +2735,6 @@ class GUNW(
                     f"Wrapped interferogram group contains {wrapped_pols},"
                     f" but the pixel offsets group contains {offset_pols}."
                 )
-            if set(unwrapped_pols) != set(offset_pols):
-                warnings.warn(
-                    f"Unwrapped interferogram group contains {unwrapped_pols},"
-                    f" but the pixel offsets group contains {offset_pols}."
-                )
 
     @property
     def product_type(self) -> str:
@@ -2760,7 +2772,25 @@ class GUNW(
 
 
 class OffsetProduct(InsarProduct):
-    """For ROFF and GOFF products."""
+    """
+    InSAR product where datasets need freq, pol, and layer number to locate.
+
+    This includes ROFF and GOFF products, but not RIFG, RUNW, GUNW products.
+
+    RIFG, RUNW, and GUNW's structure follow a pattern like:
+        .../frequencyA/pixelOffsets/HH/<data set>
+    ROFF and GOFF follow a pattern like:
+        .../frequencyA/pixelOffsets/pixelOffsets/HH/layer2/<data set>
+
+    Note that RIFG/RUNW/GUNW only require freq and pol to correctly locate a
+    specific dataset, while ROFF and GOFF additionally require a layer number.
+
+    See Also
+    --------
+    IgramOffsetsGroup :
+        Class that handles the pixel offsets group for RIFG, RUNW, and
+        GUNW products.
+    """
 
     def _get_raster_name(self, raster_path: str) -> str:
         """
