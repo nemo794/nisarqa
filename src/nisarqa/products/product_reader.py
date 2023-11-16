@@ -2589,7 +2589,7 @@ class UnwrappedGroup(InsarProduct):
 class IgramOffsetsGroup(InsarProduct):
     """Pixels Offsets Group in RIFG, RUNW, and GUNW products."""
 
-    def _igram_offsets_group_path(self, freq, pol):
+    def _igram_offsets_group_path(self, freq: str, pol: str) -> str:
         """Path in input file to the IgramOffsetsGroup group."""
         return f"{self.get_freq_path(freq)}/pixelOffsets/{pol}"
 

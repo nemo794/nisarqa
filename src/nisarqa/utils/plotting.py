@@ -799,7 +799,7 @@ def process_az_and_slant_rg_offsets_from_igram_product(
     """
     Create and append azimuth and slant range offsets plots to PDF.
 
-    This function for use with nisarqa.IgramOffsetsGroup products
+    This function is for use with nisarqa.IgramOffsetsGroup products
     (RIFG, RUNW, and GUNW). It it not compatible with nisarqa.OffsetProduct
     products (ROFF and GOFF).
 
