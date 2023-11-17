@@ -94,6 +94,7 @@ def plot_unwrapped_phase_image_to_pdf(
             nrows=1,
             constrained_layout="tight",
             figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+            sharey=True,
         )
 
     title = f"Unwrapped Phase Image\n{phs_raster.name}"
@@ -154,15 +155,10 @@ def plot_unwrapped_phase_image_to_pdf(
         nisarqa.rslc.format_axes_ticks_and_labels(
             ax=ax2,
             xlim=phs_raster.x_axis_limits,
-            ylim=phs_raster.y_axis_limits,
             img_arr_shape=phs_img_rewrapped.shape,
             xlabel=phs_raster.x_axis_label,
-            ylabel=phs_raster.y_axis_label,
             title=title,
         )
-
-        # Hide the right plot's y-axis labels. (Redundant to the "left" plot.)
-        ax2.get_yaxis().set_visible(False)
 
         # Add a colorbar to the figure
         cax2 = fig.colorbar(im2, ax=ax2)
@@ -217,8 +213,7 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.RadarRaster,
     coh_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -226,8 +221,7 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.GeoRaster,
     coh_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 def plot_wrapped_phase_image_and_coh_mag_to_pdf(
@@ -1293,6 +1287,7 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
         ncols=2,
         constrained_layout="tight",
         figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+        sharey=True,
     )
     fig.suptitle("Along Track Offsets and Slant Range Offsets (meters)")
 
@@ -1337,17 +1332,12 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
         ax=ax2,
         img_arr_shape=np.shape(rg_img),
         xlim=rg_offset.x_axis_limits,
-        ylim=rg_offset.y_axis_limits,
         xlabel=rg_offset.x_axis_label,
-        ylabel=rg_offset.y_axis_label,
         title=axes_title,
     )
 
-    # To save space on the PDF page, we can take advantage of the fact that
-    # the two rasters have the same X and Y limits and the same colorbar.
-    # First, hide the y-axis labels+ticks from the right plot:
-    ax2.get_yaxis().set_visible(False)
-    # Second, add the colorbar to only the right plot:
+    # To save space on the PDF page, add the colorbar to only the right plot.
+    # (Both plots have the same colorbar scale.)
     cax = fig.colorbar(im2, ax=ax2)
     cax.ax.set_ylabel(ylabel="Displacement (m)", rotation=270, labelpad=8.0)
 
