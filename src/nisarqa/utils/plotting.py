@@ -1254,9 +1254,9 @@ def format_cbar_ticks_for_multiples_of_pi(
             cax_yaxis.set_major_formatter(
                 FuncFormatter(
                     lambda val, pos: (
-                        f"{Fraction(f'{val/np.pi:.2f}')}$\pi$"
-                        if val != 0
-                        else "0"
+                        {0: "0", 1: "$\pi$", -1: "-$\pi$"}.get(
+                            val / np.pi, f"{Fraction(f'{val/np.pi:.2f}')}$\pi$"
+                        )
                     )
                 )
             )
