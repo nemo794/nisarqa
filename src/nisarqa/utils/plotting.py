@@ -152,6 +152,7 @@ def plot_unwrapped_phase_image_to_pdf(
 
         pi_unicode = "\u03c0"
         title = f"Unwrapped Phase\nrewrapped to [0, {rewrap}{pi_unicode})"
+        # No y-axis label nor ticks for the right side plot; y-axis is shared.
         nisarqa.rslc.format_axes_ticks_and_labels(
             ax=ax2,
             xlim=phs_raster.x_axis_limits,
@@ -206,7 +207,7 @@ def process_phase_image_wrapped(
                     coh_raster=coh_img,
                     report_pdf=report_pdf,
                 )
-                
+
                 # TODO: Plot Histogram
 
                 # TODO: Compute Statistics
@@ -257,10 +258,8 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
         rewrap=None,
     )
 
-    coh_img = nisarqa.get_raster_array_with_square_pixels(coh_raster)
+    coh_img = nisarqa.decimate_raster_array_to_square_pixels(coh_raster)
 
-    # Grab the axes window extent size, and decimate array to
-    # correct size for plotting to the PDF
     fig, (ax1, ax2) = plt.subplots(
         ncols=2,
         nrows=1,
@@ -273,13 +272,15 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     phs_img = decimate_img_to_size_of_axes(ax=ax1, arr=phs_img)
     coh_img = decimate_img_to_size_of_axes(ax=ax2, arr=coh_img)
 
-    # Construct the name -- Remove the layer name from the `name`
+    # Construct title for the overall PDF page. (`*raster.name` has a format
+    # like "RIFG_L_A_interferogram_HH_wrappedInterferogram". We need to
+    # remove the final layer name of e.g. "_wrappedInterferogram".)
     name = "_".join(complex_raster.name.split("_")[:-1])
     title = f"Wrapped Phase Image Group\n{name}"
     fig.suptitle(title)
 
     # Add the wrapped phase image plot
-    im = ax1.imshow(phs_img, aspect="equal", cmap="hsv", interpolation="none")
+    im1 = ax1.imshow(phs_img, aspect="equal", cmap="hsv", interpolation="none")
 
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
@@ -288,17 +289,17 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
         img_arr_shape=np.shape(phs_img),
         xlabel=complex_raster.x_axis_label,
         ylabel=complex_raster.y_axis_label,
-        title=complex_raster.name.split("_")[-1],
+        title=complex_raster.name.split("_")[-1],  # use only the layer's name
     )
 
     # Add a colorbar to the figure
-    cax = fig.colorbar(im)
-    cax.ax.set_ylabel(
+    cax1 = fig.colorbar(im1)
+    cax1.ax.set_ylabel(
         ylabel="InSAR Phase (radians)", rotation=270, labelpad=10.0
     )
 
     format_cbar_ticks_for_multiples_of_pi(
-        cbar_min=cbar_min_max[0], cbar_max=cbar_min_max[1], cax=cax
+        cbar_min=cbar_min_max[0], cbar_max=cbar_min_max[1], cax=cax1
     )
 
     # Add the coh mag layer corresponding to the wrapped phase image plot
@@ -317,12 +318,16 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
         xlim=coh_raster.x_axis_limits,
         img_arr_shape=np.shape(coh_img),
         xlabel=coh_raster.x_axis_label,
+        # Use only the final layer name for `title`. (`coh_raster.name` has
+        # format like: "RUNW_L_A_interferogram_HH_unwrappedPhase".)
         title=coh_raster.name.split("_")[-1],
     )
 
     # Add a colorbar to the figure
-    cax = fig.colorbar(im2)
-    cax.ax.set_ylabel(ylabel="Coherence Magnitude", rotation=270, labelpad=10.0)
+    cax2 = fig.colorbar(im2)
+    cax2.ax.set_ylabel(
+        ylabel="Coherence Magnitude", rotation=270, labelpad=10.0
+    )
 
     # Append figure to the output PDF
     report_pdf.savefig(fig)
@@ -528,7 +533,7 @@ def save_hsi_img_to_pdf(
     # Plot and Save HSI Image to graphical summary pdf
     title = f"{plot_title_prefix}\n{img.name}"
 
-    nisarqa.img2pdf_hsi(
+    img2pdf_hsi(
         img_arr=img.data,
         title=title,
         ylim=img.y_axis_limits,
@@ -677,7 +682,7 @@ def get_phase_array(
     phs_or_complex_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     make_square_pixels: bool,
     rewrap: Optional[float] = None,
-) -> np.ndarray:
+) -> tuple[np.ndarray, list[float, float]]:
     """
     Get the phase image from the input *Raster.
 
@@ -873,8 +878,9 @@ def make_hsi_raster(
     y_axis_spacing = y_axis_spacing * ky
     x_axis_spacing = x_axis_spacing * kx
 
-    # Construct the name
-    # (Remove the layer name from the `name`)
+    # Construct the name for the new raster. (`*raster.name` has a format
+    # like "RUNW_L_A_interferogram_HH_unwrappedPhase". The HSI image combines
+    # two rasters, so remove the final layer name of e.g. "_unwrappedPhase".)
     name = "_".join(phs_or_complex_raster.name.split("_")[:-1])
     if rewrap:
         pi_unicode = "\u03c0"
@@ -952,7 +958,9 @@ def img2pdf_hsi(
     # (Use add_subplot() to force the colorbar to be tall and skinny.)
     ax = fig.add_gridspec(5, 6)
     ax1 = fig.add_subplot(ax[:, :-2])
-    ax2 = fig.add_subplot(ax[1:4, -1])
+    # Call it `cax_pseudo` because this is a matplotlib.axes.Axes object,
+    # and not a true matplotlib.colorbar.Colorbar object.
+    cax_pseudo = fig.add_subplot(ax[1:4, -1])
 
     # Set all NaN pixels to 1 in each of the red-green-blue layers.
     # This way, the NaN pixels will appear white in the PDF.
@@ -999,21 +1007,23 @@ def img2pdf_hsi(
         cbar_max = cbar_min_max[1]
         cbar_min = cbar_min_max[0]
 
-    ax2.imshow(
+    cax_pseudo.imshow(
         rgb,
         origin="lower",
         extent=[0, 1, cbar_min, cbar_max],
     )
-    ax2.set_xlabel("InSAR\nCoherence\nMagnitude", fontsize=8.5)
-    ax2.set_ylabel(
+    cax_pseudo.set_xlabel("InSAR\nCoherence\nMagnitude", fontsize=8.5)
+    cax_pseudo.set_ylabel(
         "InSAR Phase (radians)", fontsize=8.5, rotation=270, labelpad=10
     )
+    cax_pseudo.yaxis.set_label_position("right")
+    cax_pseudo.yaxis.tick_right()
 
     format_cbar_ticks_for_multiples_of_pi(
-        cbar_min=cbar_min, cbar_max=cbar_max, cax=ax2
+        cbar_min=cbar_min, cbar_max=cbar_max, cax=cax_pseudo
     )
 
-    ax2.set_title("HSI Color Space\nSaturation=1", fontsize=8.5)
+    cax_pseudo.set_title("HSI Color Space\nSaturation=1", fontsize=8.5)
 
     # Append figure to the output PDF
     plots_pdf.savefig(fig)
@@ -1046,13 +1056,14 @@ def format_cbar_ticks_for_multiples_of_pi(
         cax_yaxis = cax.yaxis
     else:
         raise TypeError(
-            f"`cax` has type {type(cax)}, must be type matplotlib.colorbar.Colorbar or"
-            " matplotlib.axes.Axes."
+            f"`cax` has type {type(cax)}, must be type"
+            " matplotlib.colorbar.Colorbar or matplotlib.axes.Axes."
         )
 
-    # If the colorbar range covers an even multiple of pi, then re-format
+    # If the colorbar range covers an integer multiple of pi, then re-format
     # the ticks marks to look nice.
-    if (np.abs(cbar_max - cbar_min) % np.pi) < 1e-6:
+    epsilon = 1e-6
+    if ((cbar_max % np.pi) < epsilon) and ((cbar_min % np.pi) < epsilon):
         # Compute number of ticks
         tick_vals = np.arange(cbar_min, cbar_max + np.pi, np.pi)
 
@@ -1070,9 +1081,6 @@ def format_cbar_ticks_for_multiples_of_pi(
                     )
                 )
             )
-
-        cax_yaxis.set_label_position("right")
-        cax_yaxis.tick_right()
     else:
         print(
             f"Notice: Provided interval [{cbar_min=}, {cbar_max}] does not"
@@ -1271,8 +1279,8 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
 
-    az_img = nisarqa.get_raster_array_with_square_pixels(az_offset)
-    rg_img = nisarqa.get_raster_array_with_square_pixels(rg_offset)
+    az_img = nisarqa.decimate_raster_array_to_square_pixels(az_offset)
+    rg_img = nisarqa.decimate_raster_array_to_square_pixels(rg_offset)
 
     # Compute the colorbar interval, centered around zero.
     # Both plots should use the larger of the intervals.
@@ -1305,7 +1313,9 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
         vmax=cbar_max,
     )
 
-    # Form axes title. (Split raster's name onto a new line to look nicer.)
+    # Form axes title. Split raster's name onto a new line to look nicer.
+    # `az_offset.name` has a format like:
+    #     "RUNW_L_A_pixelOffsets_HH_alongTrackOffset"
     raster_name = az_offset.name.split("_")[-1]
     axes_title = az_offset.name.replace(f"_{raster_name}", f"\n{raster_name}")
     nisarqa.rslc.format_axes_ticks_and_labels(
@@ -1328,9 +1338,12 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
         vmin=cbar_min,
         vmax=cbar_max,
     )
-    # Form axes title. (Split raster's name onto a new line to look nicer.)
+    # Form axes title. Split raster's name onto a new line to look nicer.
+    # `rg_offset.name` has a format like:
+    #     "RUNW_L_A_pixelOffsets_HH_slantRangeOffset"
     raster_name = rg_offset.name.split("_")[-1]
     axes_title = rg_offset.name.replace(f"_{raster_name}", f"\n{raster_name}")
+    # No y-axis label nor ticks for the right side plot; y-axis is shared.
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax2,
         img_arr_shape=np.shape(rg_img),
@@ -1503,11 +1516,13 @@ def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     nisarqa.compare_raster_metadata(az_offset, rg_offset)
 
     # Grab the datasets into arrays in memory (with square pixels).
-    az_off = nisarqa.get_raster_array_with_square_pixels(raster_obj=az_offset)
-    rg_off = nisarqa.get_raster_array_with_square_pixels(raster_obj=rg_offset)
+    az_off = nisarqa.decimate_raster_array_to_square_pixels(
+        raster_obj=az_offset
+    )
+    rg_off = nisarqa.decimate_raster_array_to_square_pixels(
+        raster_obj=rg_offset
+    )
 
-    # Grab the axes window extent size, and decimate array to correct size for
-    # plotting to the PDF
     fig, ax = plt.subplots(
         ncols=1,
         nrows=1,
@@ -1518,6 +1533,8 @@ def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     # Form the plot title (Remove the layer name from the layer's `name`)
     # Because of the constrained layout (which optimizes for all Artists in
     # the Figure), let's add the title before decimating the rasters.
+    # (`az_offset.name` is formatted like "ROFF_L_A_HH_layer1_alongTrackOffset".
+    # The PDF page has two rasters, so remove the final layer name for title.)
     title = (
         "Combined Pixel Offsets (meters)\n"
         f"{'_'.join(az_offset.name.split('_')[:-1])}"

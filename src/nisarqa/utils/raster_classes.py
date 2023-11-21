@@ -344,16 +344,14 @@ class GeoRaster(SARRaster):
 def compare_raster_metadata(
     raster1: nisarqa.RadarRaster,
     raster2: nisarqa.RadarRaster,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
 def compare_raster_metadata(
     raster1: nisarqa.GeoRaster,
     raster2: nisarqa.GeoRaster,
-) -> None:
-    ...
+) -> None: ...
 
 
 def compare_raster_metadata(
@@ -422,7 +420,7 @@ def compare_raster_metadata(
                 )
 
 
-def get_raster_array_with_square_pixels(
+def decimate_raster_array_to_square_pixels(
     raster_obj: RadarRaster | GeoRaster,
 ) -> np.ndarray:
     """
