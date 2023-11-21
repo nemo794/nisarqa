@@ -448,13 +448,13 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
     Parameters
     ----------
-    rewrap : float or int or None, optional
+    rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image.
         If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
 
-    rewrap: Optional[float | int] = field(
+    rewrap: Optional[float] = field(
         default=7,
         metadata={
             "yaml_attrs": YamlAttrs(

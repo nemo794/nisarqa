@@ -47,9 +47,9 @@ def process_phase_image_unwrapped(
                     phs_raster=img, report_pdf=report_pdf, rewrap=params.rewrap
                 )
 
-                # Plot Histogram
+                # TODO: Plot Histogram
 
-                # Compute Statistics
+                # TODO: Compute Statistics
 
 
 def plot_unwrapped_phase_image_to_pdf(
@@ -60,7 +60,7 @@ def plot_unwrapped_phase_image_to_pdf(
     """
     Plot the unwrapped phase image to PDF.
 
-    If `rewrap` is float-valued, then two images will be plotted:
+    If `rewrap` is not None, then two images will be plotted:
         1) The unwrapped phase image without any rewrapping applied, and
         2) The unwrapped phase image that has been rewrapped.
     If `rewrap` is None, then only the first of those images will be plotted.
@@ -71,7 +71,7 @@ def plot_unwrapped_phase_image_to_pdf(
         *Raster of unwrapped phase data (float-valued).
     report_pdf : PdfPages
         The output PDF file to append the unwrapped phase image plot(s) to.
-    rewrap : float or int or None, optional
+    rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
         the HSI image(s). If None, no rewrapped phase image will be plotted.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
@@ -206,6 +206,10 @@ def process_phase_image_wrapped(
                     coh_raster=coh_img,
                     report_pdf=report_pdf,
                 )
+                
+                # TODO: Plot Histogram
+
+                # TODO: Compute Statistics
 
 
 @overload
@@ -228,7 +232,7 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster,
     coh_raster,
     report_pdf,
-) -> None:
+):
     """
     Plot a complex raster and coherence magnitude layers side-by-side on PDF.
 
@@ -716,7 +720,7 @@ def get_phase_array(
 
         # Helpful hint for user!
         if rewrap is not None:
-            raise RuntimeWarning(
+            raise ValueError(
                 "Input raster has a complex dtype (implying a wrapped"
                 f" interferogram), but input parameter {rewrap=}. `rewrap` is"
                 " only used in the case of real-valued data (implying an"
@@ -726,7 +730,6 @@ def get_phase_array(
     else:
         # unwrapped phase image
         if rewrap is None:
-            # TODO - look into adding a "percentile_for_clipping" option
             cbar_min_max = [
                 np.nanmin(phs_img),
                 np.nanmax(phs_img),
@@ -1043,8 +1046,8 @@ def format_cbar_ticks_for_multiples_of_pi(
         cax_yaxis = cax.yaxis
     else:
         raise TypeError(
-            f"`cax` has type {type(cax)}, must be type mpl.colorbar.Colorbar or"
-            " mpl.axes.Axes."
+            f"`cax` has type {type(cax)}, must be type matplotlib.colorbar.Colorbar or"
+            " matplotlib.axes.Axes."
         )
 
     # If the colorbar range covers an even multiple of pi, then re-format
