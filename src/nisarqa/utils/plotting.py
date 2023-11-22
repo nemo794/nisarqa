@@ -469,7 +469,7 @@ def hsi_images_to_pdf_unwrapped(
         Input NISAR product.
     report_pdf : PdfPages
         The output PDF file to append the HSI image plot to.
-    rewrap : float or int or None, optional
+    rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
         the HSI image(s). If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
@@ -696,7 +696,7 @@ def get_phase_array(
         True to decimate the image to have square pixels.
         False for `phs_img` to always keep the same shape as
         `phs_or_complex_raster.data`
-    rewrap : float or int or None, optional
+    rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image.
         If None, no rewrapping will occur.
         If `phs_or_complex_raster` is complex valued, this will be ignored.
@@ -710,7 +710,9 @@ def get_phase_array(
     cbar_min_max : pair of float
         The suggested range to use for plotting the phase image.
         If `phs_or_complex_raster` has complex valued data, then `cbar_min_max`
-        will be the range [-pi, +pi].
+        will be the range (-pi, +pi].
+        If `rewrap` is a float, the range will be [0, <rewrap * pi>).
+        If `rewrap` is a None, the range will be [<array min>, <array max>].
     """
 
     phs_img = phs_or_complex_raster.data[...]
@@ -719,8 +721,8 @@ def get_phase_array(
         # complex data; take the phase angle.
         phs_img = np.angle(phs_img.data)
 
-        # np.angle() returns output in range [-pi, pi]
-        # So, set the colobar's min and max to be the range [-pi, +pi].
+        # np.angle() returns output in range (-pi, pi]
+        # So, set the colobar's min and max to be the range (-pi, +pi].
         cbar_min_max = [-np.pi, np.pi]
 
         # Helpful hint for user!
@@ -746,7 +748,7 @@ def get_phase_array(
             # The sign of the output of the modulo operator
             # is the same as the sign of `rewrap_final`.
             # This means that it will always put the output
-            # into range [0, <rewrap_final>]
+            # into range [0, <rewrap_final>)
             phs_img %= rewrap_final
             cbar_min_max = [0, rewrap_final]
 
@@ -816,7 +818,7 @@ def make_hsi_raster(
         (the coherence magnitude layer) for the HSI image.
         See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
         Default is False.
-    rewrap : float or int or None, optional
+    rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
         the HSI image(s). If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).

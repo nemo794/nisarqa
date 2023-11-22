@@ -372,7 +372,7 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image. Defaults to 2048 pixels.
-    rewrap : float or int or None, optional
+    rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
         the HSI image(s). If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
