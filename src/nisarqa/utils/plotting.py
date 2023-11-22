@@ -1243,23 +1243,34 @@ def format_cbar_ticks_for_multiples_of_pi(
     # the ticks marks to look nice.
     epsilon = 1e-6
     if ((cbar_max % np.pi) < epsilon) and ((cbar_min % np.pi) < epsilon):
-        # Compute number of ticks
-        tick_vals = np.arange(cbar_min, cbar_max + np.pi, np.pi)
+        # Compute tick values
+        tick_vals = np.arange(start=cbar_min, stop=cbar_max + np.pi, step=np.pi)
+
+        # Per numpy.range()'s docstring, the returned array does not include
+        # the stop value, "except in some cases where step is not an integer
+        # and floating point round-off affects the length of out."
+        # So, let's handle that edge case:
+        if not np.isclose(cbar_max, tick_vals[-1]):
+            tick_vals = tick_vals[:-1]
 
         # Only pretty-format if there are a small-ish number of ticks
         # If support for a higher number is desired, then add'l code will
         # need to be written to decimate `tick_vals` appropriately.
         if len(tick_vals) < 9:
+
+            def _format_pi(val, pos):
+                x = val / np.pi
+                atol = 1e-3
+                if np.isclose(x, 0.0, atol=atol):
+                    return "0"
+                if np.isclose(x, 1.0, atol=atol):
+                    return "$\pi$"
+                if np.isclose(x, -1.0, atol=atol):
+                    return "$-\pi$"
+                return f"{Fraction(f'{x:.2f}')}$\pi$"
+
             cax_yaxis.set_ticks(tick_vals)
-            cax_yaxis.set_major_formatter(
-                FuncFormatter(
-                    lambda val, pos: (
-                        {0: "0", 1: "$\pi$", -1: "-$\pi$"}.get(
-                            val / np.pi, f"{Fraction(f'{val/np.pi:.2f}')}$\pi$"
-                        )
-                    )
-                )
-            )
+            cax_yaxis.set_major_formatter(FuncFormatter(_format_pi))
     else:
         print(
             f"Notice: Provided interval [{cbar_min=}, {cbar_max}] does not"
