@@ -55,8 +55,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.RadarRaster,
     iono_uncertainty_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -64,8 +63,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.GeoRaster,
     iono_uncertainty_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 def plot_ionosphere_phase_screen_to_pdf(
@@ -76,7 +74,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     """
     Create and append plots of ionosphere phase screen and uncertainty to PDF.
 
-    Ionosphere phase screen layer will be rewrapped to the interval [-pi, pi].
+    Ionosphere phase screen layer will be rewrapped to the interval (-pi, pi].
     Ionosphere phase screen uncertainty layer will be plotted on the interval
     [min, max] of that layer.
 
@@ -90,27 +88,32 @@ def plot_ionosphere_phase_screen_to_pdf(
         correspond to `iono_raster`.
     report_pdf : PdfPages
         The output PDF file to append the offsets plots to.
+
+    Notes
+    -----
+    For consistency with the output from numpy.angle(), the ionosphere phase
+    screen layer will be rewrapped to the (-pi, pi] and not [-pi, pi).
     """
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(iono_raster, iono_uncertainty_raster)
 
-    # Rewrap the ionosphere phase screen array to [-pi, pi]
-    # (First, rewrap to [0,2pi) via `get_phase_array()`.
-    # Then, adjust that to [-pi, pi).)
+    # Rewrap the ionosphere phase screen array to (-pi, pi]
+    # Step 1: Rewrap to [0, 2pi) via `get_phase_array()`.
     iono_arr, _ = get_phase_array(
         phs_or_complex_raster=iono_raster,
         make_square_pixels=True,
         rewrap=2.0,
     )
 
-    iono_arr = np.where(iono_arr >= np.pi, iono_arr - (2.0 * np.pi), iono_arr)
+    # Step 2: adjust to (-pi, pi].
+    iono_arr = np.where(iono_arr > np.pi, iono_arr - (2.0 * np.pi), iono_arr)
     cbar_min_max = [-np.pi, np.pi]
 
     # TODO - Geoff, should we build in an epsilon tolerance for this assert?
     assert np.nanmin(iono_arr) >= -np.pi
     assert np.nanmax(iono_arr) <= np.pi
 
-    uncertainty_arr = nisarqa.get_raster_array_with_square_pixels(
+    uncertainty_arr = nisarqa.decimate_raster_array_to_square_pixels(
         iono_uncertainty_raster
     )
 
@@ -145,7 +148,7 @@ def plot_ionosphere_phase_screen_to_pdf(
         ylabel=iono_raster.y_axis_label,
         title=(
             f"{iono_raster.name.split('_')[-1]}\nrewrapped to"
-            f" [-{nisarqa.PI_UNICODE}, {nisarqa.PI_UNICODE})"
+            f" (-{nisarqa.PI_UNICODE}, {nisarqa.PI_UNICODE}]"
         ),
     )
 
@@ -181,7 +184,9 @@ def plot_ionosphere_phase_screen_to_pdf(
     # Add a colorbar to the figure
     cax = fig.colorbar(im2)
     cax.ax.set_ylabel(
-        ylabel="Ionosphere Phase Screen STD (radians)", rotation=270, labelpad=10.0
+        ylabel="Ionosphere Phase Screen STD (radians)",
+        rotation=270,
+        labelpad=10.0,
     )
 
     # Append figure to the output PDF
