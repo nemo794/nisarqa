@@ -97,6 +97,24 @@ def plot_ionosphere_phase_screen_to_pdf(
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(iono_raster, iono_uncertainty_raster)
 
+    # Setup the side-by-side PDF page
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=2,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+        sharey=True,
+    )
+
+    # Construct title for the overall PDF page. (`*raster.name` has a format
+    # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
+    # remove the final layer name of e.g. "_slantRangeOffset".)
+    name = "_".join(iono_raster.name.split("_")[:-1])
+    title = f"Ionosphere Phase Screen\n{name}"
+    fig.suptitle(title)
+
+    # Plot the ionosphere phase screen raster on the left-side plot.
+
     # Rewrap the ionosphere phase screen array to (-pi, pi]
     # Step 1: Rewrap to [0, 2pi) via `get_phase_array()`.
     iono_arr, _ = get_phase_array(
@@ -109,32 +127,12 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_arr = np.where(iono_arr > np.pi, iono_arr - (2.0 * np.pi), iono_arr)
     cbar_min_max = [-np.pi, np.pi]
 
-    # TODO - Geoff, should we build in an epsilon tolerance for this assert?
-    assert np.nanmin(iono_arr) >= -np.pi
-    assert np.nanmax(iono_arr) <= np.pi
-
-    uncertainty_arr = nisarqa.decimate_raster_array_to_square_pixels(
-        iono_uncertainty_raster
-    )
-
-    # Grab the axes window extent size, and decimate array to
-    # correct size for plotting to the PDF
-    fig, (ax1, ax2) = plt.subplots(
-        ncols=2,
-        nrows=1,
-        constrained_layout="tight",
-        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
-        sharey=True,
-    )
+    epsilon = 1e-6
+    assert np.nanmin(iono_arr) >= (-np.pi - epsilon)
+    assert np.nanmax(iono_arr) <= (np.pi + epsilon)
 
     # Decimate to fit nicely on the figure.
     iono_arr = decimate_img_to_size_of_axes(ax=ax1, arr=iono_arr)
-    uncertainty_arr = decimate_img_to_size_of_axes(ax=ax2, arr=uncertainty_arr)
-
-    # Construct the name -- Remove the layer name from the `name`
-    name = "_".join(iono_raster.name.split("_")[:-1])
-    title = f"Ionosphere Phase Screen\n{name}"
-    fig.suptitle(title)
 
     # Add the wrapped phase image plot
     im = ax1.imshow(iono_arr, aspect="equal", cmap="hsv", interpolation="none")
@@ -162,11 +160,17 @@ def plot_ionosphere_phase_screen_to_pdf(
         cbar_min=cbar_min_max[0], cbar_max=cbar_min_max[1], cax=cax
     )
 
-    # Add the coh mag layer corresponding to the wrapped phase image plot
+    # Plot ionosphere phase screen uncertainty raster on the right-side plot.
+    uncertainty_arr = nisarqa.decimate_raster_array_to_square_pixels(
+        iono_uncertainty_raster
+    )
+
+    uncertainty_arr = decimate_img_to_size_of_axes(ax=ax2, arr=uncertainty_arr)
+
     im2 = ax2.imshow(
         uncertainty_arr,
         aspect="equal",
-        cmap="hsv",
+        cmap="magma",
         interpolation="none",
         vmin=np.nanmin(uncertainty_arr),
         vmax=np.nanmax(uncertainty_arr),
@@ -760,7 +764,7 @@ def make_hsi_as_rgb_img(
         suggested to set this parameter, otherwise unintended image correction
         will occur.
         For example, if an image was generated via np.angle(), the known range
-        is [-pi, pi]. But if the actual image data only contains values from
+        is (-pi, pi]. But if the actual image data only contains values from
         [-pi/2, pi/3] and `None` was provided, then the phase image will appear
         "stretched", because during normalization -pi/2 -> 0 and pi/3 -> 1.
         Defaults to None.
@@ -811,7 +815,7 @@ def make_hsi_as_rgb_img(
 
     # First channel is hue. The phase image should be represented by hue.
     # Note: If available, make sure to specify the known min/max range for
-    # the image, such as [-pi, pi] for images created with np.angle().
+    # the image, such as (-pi, pi] for images created with np.angle().
     # Otherwise, `nisarqa.normalize()` will take the min and max of the actual
     # data, which could have the undesirable effect of applying image
     # correction to e.g. phase images.
