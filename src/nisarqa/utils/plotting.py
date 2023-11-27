@@ -1244,14 +1244,8 @@ def format_cbar_ticks_for_multiples_of_pi(
     epsilon = 1e-6
     if ((cbar_max % np.pi) < epsilon) and ((cbar_min % np.pi) < epsilon):
         # Compute tick values
-        tick_vals = np.arange(start=cbar_min, stop=cbar_max + np.pi, step=np.pi)
-
-        # Per numpy.range()'s docstring, the returned array does not include
-        # the stop value, "except in some cases where step is not an integer
-        # and floating point round-off affects the length of out."
-        # So, let's handle that edge case:
-        if not np.isclose(cbar_max, tick_vals[-1]):
-            tick_vals = tick_vals[:-1]
+        num_ticks = int(round((cbar_max - cbar_min) / np.pi)) + 1
+        tick_vals = cbar_min + np.pi * np.arange(num_ticks)
 
         # Only pretty-format if there are a small-ish number of ticks
         # If support for a higher number is desired, then add'l code will
