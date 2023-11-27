@@ -1239,7 +1239,8 @@ def format_cbar_ticks_for_multiples_of_pi(
             " matplotlib.colorbar.Colorbar or matplotlib.axes.Axes."
         )
     
-    if cbar_max <= cbar_min:
+    # To be NaN-safe, do not simply use `if cbar_max <= cbar_min`.
+    if not (cbar_max > cbar_min):
         raise ValueError(
             f"cbar_max must be > cbar_min, but got {cbar_max=} and {cbar_min=}."
         )
