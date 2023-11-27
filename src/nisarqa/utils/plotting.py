@@ -1238,6 +1238,11 @@ def format_cbar_ticks_for_multiples_of_pi(
             f"`cax` has type {type(cax)}, must be type"
             " matplotlib.colorbar.Colorbar or matplotlib.axes.Axes."
         )
+    
+    if cbar_max <= cbar_min:
+        raise ValueError(
+            f"cbar_max must be > cbar_min, but got {cbar_max=} and {cbar_min=}."
+        )
 
     # If the colorbar range covers an integer multiple of pi, then re-format
     # the ticks marks to look nice.
