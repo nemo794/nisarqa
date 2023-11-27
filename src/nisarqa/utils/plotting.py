@@ -92,7 +92,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     Notes
     -----
     For consistency with the output from numpy.angle(), the ionosphere phase
-    screen layer will be rewrapped to the (-pi, pi] and not [-pi, pi).
+    screen layer will be rewrapped to (-pi, pi] and not [-pi, pi).
     """
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(iono_raster, iono_uncertainty_raster)
