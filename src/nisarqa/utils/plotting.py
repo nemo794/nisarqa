@@ -682,7 +682,7 @@ def get_phase_array(
     phs_or_complex_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     make_square_pixels: bool,
     rewrap: Optional[float] = None,
-) -> tuple[np.ndarray, list[float, float]]:
+) -> tuple[np.ndarray, list[float]]:
     """
     Get the phase image from the input *Raster.
 
@@ -778,7 +778,7 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.RadarRaster, list[float, float]]: ...
+) -> tuple[nisarqa.RadarRaster, list[float]]: ...
 
 
 @overload
@@ -788,7 +788,7 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.GeoRaster, list[float, float]]: ...
+) -> tuple[nisarqa.GeoRaster, list[float]]: ...
 
 
 def make_hsi_raster(
