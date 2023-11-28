@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import warnings
+<<<<<<< HEAD
 from collections import namedtuple
+=======
+>>>>>>> 86f0ae1 (add insar metrics)
 from collections.abc import Sequence
 
 import h5py
