@@ -139,25 +139,6 @@ STATS_H5_QA_FREQ_GROUP = (
     STATS_H5_QA_DATA_GROUP + "/frequency%s"
 )  # Two '%s' here!
 
-# Pol group. Note: There are three '%s' here. The first is for the band,
-# the second for the frequency, third for polarization.
-# Example end result: '/science/%s/QA/data/frequency%s/%s'
-STATS_H5_QA_POL_GROUP = STATS_H5_QA_FREQ_GROUP + "/%s"
-
-
-# InSAR Products
-# Add a place to mirror the groups in INSAR_GROUPS
-# Example end result: '/science/%s/QA/data/frequency%s/%s'
-STATS_H5_QA_INSAR_GROUP_GROUP = (
-    STATS_H5_QA_FREQ_GROUP + "/%s"
-)  # Three '%s' here!
-
-# Add a place to mirror the polarizations
-# Example end result: '/science/%s/QA/data/frequency%s/%s/%s'
-STATS_H5_QA_INSAR_POL_GROUP = (
-    STATS_H5_QA_INSAR_GROUP_GROUP + "/%s"
-)  # Four '%s' here!
-
 # CalTools
 STATS_H5_ABSCAL_STATS_H5_BASE_GROUP = (
     STATS_H5_BASE_GROUP + "/absoluteRadiometricCalibration"
@@ -204,9 +185,6 @@ __all__ = [
     "STATS_H5_QA_PROCESSING_GROUP",
     "STATS_H5_QA_DATA_GROUP",
     "STATS_H5_QA_FREQ_GROUP",
-    "STATS_H5_QA_POL_GROUP",
-    "STATS_H5_QA_INSAR_GROUP_GROUP",
-    "STATS_H5_QA_INSAR_POL_GROUP",
     "STATS_H5_ABSCAL_STATS_H5_BASE_GROUP",
     "STATS_H5_ABSCAL_PROCESSING_GROUP",
     "STATS_H5_ABSCAL_DATA_GROUP",

@@ -164,7 +164,7 @@ def verify_offset(
 
             # Generate along track + slant range browse image, quiver plots,
             # and side-by-side plots for PDF
-            nisarqa.process_az_and_range_combo_plots(
+            nisarqa.process_az_and_slant_rg_offsets_from_offset_product(
                 product=product,
                 params=root_params.quiver,
                 report_pdf=report_pdf,

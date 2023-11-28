@@ -889,6 +889,50 @@ class NisarRadarProduct(NisarProduct):
         """
         pass
 
+    def _get_stats_h5_group_path(self, raster_path: str) -> str:
+        """
+        Return path in STATS.h5 file where metrics for `raster_path` should be saved.
+
+        Parameters
+        ----------
+        raster_path : str
+            Full path in `h5_file` to a raster dataset.
+            Examples:
+                GSLC (similar for RSLC/GCOV):
+                    "/science/LSAR/RSLC/grids/frequencyA/HH"
+                GUNW (similar for RIFG/RUNW):
+                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                GOFF (similar for ROFF):
+                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+
+        Returns
+        -------
+        path : str
+            Path in the STATS.h5 file for the group where all metrics and
+            statistics re: this raster should be saved.
+            Note that a path to a h5py.Dataset was passed in as an argument to
+            this function, but a path to a h5py Group will be returned.
+            Examples:
+                RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+                RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+
+        See Also
+        --------
+        NisarGeoProduct._get_stats_h5_group_path : Identical function.
+        """
+        # Let's mirror the structure of the input product for the STATS.h5 file
+        # In essence, we need to replace the beginning part of the base path.
+
+        # remove everything before "frequency":
+        suffix = raster_path.split("frequency")
+        suffix = f"frequency{suffix[-1]}"
+
+        # Append the QA STATS.h5 data group path to the beginning
+        path = f"{nisarqa.STATS_H5_QA_DATA_GROUP % self.band}/{suffix}"
+
+        return path
+
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str
     ) -> nisarqa.RadarRaster:
@@ -939,6 +983,9 @@ class NisarRadarProduct(NisarProduct):
 
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
+
+        # Extract the units attribute
+        units = nisarqa.byte_string_to_python_str(dataset.attrs["units"])
 
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
         # 'Nominal along track spacing in meters between consecutive lines
@@ -993,7 +1040,9 @@ class NisarRadarProduct(NisarProduct):
 
         return nisarqa.RadarRaster(
             data=dataset,
+            units=units,
             name=name,
+            stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
             band=self.band,
             freq="A" if "frequencyA" in raster_path else "B",
             ground_az_spacing=ground_az_spacing,
@@ -1180,6 +1229,50 @@ class NisarGeoProduct(NisarProduct):
         """
         pass
 
+    def _get_stats_h5_group_path(self, raster_path: str) -> str:
+        """
+        Return path in STATS.h5 file where metrics for `raster_path` should be saved.
+
+        Parameters
+        ----------
+        raster_path : str
+            Full path in `h5_file` to a raster dataset.
+            Examples:
+                GSLC (similar for RSLC/GCOV):
+                    "/science/LSAR/RSLC/grids/frequencyA/HH"
+                GUNW (similar for RIFG/RUNW):
+                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                GOFF (similar for ROFF):
+                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+
+        Returns
+        -------
+        path : str
+            Path in the STATS.h5 file for the group where all metrics and
+            statistics re: this raster should be saved.
+            Note that a path to a h5py.Dataset was passed in as an argument to
+            this function, but a path to a h5py Group will be returned.
+            Examples:
+                RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+                RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+
+        See Also
+        --------
+        NisarRadarProduct._get_stats_h5_group_path : Identical function.
+        """
+        # Let's mirror the structure of the input product for the STATS.h5 file
+        # In essence, we need to replace the beginning part of the base path.
+
+        # remove everything before "frequency":
+        suffix = raster_path.split("frequency")
+        suffix = f"frequency{suffix[-1]}"
+
+        # Append the QA STATS.h5 data group path to the beginning
+        path = f"{nisarqa.STATS_H5_QA_DATA_GROUP % self.band}/{suffix}"
+
+        return path
+
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str
     ) -> nisarqa.GeoRaster:
@@ -1228,6 +1321,9 @@ class NisarGeoProduct(NisarProduct):
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
 
+        # Extract the units attribute
+        units = nisarqa.byte_string_to_python_str(dataset.attrs["units"])
+
         # From the xml Product Spec, xCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive pixels'
         path = _get_path_to_nearest_dataset(
@@ -1275,7 +1371,9 @@ class NisarGeoProduct(NisarProduct):
 
         return nisarqa.GeoRaster(
             data=dataset,
+            units=units,
             name=name,
+            stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
             band=self.band,
             freq="A" if ("frequencyA" in raster_path) else "B",
             x_spacing=x_spacing,
@@ -2702,7 +2800,6 @@ class InsarProduct(NisarProduct):
                         log.info(
                             f"Did not locate polarization group at: {pol_path}"
                         )
-                        pass
                     else:
                         log.info(f"Located polarization group at: {pol_path}")
                         pols.append(pol)

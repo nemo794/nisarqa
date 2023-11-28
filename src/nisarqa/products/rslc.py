@@ -1619,8 +1619,7 @@ def generate_range_spectra_single_freq(
             # Save normalized range power spectra values to stats.h5 file
             nisarqa.create_dataset_in_h5group(
                 h5_file=stats_h5,
-                grp_path=nisarqa.STATS_H5_QA_POL_GROUP
-                % (product.band, freq, pol),
+                grp_path=img.stats_h5_group_path,
                 ds_name="rangePowerSpectralDensity",
                 ds_data=rng_spectrum,
                 ds_units=rng_spec_units,

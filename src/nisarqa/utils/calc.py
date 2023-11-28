@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import warnings
 from collections.abc import Sequence
 
+import h5py
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -238,6 +240,111 @@ def generate_fft_freqs(
 def hz2mhz(arr: np.ndarray) -> np.ndarray:
     """Convert input array from Hz to MHz."""
     return arr * 1.0e-06
+
+
+def compute_and_save_basic_statistics(
+    arr: ArrayLike,
+    units: str,
+    grp_path: str,
+    stats_h5: h5py.File,
+    arr_name: str = "",
+) -> None:
+    """
+    Compute and save min, max, mean, std, % nan, and % zero statistics to HDF5.
+
+    Warning: Entire input array will be read into memory. Only use this
+    function for small datasets.
+
+    Parameters
+    ----------
+    arr : ArrayLike
+        Input array.
+    units : str
+        The units of the input array. If `data` is numeric but unitless
+        (e.g ratios), by NISAR convention please use the string "1".
+    grp_path : str
+        Path to h5py Group to add the computed statistics to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics to.
+    arr_name : string, optional
+        A human-readable name for `arr`. (To be used in log messages.)
+    """
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="min_value",
+        ds_data=np.nanmin(arr),
+        ds_units=units,
+        ds_description="Minimum value in dataset, excluding NaN.",
+    )
+
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="max_value",
+        ds_data=np.nanmax(arr),
+        ds_units=units,
+        ds_description="Maximum value in dataset, excluding NaN.",
+    ),
+
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="mean_value",
+        ds_data=np.nanmean(arr),
+        ds_units=units,
+        ds_description="Mean of dataset, excluding NaN.",
+    )
+
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="sample_standard_deviation",
+        ds_data=np.nanstd(arr),
+        ds_units=units,
+        ds_description="Standard deviation of dataset, excluding NaN.",
+    )
+
+    percent_nan = 100 * np.sum(np.isfinite(arr)) / arr.size
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="percentNan",
+        ds_data=percent_nan,
+        ds_units="1",
+        ds_description="Percent of dataset elements with NaN value.",
+    )
+
+    threshhold = 95.0
+    if arr_name is None:
+        arr_name = ""
+    msg = (
+        f"(%s) PASS/FAIL: Array {arr_name} has less than {threshhold} percent"
+        " NaN."
+    )
+    if percent_nan >= 95.0:
+        warnings.warn(msg % "FAIL")
+    else:
+        print(msg % "PASS")
+
+    percent_zero = 100 * np.sum(np.abs(arr) < 1e-6) / arr.size
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="percentZero",
+        ds_data=percent_zero,
+        ds_units="1",
+        ds_description="Percent of dataset elements that are zero.",
+    )
+
+    msg = (
+        f"(%s) PASS/FAIL: Array {arr_name} has less than {threshhold} percent"
+        " zeros."
+    )
+    if percent_zero >= 95.0:
+        warnings.warn(msg % "FAIL")
+    else:
+        print(msg % "PASS")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

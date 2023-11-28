@@ -23,8 +23,7 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 
 def process_ionosphere_phase_screen(
-    product: nisarqa.UnwrappedGroup,
-    report_pdf: PdfPages,
+    product: nisarqa.UnwrappedGroup, report_pdf: PdfPages, stats_h5: h5py.File
 ) -> None:
     """
     Process all ionosphere phase screen and uncertainty layers, and plot to PDF.
@@ -35,6 +34,8 @@ def process_ionosphere_phase_screen(
         Input NISAR product.
     report_pdf : PdfPages
         The output PDF file to append the unwrapped phase image plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
@@ -47,6 +48,24 @@ def process_ionosphere_phase_screen(
                     iono_raster=iono_phs,
                     iono_uncertainty_raster=iono_uncertainty,
                     report_pdf=report_pdf,
+                )
+
+                # TODO - Process histograms
+
+                # Compute statistics
+                nisarqa.compute_and_save_basic_statistics(
+                    arr=iono_phs.data,
+                    units=iono_phs.units,
+                    grp_path=iono_phs.stats_h5_group_path,
+                    stats_h5=stats_h5,
+                    arr_name=iono_phs.name,
+                )
+                nisarqa.compute_and_save_basic_statistics(
+                    arr=iono_uncertainty.data,
+                    units=iono_uncertainty.units,
+                    grp_path=iono_uncertainty.stats_h5_group_path,
+                    stats_h5=stats_h5,
+                    arr_name=iono_uncertainty.name,
                 )
 
 
@@ -203,6 +222,7 @@ def plot_ionosphere_phase_screen_to_pdf(
 def process_phase_image_unwrapped(
     product: nisarqa.UnwrappedGroup,
     report_pdf: PdfPages,
+    stats_h5: h5py.File,
     params: nisarqa.UNWPhaseImageParamGroup,
 ) -> None:
     """
@@ -214,6 +234,8 @@ def process_phase_image_unwrapped(
         Input NISAR product.
     report_pdf : PdfPages
         The output PDF file to append the unwrapped phase image plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
     params : nisarqa.UNWPhaseImageParamGroup
         A structure containing processing parameters to generate the
         unwrapped phase image plots.
@@ -221,13 +243,20 @@ def process_phase_image_unwrapped(
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
             with product.get_unwrapped_phase(freq=freq, pol=pol) as img:
+                # Plot phase image
                 plot_unwrapped_phase_image_to_pdf(
                     phs_raster=img, report_pdf=report_pdf, rewrap=params.rewrap
                 )
 
                 # TODO: Plot Histogram
 
-                # TODO: Compute Statistics
+                # Compute Statistics
+                nisarqa.compute_and_save_basic_statistics(
+                    arr=img.data,
+                    units=img.units,
+                    grp_path=img.stats_h5_group_path,
+                    stats_h5=stats_h5,
+                )
 
 
 def plot_unwrapped_phase_image_to_pdf(
@@ -359,7 +388,9 @@ def plot_unwrapped_phase_image_to_pdf(
 
 
 def process_phase_image_wrapped(
-    product: nisarqa.WrappedGroup, report_pdf: PdfPages
+    product: nisarqa.WrappedGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
 ) -> None:
     """
     Process the wrapped groups' phase and coherence magnitude layers.
@@ -372,6 +403,8 @@ def process_phase_image_wrapped(
         Input NISAR product.
     report_pdf : PdfPages
         Output PDF file to append the phase and coherence magnitude plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
@@ -388,7 +421,19 @@ def process_phase_image_wrapped(
 
                 # TODO: Plot Histogram
 
-                # TODO: Compute Statistics
+                # Compute Statistics
+                nisarqa.compute_and_save_basic_statistics(
+                    arr=complex_img.data,
+                    units=complex_img.units,
+                    grp_path=complex_img.stats_h5_group_path,
+                    stats_h5=stats_h5,
+                )
+                nisarqa.compute_and_save_basic_statistics(
+                    arr=coh_img.data,
+                    units=coh_img.units,
+                    grp_path=coh_img.stats_h5_group_path,
+                    stats_h5=stats_h5,
+                )
 
 
 @overload
@@ -1401,7 +1446,9 @@ def image_histogram_equalization(
 
 
 def process_az_and_slant_rg_offsets_from_igram_product(
-    product: nisarqa.IgramOffsetsGroup, report_pdf: PdfPages
+    product: nisarqa.IgramOffsetsGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
 ) -> None:
     """
     Create and append azimuth and slant range offsets plots to PDF.
@@ -1416,6 +1463,8 @@ def process_az_and_slant_rg_offsets_from_igram_product(
         Input NISAR product.
     report_pdf : PdfPages
         The output PDF file to append the offsets plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
@@ -1424,15 +1473,79 @@ def process_az_and_slant_rg_offsets_from_igram_product(
             ) as az_raster, product.get_slant_range_offset(
                 freq=freq, pol=pol
             ) as rg_raster:
-                nisarqa.process_single_side_by_side_offsets_plot(
+                process_range_and_az_offsets(
                     az_offset=az_raster,
                     rg_offset=rg_raster,
                     report_pdf=report_pdf,
+                    stats_h5=stats_h5,
                 )
 
 
 @overload
-def process_single_side_by_side_offsets_plot(
+def process_range_and_az_offsets(
+    az_offset: nisarqa.RadarRaster,
+    rg_offset: nisarqa.RadarRaster,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None: ...
+
+
+@overload
+def process_range_and_az_offsets(
+    az_offset: nisarqa.GeoRaster,
+    rg_offset: nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None: ...
+
+
+def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
+    """
+    Plot azimuth and range offsets to PDF, and compute statistics on them.
+
+    The colorbar interval is determined by the maximum offset value in
+    either raster, and then centered at zero. This way the side-by-side plots
+    will be plotted with the same colorbar scale.
+
+    Parameters
+    ----------
+    az_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Along track offset layer to be processed. Must correspond to
+        `rg_offset`.
+    rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Slant range offset layer to be processed. Must correspond to
+        `az_offset`.
+    report_pdf : PdfPages
+        The output PDF file to append the offsets plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    """
+
+    # Plot offset layers to PDF
+    plot_range_and_az_offsets_to_pdf(
+        az_offset=az_offset, rg_offset=rg_offset, report_pdf=report_pdf
+    )
+
+    # TODO Plot Histograms
+
+    # Compute Statistics
+    nisarqa.compute_and_save_basic_statistics(
+        arr=az_offset.data,
+        units=az_offset.units,
+        grp_path=az_offset.stats_h5_group_path,
+        stats_h5=stats_h5,
+    )
+
+    nisarqa.compute_and_save_basic_statistics(
+        arr=rg_offset.data,
+        units=rg_offset.units,
+        grp_path=rg_offset.stats_h5_group_path,
+        stats_h5=stats_h5,
+    )
+
+
+@overload
+def plot_range_and_az_offsets_to_pdf(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
@@ -1440,14 +1553,14 @@ def process_single_side_by_side_offsets_plot(
 
 
 @overload
-def process_single_side_by_side_offsets_plot(
+def plot_range_and_az_offsets_to_pdf(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
     report_pdf: PdfPages,
 ) -> None: ...
 
 
-def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
+def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
     """
     Create and append a side-by-side plot of azimuth and range offsets to PDF.
 
@@ -1554,7 +1667,7 @@ def process_single_side_by_side_offsets_plot(az_offset, rg_offset, report_pdf):
     plt.close(fig)
 
 
-def process_az_and_range_combo_plots(
+def process_az_and_slant_rg_offsets_from_offset_product(
     product: nisarqa.OffsetProduct,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
@@ -1565,12 +1678,17 @@ def process_az_and_range_combo_plots(
     Process side-by-side az and range offsets plots and quiver plots.
 
     This function takes each pair of along track offset and slant range offset
-    raster layers, and does three things with them:
+    raster layers, and:
         * Saves the browse image quiver plot as a PNG.
             - (The specific freq+pol+layer_number to use for the browse image
                is determined by the input `product`.)
         * Plots them side-by-side and appends this plot to PDF
+        * Computes statistics for these layers
         * Plots them as a quiver plot and appends this plot to PDF
+
+    This function is for use with nisarqa.OffsetProduct products (ROFF, GOFF).
+    It it not compatible with nisarqa.IgramOffsetsGroup products (RIFG,
+    RUNW, GUNW).
 
     Parameters
     ----------
@@ -1593,7 +1711,7 @@ def process_az_and_range_combo_plots(
     ) as az_off, product.get_slant_range_offset(
         freq=freq, pol=pol, layer_num=layer_num
     ) as rg_off:
-        y_dec, x_dec = process_single_quiver_plot_to_png(
+        y_dec, x_dec = plot_single_quiver_plot_to_png(
             az_offset=az_off,
             rg_offset=rg_off,
             params=params,
@@ -1623,14 +1741,15 @@ def process_az_and_range_combo_plots(
                 ) as rg_off:
                     # First, create the canonical side-by-side plot of the
                     # along track offsets vs. the slant range offsets.
-                    process_single_side_by_side_offsets_plot(
+                    process_range_and_az_offsets(
                         az_offset=az_off,
                         rg_offset=rg_off,
                         report_pdf=report_pdf,
+                        stats_h5=stats_h5,
                     )
 
                     # Second, create the quiver plots for PDF
-                    cbar_min, cbar_max = process_single_quiver_plot_to_pdf(
+                    cbar_min, cbar_max = plot_offsets_quiver_plot_to_pdf(
                         az_offset=az_off,
                         rg_offset=rg_off,
                         params=params,
@@ -1662,7 +1781,7 @@ def process_az_and_range_combo_plots(
 
 
 @overload
-def process_single_quiver_plot_to_pdf(
+def plot_offsets_quiver_plot_to_pdf(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
@@ -1671,7 +1790,7 @@ def process_single_quiver_plot_to_pdf(
 
 
 @overload
-def process_single_quiver_plot_to_pdf(
+def plot_offsets_quiver_plot_to_pdf(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
@@ -1679,7 +1798,7 @@ def process_single_quiver_plot_to_pdf(
 ) -> tuple[float, float]: ...
 
 
-def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
+def plot_offsets_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     """
     Process and save a single quiver plot to PDF.
 
@@ -1761,7 +1880,7 @@ def process_single_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
 
 
 @overload
-def process_single_quiver_plot_to_png(
+def plot_single_quiver_plot_to_png(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
@@ -1770,7 +1889,7 @@ def process_single_quiver_plot_to_png(
 
 
 @overload
-def process_single_quiver_plot_to_png(
+def plot_single_quiver_plot_to_png(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
@@ -1778,7 +1897,7 @@ def process_single_quiver_plot_to_png(
 ) -> tuple[int, int]: ...
 
 
-def process_single_quiver_plot_to_png(
+def plot_single_quiver_plot_to_png(
     az_offset,
     rg_offset,
     params,

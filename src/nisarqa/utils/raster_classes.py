@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
 from typing import overload
@@ -128,8 +129,18 @@ class Raster:
     ----------
     data : array_like
         Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
+    units : str
+        The units of the data. If `data` is numeric but unitless (e.g ratios),
+        by NISAR convention please use the string "1".
     name : str
         Name for the dataset
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
     band : str
         Name of the band for `img`, e.g. 'LSAR'
     freq : str
@@ -138,10 +149,13 @@ class Raster:
 
     # Raster data. Could be a numpy.ndarray, h5py.Dataset, etc.
     data: npt.ArrayLike
+    units: str
 
     # identifying name of this Raster; can be used for logging
     # e.g. 'LSAR_A_HH'
     name: str
+
+    stats_h5_group_path: str
 
     band: str
     freq: str
@@ -201,12 +215,22 @@ class RadarRaster(SARRaster):
     ----------
     data : array_like
         Raster data to be stored.
+    units : str
+        The units of the data. If `data` is numeric but unitless (e.g ratios),
+        by NISAR convention please use the string "1".
     name : str
         Name for the dataset
     band : str
         name of the band for `img`, e.g. 'LSAR'
     freq : str
         name of the frequency for `img`, e.g. 'A' or 'B'
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
     ground_az_spacing : float
         Azimuth spacing of pixels of input array
         Units: meters
@@ -282,12 +306,22 @@ class GeoRaster(SARRaster):
     ----------
     data : array_like
         Raster data to be stored.
+    units : str
+        The units of the data. If `data` is numeric but unitless (e.g ratios),
+        by NISAR convention please use the string "1".
     name : str
         Name for the dataset
     band : str
         name of the band for `data`, e.g. 'LSAR'
     freq : str
         name of the frequency for `data`, e.g. 'A' or 'B'
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
     x_spacing : float
         X spacing of pixels (in meters) of input array.
     x_start : float
@@ -344,14 +378,16 @@ class GeoRaster(SARRaster):
 def compare_raster_metadata(
     raster1: nisarqa.RadarRaster,
     raster2: nisarqa.RadarRaster,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
 def compare_raster_metadata(
     raster1: nisarqa.GeoRaster,
     raster2: nisarqa.GeoRaster,
-) -> None: ...
+) -> None:
+    ...
 
 
 def compare_raster_metadata(
@@ -400,6 +436,12 @@ def compare_raster_metadata(
                     f"Values do not match: {np.shape(raster1.data)=} but"
                     f" {np.shape(raster2.data)=}."
                 )
+        elif r1.name == "units":
+            if raster1.units != raster2.units:
+                warnings.warn(
+                    f"{raster1.units=} but {raster2.units=}. Please confirm"
+                    " these two rasters are ok to have different units."
+                )
         elif r1.name == "name":
             # "name" dataclass attributes should be the same
             # except for the final layer name
@@ -407,6 +449,15 @@ def compare_raster_metadata(
                 log.warning(
                     f"{raster1.name=} but {raster2.name=}. Consider checking if"
                     " their band, frequency, polarization, etc. should match."
+                )
+        elif r1.name == "stats_h5_group_path":
+            # "stats_h5_group_path" dataclass attributes should be the same
+            # except for the final layer name
+            if r1_val.split("/")[:-1] != r2_val.split("/")[:-1]:
+                warnings.warn(
+                    f"{raster1.stats_h5_group_path=} but"
+                    f" {raster2.stats_h5_group_path=}. Consider checking if"
+                    " these base paths should match."
                 )
         elif isinstance(r1_val, str):
             if r1_val != r2_val:

@@ -171,23 +171,28 @@ def verify_igram(
                     product=product,
                     params=root_params.unw_phs_img,
                     report_pdf=report_pdf,
+                    stats_h5=stats_h5,
                 )
 
             if isinstance(product, nisarqa.WrappedGroup):
                 nisarqa.process_phase_image_wrapped(
                     product=product,
                     report_pdf=report_pdf,
+                    stats_h5=stats_h5,
                 )
 
             if isinstance(product, nisarqa.UnwrappedGroup):
                 nisarqa.process_ionosphere_phase_screen(
                     product=product,
                     report_pdf=report_pdf,
+                    stats_h5=stats_h5,
                 )
 
             # Plot azimuth offsets and slant range offsets (RIFG, RUNW, & GUNW)
             nisarqa.process_az_and_slant_rg_offsets_from_igram_product(
-                product=product, report_pdf=report_pdf
+                product=product,
+                report_pdf=report_pdf,
+                stats_h5=stats_h5,
             )
 
             # Save Browse Image and HSI Plots
