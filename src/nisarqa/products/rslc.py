@@ -40,6 +40,9 @@ def verify_rslc(user_rncfg):
         YAML file and which contains the parameters needed to run its QA SAS.
     """
 
+    log = nisarqa.get_logger()
+    log.info("Begin parsing of runconfig for user-provided QA parameters.")
+
     # Build the RSLCRootParamGroup parameters per the runconfig
     try:
         root_params = nisarqa.build_root_params(
@@ -47,21 +50,22 @@ def verify_rslc(user_rncfg):
         )
     except nisarqa.ExitEarly:
         # No workflows were requested. Exit early.
-        print(
+        log.info(
             "All `workflows` set to `False` in the runconfig, "
             "so no QA outputs will be generated. This is not an error."
         )
         return
 
-    # Start logger
-    # TODO get logger from Brian's code and implement here
-    # For now, output the stub log file.
+    # Start logging in the log file
     out_dir = root_params.get_output_dir()
-    nisarqa.output_stub_files(output_dir=out_dir, stub_files="log_txt")
+    log_file_txt = out_dir / root_params.get_log_filename()
+    log.info(
+        f"Parsing of runconfig for QA parameters complete. Complete log"
+        f" continues in the output log file."
+    )
+    nisarqa.set_logger_handler(log_file=log_file_txt)
 
     # Log the values of the parameters.
-    # Currently, this prints to stdout. Once the logger is implemented,
-    # it should log the values directly to the log file.
     root_params.log_parameters()
 
     # For readibility, store output filenames in variables.
@@ -74,13 +78,16 @@ def verify_rslc(user_rncfg):
     stats_file = out_dir / root_params.get_stats_h5_filename()
     summary_file = out_dir / root_params.get_summary_csv_filename()
 
-    print(f"Starting Quality Assurance for input file: {input_file}")
-
-    # Begin QA workflows
+    msg = f"Starting Quality Assurance for input file: {input_file}"
+    print(msg)
+    log.info(msg)
 
     # Run validate first because it checks the product spec
     if root_params.workflows.validate:
-        print(f"Beginning input file validation...")
+        msg = f"Beginning validation of input file against XML Product Spec..."
+        print(msg)
+        log.info(msg)
+
         # TODO Validate file structure
         # (After this, we can assume the file structure for all
         # subsequent accesses to it)
@@ -96,8 +103,10 @@ def verify_rslc(user_rncfg):
             output_dir=out_dir,
             stub_files="summary_csv",
         )
-        print(f"Input file validation PASS/FAIL checks saved to {summary_file}")
-        print(f"Input file validation complete.")
+        log.info(
+            "Input file validation complete. PASS/FAIL checks saved to"
+            f" {summary_file}"
+        )
 
     # If running these workflows, save the processing parameters and
     # identification group to STATS.h5
@@ -119,15 +128,18 @@ def verify_rslc(user_rncfg):
             root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band
             )
-            print(f"QA Processing Parameters saved to {stats_file}")
+            log.info(f"QA Processing Parameters saved to {stats_file}")
 
             nisarqa.rslc.copy_identification_group_to_stats_h5(
                 product=product, stats_h5=stats_h5
             )
-            print(f"Input file Identification group copied to {stats_file}")
+            log.info(f"Input file Identification group copied to {stats_file}")
 
     if root_params.workflows.qa_reports:
-        print(f"Beginning `qa_reports` processing...")
+        msg = f"Beginning `qa_reports` processing..."
+        print(msg)
+        log.info(msg)
+
         # TODO qa_reports will add to the SUMMARY.csv file.
         # For now, make sure that the stub file is output
         if not os.path.isfile(summary_file):
@@ -136,14 +148,14 @@ def verify_rslc(user_rncfg):
                 stub_files="summary_csv",
             )
 
+        log.debug(f"Beginning processing of browse KML...")
         nisarqa.write_latlonquad_to_kml(
             llq=product.get_browse_latlonquad(),
             output_dir=out_dir,
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),
         )
-        print("Processing of browse image kml complete.")
-        print(f"Browse image kml file saved to {browse_file_kml}")
+        log.debug(f"Browse image kml file saved to {browse_file_kml}")
 
         with nisarqa.open_h5_file(stats_file, mode="r+") as stats_h5, PdfPages(
             report_file
@@ -158,7 +170,7 @@ def verify_rslc(user_rncfg):
                 r"RSLC Backscatter Coefficient ($\beta^0$)"
             )
 
-            # Generate the RSLC Backscatter Image and Browse Image
+            log.debug("Beginning processing of backscatter images...")
             process_backscatter_imgs_and_browse(
                 product=product,
                 params=root_params.backscatter_img,
@@ -168,10 +180,10 @@ def verify_rslc(user_rncfg):
                 input_raster_represents_power=input_raster_represents_power,
                 browse_filename=browse_file_png,
             )
-            print("Processing of backscatter images complete.")
-            print(f"Browse image PNG file saved to {browse_file_png}")
+            log.debug("Processing of backscatter images complete.")
+            log.info(f"Browse image PNG file saved to {browse_file_png}")
 
-            # Generate the RSLC Power and Phase Histograms
+            log.debug("Beginning processing of backscatter and phase histograms...")
             process_backscatter_and_phase_histograms(
                 product=product,
                 params=root_params.histogram,
@@ -180,29 +192,32 @@ def verify_rslc(user_rncfg):
                 plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
             )
-            print("Processing of backscatter and phase histograms complete.")
+            log.debug("Processing of backscatter and phase histograms complete.")
 
             # Process Interferograms
 
-            # Generate Spectra
+            log.debug("Beginning processing of range power spectra...")
             process_range_spectra(
                 product=product,
                 params=root_params.range_spectra,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
             )
+            log.debug("Processing of range power spectra complete.")
 
             # Check for invalid values
 
             # Compute metrics for stats.h5
 
-            print(f"PDF reports saved to {report_file}")
-            print(f"HDF5 statistics saved to {stats_file}")
-            print(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
-            print("`qa_reports` processing complete.")
+            log.info(f"PDF reports saved to {report_file}")
+            log.info(f"HDF5 statistics saved to {stats_file}")
+            log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
+            log.info("`qa_reports` processing complete.")
 
     if root_params.workflows.abs_cal:
-        print("Beginning Absolute Radiometric Calibration CalTool...")
+        msg = "Beginning Absolute Radiometric Calibration CalTool..."
+        print(msg)
+        log.info(msg)
 
         # Run Absolute Radiometric Calibration tool
         nisarqa.caltools.run_abscal_tool(
@@ -211,14 +226,15 @@ def verify_rslc(user_rncfg):
             input_filename=input_file,
             stats_filename=stats_file,
         )
-        print(
-            "Absolute Radiometric Calibration CalTool results saved to"
-            f" {stats_file}"
+        log.info(
+            "Absolute Radiometric Calibration CalTool complete. Results saved"
+            f" to {stats_file}"
         )
-        print("Absolute Radiometric Calibration CalTool complete.")
 
     if root_params.workflows.noise_estimation:
-        print("Beginning Noise Estimation Tool CalTool...")
+        msg = "Beginning Noise Estimation Tool CalTool..."
+        print(msg)
+        log.info(msg)
 
         # Run NET tool
         nisarqa.caltools.run_noise_estimation_tool(
@@ -226,11 +242,15 @@ def verify_rslc(user_rncfg):
             input_filename=input_file,
             stats_filename=stats_file,
         )
-        print(f"Noise Estimation Tool CalTool results saved to {stats_file}")
-        print("Noise Estimation Tool CalTool complete.")
+        log.info(
+            "Noise Estimation Tool CalTool complete. Results saved to"
+            f" {stats_file}"
+        )
 
     if root_params.workflows.point_target:
-        print("Beginning Point Target Analyzer CalTool...")
+        msg = "Beginning Point Target Analyzer CalTool..."
+        print(msg)
+        log.info(msg)
 
         # Run Point Target Analyzer tool
         nisarqa.caltools.run_pta_tool(
@@ -239,13 +259,14 @@ def verify_rslc(user_rncfg):
             input_filename=input_file,
             stats_filename=stats_file,
         )
-        print(f"Point Target Analyzer CalTool results saved to {stats_file}")
-        print("Point Target Analyzer CalTool complete.")
+        log.info(
+            "Point Target Analyzer CalTool complete. Results saved to"
+            f" {stats_file}"
+        )
 
-    print(
-        "Successful completion of QA SAS. Check log file for validation"
-        " warnings and errors."
-    )
+    msg = "QA SAS complete. For details, warnings, and errors see output log file."
+    print(msg)
+    log.info(msg)
 
 
 # TODO - move to generic NISAR module
@@ -475,6 +496,7 @@ def get_multilooked_backscatter_img(
     out_img : numpy.ndarray
         The multilooked Backscatter Image
     """
+    log = nisarqa.get_logger()
 
     nlooks_freqa_arg = params.nlooks_freqa
     nlooks_freqb_arg = params.nlooks_freqb
@@ -531,10 +553,10 @@ def get_multilooked_backscatter_img(
             ),
         )
 
-    print(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
-    print("Y direction (azimuth) ground spacing: ", img.y_axis_spacing)
-    print("X direction (range) ground spacing: ", img.x_axis_spacing)
-    print("Beginning Multilooking with nlooks window shape: ", nlooks)
+    log.debug(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
+    log.debug(f"Y direction (azimuth) ground spacing: {img.y_axis_spacing}")
+    log.debug(f"X direction (range) ground spacing: {img.x_axis_spacing}")
+    log.debug(f"Beginning Multilooking with nlooks window shape: {nlooks}")
 
     # Multilook
     out_img = nisarqa.compute_multilooked_backscatter_by_tiling(
@@ -544,7 +566,9 @@ def get_multilooked_backscatter_img(
         tile_shape=params.tile_shape,
     )
 
-    print(f"Multilooking Complete. Multilooked image shape: {out_img.shape}")
+    log.debug(
+        f"Multilooking Complete. Multilooked image shape: {out_img.shape}"
+    )
 
     return out_img
 
@@ -1168,8 +1192,11 @@ def generate_backscatter_image_histogram_single_freq(
         the formula:  power = abs(<magnitude>)^2 .
         Defaults to False (root power).
     """
+    log = nisarqa.get_logger()
 
-    print(f"Generating Backscatter Image Histograms for Frequency {freq}...")
+    log.debug(
+        f"Generating Backscatter Image Histograms for Frequency {freq}..."
+    )
 
     # Open one figure+axes.
     # Each band+frequency will have a distinct plot, with all of the
@@ -1254,7 +1281,7 @@ def generate_backscatter_image_histogram_single_freq(
     # Close figure
     plt.close(fig)
 
-    print(f"Backscatter Image Histograms for Frequency {freq} complete.")
+    log.debug(f"Backscatter Image Histograms for Frequency {freq} complete.")
 
 
 def generate_phase_histogram_single_freq(
@@ -1291,6 +1318,7 @@ def generate_phase_histogram_single_freq(
     report_pdf : PdfPages
         The output PDF file to append the backscatter image plot to
     """
+    log = nisarqa.get_logger()
 
     band = product.band
 
@@ -1301,7 +1329,7 @@ def generate_phase_histogram_single_freq(
     # this will remain False.)
     save_phase_histogram = False
 
-    print(f"Generating Phase Histograms for Frequency {freq}...")
+    log.debug(f"Generating Phase Histograms for Frequency {freq}...")
 
     # Open one figure+axes.
     # Each band+frequency will have a distinct plot, with all of the
@@ -1404,7 +1432,7 @@ def generate_phase_histogram_single_freq(
         if path in stats_h5:
             del stats_h5[path]
 
-    print(f"Histograms for Frequency {freq} complete.")
+    log.debug(f"Histograms for Frequency {freq} complete.")
 
 
 def add_hist_to_axis(axis, counts, edges, label):
@@ -1484,8 +1512,8 @@ def generate_range_spectra_single_freq(
     report_pdf : PdfPages
         The output PDF file to append the range spectra plots plot to.
     """
-
-    print(f"Generating Range Spectra for Frequency {freq}...")
+    log = nisarqa.get_logger()
+    log.debug(f"Generating Range Spectra for Frequency {freq}...")
 
     # Plot the range spectra using strictly increasing sample frequencies
     # (no discontinuity).
@@ -1583,7 +1611,7 @@ def generate_range_spectra_single_freq(
     # Close the plot
     plt.close()
 
-    print(f"Range Power Spectra for Frequency {freq} complete.")
+    log.debug(f"Range Power Spectra for Frequency {freq} complete.")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

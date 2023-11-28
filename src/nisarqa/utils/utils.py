@@ -1,7 +1,12 @@
-from contextlib import contextmanager
+from __future__ import annotations
 
+from contextlib import contextmanager
+import functools
 import h5py
 import numpy as np
+import logging
+import os
+from typing import Optional
 
 import nisarqa
 
@@ -30,6 +35,10 @@ def open_h5_file(in_file, mode="r"):
     handle : h5py.File
         Handle to `filepath` file.
     """
+    # TODO - Geoff - if we're wrapping everything in a try-except block,
+    # could we simply get rid of this function entirely and just use h5py.File?
+    # And let the exception percolate up?
+
     try:
         input_file = h5py.File(in_file, mode)
 
@@ -299,6 +308,74 @@ def byte_string_to_python_str(byte_str: np.bytes_) -> str:
     out = str(out)
 
     return out
+
+
+def get_logger() -> logging.Logger:
+    """Get the QA logger."""
+    log = logging.getLogger("QA")
+    if not log.handlers:
+        raise RuntimeError(
+            "QA logger not yet configured. Must call `set_logger_handler()`"
+            " prior to `get_logger()`."
+        )
+    return log
+
+
+def set_logger_handler(log_file: Optional[str | os.PathLike]) -> logging.Logger:
+    """
+    Configure the logger with the correct message format and output location.
+
+    Parameters
+    ----------
+    log_file : path-like or None
+        If None, log messages will be directed to sys.stderr.
+        If path-like, log messages will be directed to the log file. If
+        `log_file` is an existing file, it will be overwritten.
+
+    # TODO - Geoff - is it correct behavior to overwrite the existing file?
+    # If someone switches back-and-forth between stderr and the file output,
+    # they would lose the original logs to the file.
+    """
+    # Setup the QA logger
+    log = logging.getLogger("QA")
+    # remove all existing (old) handlers
+    for hdlr in log.handlers:
+        log.removeHandler(hdlr)
+
+    # Get the correct handler
+    if log_file is None:
+        # direct log messages to sys.stderr
+        handler = logging.StreamHandler()
+    elif isinstance(log_file, (str, os.PathLike)):
+        # validate/clean the filepath
+        log_file = os.fspath(log_file)
+
+        # direct log messages to the specified file
+        handler = logging.FileHandler(filename=log_file, mode="w")
+    else:
+        raise TypeError(
+            f"`{log_file=} and has type {type(log_file)}, but must be"
+            " path-like or None."
+        )
+
+    # Set log level to be reported
+    log_level = logging.DEBUG
+    log.setLevel(log_level)
+    handler.setLevel(log_level)
+
+    # Set log message format
+    # Format from L0B PGE Design Document, section 9. Kludging error code.
+    msgfmt = (
+        f"%(asctime)s.%(msecs)03d, %(levelname)s, QA, "
+        f'999999, %(pathname)s:%(lineno)d, "%(message)s"'
+    )
+    fmt = logging.Formatter(msgfmt, "%Y-%m-%d %H:%M:%S")
+    handler.setFormatter(fmt)
+
+    # set the new handler
+    log.addHandler(handler)
+
+    return log
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

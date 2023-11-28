@@ -751,13 +751,10 @@ class RootParamGroup(ABC):
         )
 
     def log_parameters(self):
-        """
-        Log the parameter values for this instance of *RootParamGroup.
+        """Log the parameter values for this instance of *RootParamGroup."""
+        log = nisarqa.get_logger()
 
-        Currently, will output each value to stdout. In the future, will
-        log via a proper logger.
-        """
-        print(
+        log.debug(
             "QA processing parameters, per runconfig and defaults (runconfig"
             " has precedence)"
         )
@@ -776,7 +773,7 @@ class RootParamGroup(ABC):
                     param_group_obj.get_path_to_group_in_runconfig()
                 )
                 rncfg_grp_path = "/".join(rncfg_grp_path)
-                print(
+                log.debug(
                     "  Final Input Parameters corresponding to Runconfig"
                     f" group: {rncfg_grp_path}"
                 )
@@ -784,9 +781,9 @@ class RootParamGroup(ABC):
                 # Show the final value assigned to the parameter
                 for param in fields(param_group_obj):
                     po2 = getattr(param_group_obj, param.name)
-                    print(f"    {param.name}: {po2}")
+                    log.debug(f"    {param.name}: {po2}")
             else:
-                print(
+                log.debug(
                     "  Per `workflows`, runconfig group for"
                     f" {root_group_attr.name} not required."
                 )

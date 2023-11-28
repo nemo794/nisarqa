@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import warnings
 
 import numpy as np
-
+from numpy.typing import ArrayLike
 import nisarqa
 
 objects_to_skip = nisarqa.get_all(__name__)
@@ -88,14 +90,16 @@ def normalize_nlooks(nlooks, arr):
         nlooks = tuple([int(n) for n in nlooks])
         if len(nlooks) != arr.ndim:
             raise ValueError(
-                f"length mismatch: length of nlooks ({len(nlooks)}) must match input"
-                f" array rank ({arr.ndim})"
+                f"length mismatch: length of nlooks ({len(nlooks)}) must match"
+                f" input array rank ({arr.ndim})"
             )
 
     return nlooks
 
 
-def validate_nlooks(nlooks, arr):
+def validate_nlooks(nlooks: int | list[int], arr: ArrayLike) -> None:
+    log = nisarqa.get_logger()
+
     # The number of looks must be at least 1 and at most the size of the input array
     # along the corresponding axis.
     for m, n in zip(arr.shape, nlooks):
@@ -108,10 +112,10 @@ def validate_nlooks(nlooks, arr):
     # (even if multiple axes have this issue).
     for m, n in zip(arr.shape, nlooks):
         if m % n != 0:
-            warnings.warn(
-                "input array shape is not an integer multiple of nlooks -- remainder"
-                " samples will be excluded from output",
-                RuntimeWarning,
+            # TODO - Geoff - correct to remove runtime warnings, and turn them into log-only warnings?
+            log.warn(
+                "input array shape is not an integer multiple of nlooks --"
+                " remainder samples will be excluded from output"
             )
             break
 

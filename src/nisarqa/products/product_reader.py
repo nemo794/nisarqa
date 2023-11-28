@@ -333,6 +333,8 @@ class NisarProduct(ABC):
         band : str
             The input file's band. (One of "L" or "S").
         """
+        log = nisarqa.get_logger()
+
         id_group = self.identification_path
         band = None
 
@@ -340,9 +342,7 @@ class NisarProduct(ABC):
             try:
                 band = f[id_group]["radarBand"][...]
             except KeyError:
-                warnings.warn(
-                    "`radarBand` missing from `identification` group."
-                )
+                log.warn("`radarBand` missing from `identification` group.")
             else:
                 band = nisarqa.byte_string_to_python_str(band)
 
@@ -393,16 +393,18 @@ class NisarProduct(ABC):
         band), hence the reason for this distinction. For NISAR, these
         are referred to as "Frequency A" and "Freqency B".
         """
+        log = nisarqa.get_logger()
+
         # Get paths to the frequency groups
         found_freqs = []
         for freq in ("A", "B"):
             try:
                 path = self.get_freq_path(freq=freq)
             except nisarqa.DatasetNotFoundError:
-                print(f"Frequency{freq} group not found.")
+                log.info(f"Frequency{freq} group not found.")
             else:
                 found_freqs.append(freq)
-                print(f"Found Frequency{freq} group: {path}")
+                log.info(f"Found Frequency {freq} group: {path}")
 
         if not found_freqs:
             errmsg = "Input product does not contain any frequency groups."
@@ -437,6 +439,7 @@ class NisarProduct(ABC):
         # the `self` parameter, so use an inner function to cache the results.
         @lru_cache
         def _freq_path(freq):
+            log = nisarqa.get_logger()
             path = self._data_group_path + f"/frequency{freq}"
             with nisarqa.open_h5_file(self.filepath) as f:
                 if path in f:
@@ -444,9 +447,9 @@ class NisarProduct(ABC):
                 else:
                     errmsg = (
                         f"Input file does not contain frequency {freq} group at"
-                        f" expected path: {path}"
+                        f" path: {path}"
                     )
-                    print(errmsg)
+                    log.info(errmsg)
                     raise nisarqa.DatasetNotFoundError(errmsg)
 
         return _freq_path(freq)
@@ -485,6 +488,8 @@ class NisarProduct(ABC):
 
     def _check_is_geocoded(self) -> None:
         """Sanity check for `self.is_geocoded`."""
+        log = nisarqa.get_logger()
+
         id_group = self.identification_path
 
         with nisarqa.open_h5_file(self.filepath) as f:
@@ -507,7 +512,7 @@ class NisarProduct(ABC):
                 # GSLC). So let's simply raise a warning and let QA continue.
                 # However, it's part of QA's job to check these fields for
                 # product robustness and to warn the user of faulty products.
-                warnings.warn("Product is missing `isGeocoded` field")
+                log.warn("Product missing `identification > isGeocoded` field")
 
     def _check_data_group_path(self) -> None:
         """Sanity check to ensure the grid path exists in the input file."""
@@ -1674,6 +1679,9 @@ class RSLC(SLC, NisarRadarProduct):
     def _get_dataset_handle(
         self, h5_file: h5py.File, raster_path: str
     ) -> h5py.Dataset:
+        
+        log = nisarqa.get_logger()
+
         # RSLC Product Spec says that NISAR RSLC rasters should be complex32,
         # which requires special handling to read and access.
         # As of h5py 3.8.0, h5py gained the ability to read complex32
@@ -1684,12 +1692,14 @@ class RSLC(SLC, NisarRadarProduct):
             # ComplexFloat16Decoder so that numpy et al can read the datasets.
             dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
             pass_fail = "PASS"
+            logger = log.info
         else:
             # Use h5py's standard reader
             dataset = h5_file[raster_path]
             pass_fail = "FAIL"
+            logger = log.warning
 
-        print(
+        logger(
             f"({pass_fail}) PASS/FAIL Check: Product raster dtype conforms"
             " to RSLC Product Spec dtype of complex32."
         )

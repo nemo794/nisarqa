@@ -21,6 +21,8 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> None:
     ds : h5py.Dataset
         Dataset to be verified. This should represent a boolean quantity.
     """
+    log = nisarqa.get_logger()
+
     verify_str_meets_isce3_conventions(ds)
 
     data = nisarqa.byte_string_to_python_str(ds[()])
@@ -31,7 +33,7 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> None:
             f" {ds[()]}. By ISCE3 convention it must be a byte string"
             " b'True' or b'False'."
         )
-        warnings.warn(errmsg)
+        log.warn(errmsg)
 
 
 def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
@@ -73,13 +75,15 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
         dtype |S1 instead of |S2 (which is the dtype of the array), and
         the second element's scalar has dtype |S2.
     """
+    log = nisarqa.get_logger()
+
     # Check if the dtype is byte string.
     if not np.issubdtype(ds.dtype, np.bytes_):
         errmsg = (
             f"Dataset `{ds.name}` has dtype `{ds.dtype}`, but must be a"
             " sub-dtype of `numpy.bytes_` (i.e. a byte string)."
         )
-        warnings.warn(errmsg)
+        log.warn(errmsg)
 
         # Return early; none of the other verification checks can be used
         return
@@ -96,7 +100,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
             f"Shape of Dataset `{ds.name}` is {ds.shape}, but ISCE3 does not"
             " generate arrays of strings with more than one dimension."
         )
-        warnings.warn(errmsg)
+        log.warn(errmsg)
 
 
 def verify_byte_string(my_string: np.bytes_) -> None:
@@ -108,12 +112,14 @@ def verify_byte_string(my_string: np.bytes_) -> None:
     my_string : numpy.bytes_
         Byte string to be verified.
     """
+    log = nisarqa.get_logger()
+
     if not isinstance(my_string, np.bytes_):
         errmsg = (
             f"Input {my_string} has type {type(my_string)}, but must be an"
             " instance of `numpy.bytes_` (i.e. a byte string)."
         )
-        warnings.warn(errmsg)
+        log.warn(errmsg)
 
 
 def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
@@ -130,6 +136,8 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
     ds : h5py.Dataset
         Dataset to be verified. This should represent a scalar string.
     """
+    log = nisarqa.get_logger()
+
     # This function can only check scalar byte strings.
     verify_byte_string(ds[()])
     if not ds.shape == ():
@@ -150,7 +158,7 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
             f"Dataset `{ds.name}` contains trailing null characters. It has"
             f" dtype `{ds.dtype}`, but should have dtype `{ds[()].dtype}`."
         )
-        warnings.warn(errmsg)
+        log.warn(errmsg)
 
 
 def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:

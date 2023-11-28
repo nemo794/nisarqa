@@ -161,41 +161,63 @@ def load_user_runconfig(runconfig_yaml):
 
 
 def main():
-    # parse the args
-    args = parse_cli_args()
 
-    subcommand = args.command
+    # Setup QA logger (output to stderr until we've read the output directory
+    # from the runconfig and can know the full filepath for the log file.)
+    nisarqa.set_logger_handler(log_file=None)
 
-    if subcommand == "dumpconfig":
-        dumpconfig(product_type=args.product_type, indent=args.indent)
-        return
+    log = nisarqa.get_logger()
 
-    # parse runconfig into a dict structure
-    user_rncfg = load_user_runconfig(args.runconfig_yaml)
+    # Wrap all processing in a try/catch block to log exceptions.
+    try:
+        # parse the args
+        args = parse_cli_args()
 
-    if subcommand == "rslc_qa":
-        nisarqa.rslc.verify_rslc(user_rncfg=user_rncfg)
-    elif subcommand == "gslc_qa":
-        nisarqa.gslc.verify_gslc(user_rncfg=user_rncfg)
-    elif subcommand == "gcov_qa":
-        nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg)
-    elif subcommand == "rifg_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="rifg")
-    elif subcommand == "runw_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="runw")
-    elif subcommand == "gunw_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="gunw")
-    elif subcommand == "roff_qa":
-        nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="roff"
+        subcommand = args.command
+
+        if subcommand == "dumpconfig":
+            dumpconfig(product_type=args.product_type, indent=args.indent)
+            return
+
+        # parse runconfig into a dict structure
+        log.info(f"Begin loading user runconfig yaml to dict: {args.runconfig_yaml}")
+        user_rncfg = load_user_runconfig(args.runconfig_yaml)
+        log.info(
+            "Loading of user runconfig complete. Beginning QA for"
+            f" {subcommand.replace('_qa', '').upper()} input product."
         )
-    elif subcommand == "goff_qa":
-        nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="goff"
-        )
-    else:
-        raise ValueError(f"Unknown subcommand: {subcommand}")
 
+        if subcommand == "rslc_qa":
+            nisarqa.rslc.verify_rslc(user_rncfg=user_rncfg)
+        elif subcommand == "gslc_qa":
+            nisarqa.gslc.verify_gslc(user_rncfg=user_rncfg)
+        elif subcommand == "gcov_qa":
+            nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg)
+        elif subcommand == "rifg_qa":
+            nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="rifg")
+        elif subcommand == "runw_qa":
+            nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="runw")
+        elif subcommand == "gunw_qa":
+            nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="gunw")
+        elif subcommand == "roff_qa":
+            nisarqa.offsets.verify_offset(
+                user_rncfg=user_rncfg, product_type="roff"
+            )
+        elif subcommand == "goff_qa":
+            nisarqa.offsets.verify_offset(
+                user_rncfg=user_rncfg, product_type="goff"
+            )
+        else:
+            raise ValueError(f"Unknown subcommand: {subcommand}")
+
+    except Exception as e:
+        # Note: inside the `verify_*()` function, the log output might have
+        # been redirected to the log file instead of stderr.
+        log.exception(e, stack_info=True)
+
+        # Do not silently fail! Alert user via the console
+        raise e
+        
 
 if __name__ == "__main__":
     main()

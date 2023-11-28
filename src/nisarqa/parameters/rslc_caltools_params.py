@@ -916,9 +916,11 @@ class RSLCRootParamGroup(RootParamGroup):
         # would need to do cleanup later and remove these two groups from
         # STATS.h5.
 
+        log = nisarqa.get_logger()
+
         if self.workflows.abs_cal or self.workflows.point_target:
             if self.anc_files.corner_reflector_file is None:
-                warnings.warn(
+                log.warn(
                     "`corner_reflector_file` not provided in runconfig."
                     " Absolute Calibration Factor and Point Target Analyzer"
                     " Caltools workflows require this file. Setting those"
