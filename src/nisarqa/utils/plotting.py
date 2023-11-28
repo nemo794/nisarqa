@@ -70,7 +70,8 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.RadarRaster,
     iono_uncertainty_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -78,7 +79,8 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.GeoRaster,
     iono_uncertainty_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 def plot_ionosphere_phase_screen_to_pdf(
@@ -433,7 +435,8 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.RadarRaster,
     coh_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -441,7 +444,8 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.GeoRaster,
     coh_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 def plot_wrapped_phase_image_and_coh_mag_to_pdf(
@@ -995,7 +999,8 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.RadarRaster, list[float]]: ...
+) -> tuple[nisarqa.RadarRaster, list[float]]:
+    ...
 
 
 @overload
@@ -1005,7 +1010,8 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.GeoRaster, list[float]]: ...
+) -> tuple[nisarqa.GeoRaster, list[float]]:
+    ...
 
 
 def make_hsi_raster(
@@ -1853,7 +1859,8 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-) -> tuple[float, float]: ...
+) -> tuple[float, float]:
+    ...
 
 
 @overload
@@ -1862,7 +1869,8 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-) -> tuple[float, float]: ...
+) -> tuple[float, float]:
+    ...
 
 
 def plot_offsets_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
@@ -1952,7 +1960,8 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     browse_png: str | os.PathLike,
-) -> tuple[int, int]: ...
+) -> tuple[int, int]:
+    ...
 
 
 @overload
@@ -1961,7 +1970,8 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     browse_png: str | os.PathLike,
-) -> tuple[int, int]: ...
+) -> tuple[int, int]:
+    ...
 
 
 def plot_single_quiver_plot_to_png(
