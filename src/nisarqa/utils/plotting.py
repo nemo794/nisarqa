@@ -1479,6 +1479,7 @@ def process_az_and_slant_rg_offsets_from_igram_product(
 
 @overload
 def process_range_and_az_offsets(
+<<<<<<< HEAD
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
@@ -1538,9 +1539,81 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
 
 @overload
 def plot_range_and_az_offsets_to_pdf(
+=======
+>>>>>>> 0f55ab7 (add insar metrics)
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None: ...
+
+
+@overload
+<<<<<<< HEAD
+def plot_range_and_az_offsets_to_pdf(
+=======
+def process_range_and_az_offsets(
+>>>>>>> 0f55ab7 (add insar metrics)
+    az_offset: nisarqa.GeoRaster,
+    rg_offset: nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None: ...
+
+
+<<<<<<< HEAD
+=======
+def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
+    """
+    Plot azimuth and range offsets to PDF, and compute statistics on them.
+
+    The colorbar interval is determined by the maximum offset value in
+    either raster, and then centered at zero. This way the side-by-side plots
+    will be plotted with the same colorbar scale.
+
+    Parameters
+    ----------
+    az_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Along track offset layer to be processed. Must correspond to
+        `rg_offset`.
+    rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Slant range offset layer to be processed. Must correspond to
+        `az_offset`.
+    report_pdf : PdfPages
+        The output PDF file to append the offsets plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    """
+
+    # Plot offset layers to PDF
+    plot_range_and_az_offsets_to_pdf(
+        az_offset=az_offset, rg_offset=rg_offset, report_pdf=report_pdf
+    )
+
+    # TODO Plot Histograms
+
+    # Compute Statistics
+    nisarqa.compute_and_save_basic_statistics(
+        arr=az_offset.data,
+        units=az_offset.units,
+        grp_path=az_offset.stats_h5_group_path,
+        stats_h5=stats_h5,
+    )
+
+    nisarqa.compute_and_save_basic_statistics(
+        arr=rg_offset.data,
+        units=rg_offset.units,
+        grp_path=rg_offset.stats_h5_group_path,
+        stats_h5=stats_h5,
+    )
+
+
+@overload
+def plot_range_and_az_offsets_to_pdf(
+    az_offset: nisarqa.RadarRaster,
+    rg_offset: nisarqa.RadarRaster,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
 ) -> None: ...
 
 
@@ -1549,9 +1622,11 @@ def plot_range_and_az_offsets_to_pdf(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
     report_pdf: PdfPages,
+    stats_h5: h5py.File,
 ) -> None: ...
 
 
+>>>>>>> 0f55ab7 (add insar metrics)
 def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
     """
     Create and append a side-by-side plot of azimuth and range offsets to PDF.
