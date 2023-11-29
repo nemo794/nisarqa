@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import warnings
+import h5py
 
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -113,7 +114,7 @@ def verify_offset(user_rncfg: dict[str, dict], product_type: str) -> None:
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
-        with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5, PdfPages(
+        with h5py.File(stats_file, mode="w") as stats_h5, PdfPages(
             report_file
         ) as report_pdf:
             # Save the processing parameters to the stats.h5 file

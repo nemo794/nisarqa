@@ -170,6 +170,7 @@ def populate_abscal_hdf5_output(
         The output of the AbsCal tool. A list of dicts containing one entry per
         valid corner reflector found within the area imaged by the RSLC product.
     """
+
     # Helper function to create a new dataset within `grp_path` that stores info
     # about each corner reflector in the AbsCal output.
     #
@@ -314,7 +315,7 @@ def run_abscal_tool(
                     + f"/frequency{freq}/{pol}"
                 )
 
-                with nisarqa.open_h5_file(stats_filename, mode="a") as stats_h5:
+                with h5py.File(stats_filename, mode="a") as stats_h5:
                     populate_abscal_hdf5_output(
                         stats_h5=stats_h5,
                         grp_path=group_path,
@@ -342,7 +343,7 @@ def run_noise_estimation_tool(params, input_filename, stats_filename):
     # Get list of bands from the input file.
     # QA must be able to handle both LSAR and SSAR.
     bands = []
-    with nisarqa.open_h5_file(input_filename, mode="r") as in_file:
+    with h5py.File(input_filename, mode="r") as in_file:
         for band in nisarqa.NISAR_BANDS:
             grp_path = f"/science/{band}SAR"
             if grp_path in in_file:
@@ -351,7 +352,7 @@ def run_noise_estimation_tool(params, input_filename, stats_filename):
     # Save placeholder data to the STATS.h5 file
     # QA code workflows have probably already written to this HDF5 file,
     # so it could be very bad to open in 'w' mode. Open in 'a' mode instead.
-    with nisarqa.open_h5_file(stats_filename, mode="a") as stats_h5:
+    with h5py.File(stats_filename, mode="a") as stats_h5:
         for band in bands:
             # Step 1: Run the tool; get some results
             result = ((12.0 - params.attr1) / params.attr1) * 100.0
@@ -468,6 +469,7 @@ def populate_pta_hdf5_output(
         The output of the PTA tool. A list of dicts containing one entry per
         valid corner reflector found within the area imaged by the RSLC product.
     """
+
     # Helper function to create a new dataset within `grp_path` that stores info
     # about each corner reflector in the PTA output. This function is a bit more
     # complicated than in the AbsCal case due to the presence of nested dicts in
@@ -664,7 +666,9 @@ def populate_pta_hdf5_output(
             subkey="resolution",
             grp_path=grp_path + f"/{direction}IRF",
             ds_name="resolution",
-            ds_descr=f"The measured 3dB width of the {direction} IRF, in samples.",
+            ds_descr=(
+                f"The measured 3dB width of the {direction} IRF, in samples."
+            ),
             ds_dtype=np.float_,
             ds_units="samples",
         )
@@ -761,7 +765,7 @@ def run_pta_tool(
                 )
                 pol_group_path = freq_group_path + f"/{pol}"
 
-                with nisarqa.open_h5_file(stats_filename, mode="a") as stats_h5:
+                with h5py.File(stats_filename, mode="a") as stats_h5:
                     populate_pta_hdf5_output(
                         stats_h5=stats_h5,
                         grp_path=pol_group_path,

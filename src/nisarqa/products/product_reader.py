@@ -206,7 +206,7 @@ class NisarProduct(ABC):
     def bounding_polygon(self) -> str:
         """Bounding polygon WKT string."""
         id_group = self.identification_path
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             wkt = f[id_group]["boundingPolygon"][()]
             return nisarqa.byte_string_to_python_str(wkt)
 
@@ -229,7 +229,7 @@ class NisarProduct(ABC):
         nisarqa.InvalidNISARProductError
             If "identification" is not found exactly one time in the input file.
         """
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             paths = _get_paths_in_h5(h5_file=f, name="identification")
 
         if len(paths) != 1:
@@ -253,7 +253,7 @@ class NisarProduct(ABC):
             older test datasets), "0.0.0" is returned.
         """
         id_group = self.identification_path
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             if "productSpecificationVersion" in f[id_group]:
                 spec_version = f[id_group]["productSpecificationVersion"][...]
                 spec_version = nisarqa.byte_string_to_python_str(spec_version)
@@ -313,7 +313,7 @@ class NisarProduct(ABC):
     def _check_root_path(self) -> None:
         """Sanity check that `self._root_path` is valid."""
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             # Conditional branch for datasets <=R3.4 (TBD possibly beyond)
             if self._root_path not in f:
                 raise ValueError(
@@ -338,7 +338,7 @@ class NisarProduct(ABC):
         id_group = self.identification_path
         band = None
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             try:
                 band = f[id_group]["radarBand"][...]
             except KeyError:
@@ -441,7 +441,7 @@ class NisarProduct(ABC):
         def _freq_path(freq):
             log = nisarqa.get_logger()
             path = self._data_group_path + f"/frequency{freq}"
-            with nisarqa.open_h5_file(self.filepath) as f:
+            with h5py.File(self.filepath) as f:
                 if path in f:
                     return path
                 else:
@@ -476,7 +476,7 @@ class NisarProduct(ABC):
         """
         id_group = self.identification_path
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             in_file_prod_type = f[id_group]["productType"][...]
             in_file_prod_type = nisarqa.byte_string_to_python_str(in_file_prod_type)
 
@@ -492,7 +492,7 @@ class NisarProduct(ABC):
 
         id_group = self.identification_path
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             if "isGeocoded" in f[id_group]:
                 # Check that `isGeocoded` is set correctly, i.e. that it is
                 # False in range Doppler products, and True in Geocoded products
@@ -517,7 +517,7 @@ class NisarProduct(ABC):
     def _check_data_group_path(self) -> None:
         """Sanity check to ensure the grid path exists in the input file."""
         grid_path = self._data_group_path
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             if grid_path not in f:
                 errmsg = f"Input file is missing the path: {grid_path}"
                 print(errmsg)
@@ -898,7 +898,7 @@ class NisarGeoProduct(NisarProduct):
     @cached_property
     def epsg(self) -> str:
         """EPSG code for input product."""
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             # EPSG code is consistent for both frequencies. WLOG pick the
             # science frequency.
             freq_path = self.get_freq_path(freq=self.science_freq)
@@ -1248,7 +1248,7 @@ class NonInsarProduct(NisarProduct):
                 layers["A"]["HH"] -> "/science/LSAR/RSLC/swaths/frequencyA/HH"
         """
         # Discover images in input file and populate the `pols` dictionary
-        with nisarqa.open_h5_file(self.filepath) as h5_file:
+        with h5py.File(self.filepath) as h5_file:
             layers = {}
             for freq in self.freqs:
                 path = self.get_freq_path(freq=freq)
@@ -1634,7 +1634,7 @@ class RSLC(SLC, NisarRadarProduct):
 
         # Special handling for old UAVSAR test datasets that have paths
         # like "/science/LSAR/SLC/..."
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             if path in f:
                 return path
             elif self.product_spec_version == "0.0.0":
@@ -1658,7 +1658,7 @@ class RSLC(SLC, NisarRadarProduct):
 
         # Special handling for old UAVSAR test datasets that have paths
         # like "/science/LSAR/SLC/metadata..."
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             if path in f:
                 return path
             elif self.product_spec_version == "0.0.0":
@@ -1739,7 +1739,7 @@ class RSLC(SLC, NisarRadarProduct):
         @lru_cache
         def _get_scene_center_along_track_spacing(freq: str) -> float:
             path = f"{self.get_freq_path(freq)}/sceneCenterAlongTrackSpacing"
-            with nisarqa.open_h5_file(self.filepath) as f:
+            with h5py.File(self.filepath) as f:
                 try:
                     return f[path][()]
                 except KeyError as e:
@@ -1778,7 +1778,7 @@ class RSLC(SLC, NisarRadarProduct):
         @lru_cache
         def _get_slant_range_spacing(freq: str) -> float:
             path = f"{self.get_freq_path(freq)}/slantRangeSpacing"
-            with nisarqa.open_h5_file(self.filepath) as f:
+            with h5py.File(self.filepath) as f:
                 try:
                     return f[path][()]
                 except KeyError as e:
@@ -1808,7 +1808,7 @@ class RSLC(SLC, NisarRadarProduct):
         @lru_cache
         def _get_proc_center_freq(freq: str) -> float:
             path = f"{self.get_freq_path(freq)}/processedCenterFrequency"
-            with nisarqa.open_h5_file(self.filepath) as f:
+            with h5py.File(self.filepath) as f:
                 try:
                     proc_center_freq = f[path][()]
                 except KeyError as e:
@@ -2299,7 +2299,7 @@ class InsarProduct(NisarProduct):
         # Use lru_cache to minimize the amount of (slow) file i/o
         @lru_cache
         def _check_dtype_inner(path: str, expected_dtype: np.dtype) -> None:
-            with nisarqa.open_h5_file(self.filepath) as f:
+            with h5py.File(self.filepath) as f:
                 try:
                     dataset_handle = f[path]
                 except KeyError:
@@ -2379,7 +2379,7 @@ class InsarProduct(NisarProduct):
         @lru_cache
         def _get_pols(freq):
             pols = []
-            with nisarqa.open_h5_file(self.filepath) as f:
+            with h5py.File(self.filepath) as f:
                 for pol in nisarqa.get_possible_pols(self.product_type.lower()):
                     pol_path = self._get_path_containing_freq_pol(freq, pol)
                     try:
@@ -2499,7 +2499,7 @@ class WrappedGroup(InsarProduct):
         path = f"{parent_path}/wrappedInterferogram"
         self._check_dtype(path=path, expected_dtype=np.complex64)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
@@ -2523,7 +2523,7 @@ class WrappedGroup(InsarProduct):
         path = f"{parent_path}/coherenceMagnitude"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
 
@@ -2565,7 +2565,7 @@ class UnwrappedGroup(InsarProduct):
         path = f"{parent_path}/unwrappedPhase"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
@@ -2589,7 +2589,7 @@ class UnwrappedGroup(InsarProduct):
         path = f"{parent_path}/coherenceMagnitude"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
@@ -2613,7 +2613,7 @@ class UnwrappedGroup(InsarProduct):
         path = f"{parent_path}/ionospherePhaseScreen"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
@@ -2637,7 +2637,7 @@ class UnwrappedGroup(InsarProduct):
         path = f"{parent_path}/ionospherePhaseScreenUncertainty"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
 
@@ -2689,7 +2689,7 @@ class IgramOffsetsGroup(InsarProduct):
         path = f"{parent_path}/alongTrackOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
@@ -2713,7 +2713,7 @@ class IgramOffsetsGroup(InsarProduct):
         path = f"{parent_path}/slantRangeOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
 
@@ -2912,7 +2912,7 @@ class OffsetProduct(InsarProduct):
 
         def _get_available_layer_numbers(freq: str) -> tuple[int, ...]:
             golden_layers = []
-            with nisarqa.open_h5_file(self.filepath) as f:
+            with h5py.File(self.filepath) as f:
                 # if multiple pols, make sure they contain the same layers
                 possible_pols = nisarqa.get_possible_pols(
                     self.product_type.lower()
@@ -3038,7 +3038,7 @@ class OffsetProduct(InsarProduct):
         path = f"{parent_path}/alongTrackOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
@@ -3065,7 +3065,7 @@ class OffsetProduct(InsarProduct):
         path = f"{parent_path}/slantRangeOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
 

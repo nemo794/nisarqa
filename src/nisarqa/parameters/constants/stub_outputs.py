@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from PIL import Image
+import h5py
 
 import nisarqa
 
@@ -121,9 +122,9 @@ def output_stub_files(output_dir, stub_files="all", input_file=None):
     if "stats_h5" in stub_files:
         stats_file = os.path.join(output_dir, "STATS.h5")
 
-        with nisarqa.open_h5_file(
+        with h5py.File(
             input_file, mode="r"
-        ) as in_file, nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
+        ) as in_file, h5py.File(stats_file, mode="w") as stats_h5:
             for band in nisarqa.NISAR_BANDS:
                 grp_path = f"/science/{band}SAR/identification"
 

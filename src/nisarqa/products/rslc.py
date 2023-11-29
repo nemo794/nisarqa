@@ -119,7 +119,7 @@ def verify_rslc(user_rncfg):
         # This is the first time opening the STATS.h5 file for RSLC
         # workflow, so open in 'w' mode.
         # After this, always open STATS.h5 in 'r+' mode.
-        with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5:
+        with h5py.File(stats_file, mode="w") as stats_h5:
             product = nisarqa.RSLC(input_file)
 
             # Save the processing parameters to the stats.h5 file
@@ -157,7 +157,7 @@ def verify_rslc(user_rncfg):
         )
         log.debug(f"Browse image kml file saved to {browse_file_kml}")
 
-        with nisarqa.open_h5_file(stats_file, mode="r+") as stats_h5, PdfPages(
+        with h5py.File(stats_file, mode="r+") as stats_h5, PdfPages(
             report_file
         ) as report_pdf:
             product = nisarqa.RSLC(filepath=input_file)
@@ -289,7 +289,7 @@ def copy_identification_group_to_stats_h5(
     src_grp_path = product.identification_path
     dest_grp_path = nisarqa.STATS_H5_IDENTIFICATION_GROUP % product.band
 
-    with nisarqa.open_h5_file(product.filepath, "r") as in_file:
+    with h5py.File(product.filepath, "r") as in_file:
         if dest_grp_path in stats_h5:
             # The identification group already exists, so copy each
             # dataset, etc. individually

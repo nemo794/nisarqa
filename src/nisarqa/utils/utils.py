@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from contextlib import contextmanager
-from functools import lru_cache
-import h5py
 import numpy as np
 import logging
 import os
@@ -11,49 +8,6 @@ from typing import Optional
 import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
-
-
-@contextmanager
-def open_h5_file(in_file, mode="r"):
-    """
-    Open or create a handle for a h5 file.
-
-    Parameters
-    ----------
-    in_file : str
-        Filepath to an HDF5 file.
-    mode : char
-        The mode to open the input file. Options:
-            'r'         - Readonly, file must exist (default)
-            'r+'        - Read/write, file must exist
-            'w'         - Create file, truncate if exists
-            'w-' or 'x' - Create file, fail if exists
-            'a'         - Read/write if exists, create otherwise
-
-    Returns
-    -------
-    handle : h5py.File
-        Handle to `filepath` file.
-    """
-    # TODO - Geoff - if we're wrapping everything in a try-except block,
-    # could we simply get rid of this function entirely and just use h5py.File?
-    # And let the exception percolate up?
-
-    try:
-        input_file = h5py.File(in_file, mode)
-
-    # TODO If file is already open, this error is thrown: BlockingIOError
-    except (FileNotFoundError, IOError):
-        print(
-            "Could not open file. Add logger and remove this print statement."
-        )
-        # logger.log_message(logging_base.LogFilterError,
-        #             'File %s has a Fatal Error(s): %s' % (rslc_file, errors))
-        raise
-    else:
-        yield input_file
-    finally:
-        input_file.close()
 
 
 class DatasetNotFoundError(Exception):

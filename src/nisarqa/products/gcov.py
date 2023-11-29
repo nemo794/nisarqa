@@ -3,6 +3,7 @@ import warnings
 
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
+import h5py
 
 import nisarqa
 
@@ -128,7 +129,7 @@ def verify_gcov(user_rncfg):
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
-        with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5, PdfPages(
+        with h5py.File(stats_file, mode="w") as stats_h5, PdfPages(
             report_file
         ) as report_pdf:
             # Save the processing parameters to the stats.h5 file

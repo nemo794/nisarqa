@@ -6,6 +6,7 @@ from typing import overload
 from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa
+import h5py
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -120,7 +121,7 @@ def verify_igram(user_rncfg, product_type: str) -> None:
         print("Processing of browse image kml complete.")
         print(f"Browse image kml file saved to {browse_file_kml}")
 
-        with nisarqa.open_h5_file(stats_file, mode="w") as stats_h5, PdfPages(
+        with h5py.File(stats_file, mode="w") as stats_h5, PdfPages(
             report_file
         ) as report_pdf:
             # Save the processing parameters to the stats.h5 file
