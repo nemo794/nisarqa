@@ -67,7 +67,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
         The first element ("A") has 1 null character padding,
         and the second element ("BB") has no null padding.
         In the command line, `h5dump` can be used to check for null padding.
-        In practise, when h5py or NumPy access each element, they
+        In practice, when h5py or NumPy access each element, they
         check its shape and provide a scalar with the null padding removed.
         This means that when accessed, the first element's scalar has
         dtype |S1 instead of |S2 (which is the dtype of the array), and
