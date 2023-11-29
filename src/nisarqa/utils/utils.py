@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-import functools
+from functools import lru_cache
 import h5py
 import numpy as np
 import logging
@@ -300,7 +300,7 @@ def m2km(m):
 
 def byte_string_to_python_str(byte_str: np.bytes_) -> str:
     """Convert Numpy byte string to Python string object."""
-    # Step 1: Use .astype(np.unicode_) to cast from numpy byte string 
+    # Step 1: Use .astype(np.unicode_) to cast from numpy byte string
     # to numpy unicode (UTF-32)
     out = byte_str.astype(np.unicode_)
 
@@ -311,30 +311,51 @@ def byte_string_to_python_str(byte_str: np.bytes_) -> str:
 
 
 def get_logger() -> logging.Logger:
-    """Get the QA logger."""
+    """
+    Get the 'QA' logger.
+
+    Returns
+    -------
+    log : logging.Logger
+        The global 'QA' logger instance.
+
+    See Also
+    --------
+    set_logger_handler : Update the output destination for the log messages.
+    """
     log = logging.getLogger("QA")
+
+    # Ensure the logging handler (formatter) is setup.
+    # (The first time logging.getLogger("QA") is invoked, logging module will
+    # generate the "QA" logger with no handlers.
+    # But, if `set_logger_handler()` was called prior to `get_logger()`, then
+    # that function will have already generated the "QA" logger and
+    # added a handler. We should not override that existing handler.)
     if not log.handlers:
-        raise RuntimeError(
-            "QA logger not yet configured. Must call `set_logger_handler()`"
-            " prior to `get_logger()`."
-        )
+        set_logger_handler()
+
     return log
 
 
-def set_logger_handler(log_file: Optional[str | os.PathLike]) -> logging.Logger:
+def set_logger_handler(log_file: Optional[str | os.PathLike] = None) -> None:
     """
-    Configure the logger with the correct message format and output location.
+    Configure the 'QA' logger with correct message format and output location.
 
     Parameters
     ----------
-    log_file : path-like or None
+    log_file : path-like or None, optional
         If None, log messages will be directed to sys.stderr.
         If path-like, log messages will be directed to the log file. If
         `log_file` is an existing file, it will be overwritten.
+        Defaults to None.
 
     # TODO - Geoff - is it correct behavior to overwrite the existing file?
     # If someone switches back-and-forth between stderr and the file output,
     # they would lose the original logs to the file.
+
+    See Also
+    --------
+    get_logger : Preferred nisarqa API to get the 'QA' logger.
     """
     # Setup the QA logger
     log = logging.getLogger("QA")
@@ -354,7 +375,7 @@ def set_logger_handler(log_file: Optional[str | os.PathLike]) -> logging.Logger:
         handler = logging.FileHandler(filename=log_file, mode="w")
     else:
         raise TypeError(
-            f"`{log_file=} and has type {type(log_file)}, but must be"
+            f"`{log_file=}` and has type {type(log_file)}, but must be"
             " path-like or None."
         )
 
@@ -374,8 +395,6 @@ def set_logger_handler(log_file: Optional[str | os.PathLike]) -> logging.Logger:
 
     # set the new handler
     log.addHandler(handler)
-
-    return log
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
