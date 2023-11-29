@@ -214,13 +214,16 @@ def main():
     # Wrap all processing in a try/catch block to log exceptions.
     try:
         run()
-    except Exception as e:
+    except BaseException as e:
+        # Use BaseException instead of Exception so that "special" exceptions
+        # (e.g. KeyboardInterrupt) to be caught and logged before re-raising
+
         # Note: inside main(), the log output might have
         # been redirected to the log file instead of stderr.
-        log.exception(e, stack_info=True)
+        log.exception(e)
 
         # Do not silently fail! Alert user via the console
-        raise e
+        raise
 
 
 if __name__ == "__main__":
