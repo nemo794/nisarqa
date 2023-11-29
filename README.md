@@ -77,6 +77,15 @@ nisarqa rslc_qa <rslc_runconfig.yaml>
 nisarqa gslc_qa <gslc_runconfig.yaml>
 ```
 
+By default, QA outputs the majority of log messages to the log file only.
+To additionally stream the log messages to the console, use the verbose flag.
+Example:
+```
+nisarqa gslc_qa <gslc_runconfig.yaml> -v
+nisarqa rslc_qa <rslc_runconfig.yaml> --verbose
+```
+
+
 ## Runconfig Template w/ default parameters
 Because the QA code is uniquely written for each product type, each product
 also has a unique runconfig yaml file template and default settings.

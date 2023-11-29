@@ -22,7 +22,7 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_rslc(user_rncfg):
+def verify_rslc(user_rncfg: dict[str, dict], verbose: bool = False) -> None:
     """
     Verify an RSLC product based on the input file, parameters, etc.
     specified in the input runconfig file.
@@ -35,9 +35,13 @@ def verify_rslc(user_rncfg):
 
     Parameters
     ----------
-    user_rncfg : dict
+    user_rncfg : nested dict
         A dictionary whose structure matches this product's QA runconfig
-        YAML file and which contains the parameters needed to run its QA SAS.
+        YAML file and which contains the parameters needed to run its QA SAS.]
+    verbose : bool, optional
+        True to stream log messages to console (stderr) in addition to the
+        log file. False to only stream to the log file. (Initial setup log
+        messages will stream to console regardless.) Defaults to False.
     """
 
     log = nisarqa.get_logger()
@@ -63,7 +67,7 @@ def verify_rslc(user_rncfg):
         f"Parsing of runconfig for QA parameters complete. Complete log"
         f" continues in the output log file."
     )
-    nisarqa.set_logger_handler(log_file=log_file_txt)
+    nisarqa.set_logger_handler(log_file=log_file_txt, verbose=verbose)
 
     # Log the values of the parameters.
     root_params.log_parameters()
@@ -183,7 +187,9 @@ def verify_rslc(user_rncfg):
             log.debug("Processing of backscatter images complete.")
             log.info(f"Browse image PNG file saved to {browse_file_png}")
 
-            log.debug("Beginning processing of backscatter and phase histograms...")
+            log.debug(
+                "Beginning processing of backscatter and phase histograms..."
+            )
             process_backscatter_and_phase_histograms(
                 product=product,
                 params=root_params.histogram,
@@ -192,7 +198,9 @@ def verify_rslc(user_rncfg):
                 plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
             )
-            log.debug("Processing of backscatter and phase histograms complete.")
+            log.debug(
+                "Processing of backscatter and phase histograms complete."
+            )
 
             # Process Interferograms
 
@@ -264,7 +272,10 @@ def verify_rslc(user_rncfg):
             f" {stats_file}"
         )
 
-    msg = "QA SAS complete. For details, warnings, and errors see output log file."
+    msg = (
+        "QA SAS complete. For details, warnings, and errors see output log"
+        " file."
+    )
     print(msg)
     log.info(msg)
 

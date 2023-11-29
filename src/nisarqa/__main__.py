@@ -44,7 +44,6 @@ def parse_cli_args():
 
     # --version
     parser.add_argument(
-        "-v",
         "--version",
         action="version",
         version=nisarqa.__version__,
@@ -91,6 +90,15 @@ def parse_cli_args():
         parser_qa.add_argument(
             f"runconfig_yaml",
             help=f"NISAR {prod.upper()} product runconfig yaml file",
+        )
+
+        # Add an optional flag to stream log messages to console
+        parser_qa.add_argument(
+            "-v",
+            "--verbose",
+            dest="verbose",
+            action="store_true",  # sets default value to False
+            help="Flag to stream log messages to console in addition to log file.",
         )
 
     # parse args
@@ -167,6 +175,7 @@ def run():
 
     subcommand = args.command
 
+    # Warning: Do not emit any log messages before dumpconfig!
     if subcommand == "dumpconfig":
         dumpconfig(product_type=args.product_type, indent=args.indent)
         return
@@ -181,24 +190,24 @@ def run():
     )
 
     if subcommand == "rslc_qa":
-        nisarqa.rslc.verify_rslc(user_rncfg=user_rncfg)
+        nisarqa.rslc.verify_rslc(user_rncfg=user_rncfg, verbose=args.verbose)
     elif subcommand == "gslc_qa":
-        nisarqa.gslc.verify_gslc(user_rncfg=user_rncfg)
+        nisarqa.gslc.verify_gslc(user_rncfg=user_rncfg, verbose=args.verbose)
     elif subcommand == "gcov_qa":
-        nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg)
+        nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg, verbose=args.verbose)
     elif subcommand == "rifg_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="rifg")
+        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="rifg", verbose=args.verbose)
     elif subcommand == "runw_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="runw")
+        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="runw", verbose=args.verbose)
     elif subcommand == "gunw_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="gunw")
+        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="gunw", verbose=args.verbose)
     elif subcommand == "roff_qa":
         nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="roff"
+            user_rncfg=user_rncfg, product_type="roff", verbose=args.verbose
         )
     elif subcommand == "goff_qa":
         nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="goff"
+            user_rncfg=user_rncfg, product_type="goff", verbose=args.verbose
         )
     else:
         raise ValueError(f"Unknown subcommand: {subcommand}")
@@ -213,6 +222,8 @@ def main():
 
     # Wrap all processing in a try/catch block to log exceptions.
     try:
+        # Warning: Do not emit any log messages before calling run().
+        # Otherwise, it will mess up the output from call to dumpconfig().
         run()
     except BaseException as e:
         # Use BaseException instead of Exception so that "special" exceptions

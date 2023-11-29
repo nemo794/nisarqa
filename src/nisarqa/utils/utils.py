@@ -291,7 +291,11 @@ def get_logger() -> logging.Logger:
     return log
 
 
-def set_logger_handler(log_file: Optional[str | os.PathLike] = None, mode: str = "w") -> None:
+def set_logger_handler(
+    log_file: Optional[str | os.PathLike] = None,
+    mode: str = "w",
+    verbose: bool = False,
+) -> None:
     """
     Configure the 'QA' logger with correct message format and output location.
 
@@ -311,37 +315,31 @@ def set_logger_handler(log_file: Optional[str | os.PathLike] = None, mode: str =
         Defaults to "w", which means that if `log_file` is an existing
         file, it will be overwritten.
         Note: `mode` will only be used if `log_file` is path-like.
+    verbose : bool, optional
+        True to stream log messages to console (stderr) in addition to the
+        log file. False to only stream to the log file. (Initial setup log
+        messages will stream to console regardless.) Defaults to False.
+        Note: `verbose` will only be used if `log_file` is path-like.
 
     See Also
     --------
     get_logger : Preferred nisarqa API to get the 'QA' logger.
     """
+    if (not isinstance(log_file, (str, os.PathLike))) and (log_file is not None):
+        raise TypeError(
+            f"`{log_file=}` and has type {type(log_file)}, but must be"
+            " path-like or None."
+        )
+
     # Setup the QA logger
     log = logging.getLogger("QA")
     # remove all existing (old) handlers
     for hdlr in log.handlers:
         log.removeHandler(hdlr)
 
-    # Get the correct handler
-    if log_file is None:
-        # direct log messages to sys.stderr
-        handler = logging.StreamHandler()
-    elif isinstance(log_file, (str, os.PathLike)):
-        # validate/clean the filepath
-        log_file = os.fspath(log_file)
-
-        # direct log messages to the specified file
-        handler = logging.FileHandler(filename=log_file, mode=mode)
-    else:
-        raise TypeError(
-            f"`{log_file=}` and has type {type(log_file)}, but must be"
-            " path-like or None."
-        )
-
     # Set log level to be reported
     log_level = logging.DEBUG
     log.setLevel(log_level)
-    handler.setLevel(log_level)
 
     # Set log message format
     # Format from L0B PGE Design Document, section 9. Kludging error code.
@@ -350,10 +348,24 @@ def set_logger_handler(log_file: Optional[str | os.PathLike] = None, mode: str =
         f'999998, %(pathname)s:%(lineno)d, "%(message)s"'
     )
     fmt = logging.Formatter(msgfmt, "%Y-%m-%d %H:%M:%S")
-    handler.setFormatter(fmt)
 
-    # set the new handler
-    log.addHandler(handler)
+    # Use the requested handler(s)
+    if (log_file is None) or verbose:
+        # direct log messages to sys.stderr
+        handler = logging.StreamHandler()
+        handler.setLevel(log_level)
+        handler.setFormatter(fmt)
+        log.addHandler(handler)
+
+    if isinstance(log_file, (str, os.PathLike)):
+        # validate/clean the filepath
+        log_file = os.fspath(log_file)
+
+        # direct log messages to the specified file
+        handler = logging.FileHandler(filename=log_file, mode=mode)
+        handler.setLevel(log_level)
+        handler.setFormatter(fmt)
+        log.addHandler(handler)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
