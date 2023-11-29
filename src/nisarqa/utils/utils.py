@@ -367,7 +367,7 @@ def set_logger_handler(log_file: Optional[str | os.PathLike]) -> logging.Logger:
     # Format from L0B PGE Design Document, section 9. Kludging error code.
     msgfmt = (
         f"%(asctime)s.%(msecs)03d, %(levelname)s, QA, "
-        f'999999, %(pathname)s:%(lineno)d, "%(message)s"'
+        f'999998, %(pathname)s:%(lineno)d, "%(message)s"'
     )
     fmt = logging.Formatter(msgfmt, "%Y-%m-%d %H:%M:%S")
     handler.setFormatter(fmt)
