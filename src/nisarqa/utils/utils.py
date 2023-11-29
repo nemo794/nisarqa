@@ -317,7 +317,7 @@ def get_logger() -> logging.Logger:
     Returns
     -------
     log : logging.Logger
-        The global 'QA' logger instance.
+        The global 'QA' logger.
 
     See Also
     --------
@@ -337,7 +337,7 @@ def get_logger() -> logging.Logger:
     return log
 
 
-def set_logger_handler(log_file: Optional[str | os.PathLike] = None) -> None:
+def set_logger_handler(log_file: Optional[str | os.PathLike] = None, mode: str = "w") -> None:
     """
     Configure the 'QA' logger with correct message format and output location.
 
@@ -345,13 +345,18 @@ def set_logger_handler(log_file: Optional[str | os.PathLike] = None) -> None:
     ----------
     log_file : path-like or None, optional
         If None, log messages will be directed to sys.stderr.
-        If path-like, log messages will be directed to the log file. If
-        `log_file` is an existing file, it will be overwritten.
+        If path-like, log messages will be directed to the log file.
         Defaults to None.
-
-    # TODO - Geoff - is it correct behavior to overwrite the existing file?
-    # If someone switches back-and-forth between stderr and the file output,
-    # they would lose the original logs to the file.
+    mode : str, optional
+        The mode to setup the log file. Options:
+            "r"         - Readonly, file must exist (default)
+            "r+"        - Read/write, file must exist
+            "w"         - Create file, truncate if exists
+            "w-" or "x" - Create file, fail if exists
+            "a"         - Read/write if exists, create otherwise
+        Defaults to "w", which means that if `log_file` is an existing
+        file, it will be overwritten.
+        Note: `mode` will only be used if `log_file` is path-like.
 
     See Also
     --------
@@ -372,7 +377,7 @@ def set_logger_handler(log_file: Optional[str | os.PathLike] = None) -> None:
         log_file = os.fspath(log_file)
 
         # direct log messages to the specified file
-        handler = logging.FileHandler(filename=log_file, mode="w")
+        handler = logging.FileHandler(filename=log_file, mode=mode)
     else:
         raise TypeError(
             f"`{log_file=}` and has type {type(log_file)}, but must be"
