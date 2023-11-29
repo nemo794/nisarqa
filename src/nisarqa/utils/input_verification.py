@@ -11,7 +11,7 @@ objects_to_skip = nisarqa.get_all(__name__)
 
 def verify_isce3_boolean(ds: h5py.Dataset) -> None:
     """
-    Verify if a boolean value uses the correct ISCE3 convetion.
+    Verify if a boolean value uses the correct ISCE3 convention.
 
     By convention, ISCE3 uses 'True' or 'False' fixed-length byte strings
     to represent boolean values.
@@ -62,17 +62,21 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
         NumPy array of fixed-length byte strings with no null terminator
         characters on the longest string, and null character padding
         on the shorter strings.
-        Ex: The array numpy.bytes_(["A", "BB"]) should have dtype |S2.
-        The first element ("A") should have dtype |S1 with 1 null character
-        padding, and the second element ("BB") should have dtype |S2
-        with no null character padding. Observe that the dtype for the overall
-        array is the same as the dtype for the longest string element.
+
+        Ex: The array numpy.bytes_(["A", "BB"]) has dtype |S2.
+        The first element ("A") has 1 null character padding,
+        and the second element ("BB") has no null padding.
         In the command line, `h5dump` can be used to check for null padding.
+        In practise, when h5py or NumPy access each element, they
+        check its shape and provide a scalar with the null padding removed.
+        This means that when accessed, the first element's scalar has
+        dtype |S1 instead of |S2 (which is the dtype of the array), and
+        the second element's scalar has dtype |S2.
     """
     # Check if the dtype is byte string.
     if not np.issubdtype(ds.dtype, np.bytes_):
         errmsg = (
-            f"`{ds.name}` has dtype `{ds.dtype}`, but must be a"
+            f"Dataset `{ds.name}` has dtype `{ds.dtype}`, but must be a"
             " sub-dtype of `numpy.bytes_` (i.e. a byte string)."
         )
         warnings.warn(errmsg)
@@ -89,7 +93,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
     else:
         # multi-dimensional arrays of strings not currently supported.
         errmsg = (
-            f"Shape of dataset `{ds.name}` is {ds.shape}, but ISCE3 does not"
+            f"Shape of Dataset `{ds.name}` is {ds.shape}, but ISCE3 does not"
             " generate arrays of strings with more than one dimension."
         )
         warnings.warn(errmsg)
@@ -140,36 +144,49 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
     actual_strlen = int(str(ds[()].dtype).split("S")[-1])
 
     if official_strlen > actual_strlen:
+        # HDF5 truncates byte strings that are longer than the dtype, so it is
+        # not possible for `official_strlen` to be < `actual_strlen`.
         errmsg = (
-            f"Dataset contains trailing null characters. `{ds.name}` has"
-            f" dtype `{ds.dtype}`, but should have dtype"
-            f" `|S{actual_strlen}`."
+            f"Dataset `{ds.name}` contains trailing null characters. It has"
+            f" dtype `{ds.dtype}`, but should have dtype `{ds[()].dtype}`."
         )
         warnings.warn(errmsg)
 
-    # HDF5 truncates byte strings that are longer than the dtype, so it is
-    # not possible for `official_strlen` to be <= `actual_strlen`.
-
 
 def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
-    max_strlen = 0
+    """
+    Verify if a Dataset is properly formatted as a 1D array of byte strings.
+
+    Parameters
+    ----------
+    ds : h5py.Dataset
+        Dataset to be verified. This should represent a 1D array of byte
+        strings.
+    """
+    # Verify input is a 1D array. (This function only supports 1D arrays.)
+    if len(ds.shape) != 1:
+        errmsg = f"Dataset `{ds.name}` has {ds.shape}, but must be a 1D array."
+        raise ValueError(errmsg)
+
+    # Check that the array only contains byte strings.
     arr = ds[()]
     for idx in range(ds.shape[0]):
         my_string = arr[idx]
         if not my_string:
             # empty string
             errmsg = (
-                f"Dataset `{ds.name}` is an array of strings, and one"
-                " string is empty."
+                f"Dataset `{ds.name}` is a 1D array of strings, but string at"
+                f" index {idx} is an empty string."
             )
             warnings.warn(errmsg)
 
         verify_byte_string(my_string)
-        max_strlen = max(max_strlen, len(my_string))
 
     # Check that the reported maximum string length is actually the length
     # of the longest string in the array.
     official_strlen = int(str(ds.dtype).split("S")[-1])
+    # `ds` is a 1D array, so no need to flatten it for iterating
+    max_strlen = max(len(s) for s in ds[()])
     if official_strlen != max_strlen:
         errmsg = (
             f"Dataset `{ds.name}` has dtype `{ds.dtype}`, but the"

@@ -489,7 +489,17 @@ class NisarProduct(ABC):
 
         with nisarqa.open_h5_file(self.filepath) as f:
             if "isGeocoded" in f[id_group]:
-                nisarqa.verify_isce3_boolean(f[id_group]["isGeocoded"])
+                # Check that `isGeocoded` is set correctly, i.e. that it is
+                # False in range Doppler products, and True in Geocoded products
+                ds_handle = f[id_group]["isGeocoded"]
+                if self.is_geocoded is not bool(ds_handle[...]):
+                    warnings.warn(
+                        "WARNING `/identification/isGeocoded` field has value"
+                        f" {ds_handle[...]}, which is inconsistent with"
+                        f" product type of {self.product_type}."
+                    )
+                # Check that the value has the correct dtype and formatting
+                nisarqa.verify_isce3_boolean(ds_handle)
             else:
                 # The `isGeocoded` field is not necessary for successful
                 # completion QA SAS: whether a product is geocoded
