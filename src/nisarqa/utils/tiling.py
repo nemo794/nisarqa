@@ -564,7 +564,15 @@ def compute_range_spectra_by_tiling(
     S_out = S_avg / sampling_rate
 
     # Convert to dB
-    S_out = nisarqa.pow2db(S_out)
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            action="ignore",
+            category=RuntimeWarning,
+        )
+        # This line throws these warnings:
+        #   "RuntimeWarning: divide by zero encountered in log10"
+        # when there are zero values. Ignore those warnings.
+        S_out = nisarqa.pow2db(S_out)
 
     if fft_shift:
         # Shift S_out to be aligned with the

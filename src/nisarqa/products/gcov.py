@@ -112,7 +112,8 @@ def verify_gcov(
         # These reports will be saved to the SUMMARY.csv file.
         # For now, output the stub file
         nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
-        log.info(f"PASS/FAIL checks saved to {summary_file}")
+        msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
+        log.info(msg)
         msg = "Input file validation complete."
         print(msg)
         log.info(msg)
@@ -151,7 +152,7 @@ def verify_gcov(
                 output_dir=out_dir, stub_files="summary_csv"
             )
             log.info(f"PASS/FAIL checks saved to {summary_file}")
-            msg = "Input file validation complete."
+            msg = "PASS/FAIL checks complete."
             print(msg)
             log.info(msg)
 

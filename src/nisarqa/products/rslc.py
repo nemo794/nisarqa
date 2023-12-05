@@ -124,7 +124,8 @@ def verify_rslc(
             output_dir=out_dir,
             stub_files="summary_csv",
         )
-        log.info(f"PASS/FAIL checks saved to {summary_file}")
+        msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
+        log.info(msg)
         msg = "Input file validation complete."
         print(msg)
         log.info(msg)
@@ -628,7 +629,15 @@ def apply_image_correction(img_arr, params):
 
     # Step 2: Convert from linear units to dB
     if not params.linear_units:
-        img_arr = nisarqa.pow2db(img_arr)
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                action="ignore",
+                category=RuntimeWarning,
+            )
+            # This line throws these warnings:
+            #   "RuntimeWarning: divide by zero encountered in log10"
+            # when there are zero values. Ignore those warnings.
+            img_arr = nisarqa.pow2db(img_arr)
 
     # Get the vmin and vmax prior to applying gamma correction.
     # These can later be used for setting the colorbar's
@@ -706,7 +715,22 @@ def apply_gamma_correction(img_arr, gamma):
     invert_gamma_correction : inverts this function
     """
     # Normalize to range [0,1]
-    out_img = nisarqa.normalize(img_arr)
+    if np.all(img_arr):
+        # There are no zeros in the array, so let keep all warnings.
+        out_img = nisarqa.normalize(img_arr)
+    else:
+        # There is at least one zero in the image array, which will cause an
+        # expected Runtime error. Ok to suppress.
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                action="ignore",
+                category=RuntimeWarning,
+            )
+            # This line throws these warnings:
+            #   "RuntimeWarning: divide by zero encountered in divide"
+            #   "RuntimeWarning: invalid value encountered in divide"
+            # when there are zero values. Ignore those warnings.
+            out_img = nisarqa.normalize(img_arr)
 
     # Apply gamma correction
     out_img = np.power(out_img, gamma)
@@ -889,7 +913,7 @@ def prep_arr_for_png_with_transparency(img_arr):
     # Reserve the value 0 for use as the transparency value.
     #   out = (<normalized array> * (target_max - target_min)) + target_min
     with warnings.catch_warnings():
-        warnings.filterwarnings(
+        warnings.simplefilter(
             action="ignore",
             category=RuntimeWarning,
         )
@@ -1241,7 +1265,17 @@ def generate_backscatter_image_histogram_single_freq(
             else nisarqa.arr2pow(arr)
         )
 
-        return nisarqa.pow2db(power)
+        with warnings.catch_warnings():
+            warnings.simplefilter(
+                action="ignore",
+                category=RuntimeWarning,
+            )
+            # This line throws these warnings:
+            #   "RuntimeWarning: divide by zero encountered in log10"
+            # when there are zero values. Ignore those warnings.
+            power = nisarqa.pow2db(power)
+
+        return power
 
     for pol_name in product.get_pols(freq=freq):
         with product.get_raster(freq=freq, pol=pol_name) as pol_data:
