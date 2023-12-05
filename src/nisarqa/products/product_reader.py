@@ -478,7 +478,9 @@ class NisarProduct(ABC):
 
         with h5py.File(self.filepath) as f:
             in_file_prod_type = f[id_group]["productType"][...]
-            in_file_prod_type = nisarqa.byte_string_to_python_str(in_file_prod_type)
+            in_file_prod_type = nisarqa.byte_string_to_python_str(
+                in_file_prod_type
+            )
 
         if self.product_type != in_file_prod_type:
             raise ValueError(
@@ -1679,7 +1681,6 @@ class RSLC(SLC, NisarRadarProduct):
     def _get_dataset_handle(
         self, h5_file: h5py.File, raster_path: str
     ) -> h5py.Dataset:
-        
         log = nisarqa.get_logger()
 
         # RSLC Product Spec says that NISAR RSLC rasters should be complex32,
@@ -1703,7 +1704,7 @@ class RSLC(SLC, NisarRadarProduct):
             f"({pass_fail}) PASS/FAIL Check: Product raster dtype conforms"
             f" to RSLC Product Spec dtype of complex32. Dataset: {raster_path}"
         )
-            
+
         return dataset
 
     def get_scene_center_along_track_spacing(self, freq: str) -> float:
@@ -1885,18 +1886,21 @@ class GCOV(NonInsarGeoProduct):
         dataset = h5_file[raster_path]
 
         # Check the dataset dtype
+        log = nisarqa.get_logger()
         pol = raster_path.split("/")[-1]
         if pol[0:2] == pol[2:4]:
             # on-diagonal term dataset. These are float32 as of May 2023.
             spec_dtype = np.float32
+            logger = log.info
         else:
             # off-diagonal term dataset. These are complex64 as of May 2023.
             spec_dtype = np.complex64
+            logger = log.warning
 
         raster_dtype = dataset.dtype
         pass_fail = "PASS" if (raster_dtype == spec_dtype) else "FAIL"
 
-        print(
+        logger(
             f"({pass_fail}) PASS/FAIL Check: Product raster {raster_dtype}"
             f" conforms to GCOV Product Spec dtype of {spec_dtype}."
         )

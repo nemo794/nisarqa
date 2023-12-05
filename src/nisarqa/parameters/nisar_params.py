@@ -552,7 +552,8 @@ class ProductPathGroupParamGroup(YamlParamGroup):
 
         # If this directory does not exist, make it.
         if not os.path.isdir(self.qa_output_dir):
-            print(f"Creating QA output directory: {self.qa_output_dir}")
+            log = nisarqa.get_logger()
+            log.info(f"Creating QA output directory: {self.qa_output_dir}")
             os.makedirs(self.qa_output_dir, exist_ok=True)
 
     @staticmethod

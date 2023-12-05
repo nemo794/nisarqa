@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
+import warnings
 from collections.abc import Sequence
 from typing import Optional
 
@@ -106,7 +107,6 @@ def verify_rslc(
     # Run validate first because it checks the product spec
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
-        print(msg)
         log.info(msg)
 
         # TODO Validate file structure
@@ -124,10 +124,10 @@ def verify_rslc(
             output_dir=out_dir,
             stub_files="summary_csv",
         )
-        log.info(
-            "Input file validation complete. PASS/FAIL checks saved to"
-            f" {summary_file}"
-        )
+        log.info(f"PASS/FAIL checks saved to {summary_file}")
+        msg = "Input file validation complete."
+        print(msg)
+        log.info(msg)
 
     # If running these workflows, save the processing parameters and
     # identification group to STATS.h5
@@ -157,9 +157,7 @@ def verify_rslc(
             log.info(f"Input file Identification group copied to {stats_file}")
 
     if root_params.workflows.qa_reports:
-        msg = f"Beginning `qa_reports` processing..."
-        print(msg)
-        log.info(msg)
+        log.info(f"Beginning `qa_reports` processing...")
 
         # TODO qa_reports will add to the SUMMARY.csv file.
         # For now, make sure that the stub file is output
@@ -169,14 +167,14 @@ def verify_rslc(
                 stub_files="summary_csv",
             )
 
-        log.debug(f"Beginning processing of browse KML...")
+        log.info(f"Beginning processing of browse KML...")
         nisarqa.write_latlonquad_to_kml(
             llq=product.get_browse_latlonquad(),
             output_dir=out_dir,
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),
         )
-        log.debug(f"Browse image kml file saved to {browse_file_kml}")
+        log.info(f"Browse image kml file saved to {browse_file_kml}")
 
         with h5py.File(stats_file, mode="r+") as stats_h5, PdfPages(
             report_file
@@ -191,7 +189,7 @@ def verify_rslc(
                 r"RSLC Backscatter Coefficient ($\beta^0$)"
             )
 
-            log.debug("Beginning processing of backscatter images...")
+            log.info("Beginning processing of backscatter images...")
             process_backscatter_imgs_and_browse(
                 product=product,
                 params=root_params.backscatter_img,
@@ -201,10 +199,10 @@ def verify_rslc(
                 input_raster_represents_power=input_raster_represents_power,
                 browse_filename=browse_file_png,
             )
-            log.debug("Processing of backscatter images complete.")
+            log.info("Processing of backscatter images complete.")
             log.info(f"Browse image PNG file saved to {browse_file_png}")
 
-            log.debug(
+            log.info(
                 "Beginning processing of backscatter and phase histograms..."
             )
             process_backscatter_and_phase_histograms(
@@ -215,20 +213,18 @@ def verify_rslc(
                 plot_title_prefix=name_of_backscatter_content,
                 input_raster_represents_power=input_raster_represents_power,
             )
-            log.debug(
-                "Processing of backscatter and phase histograms complete."
-            )
+            log.info("Processing of backscatter and phase histograms complete.")
 
             # Process Interferograms
 
-            log.debug("Beginning processing of range power spectra...")
+            log.info("Beginning processing of range power spectra...")
             process_range_spectra(
                 product=product,
                 params=root_params.range_spectra,
                 stats_h5=stats_h5,
                 report_pdf=report_pdf,
             )
-            log.debug("Processing of range power spectra complete.")
+            log.info("Processing of range power spectra complete.")
 
             # Check for invalid values
 
@@ -237,12 +233,12 @@ def verify_rslc(
             log.info(f"PDF reports saved to {report_file}")
             log.info(f"HDF5 statistics saved to {stats_file}")
             log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
-            log.info("`qa_reports` processing complete.")
+            msg = "`qa_reports` processing complete."
+            print(msg)
+            log.info(msg)
 
     if root_params.workflows.abs_cal:
-        msg = "Beginning Absolute Radiometric Calibration CalTool..."
-        print(msg)
-        log.info(msg)
+        log.info("Beginning Absolute Radiometric Calibration CalTool...")
 
         # Run Absolute Radiometric Calibration tool
         nisarqa.caltools.run_abscal_tool(
@@ -251,15 +247,12 @@ def verify_rslc(
             input_filename=input_file,
             stats_filename=stats_file,
         )
-        log.info(
-            "Absolute Radiometric Calibration CalTool complete. Results saved"
-            f" to {stats_file}"
-        )
-
-    if root_params.workflows.noise_estimation:
-        msg = "Beginning Noise Estimation Tool CalTool..."
+        msg = "Absolute Radiometric Calibration CalTool complete."
         print(msg)
         log.info(msg)
+
+    if root_params.workflows.noise_estimation:
+        log.info("Beginning Noise Estimation Tool CalTool...")
 
         # Run NET tool
         nisarqa.caltools.run_noise_estimation_tool(
@@ -267,15 +260,12 @@ def verify_rslc(
             input_filename=input_file,
             stats_filename=stats_file,
         )
-        log.info(
-            "Noise Estimation Tool CalTool complete. Results saved to"
-            f" {stats_file}"
-        )
-
-    if root_params.workflows.point_target:
-        msg = "Beginning Point Target Analyzer CalTool..."
+        msg = "Noise Estimation Tool CalTool complete."
         print(msg)
         log.info(msg)
+
+    if root_params.workflows.point_target:
+        log.info("Beginning Point Target Analyzer CalTool...")
 
         # Run Point Target Analyzer tool
         nisarqa.caltools.run_pta_tool(
@@ -284,10 +274,9 @@ def verify_rslc(
             input_filename=input_file,
             stats_filename=stats_file,
         )
-        log.info(
-            "Point Target Analyzer CalTool complete. Results saved to"
-            f" {stats_file}"
-        )
+        msg = "Point Target Analyzer CalTool complete."
+        print(msg)
+        log.info(msg)
 
     msg = (
         "QA SAS complete. For details, warnings, and errors see output log"
@@ -899,7 +888,14 @@ def prep_arr_for_png_with_transparency(img_arr):
     # After normalization to range [0,1], scale to 1-255 for unsigned int8
     # Reserve the value 0 for use as the transparency value.
     #   out = (<normalized array> * (target_max - target_min)) + target_min
-    out = (np.uint8(out * (255 - 1))) + 1
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            action="ignore",
+            category=RuntimeWarning,
+        )
+        # This line throws a "RuntimeWarning: invalid value encountered in cast"
+        # when there are NaN values. Ignore those warnings.
+        out = (np.uint8(out * (255 - 1))) + 1
 
     # Set transparency value so that the "alpha" is added to the image
     transparency_value = 0
