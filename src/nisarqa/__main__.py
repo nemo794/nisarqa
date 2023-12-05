@@ -46,7 +46,6 @@ def parse_cli_args():
 
     # --version
     parser.add_argument(
-        "-v",
         "--version",
         action="version",
         version=nisarqa.__version__,
@@ -95,38 +94,17 @@ def parse_cli_args():
             help=f"NISAR {prod.upper()} product runconfig yaml file",
         )
 
-        console_log_level = parser_qa.add_mutually_exclusive_group(
-            required=False
-        )
-        log_msg = (
-            "Set minimum level of log messages to stream to console to %s."
-            " Default: QUIET."
-        )
-        console_log_level.add_argument(
-            "-q",
-            "--quiet",
-            dest="console_verbosity",
-            action="store_const",
-            const="quiet",
+        # Add an optional flag to stream log messages to console
+        parser_qa.add_argument(
+            "-v",
+            "--verbose",
+            dest="verbose",
+            action="store_true",  # sets default value to False
             help=(
-                f"{log_msg % 'QUIET'}. In quiet mode, only setup log messages"
-                " and workflow completion messages will be streamed to"
-                " console."
+                "Flag to stream log messages to console in addition to log"
+                " file."
             ),
         )
-        levels = ("critical", "error", "warning", "info", "debug")
-        for i, level_name in enumerate(levels):
-            console_log_level.add_argument(
-                f"--{'v' * (i+1)}",
-                f"--{level_name}",
-                dest="console_verbosity",
-                action="store_const",
-                const=level_name,
-                help=log_msg % level_name.upper(),
-            )
-
-        # Set the default console log level to quiet
-        parser_qa.set_defaults(console_verbosity="quiet")
 
     # parse args
     args = parser.parse_args()
@@ -219,46 +197,40 @@ def run(args):
     )
 
     if subcommand == "rslc_qa":
-        nisarqa.rslc.verify_rslc(
-            user_rncfg=user_rncfg, console_verbosity=args.console_verbosity
-        )
+        nisarqa.rslc.verify_rslc(user_rncfg=user_rncfg, verbose=args.verbose)
     elif subcommand == "gslc_qa":
-        nisarqa.gslc.verify_gslc(
-            user_rncfg=user_rncfg, console_verbosity=args.console_verbosity
-        )
+        nisarqa.gslc.verify_gslc(user_rncfg=user_rncfg, verbose=args.verbose)
     elif subcommand == "gcov_qa":
-        nisarqa.gcov.verify_gcov(
-            user_rncfg=user_rncfg, console_verbosity=args.console_verbosity
-        )
+        nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg, verbose=args.verbose)
     elif subcommand == "rifg_qa":
         nisarqa.igram.verify_igram(
             user_rncfg=user_rncfg,
             product_type="rifg",
-            console_verbosity=args.console_verbosity,
+            verbose=args.verbose,
         )
     elif subcommand == "runw_qa":
         nisarqa.igram.verify_igram(
             user_rncfg=user_rncfg,
             product_type="runw",
-            console_verbosity=args.console_verbosity,
+            verbose=args.verbose,
         )
     elif subcommand == "gunw_qa":
         nisarqa.igram.verify_igram(
             user_rncfg=user_rncfg,
             product_type="gunw",
-            console_verbosity=args.console_verbosity,
+            verbose=args.verbose,
         )
     elif subcommand == "roff_qa":
         nisarqa.offsets.verify_offset(
             user_rncfg=user_rncfg,
             product_type="roff",
-            console_verbosity=args.console_verbosity,
+            verbose=args.verbose,
         )
     elif subcommand == "goff_qa":
         nisarqa.offsets.verify_offset(
             user_rncfg=user_rncfg,
             product_type="goff",
-            console_verbosity=args.console_verbosity,
+            verbose=args.verbose,
         )
     else:
         raise ValueError(f"Unknown subcommand: {subcommand}")
@@ -267,7 +239,7 @@ def run(args):
 def main():
     # Setup QA logger (output to stderr until we've read the output directory
     # from the runconfig and can know the full filepath for the log file.)
-    nisarqa.set_logger_handler(log_file=None, console_verbosity="debug")
+    nisarqa.set_logger_handler(log_file=None)
 
     log = nisarqa.get_logger()
 
