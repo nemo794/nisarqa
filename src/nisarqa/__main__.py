@@ -95,25 +95,6 @@ def parse_cli_args():
             help=f"NISAR {prod.upper()} product runconfig yaml file",
         )
 
-        # # Add optional log levels to stream log messages to console
-        # parser_qa.add_argument(
-        #     # "-v",
-        #     "-l",
-        #     "--log",
-        #     "--log-level",
-        #     "--console-log-level",
-        #     "--verbose",
-        #     "--verbosity",
-        #     dest="log_level",
-        #     type=str,
-        #     choices=("quiet", "critical", "error", "warning", "info", "debug"),
-        #     default="quiet",
-        #     help=(
-        #         "Minimum level of log messages to display to console. Options:"
-        #         " ('quiet', 'critical', 'error', 'warning', 'info', 'debug')"
-        #     ),
-        # )
-
         console_log_level = parser_qa.add_mutually_exclusive_group(
             required=False
         )
@@ -124,10 +105,9 @@ def parse_cli_args():
         console_log_level.add_argument(
             "-q",
             "--quiet",
-            dest="quiet",
+            dest="console_verbosity",
             action="store_const",
             const="quiet",
-            # default="quiet",
             help=(
                 f"{log_msg % 'QUIET'}. In quiet mode, only setup log messages"
                 " and workflow completion messages will be streamed to"
