@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-import numpy as np
 import logging
 import os
+import warnings
 from typing import Optional
+
+import numpy as np
 
 import nisarqa
 
@@ -292,18 +294,39 @@ def get_logger() -> logging.Logger:
 
 
 def set_logger_handler(
+    console_verbosity: str = "debug",
     log_file: Optional[str | os.PathLike] = None,
     mode: str = "w",
-    verbose: bool = False,
 ) -> None:
     """
     Configure the 'QA' logger with correct message format and output location.
 
+    If a path for a log file is provided, log messages of all verbosity levels
+    will be logged in the log file; this is not configurable. This is in
+    addition to the log messages streamed to console (stderr).
+    Use
+
     Parameters
     ----------
+    console_verbosity : str, optional
+        Minimum level of log messages to stream to console (stderr). Options:
+            "quiet"    : Only log messages prior to log file setup, etc.
+            "critical" : A serious error, indicating that the program itself
+                         may be unable to continue running.
+            "error"    : Due to a more serious problem, the software has not
+                         been able to perform some function.
+            "warning"  : An indication that something unexpected
+                         happened, or that a problem might occur in the near
+                         future (e.g. ‘disk space low’). The software is still
+                         working as expected.
+            "info"     : Confirmation that things are working as expected.
+            "debug"    : (Default) Detailed information, typically only of
+                         interest to a developer trying to diagnose a problem.
     log_file : path-like or None, optional
-        If None, log messages will be directed to sys.stderr.
-        If path-like, log messages will be directed to the log file.
+        If path-like, log messages will be directed to this log file; use
+        `mode` to control how the log file is opened.
+        If None, log messages will only be directed to sys.stderr; use `verbose`
+        to set the level of verbosity for these log messages.
         Defaults to None.
     mode : str, optional
         The mode to setup the log file. Options:
@@ -315,21 +338,22 @@ def set_logger_handler(
         Defaults to "w", which means that if `log_file` is an existing
         file, it will be overwritten.
         Note: `mode` will only be used if `log_file` is path-like.
-    verbose : bool, optional
-        True to stream log messages to console (stderr) in addition to the
-        log file. False to only stream to the log file. (Initial setup log
-        messages will stream to console regardless.) Defaults to False.
-        Note: `verbose` will only be used if `log_file` is path-like.
 
     See Also
     --------
     get_logger : Preferred nisarqa API to get the 'QA' logger.
     """
-    if (not isinstance(log_file, (str, os.PathLike))) and (log_file is not None):
+    if (not isinstance(log_file, (str, os.PathLike))) and (
+        log_file is not None
+    ):
         raise TypeError(
             f"`{log_file=}` and has type {type(log_file)}, but must be"
             " path-like or None."
         )
+
+    log_levels = ("quiet", "critical", "error", "warning", "info", "debug")
+    if console_verbosity not in log_levels:
+        raise ValueError(f"`{console_verbosity=}, must be one of {log_levels}")
 
     # Setup the QA logger
     log = logging.getLogger("QA")
@@ -337,12 +361,16 @@ def set_logger_handler(
     for hdlr in log.handlers:
         log.removeHandler(hdlr)
 
-    # Set log level to be reported
-    log_level = logging.DEBUG
-    log.setLevel(log_level)
+    # Set minimum log level for the root logger; this sets the minimum
+    # possible log level for all handlers. Later, fine-tune the minimum
+    # log level for individual handlers.
+    # By default, Python sets this to WARNING. But since we also want DEBUG
+    # messages saved to the e.g. log file, then we need to set this to DEBUG.
+    log.setLevel(logging.DEBUG)
 
     # Set log message format
     # Format from L0B PGE Design Document, section 9. Kludging error code.
+    # Nov 2023: Use "999998", so that QA is distinct from RSLC (999999).
     msgfmt = (
         f"%(asctime)s.%(msecs)03d, %(levelname)s, QA, "
         f'999998, %(pathname)s:%(lineno)d, "%(message)s"'
@@ -350,10 +378,18 @@ def set_logger_handler(
     fmt = logging.Formatter(msgfmt, "%Y-%m-%d %H:%M:%S")
 
     # Use the requested handler(s)
-    if (log_file is None) or verbose:
+    if console_verbosity != "quiet":
         # direct log messages to sys.stderr
         handler = logging.StreamHandler()
-        handler.setLevel(log_level)
+
+        log_level = {
+            "critical": logging.CRITICAL,
+            "error": logging.ERROR,
+            "warning": logging.WARNING,
+            "info": logging.INFO,
+            "debug": logging.DEBUG,
+        }
+        handler.setLevel(log_level[console_verbosity])
         handler.setFormatter(fmt)
         log.addHandler(handler)
 
@@ -363,9 +399,17 @@ def set_logger_handler(
 
         # direct log messages to the specified file
         handler = logging.FileHandler(filename=log_file, mode=mode)
-        handler.setLevel(log_level)
+        handler.setLevel(logging.DEBUG)
         handler.setFormatter(fmt)
         log.addHandler(handler)
+
+    if (console_verbosity == "quiet") and (not log_file):
+        log.setLevel(logging.NOTSET)
+        warnings.warn(
+            "`console_verbosity` set to 'quiet' and a log file was not"
+            " provided. QA root logger will default to `NOTSET`."
+            " Please check that this is intended."
+        )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

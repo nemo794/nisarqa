@@ -1701,9 +1701,9 @@ class RSLC(SLC, NisarRadarProduct):
 
         logger(
             f"({pass_fail}) PASS/FAIL Check: Product raster dtype conforms"
-            " to RSLC Product Spec dtype of complex32."
+            f" to RSLC Product Spec dtype of complex32. Dataset: {raster_path}"
         )
-
+            
         return dataset
 
     def get_scene_center_along_track_spacing(self, freq: str) -> float:

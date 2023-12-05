@@ -22,7 +22,9 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_rslc(user_rncfg: dict[str, dict], verbose: bool = False) -> None:
+def verify_rslc(
+    user_rncfg: dict[str, dict], console_verbosity: str = "quiet"
+) -> None:
     """
     Verify an RSLC product based on the input file, parameters, etc.
     specified in the input runconfig file.
@@ -38,12 +40,25 @@ def verify_rslc(user_rncfg: dict[str, dict], verbose: bool = False) -> None:
     user_rncfg : nested dict
         A dictionary whose structure matches this product's QA runconfig
         YAML file and which contains the parameters needed to run its QA SAS.]
-    verbose : bool, optional
-        True to stream log messages to console (stderr) in addition to the
-        log file. False to only stream to the log file. (Initial setup log
-        messages will stream to console regardless.) Defaults to False.
+    console_verbosity : int, optional
+        Minimum level of log messages to stream to console (stderr). Options:
+            "quiet"    : (default) Almost none. (log messages prior to log
+                         file setup, etc.)
+            "critical" : A serious error, indicating that the program itself
+                         may be unable to continue running.
+            "error"    : Due to a more serious problem, the software has not
+                         been able to perform some function.
+            "warning"  : An indication that something unexpected happened, or
+                         that a problem might occur in the near future
+                         (e.g. ‘disk space low’). The software is still working
+                         as expected.
+            "info"     : Confirmation that things are working as expected.
+            "debug"    : Detailed information, typically only of interest to a
+                         developer trying to diagnose a problem.
+        Note: after the log file is setup, all levels of log messages will
+        always be output to the log file. `verbosity` is a mechanism for users
+        to additionally see log messages stream to console in real time.
     """
-
     log = nisarqa.get_logger()
     log.info("Begin parsing of runconfig for user-provided QA parameters.")
 
@@ -67,7 +82,9 @@ def verify_rslc(user_rncfg: dict[str, dict], verbose: bool = False) -> None:
         f"Parsing of runconfig for QA parameters complete. Complete log"
         f" continues in the output log file."
     )
-    nisarqa.set_logger_handler(log_file=log_file_txt, verbose=verbose)
+    nisarqa.set_logger_handler(
+        log_file=log_file_txt, console_verbosity=console_verbosity
+    )
 
     # Log the values of the parameters.
     root_params.log_parameters()
@@ -564,7 +581,7 @@ def get_multilooked_backscatter_img(
             ),
         )
 
-    log.debug(f"\nMultilooking Image {img.name} with shape: {img.data.shape}")
+    log.debug(f"Multilooking Image {img.name} with shape: {img.data.shape}")
     log.debug(f"Y direction (azimuth) ground spacing: {img.y_axis_spacing}")
     log.debug(f"X direction (range) ground spacing: {img.x_axis_spacing}")
     log.debug(f"Beginning Multilooking with nlooks window shape: {nlooks}")
