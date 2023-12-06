@@ -238,10 +238,6 @@ def run():
 
 
 def main():
-    # Setup QA logger (output to stderr until we've read the output directory
-    # from the runconfig and can know the full filepath for the log file.)
-    nisarqa.set_logger_handler(log_file=None)
-
     log = nisarqa.get_logger()
 
     # Wrap all processing in a try/catch block to log exceptions.
