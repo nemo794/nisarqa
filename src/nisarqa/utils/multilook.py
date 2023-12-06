@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 from numpy.typing import ArrayLike
+
 import nisarqa
 
 objects_to_skip = nisarqa.get_all(__name__)
@@ -113,7 +114,7 @@ def validate_nlooks(nlooks: int | list[int], arr: ArrayLike) -> None:
     for m, n in zip(arr.shape, nlooks):
         if m % n != 0:
             # TODO - Geoff - correct to remove runtime warnings, and turn them into log-only warnings?
-            log.warn(
+            log.warning(
                 "input array shape is not an integer multiple of nlooks --"
                 " remainder samples will be excluded from output"
             )

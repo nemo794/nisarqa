@@ -33,7 +33,7 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> None:
             f" {ds[()]}. By ISCE3 convention it must be a byte string"
             " b'True' or b'False'."
         )
-        log.warn(errmsg)
+        log.warning(errmsg)
 
 
 def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
@@ -83,7 +83,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
             f"Dataset `{ds.name}` has dtype `{ds.dtype}`, but must be a"
             " sub-dtype of `numpy.bytes_` (i.e. a byte string)."
         )
-        log.warn(errmsg)
+        log.warning(errmsg)
 
         # Return early; none of the other verification checks can be used
         return
@@ -100,7 +100,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
             f"Shape of Dataset `{ds.name}` is {ds.shape}, but ISCE3 does not"
             " generate arrays of strings with more than one dimension."
         )
-        log.warn(errmsg)
+        log.warning(errmsg)
 
 
 def verify_byte_string(my_string: np.bytes_) -> None:
@@ -119,7 +119,7 @@ def verify_byte_string(my_string: np.bytes_) -> None:
             f"Input {my_string} has type {type(my_string)}, but must be an"
             " instance of `numpy.bytes_` (i.e. a byte string)."
         )
-        log.warn(errmsg)
+        log.warning(errmsg)
 
 
 def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
@@ -158,7 +158,7 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
             f"Dataset `{ds.name}` contains trailing null characters. It has"
             f" dtype `{ds.dtype}`, but should have dtype `{ds[()].dtype}`."
         )
-        log.warn(errmsg)
+        log.warning(errmsg)
 
 
 def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:

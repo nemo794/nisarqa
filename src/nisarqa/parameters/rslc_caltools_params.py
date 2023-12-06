@@ -879,7 +879,9 @@ class RSLCRootParamGroup(RootParamGroup):
     """
 
     # Shared parameters
-    workflows: RSLCWorkflowsParamGroup  # overwrite parent's `workflows` b/c new type
+    workflows: (
+        RSLCWorkflowsParamGroup  # overwrite parent's `workflows` b/c new type
+    )
 
     # QA parameters
     backscatter_img: Optional[BackscatterImageParamGroup] = None
@@ -920,7 +922,7 @@ class RSLCRootParamGroup(RootParamGroup):
 
         if self.workflows.abs_cal or self.workflows.point_target:
             if self.anc_files.corner_reflector_file is None:
-                log.warn(
+                log.warning(
                     "`corner_reflector_file` not provided in runconfig."
                     " Absolute Calibration Factor and Point Target Analyzer"
                     " Caltools workflows require this file. Setting those"

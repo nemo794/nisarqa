@@ -338,7 +338,7 @@ class NisarProduct(ABC):
             try:
                 band = f[id_group]["radarBand"][...]
             except KeyError:
-                log.warn("`radarBand` missing from `identification` group.")
+                log.warning("`radarBand` missing from `identification` group.")
             else:
                 band = nisarqa.byte_string_to_python_str(band)
 
@@ -510,7 +510,9 @@ class NisarProduct(ABC):
                 # GSLC). So let's simply raise a warning and let QA continue.
                 # However, it's part of QA's job to check these fields for
                 # product robustness and to warn the user of faulty products.
-                log.warn("Product missing `identification > isGeocoded` field")
+                log.warning(
+                    "Product missing `identification > isGeocoded` field"
+                )
 
     def _check_data_group_path(self) -> None:
         """Sanity check to ensure the grid path exists in the input file."""
