@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from collections.abc import Sequence
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -98,7 +99,7 @@ def normalize_nlooks(nlooks, arr):
     return nlooks
 
 
-def validate_nlooks(nlooks: int | list[int], arr: ArrayLike) -> None:
+def validate_nlooks(nlooks: int | Sequence[int], arr: ArrayLike) -> None:
     log = nisarqa.get_logger()
 
     # The number of looks must be at least 1 and at most the size of the input array
