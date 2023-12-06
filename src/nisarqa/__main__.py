@@ -46,6 +46,7 @@ def parse_cli_args():
 
     # --version
     parser.add_argument(
+        "-V",
         "--version",
         action="version",
         version=nisarqa.__version__,
