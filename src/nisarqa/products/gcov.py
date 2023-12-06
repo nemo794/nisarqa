@@ -92,6 +92,7 @@ def verify_gcov(
         # NOTE: Refer to the original get_freq_pol() for the verification
         # checks. This could trigger a fatal error!
 
+    if root_params.workflows.validate:
         # These reports will be saved to the SUMMARY.csv file.
         # For now, output the stub file
         nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
@@ -102,9 +103,20 @@ def verify_gcov(
         if not verbose:
             print(msg)
 
+        ####### Begin Sample Usage Code #######
+        list_of_freqs = product.list_of_frequencies
+
+        freq_pol_dict = {}
+        for freq in list_of_freqs:
+            freq_pol_dict[freq] = product.get_list_of_polarizations(freq=freq)
+
+        # TODO: Fancy XML-HDF5 input file verification. For now, just print:
+        print(freq_pol_dict)
+
+        ########## End Sample Usage Code #########
+
         # TODO - this GCOV validation check should be integrated into
         # the actual product validation. For now, we'll leave it here.
-        product = nisarqa.GCOV(input_file)
         for freq in product.freqs:
             for pol in product.get_pols(freq=freq):
                 if pol in nisarqa.GCOV_DIAG_POLS:
@@ -122,8 +134,6 @@ def verify_gcov(
 
     if root_params.workflows.qa_reports:
         log.info(f"Beginning `qa_reports` processing...")
-
-        product = nisarqa.GCOV(input_file)
 
         # TODO qa_reports will add to the SUMMARY.csv file.
         # For now, make sure that the stub file is output

@@ -266,6 +266,104 @@ class NisarProduct(ABC):
             return spec_version
 
     @cached_property
+    def list_of_frequencies(self) -> tuple[str, ...]:
+        """
+        The contents of .../identification/listOfFrequencies in input file.
+
+        Returns
+        -------
+        list_of_freqs : tuple of str
+            The contents of `listOfFrequencies` in the `identification`
+            group in the input file.
+            `list_of_freqs` will be one of: ["A"], ["B"], or ["A", "B"].
+
+        Raises
+        ------
+        ValueError
+            If `listOfFrequencies` is missing or contains invalid options.
+        """
+        id_group = self.identification_path
+        with nisarqa.open_h5_file(self.filepath) as f:
+            # listOfFrequencies should be in all test datasets.
+            # If not, let h5py handle raising an error message.
+            list_of_freqs = f[id_group]["listOfFrequencies"]
+            nisarqa.verify_str_meets_isce3_conventions(ds=list_of_freqs)
+
+            if list_of_freqs.shape == ():
+                # dataset is scalar, not a list
+                list_of_freqs = [
+                    nisarqa.byte_string_to_python_str(list_of_freqs[()])
+                ]
+                warnings.warn(
+                    "`listOfFrequencies` dataset is a scalar string, should"
+                    " be a list of strings."
+                )
+            else:
+                list_of_freqs = [
+                    nisarqa.byte_string_to_python_str(my_str)
+                    for my_str in list_of_freqs[()]
+                ]
+
+            # Sanity check that the contents make sense
+            if not set(list_of_freqs).issubset({"A", "B"}):
+                raise ValueError(
+                    "Input file's `listOfFrequencies` dataset contains"
+                    f" {list_of_freqs}, but must be a subset of ('A', 'B')."
+                )
+
+            return tuple(list_of_freqs)
+
+    def get_list_of_polarizations(self, freq: str) -> tuple[str, ...]:
+        """
+        Gets contents of .../frequency<freq>/listOfPolarizations in input file.
+
+        Returns
+        -------
+        list_of_pols : tuple of str
+            The contents of `listOfPolarizations` in the `.../frequency<freq>`
+            group in the input file.
+
+        Raises
+        ------
+        ValueError
+            If `listOfPolarizations` is missing or contains invalid options.
+        """
+
+        # `listOfPolarizations` is always a child of the frequency group.
+        freq_group = self.get_freq_path(freq=freq)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            # `listOfPolarizations` should be in all frequency groups.
+            # If not, let h5py handle raising an error message.
+            list_of_pols = f[freq_group]["listOfPolarizations"]
+            nisarqa.verify_str_meets_isce3_conventions(ds=list_of_pols)
+
+            if list_of_pols.shape == ():
+                # dataset is scalar, not a list
+                list_of_pols = [
+                    nisarqa.byte_string_to_python_str(list_of_pols[()])
+                ]
+                warnings.warn(
+                    "`listOfPolarizations` dataset is a scalar string, should"
+                    " be a list of strings."
+                )
+            else:
+                list_of_pols = [
+                    nisarqa.byte_string_to_python_str(my_str)
+                    for my_str in list_of_pols[()]
+                ]
+
+            # Sanity check that the contents make sense
+            poss_pols = nisarqa.get_possible_pols(self.product_type.lower())
+            if not set(list_of_pols).issubset(set(poss_pols)):
+                raise ValueError(
+                    "Input file's `listOfPolarizations` dataset contains"
+                    f" {list_of_pols}, but must be a subset of {poss_pols}."
+                )
+
+            return tuple(list_of_pols)
+
+    @cached_property
     def _root_path(self) -> str:
         """
         Get the path to the group which is the root for the primary groups.
