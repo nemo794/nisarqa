@@ -174,10 +174,10 @@ def load_user_runconfig(runconfig_yaml):
     return user_rncfg
 
 
-def run(args):
+def run():
 
-    # # parse the args
-    # args = parse_cli_args()
+    # parse the args
+    args = parse_cli_args()
 
     subcommand = args.command
 
@@ -244,15 +244,17 @@ def main():
 
     log = nisarqa.get_logger()
 
-    # Parse the args outside of the try-catch block. Otherwse, a SystemExit: 0
-    # error is raised.
-    args = parse_cli_args()
-
     # Wrap all processing in a try/catch block to log exceptions.
     try:
         # Warning: Do not emit any log messages before calling run().
         # Otherwise, it will mess up the output from call to dumpconfig().
-        run(args)
+        run()
+    except SystemExit:
+        # When the CLI arguments are parsed inside of run(), in the case where
+        # --help or --version is requested, argparse raises a SystemExit 0
+        # error to exit the process. This needs to be caught here, or else the
+        # nisarqa application will awkardly fail.
+        pass
     except BaseException as e:
         # Use BaseException instead of Exception so that "special" exceptions
         # (e.g. KeyboardInterrupt) to be caught and logged before re-raising
