@@ -3,20 +3,16 @@ from __future__ import annotations
 import os
 import warnings
 from abc import ABC, abstractmethod, abstractproperty
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cached_property, lru_cache
-from typing import Optional
 
 import h5py
 import isce3
-import nisar
 import numpy as np
 import shapely
-from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.ticker import FuncFormatter
 
 import nisarqa
 
@@ -1126,7 +1122,7 @@ class NonInsarProduct(NisarProduct):
     @staticmethod
     @abstractmethod
     def save_browse(
-        pol_imgs: dict[str, np.ndarray], filepath: str | os.PathLike
+        pol_imgs: Mapping[str, np.ndarray], filepath: str | os.PathLike
     ) -> None:
         """
         Save given polarization images to a RGB or Grayscale PNG.
@@ -1237,7 +1233,7 @@ class NonInsarProduct(NisarProduct):
         return name
 
     @cached_property
-    def _layers(self) -> dict[str, dict[str, str]]:
+    def _layers(self) -> Mapping[str, dict[str, str]]:
         """
         Locate available bands, frequencies, and polarizations in the product.
 
@@ -1482,7 +1478,7 @@ class SLC(NonInsarProduct):
 
     @staticmethod
     def save_browse(
-        pol_imgs: dict[str, np.ndarray], filepath: str | os.PathLike
+        pol_imgs: Mapping[str, np.ndarray], filepath: str | os.PathLike
     ) -> None:
         """
         Save images in `pol_imgs` to a RGB or Grayscale PNG with transparency.
@@ -2062,7 +2058,7 @@ class GCOV(NonInsarGeoProduct):
 
     @staticmethod
     def save_browse(
-        pol_imgs: dict[str, np.ndarray], filepath: str | os.PathLike
+        pol_imgs: Mapping[str, np.ndarray], filepath: str | os.PathLike
     ) -> None:
         """
         Save the given polarization images to a RGB or Grayscale PNG.

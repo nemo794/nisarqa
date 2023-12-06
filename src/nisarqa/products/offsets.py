@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import os
-import warnings
-import h5py
+from collections.abc import Mapping
 
+import h5py
 from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa
@@ -13,7 +13,7 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_offset(user_rncfg: dict[str, dict], product_type: str) -> None:
+def verify_offset(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
     """
     Verify a ROFF or GOFF product per provided runconfig.
 
@@ -28,8 +28,8 @@ def verify_offset(user_rncfg: dict[str, dict], product_type: str) -> None:
     Parameters
     ----------
     user_rncfg : nested dict
-        A dictionary whose structure matches an this product's QA runconfig
-        yaml file and which contains the parameters needed to run its QA SAS.
+        A dictionary whose structure matches this product's QA runconfig
+        YAML file and which contains the parameters needed to run its QA SAS.
     product_type : str
         One of: 'roff' or 'goff'
     """

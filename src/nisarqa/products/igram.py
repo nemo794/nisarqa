@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Mapping
 from typing import overload
 
+import h5py
 from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa
-import h5py
 
 # List of objects from the import statements that
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_igram(user_rncfg, product_type: str) -> None:
+def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
     """
     Verify a RIFG, RUNW, or GUNW product per provided runconfig.
 
@@ -27,7 +28,7 @@ def verify_igram(user_rncfg, product_type: str) -> None:
 
     Parameters
     ----------
-    user_rncfg : dict
+    user_rncfg : nested dict
         A dictionary whose structure matches this product's QA runconfig
         YAML file and which contains the parameters needed to run its QA SAS.
     product_type : str

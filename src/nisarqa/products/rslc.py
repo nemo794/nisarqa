@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import os
 import warnings
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Optional
 
 import h5py
@@ -23,7 +23,9 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_rslc(user_rncfg: dict[str, dict], verbose: bool = False) -> None:
+def verify_rslc(
+    user_rncfg: Mapping[str, Mapping], verbose: bool = False
+) -> None:
     """
     Verify an RSLC product based on the input file, parameters, etc.
     specified in the input runconfig file.
@@ -38,7 +40,7 @@ def verify_rslc(user_rncfg: dict[str, dict], verbose: bool = False) -> None:
     ----------
     user_rncfg : nested dict
         A dictionary whose structure matches this product's QA runconfig
-        YAML file and which contains the parameters needed to run its QA SAS.]
+        YAML file and which contains the parameters needed to run its QA SAS.
     verbose : bool, optional
         True to stream log messages to console (stderr) in addition to the
         log file. False to only stream to the log file. (Initial log messages
