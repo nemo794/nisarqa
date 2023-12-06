@@ -62,8 +62,6 @@ def verify_gslc(
     nisarqa.set_logger_handler(log_file=log_file_txt, verbose=verbose)
 
     # Log the values of the parameters.
-    # Currently, this prints to stdout. Once the logger is implemented,
-    # it should log the values directly to the log file.
     root_params.log_parameters()
 
     # For readibility, store output filenames in variables.

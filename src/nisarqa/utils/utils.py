@@ -310,18 +310,14 @@ def set_logger_handler(
         Defaults to None.
     mode : str, optional
         The mode to setup the log file. Options:
-            "r"         - Readonly, file must exist (default)
-            "r+"        - Read/write, file must exist
             "w"         - Create file, truncate if exists
-            "w-" or "x" - Create file, fail if exists
             "a"         - Read/write if exists, create otherwise
         Defaults to "w", which means that if `log_file` is an existing
         file, it will be overwritten.
         Note: `mode` will only be used if `log_file` is path-like.
     verbose : bool, optional
         True to stream log messages to console (stderr) in addition to the
-        log file. False to only stream to the log file. (Initial setup log
-        messages will stream to console regardless.) Defaults to False.
+        log file. False to only stream to the log file. Defaults to False.
         Note: `verbose` will only be used if `log_file` is path-like.
 
     See Also

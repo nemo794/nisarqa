@@ -61,8 +61,6 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
     )
 
     # Log the values of the parameters.
-    # Currently, this prints to stdout. Once the logger is implemented,
-    # it should log the values directly to the log file.
     root_params.log_parameters()
 
     # For readibility, store output filenames in variables.
