@@ -355,6 +355,14 @@ class NisarProduct(ABC):
 
             # Sanity check that the contents make sense
             poss_pols = nisarqa.get_possible_pols(self.product_type.lower())
+
+            if self.product_type == "GCOV":
+                # For GCOV, `get_possible_pols()` actually returns the
+                # possible covariance terms, e.g. "HHHH", "HVHV".
+                # So to get specifically the possible polarizations, we need
+                # to truncate to the first two letters, and remove duplicates.
+                poss_pols = set([pol[:2] for pol in poss_pols])
+
             if not set(list_of_pols).issubset(set(poss_pols)):
                 raise ValueError(
                     "Input file's `listOfPolarizations` dataset contains"
@@ -2336,6 +2344,59 @@ class GCOV(NonInsarGeoProduct):
             nisarqa.products.rslc.plot_to_rgb_png(
                 red=red, green=green, blue=blue, filepath=filepath
             )
+
+    def get_list_of_covariance_terms(self, freq: str) -> tuple[str, ...]:
+        """
+        Gets contents of ../frequency<freq>/listOfCovarianceTerms in input file.
+
+        Returns
+        -------
+        list_of_cov : tuple of str
+            The contents of `listOfCovarianceTerms` in the `.../frequency<freq>`
+            group in the input file.
+
+        Raises
+        ------
+        ValueError
+            If `listOfCovarianceTerms` is missing or contains invalid options.
+        """
+
+        # `listOfCovarianceTerms` is always a child of the frequency group.
+        freq_group = self.get_freq_path(freq=freq)
+
+        with nisarqa.open_h5_file(self.filepath) as f:
+            # `listOfCovarianceTerms` should be in all frequency groups.
+            # If not, let h5py handle raising an error message.
+            list_of_cov = f[freq_group]["listOfCovarianceTerms"]
+            nisarqa.verify_str_meets_isce3_conventions(ds=list_of_cov)
+
+            if list_of_cov.shape == ():
+                # dataset is scalar, not a list
+                list_of_cov = [
+                    nisarqa.byte_string_to_python_str(list_of_cov[()])
+                ]
+                warnings.warn(
+                    "`listOfCovarianceTerms` dataset is a scalar string, should"
+                    " be a list of strings."
+                )
+            else:
+                list_of_cov = [
+                    nisarqa.byte_string_to_python_str(my_str)
+                    for my_str in list_of_cov[()]
+                ]
+
+            # Sanity check that the contents make sense
+            # For GCOV, `get_possible_pols()` actually returns the
+            # possible covariance terms, e.g. "HHHH", "HVHV".
+            poss_pols = nisarqa.get_possible_pols(self.product_type.lower())
+
+            if not set(list_of_cov).issubset(set(poss_pols)):
+                raise ValueError(
+                    "Input file's `listOfCovarianceTerms` dataset contains"
+                    f" {list_of_cov}, but must be a subset of {poss_pols}."
+                )
+
+            return tuple(list_of_cov)
 
 
 @dataclass

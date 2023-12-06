@@ -106,12 +106,15 @@ def verify_gcov(
         ####### Begin Sample Usage Code #######
         list_of_freqs = product.list_of_frequencies
 
-        freq_pol_dict = {}
+        freq_pol = {}
+        freq_cov = {}
         for freq in list_of_freqs:
-            freq_pol_dict[freq] = product.get_list_of_polarizations(freq=freq)
+            freq_pol[freq] = product.get_list_of_polarizations(freq=freq)
+            freq_cov[freq] = product.get_list_of_covariance_terms(freq=freq)
 
         # TODO: Fancy XML-HDF5 input file verification. For now, just print:
-        print(freq_pol_dict)
+        print(freq_pol)
+        print(freq_cov)
 
         ########## End Sample Usage Code #########
 
