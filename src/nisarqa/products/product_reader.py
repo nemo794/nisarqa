@@ -275,12 +275,14 @@ class NisarProduct(ABC):
         list_of_freqs : tuple of str
             The contents of `listOfFrequencies` in the `identification`
             group in the input file.
-            `list_of_freqs` will be one of: ["A"], ["B"], or ["A", "B"].
+            `list_of_freqs` will be one of: ("A",), ("B",), or ("A", "B").
 
         Raises
         ------
         ValueError
-            If `listOfFrequencies` is missing or contains invalid options.
+            If `listOfFrequencies` contains invalid options.
+        KeyError
+            If `listOfFrequencies` is missing.
         """
         id_group = self.identification_path
         with nisarqa.open_h5_file(self.filepath) as f:
@@ -321,12 +323,14 @@ class NisarProduct(ABC):
         -------
         list_of_pols : tuple of str
             The contents of `listOfPolarizations` in the `.../frequency<freq>`
-            group in the input file.
+            group in the input file. Example output: ("HH", "HV").
 
         Raises
         ------
         ValueError
-            If `listOfPolarizations` is missing or contains invalid options.
+            If `listOfPolarizations` contains invalid options.
+        KeyError
+            If `listOfPolarizations` is missing.
         """
 
         # `listOfPolarizations` is always a child of the frequency group.
@@ -2353,12 +2357,14 @@ class GCOV(NonInsarGeoProduct):
         -------
         list_of_cov : tuple of str
             The contents of `listOfCovarianceTerms` in the `.../frequency<freq>`
-            group in the input file.
+            group in the input file.  Example output: ("HHHH", "HVHV").
 
         Raises
         ------
         ValueError
-            If `listOfCovarianceTerms` is missing or contains invalid options.
+            If `listOfCovarianceTerms` contains invalid options.
+        KeyError
+            If `listOfCovarianceTerms` is missing.
         """
 
         # `listOfCovarianceTerms` is always a child of the frequency group.
@@ -2367,7 +2373,7 @@ class GCOV(NonInsarGeoProduct):
         with nisarqa.open_h5_file(self.filepath) as f:
             # `listOfCovarianceTerms` should be in all frequency groups.
             # If not, let h5py handle raising an error message.
-            list_of_cov = f[freq_group]["listOfCovarianceTerms"]
+            list_of_cov = f[freq_group]["listOfCovarianceTers"]
             nisarqa.verify_str_meets_isce3_conventions(ds=list_of_cov)
 
             if list_of_cov.shape == ():
