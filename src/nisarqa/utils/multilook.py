@@ -110,14 +110,14 @@ def validate_nlooks(nlooks: int | Sequence[int], arr: ArrayLike) -> None:
         elif n > m:
             raise ValueError("number of looks should not exceed array shape")
 
-    # Warn if the array shape is not an integer multiple of `nlooks`. Warn at most once
-    # (even if multiple axes have this issue).
+    # Warn if the array shape is not an integer multiple of `nlooks`. Warn at
+    # most once (even if multiple axes have this issue).
     for m, n in zip(arr.shape, nlooks):
         if m % n != 0:
-            # TODO - Geoff - correct to remove runtime warnings, and turn them into log-only warnings?
-            log.warning(
+            warnings.warn(
                 "input array shape is not an integer multiple of nlooks --"
-                " remainder samples will be excluded from output"
+                " remainder samples will be excluded from output",
+                RuntimeWarning,
             )
             break
 
@@ -268,7 +268,7 @@ def compute_square_pixel_nlooks(
     # the returned `nlooks` values are equal to each other.
     # For example, GCOV products have square pixels.
     if (np.abs(dy - dx) < epsilon) and (kx != ky):
-        warnings.warn(
+        nisarqa.get_logger().warning(
             "Computation of nlooks did not retain square pixels. "
             "Image aspect ratio will be distorted."
         )

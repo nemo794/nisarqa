@@ -2,7 +2,6 @@ import collections
 import dataclasses
 import os
 import sys
-import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from pathlib import Path
@@ -121,7 +120,7 @@ class YamlParamGroup(ABC):
 
         if not yaml_names:
             # Sanity check - dict is still empty
-            warnings.warn(
+            nisarqa.get_logger().warning(
                 f"None of the attributes in {cls.__name__}"
                 " contain info for an YamlAttrs object"
             )
@@ -196,7 +195,7 @@ class YamlParamGroup(ABC):
                 )
 
         if not params_cm:  # No attributes were added
-            warnings.warn(
+            nisarqa.get_logger().warning(
                 f"{cls.__name__} is a subclass of YamlParamGroup"
                 " but does not have any attributes whose"
                 ' dataclasses.field metadata contains "yaml_attrs"'
@@ -384,7 +383,7 @@ class HDF5ParamGroup:
             # Since this class is specifically for HDF5 parameters, this
             # is probably cause for concern because something was not
             # set up (coded) properly elsewhere.
-            warnings.warn(
+            nisarqa.get_logger().warning(
                 f"{self.__name__} is a subclass of HDF5ParamGroup"
                 " but does not have any attributes whose"
                 " dataclasses.field metadata contains 'hdf5_attrs'"

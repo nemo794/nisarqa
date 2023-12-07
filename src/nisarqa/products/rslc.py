@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import os
-import warnings
 from collections.abc import Mapping, Sequence
 from typing import Optional
 
@@ -613,11 +612,7 @@ def apply_image_correction(img_arr, params):
 
     # Step 2: Convert from linear units to dB
     if not params.linear_units:
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                action="ignore",
-                category=RuntimeWarning,
-            )
+        with nisarqa.ignore_runtime_warnings():
             # This line throws these warnings:
             #   "RuntimeWarning: divide by zero encountered in log10"
             # when there are zero values. Ignore those warnings.
@@ -699,22 +694,14 @@ def apply_gamma_correction(img_arr, gamma):
     invert_gamma_correction : inverts this function
     """
     # Normalize to range [0,1]
-    if np.all(img_arr):
-        # There are no zeros in the array, so let keep all warnings.
+    # There is at least one zero in the image array, which will cause an
+    # expected Runtime error. Ok to suppress.
+    with nisarqa.ignore_runtime_warnings():
+        # This line throws these warnings:
+        #   "RuntimeWarning: divide by zero encountered in divide"
+        #   "RuntimeWarning: invalid value encountered in divide"
+        # when there are zero values. Ignore those warnings.
         out_img = nisarqa.normalize(img_arr)
-    else:
-        # There is at least one zero in the image array, which will cause an
-        # expected Runtime error. Ok to suppress.
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                action="ignore",
-                category=RuntimeWarning,
-            )
-            # This line throws these warnings:
-            #   "RuntimeWarning: divide by zero encountered in divide"
-            #   "RuntimeWarning: invalid value encountered in divide"
-            # when there are zero values. Ignore those warnings.
-            out_img = nisarqa.normalize(img_arr)
 
     # Apply gamma correction
     out_img = np.power(out_img, gamma)
@@ -896,11 +883,7 @@ def prep_arr_for_png_with_transparency(img_arr):
     # After normalization to range [0,1], scale to 1-255 for unsigned int8
     # Reserve the value 0 for use as the transparency value.
     #   out = (<normalized array> * (target_max - target_min)) + target_min
-    with warnings.catch_warnings():
-        warnings.simplefilter(
-            action="ignore",
-            category=RuntimeWarning,
-        )
+    with nisarqa.ignore_runtime_warnings():
         # This line throws a "RuntimeWarning: invalid value encountered in cast"
         # when there are NaN values. Ignore those warnings.
         out = (np.uint8(out * (255 - 1))) + 1
@@ -1249,11 +1232,7 @@ def generate_backscatter_image_histogram_single_freq(
             else nisarqa.arr2pow(arr)
         )
 
-        with warnings.catch_warnings():
-            warnings.simplefilter(
-                action="ignore",
-                category=RuntimeWarning,
-            )
+        with nisarqa.ignore_runtime_warnings():
             # This line throws these warnings:
             #   "RuntimeWarning: divide by zero encountered in log10"
             # when there are zero values. Ignore those warnings.

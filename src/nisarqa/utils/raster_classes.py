@@ -391,6 +391,8 @@ def compare_raster_metadata(
 
         assert r1.name == r2.name
 
+        log = nisarqa.get_logger()
+
         if r1.name == "data":
             # raster data layers should have the same shape
             if np.shape(r1_val) != np.shape(r2_val):
@@ -402,7 +404,7 @@ def compare_raster_metadata(
             # "name" dataclass attributes should be the same
             # except for the final layer name
             if r1_val.split("_")[:-1] != r2_val.split("_")[:-1]:
-                warnings.warn(
+                log.warning(
                     f"{raster1.name=} but {raster2.name=}. Consider checking if"
                     " their band, frequency, polarization, etc. should match."
                 )

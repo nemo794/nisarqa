@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass, field, fields, replace
 from typing import ClassVar, Optional, Type, Union
@@ -922,7 +921,8 @@ class RSLCRootParamGroup(RootParamGroup):
 
         if self.workflows.abs_cal or self.workflows.point_target:
             if self.anc_files.corner_reflector_file is None:
-                log.warning(
+                # Log as an error because QA cannot perform a requested feature
+                log.error(
                     "`corner_reflector_file` not provided in runconfig."
                     " Absolute Calibration Factor and Point Target Analyzer"
                     " Caltools workflows require this file. Setting those"

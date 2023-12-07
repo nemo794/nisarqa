@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import os
 import warnings
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from typing import Optional
 
 import numpy as np
@@ -370,6 +372,19 @@ def set_logger_handler(
         handler.setLevel(log_level)
         handler.setFormatter(fmt)
         log.addHandler(handler)
+
+
+@contextmanager
+def ignore_runtime_warnings() -> Iterator[None]:
+    """
+    Context manager to ignore and silence RuntimeWarnings generated inside it.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter(
+            action="ignore",
+            category=RuntimeWarning,
+        )
+        yield
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

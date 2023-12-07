@@ -1,5 +1,4 @@
 import os
-import warnings
 
 import h5py
 import numpy as np
@@ -33,7 +32,7 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> None:
             f" {ds[()]}. By ISCE3 convention it must be a byte string"
             " b'True' or b'False'."
         )
-        log.warning(errmsg)
+        log.error(errmsg)
 
 
 def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
@@ -83,7 +82,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
             f"Dataset `{ds.name}` has dtype `{ds.dtype}`, but must be a"
             " sub-dtype of `numpy.bytes_` (i.e. a byte string)."
         )
-        log.warning(errmsg)
+        log.error(errmsg)
 
         # Return early; none of the other verification checks can be used
         return
@@ -100,7 +99,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
             f"Shape of Dataset `{ds.name}` is {ds.shape}, but ISCE3 does not"
             " generate arrays of strings with more than one dimension."
         )
-        log.warning(errmsg)
+        log.error(errmsg)
 
 
 def verify_byte_string(my_string: np.bytes_) -> None:
@@ -119,7 +118,7 @@ def verify_byte_string(my_string: np.bytes_) -> None:
             f"Input {my_string} has type {type(my_string)}, but must be an"
             " instance of `numpy.bytes_` (i.e. a byte string)."
         )
-        log.warning(errmsg)
+        log.error(errmsg)
 
 
 def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
@@ -158,7 +157,7 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
             f"Dataset `{ds.name}` contains trailing null characters. It has"
             f" dtype `{ds.dtype}`, but should have dtype `{ds[()].dtype}`."
         )
-        log.warning(errmsg)
+        log.error(errmsg)
 
 
 def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
@@ -176,6 +175,8 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
         errmsg = f"Dataset `{ds.name}` has {ds.shape}, but must be a 1D array."
         raise ValueError(errmsg)
 
+    log = nisarqa.get_logger()
+
     # Check that the array only contains byte strings.
     arr = ds[()]
     for idx in range(ds.shape[0]):
@@ -186,7 +187,7 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
                 f"Dataset `{ds.name}` is a 1D array of strings, but string at"
                 f" index {idx} is an empty string."
             )
-            warnings.warn(errmsg)
+            log.error(errmsg)
 
         verify_byte_string(my_string)
 
@@ -201,7 +202,7 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
             f" longest string it contains is {max_strlen} characters,"
             f" so the Dataset should have dtype `|S{max_strlen}`."
         )
-        warnings.warn(errmsg)
+        log.error(errmsg)
 
 
 def verify_valid_percentile(percentile):

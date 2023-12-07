@@ -260,7 +260,7 @@ class NisarProduct(ABC):
 
             # Sanity check for if QA has been tested with this product spec
             if spec_version not in ("0.0.0", "0.9.0"):
-                warnings.warn(
+                nisarqa.get_logger().warning(
                     f"QA for product specification version {spec_version}"
                     " not tested."
                 )
@@ -338,7 +338,9 @@ class NisarProduct(ABC):
             try:
                 band = f[id_group]["radarBand"][...]
             except KeyError:
-                log.warning("`radarBand` missing from `identification` group.")
+                # Error: product is poorly formed, will cause issues once the
+                # below TODO is removed.
+                log.error("`radarBand` missing from `identification` group.")
             else:
                 band = nisarqa.byte_string_to_python_str(band)
 
@@ -496,7 +498,7 @@ class NisarProduct(ABC):
                 # False in range Doppler products, and True in Geocoded products
                 ds_handle = f[id_group]["isGeocoded"]
                 if self.is_geocoded is not bool(ds_handle[...]):
-                    warnings.warn(
+                    log.error(
                         "WARNING `/identification/isGeocoded` field has value"
                         f" {ds_handle[...]}, which is inconsistent with"
                         f" product type of {self.product_type}."
@@ -507,12 +509,9 @@ class NisarProduct(ABC):
                 # The `isGeocoded` field is not necessary for successful
                 # completion QA SAS: whether a product is geocoded
                 # or not can be determined by the product type (e.g. RSLC vs.
-                # GSLC). So let's simply raise a warning and let QA continue.
-                # However, it's part of QA's job to check these fields for
-                # product robustness and to warn the user of faulty products.
-                log.warning(
-                    "Product missing `identification > isGeocoded` field"
-                )
+                # GSLC). So let's simply log the error and let QA continue;
+                # this will alert developers that the product is faulty.
+                log.error("Product missing `identification > isGeocoded` field")
 
     def _check_data_group_path(self) -> None:
         """Sanity check to ensure the grid path exists in the input file."""
@@ -662,7 +661,7 @@ class NisarRadarProduct(NisarProduct):
                 "Input product's boundingPolygon is not closed"
                 " (endpoint does not match start point)"
             )
-            warnings.warn(msg, RuntimeWarning)
+            nisarqa.get_logger().warning(msg)
         coords = coords[:-1]
 
         if len(coords) < 4:
@@ -793,9 +792,8 @@ class NisarRadarProduct(NisarProduct):
         try:
             datetime.strptime(sec_since_epoch, format_data)
         except ValueError:
-            warnings.warn(
-                f"Invalid epoch format in input file: {sec_since_epoch}",
-                RuntimeWarning,
+            nisarqa.get_logger().error(
+                f"Invalid epoch format in input file: {sec_since_epoch}"
             )
             # This text should appear in the REPORT.pdf to make it obvious:
             epoch = "INVALID EPOCH"
@@ -1807,6 +1805,7 @@ class RSLC(SLC, NisarRadarProduct):
         @lru_cache
         def _get_proc_center_freq(freq: str) -> float:
             path = f"{self.get_freq_path(freq)}/processedCenterFrequency"
+            log = nisarqa.get_logger()
             with h5py.File(self.filepath) as f:
                 try:
                     proc_center_freq = f[path][()]
@@ -1821,8 +1820,7 @@ class RSLC(SLC, NisarRadarProduct):
                     errmsg = (
                         "`processedCenterFrequency` missing 'units' attribute."
                     )
-                    print(errmsg)
-                    warnings.warn(errmsg)
+                    log.error(errmsg)
 
                 units = nisarqa.byte_string_to_python_str(units)
                 # units should be either "hz" or "hertz", and not MHz
@@ -1831,8 +1829,7 @@ class RSLC(SLC, NisarRadarProduct):
                         "Input product's `processedCenterFrequency` dataset"
                         f" has units of {units}, but should be in Hertz."
                     )
-                    print(errmsg)
-                    warnings.warn(errmsg)
+                    log.error(errmsg)
 
             return proc_center_freq
 
@@ -2181,7 +2178,7 @@ class GCOV(NonInsarGeoProduct):
         if any(arr is None for arr in (red, green, blue)):
             # If we get here, then the images provided are not one of the
             # expected cases. WLOG plot one of the image(s) in `pol_imgs`.
-            warnings.warn(
+            nisarqa.get_logger().warning(
                 "The images provided are not one of the expected cases to form"
                 " the GCOV browse image. Grayscale image will be created by"
                 " default."
