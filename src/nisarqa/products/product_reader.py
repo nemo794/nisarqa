@@ -2302,11 +2302,14 @@ class InsarProduct(NisarProduct):
 
             # dataset.dtype returns e.g. "<f4" for NISAR products.
             # Use .base to convert to equivalent native numpy dtype.
-            pass_fail = (
-                "PASS" if (product_dtype.base == expected_dtype) else "FAIL"
+            log = nisarqa.get_logger()
+            pass_fail, logger = (
+                ("PASS", log.info)
+                if (product_dtype.base == expected_dtype)
+                else ("FAIL", log.warning)
             )
 
-            print(
+            logger(
                 f"({pass_fail}) PASS/FAIL Check: Input file's dataset has"
                 f" type {product_dtype} which conforms to expected dtype"
                 f" {expected_dtype}. Dataset: {path}"
@@ -2371,6 +2374,7 @@ class InsarProduct(NisarProduct):
 
         @lru_cache
         def _get_pols(freq):
+            log = nisarqa.get_logger()
             pols = []
             with h5py.File(self.filepath) as f:
                 for pol in nisarqa.get_possible_pols(self.product_type.lower()):
@@ -2378,12 +2382,12 @@ class InsarProduct(NisarProduct):
                     try:
                         f[pol_path]
                     except KeyError:
-                        print(
+                        log.info(
                             f"Did not locate polarization group at: {pol_path}"
                         )
                         pass
                     else:
-                        print(f"Located polarization group at: {pol_path}")
+                        log.info(f"Located polarization group at: {pol_path}")
                         pols.append(pol)
 
                 # The product contains a list of expected polarizations.

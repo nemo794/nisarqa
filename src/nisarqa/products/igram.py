@@ -14,7 +14,9 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
+def verify_igram(
+    user_rncfg: Mapping[str, Mapping], product_type: str, verbose: bool = False
+) -> None:
     """
     Verify a RIFG, RUNW, or GUNW product per provided runconfig.
 
@@ -33,12 +35,19 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
         YAML file and which contains the parameters needed to run its QA SAS.
     product_type : str
         One of: "rifg", "runw", or "gunw".
+    verbose : bool, optional
+        True to stream log messages to console (stderr) in addition to the
+        log file. False to only stream to the log file. (Initial log messages
+        during setup will stream to console regardless.) Defaults to False.
     """
     supported_product_types = ("rifg", "runw", "gunw")
     if product_type not in supported_product_types:
         raise ValueError(
             f"{product_type=}, must be one of {supported_product_types}."
         )
+
+    log = nisarqa.get_logger()
+    log.info("Begin parsing of runconfig for user-provided QA parameters.")
 
     # Build the *RootParamGroup parameters per the runconfig
     try:
@@ -47,18 +56,20 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
         )
     except nisarqa.ExitEarly:
         # No workflows were requested. Exit early.
-        print(
+        log.info(
             "All `workflows` set to `False` in the runconfig, "
             "so no QA outputs will be generated. This is not an error."
         )
         return
 
-    # Start logger
-    # TODO get logger from Brian's code and implement here
-    # For now, output the stub log file.
-    nisarqa.output_stub_files(
-        output_dir=root_params.get_output_dir(), stub_files="log_txt"
+    # Start logging in the log file
+    out_dir = root_params.get_output_dir()
+    log_file_txt = out_dir / root_params.get_log_filename()
+    log.info(
+        "Parsing of runconfig for QA parameters complete. Complete log"
+        " continues in the output log file."
     )
+    nisarqa.set_logger_handler(log_file=log_file_txt, verbose=verbose)
 
     # Log the values of the parameters.
     root_params.log_parameters()
@@ -74,10 +85,14 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
     stats_file = out_dir / root_params.get_stats_h5_filename()
     summary_file = out_dir / root_params.get_summary_csv_filename()
 
-    print(f"Starting Quality Assurance for input file: {input_file}")
+    msg = f"Starting Quality Assurance for input file: {input_file}"
+    log.info(msg)
+    if not verbose:
+        print(msg)
 
     if root_params.workflows.validate:
-        print("Beginning input file validation...")
+        msg = f"Beginning validation of input file against XML Product Spec..."
+        log.info(msg)
 
         # TODO Validate file structure
         # (After this, we can assume the file structure for all
@@ -88,11 +103,15 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
         # These reports will be saved to the SUMMARY.csv file.
         # For now, output the stub file
         nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
-        print(f"Input file validation PASS/FAIL checks saved: {summary_file}")
-        print("Input file validation complete.")
+        msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
+        log.info(msg)
+        msg = "Input file validation complete."
+        log.info(msg)
+        if not verbose:
+            print(msg)
 
     if root_params.workflows.qa_reports:
-        print("Beginning processing of `qa_reports` items...")
+        log.info("Beginning processing of `qa_reports` items...")
 
         if product_type == "rifg":
             product = nisarqa.RIFG(input_file)
@@ -109,16 +128,20 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
                 output_dir=root_params.get_output_dir(),
                 stub_files="summary_csv",
             )
-            print(f"PASS/FAIL checks saved to: {summary_file}")
+            log.info(f"PASS/FAIL checks saved to: {summary_file}")
+            msg = "PASS/FAIL checks complete."
+            log.info(msg)
+            if not verbose:
+                print(msg)
 
+        log.info(f"Beginning processing of browse KML...")
         nisarqa.write_latlonquad_to_kml(
             llq=product.get_browse_latlonquad(),
             output_dir=out_dir,
             kml_filename=root_params.get_kml_browse_filename(),
             png_filename=root_params.get_browse_png_filename(),
         )
-        print("Processing of browse image kml complete.")
-        print(f"Browse image kml file saved to {browse_file_kml}")
+        log.info(f"Browse image kml file saved to {browse_file_kml}")
 
         with h5py.File(stats_file, mode="w") as stats_h5, PdfPages(
             report_file
@@ -127,12 +150,12 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
             root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band
             )
-            print(f"QA Processing Parameters saved to {stats_file}")
+            log.info(f"QA Processing Parameters saved to {stats_file}")
 
             nisarqa.rslc.copy_identification_group_to_stats_h5(
                 product=product, stats_h5=stats_h5
             )
-            print(f"Input file Identification group copied to {stats_file}")
+            log.info(f"Input file Identification group copied to {stats_file}")
 
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
@@ -170,10 +193,21 @@ def verify_igram(user_rncfg: Mapping[str, Mapping], product_type: str) -> None:
                 wrapped_hsi=True if product_type == "rifg" else False,
             )
 
-    print(
-        "Successful completion of QA SAS. Check log file for validation"
-        " warnings and errors."
+        log.info(f"PDF reports saved to {report_file}")
+        log.info(f"HDF5 statistics saved to {stats_file}")
+        log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
+        msg = "`qa_reports` processing complete."
+        log.info(msg)
+        if not verbose:
+            print(msg)
+
+    msg = (
+        "QA SAS complete. For details, warnings, and errors see output log"
+        " file."
     )
+    log.info(msg)
+    if not verbose:
+        print(msg)
 
 
 @overload

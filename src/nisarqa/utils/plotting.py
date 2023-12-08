@@ -1238,7 +1238,7 @@ def format_cbar_ticks_for_multiples_of_pi(
             f"`cax` has type {type(cax)}, must be type"
             " matplotlib.colorbar.Colorbar or matplotlib.axes.Axes."
         )
-    
+
     # To be NaN-safe, do not simply use `if cbar_max <= cbar_min`.
     if not (cbar_max > cbar_min):
         raise ValueError(
@@ -1272,8 +1272,8 @@ def format_cbar_ticks_for_multiples_of_pi(
             cax_yaxis.set_ticks(tick_vals)
             cax_yaxis.set_major_formatter(FuncFormatter(_format_pi))
     else:
-        print(
-            f"Notice: Provided interval [{cbar_min=}, {cbar_max}] does not"
+        nisarqa.get_logger().info(
+            f"Provided interval [{cbar_min}, {cbar_max}] does not"
             " nicely divide into multiples of pi for the colorbar, so axis"
             " will not be modified."
         )

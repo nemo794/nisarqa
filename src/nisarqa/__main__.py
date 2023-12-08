@@ -203,18 +203,24 @@ def run():
     elif subcommand == "gcov_qa":
         nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg, verbose=args.verbose)
     elif subcommand == "rifg_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="rifg")
+        nisarqa.igram.verify_igram(
+            user_rncfg=user_rncfg, product_type="rifg", verbose=args.verbose
+        )
     elif subcommand == "runw_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="runw")
+        nisarqa.igram.verify_igram(
+            user_rncfg=user_rncfg, product_type="runw", verbose=args.verbose
+        )
     elif subcommand == "gunw_qa":
-        nisarqa.igram.verify_igram(user_rncfg=user_rncfg, product_type="gunw")
+        nisarqa.igram.verify_igram(
+            user_rncfg=user_rncfg, product_type="gunw", verbose=args.verbose
+        )
     elif subcommand == "roff_qa":
         nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="roff"
+            user_rncfg=user_rncfg, product_type="roff", verbose=args.verbose
         )
     elif subcommand == "goff_qa":
         nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="goff"
+            user_rncfg=user_rncfg, product_type="goff", verbose=args.verbose
         )
     else:
         raise ValueError(f"Unknown subcommand: {subcommand}")
