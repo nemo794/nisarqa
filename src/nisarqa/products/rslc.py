@@ -84,8 +84,9 @@ def verify_rslc(
     summary_file = out_dir / root_params.get_summary_csv_filename()
 
     msg = f"Starting Quality Assurance for input file: {input_file}"
-    print(msg)
     log.info(msg)
+    if not verbose:
+        print(msg)
 
     # Run validate first because it checks the product spec
     if root_params.workflows.validate:
@@ -110,8 +111,9 @@ def verify_rslc(
         msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
         log.info(msg)
         msg = "Input file validation complete."
-        print(msg)
         log.info(msg)
+        if not verbose:
+            print(msg)
 
     # If running these workflows, save the processing parameters and
     # identification group to STATS.h5
@@ -218,8 +220,9 @@ def verify_rslc(
             log.info(f"HDF5 statistics saved to {stats_file}")
             log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
             msg = "`qa_reports` processing complete."
-            print(msg)
             log.info(msg)
+            if not verbose:
+                print(msg)
 
     if root_params.workflows.abs_cal:
         log.info("Beginning Absolute Radiometric Calibration CalTool...")
@@ -232,8 +235,9 @@ def verify_rslc(
             stats_filename=stats_file,
         )
         msg = "Absolute Radiometric Calibration CalTool complete."
-        print(msg)
         log.info(msg)
+        if not verbose:
+            print(msg)
 
     if root_params.workflows.noise_estimation:
         log.info("Beginning Noise Estimation Tool CalTool...")
@@ -245,8 +249,9 @@ def verify_rslc(
             stats_filename=stats_file,
         )
         msg = "Noise Estimation Tool CalTool complete."
-        print(msg)
         log.info(msg)
+        if not verbose:
+            print(msg)
 
     if root_params.workflows.point_target:
         log.info("Beginning Point Target Analyzer CalTool...")
@@ -259,15 +264,17 @@ def verify_rslc(
             stats_filename=stats_file,
         )
         msg = "Point Target Analyzer CalTool complete."
-        print(msg)
         log.info(msg)
+        if not verbose:
+            print(msg)
 
     msg = (
         "QA SAS complete. For details, warnings, and errors see output log"
         " file."
     )
-    print(msg)
     log.info(msg)
+    if not verbose:
+        print(msg)
 
 
 # TODO - move to generic NISAR module

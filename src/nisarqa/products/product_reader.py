@@ -406,7 +406,6 @@ class NisarProduct(ABC):
 
         if not found_freqs:
             errmsg = "Input product does not contain any frequency groups."
-            print(errmsg)
             raise nisarqa.InvalidNISARProductError(errmsg)
 
         return tuple(found_freqs)
@@ -519,7 +518,6 @@ class NisarProduct(ABC):
         with h5py.File(self.filepath) as f:
             if grid_path not in f:
                 errmsg = f"Input file is missing the path: {grid_path}"
-                print(errmsg)
                 raise nisarqa.DatasetNotFoundError(errmsg)
 
     @abstractmethod
@@ -752,7 +750,6 @@ class NisarRadarProduct(NisarProduct):
         """
         if raster_path not in h5_file:
             errmsg = f"Input file does not contain raster {raster_path}"
-            print(errmsg)
             raise nisarqa.DatasetNotFoundError(errmsg)
 
         # Get dataset object and check for correct dtype
@@ -1007,7 +1004,6 @@ class NisarGeoProduct(NisarProduct):
         """
         if raster_path not in h5_file:
             errmsg = f"Input file does not contain raster {raster_path}"
-            print(errmsg)
             raise nisarqa.DatasetNotFoundError(errmsg)
 
         # Get dataset object and check for correct dtype
@@ -1204,7 +1200,6 @@ class NonInsarProduct(NisarProduct):
         with h5py.File(self.filepath, "r") as in_file:
             if path not in in_file:
                 errmsg = f"Input file does not contain raster {path}"
-                print(errmsg)
                 raise nisarqa.DatasetNotFoundError(errmsg)
             yield self._get_raster_from_path(h5_file=in_file, raster_path=path)
 

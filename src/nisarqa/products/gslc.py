@@ -76,8 +76,9 @@ def verify_gslc(
     summary_file = out_dir / root_params.get_summary_csv_filename()
 
     msg = f"Starting Quality Assurance for input file: {input_file}"
-    print(msg)
     log.info(msg)
+    if not verbose:
+        print(msg)
 
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
@@ -95,8 +96,9 @@ def verify_gslc(
         msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
         log.info(msg)
         msg = "Input file validation complete."
-        print(msg)
         log.info(msg)
+        if not verbose:
+            print(msg)
 
     if root_params.workflows.qa_reports:
         log.info(f"Beginning `qa_reports` processing...")
@@ -112,8 +114,9 @@ def verify_gslc(
             )
             log.info(f"PASS/FAIL checks saved to {summary_file}")
             msg = "PASS/FAIL checks complete."
-            print(msg)
             log.info(msg)
+            if not verbose:
+                print(msg)
 
         log.info(f"Beginning processing of browse KML...")
         nisarqa.write_latlonquad_to_kml(
@@ -182,15 +185,17 @@ def verify_gslc(
             log.info(f"HDF5 statistics saved to {stats_file}")
             log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
             msg = "`qa_reports` processing complete."
-            print(msg)
             log.info(msg)
+            if not verbose:
+                print(msg)
 
     msg = (
         "QA SAS complete. For details, warnings, and errors see output log"
         " file."
     )
-    print(msg)
     log.info(msg)
+    if not verbose:
+        print(msg)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
