@@ -41,7 +41,6 @@ def parse_cli_args():
     parser = argparse.ArgumentParser(
         description=msg,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        allow_abbrev=False,
     )
 
     # --version
