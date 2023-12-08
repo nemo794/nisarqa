@@ -65,8 +65,8 @@ def verify_rslc(
     out_dir = root_params.get_output_dir()
     log_file_txt = out_dir / root_params.get_log_filename()
     log.info(
-        f"Parsing of runconfig for QA parameters complete. Complete log"
-        f" continues in the output log file."
+        "Parsing of runconfig for QA parameters complete. Complete log"
+        " continues in the output log file."
     )
     nisarqa.set_logger_handler(log_file=log_file_txt, verbose=verbose)
 
