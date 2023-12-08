@@ -234,6 +234,10 @@ def verify_rslc(
             input_filename=input_file,
             stats_filename=stats_file,
         )
+        log.info(
+            "Absolute Radiometric Calibration CalTool results saved to"
+            f" {stats_file}."
+        )
         msg = "Absolute Radiometric Calibration CalTool complete."
         log.info(msg)
         if not verbose:
@@ -247,6 +251,9 @@ def verify_rslc(
             params=root_params.noise_estimation,
             input_filename=input_file,
             stats_filename=stats_file,
+        )
+        log.info(
+            f"Noise Estimation Tool CalTool results saved to {stats_file}."
         )
         msg = "Noise Estimation Tool CalTool complete."
         log.info(msg)
@@ -262,6 +269,9 @@ def verify_rslc(
             dyn_anc_params=root_params.anc_files,
             input_filename=input_file,
             stats_filename=stats_file,
+        )
+        log.info(
+            f"Point Target Analyzer CalTool results saved to {stats_file}."
         )
         msg = "Point Target Analyzer CalTool complete."
         log.info(msg)
