@@ -1672,6 +1672,10 @@ class RSLC(SLC, NisarRadarProduct):
         self, h5_file: h5py.File, raster_path: str
     ) -> h5py.Dataset:
         log = nisarqa.get_logger()
+        msg = (
+            f"(%s) PASS/FAIL Check: Product raster dtype conforms"
+            f" to RSLC Product Spec dtype of complex32. Dataset: %s"
+        )
 
         # RSLC Product Spec says that NISAR RSLC rasters should be complex32,
         # which requires special handling to read and access.
@@ -1682,18 +1686,11 @@ class RSLC(SLC, NisarRadarProduct):
             # The RSLC dataset is complex32, as desired. Use the
             # ComplexFloat16Decoder so that numpy et al can read the datasets.
             dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
-            pass_fail = "PASS"
-            logger = log.info
+            log.info(msg % ("PASS", raster_path))
         else:
             # Use h5py's standard reader
             dataset = h5_file[raster_path]
-            pass_fail = "FAIL"
-            logger = log.warning
-
-        logger(
-            f"({pass_fail}) PASS/FAIL Check: Product raster dtype conforms"
-            f" to RSLC Product Spec dtype of complex32. Dataset: {raster_path}"
-        )
+            log.warning(msg % ("FAIL", raster_path))
 
         return dataset
 
@@ -1845,21 +1842,19 @@ class GSLC(SLC, NonInsarGeoProduct):
         # If the input GSLC product has dtype complex32, then we'll need
         # to use ComplexFloat16Decoder.
         log = nisarqa.get_logger()
+        msg = (
+            f"(%s) PASS/FAIL Check: Product raster dtype conforms"
+            f" to GSLC Product Spec dtype of complex64."
+        )
         if nisarqa.is_complex32(h5_file[raster_path]):
             # The GSLC dataset is complex32. Use the
             # ComplexFloat16Decoder so that numpy et al can read the datasets.
             dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
-            pass_fail = "FAIL"
-            logger = log.warning
+            log.warning(msg % "FAIL")
         else:
             # Use h5py's standard reader
             dataset = h5_file[raster_path]
-            pass_fail = "PASS"
-            logger = log.info
-        logger(
-            f"({pass_fail}) PASS/FAIL Check: Product raster dtype conforms"
-            " to GSLC Product Spec dtype of complex64."
-        )
+            log.info(msg % "PASS")
 
         return dataset
 
@@ -1882,14 +1877,16 @@ class GCOV(NonInsarGeoProduct):
         if pol[0:2] == pol[2:4]:
             # on-diagonal term dataset. These are float32 as of May 2023.
             spec_dtype = np.float32
-            logger = log.info
         else:
             # off-diagonal term dataset. These are complex64 as of May 2023.
             spec_dtype = np.complex64
-            logger = log.warning
 
         raster_dtype = dataset.dtype
-        pass_fail = "PASS" if (raster_dtype == spec_dtype) else "FAIL"
+        pass_fail, logger = (
+            ("PASS", log.info)
+            if (raster_dtype == spec_dtype)
+            else ("FAIL", log.warning)
+        )
 
         logger(
             f"({pass_fail}) PASS/FAIL Check: Product raster {raster_dtype}"
