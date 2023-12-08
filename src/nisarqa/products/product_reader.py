@@ -352,10 +352,29 @@ class NisarProduct(ABC):
                     " be a list of strings."
                 )
             else:
-                list_of_pols = [
-                    nisarqa.byte_string_to_python_str(my_str)
-                    for my_str in list_of_pols[()]
-                ]
+                if isinstance(list_of_pols[0], np.bytes_):
+                    # list of byte strings. Yay!
+                    list_of_pols = [
+                        nisarqa.byte_string_to_python_str(my_str)
+                        for my_str in list_of_pols[()]
+                    ]
+                elif isinstance(list_of_pols[0], bytes):
+                    # list of Python bytes objects. Boo.
+                    list_of_pols = [
+                        my_str.decode("utf-8") for my_str in list_of_pols[()]
+                    ]
+                    # That's what we want to return in this function, but it
+                    # does not meet NISAR specs, so emit a warning.
+                    warnings.warn(
+                        "`listOfPolarizations` dataset is a list of bytes"
+                        " objects, but should be a list of byte strings."
+                    )
+                else:
+                    raise TypeError(
+                        "`listOfPolarizations` dataset is a list of items of"
+                        f" type {type(list_of_pols[0])}, but should be a list"
+                        " of byte strings."
+                    )
 
             # Sanity check that the contents make sense
             poss_pols = nisarqa.get_possible_pols(self.product_type.lower())
@@ -2608,19 +2627,10 @@ class InsarProduct(NisarProduct):
                         log.info(f"Located polarization group at: {pol_path}")
                         pols.append(pol)
 
-                # The product contains a list of expected polarizations.
-                # While file is open, grab it to use in a sanity check later.
-                path = f"{self.get_freq_path(freq)}/listOfPolarizations"
-                list_of_pols_ds = f[path][...].tolist()
-
-                nisarqa.verify_str_meets_isce3_conventions(f[path])
-
-                # convert from byte strings to str
-                list_of_pols_ds = [
-                    bytes.decode(b, "utf-8") for b in list_of_pols_ds
-                ]
-
             # Sanity checks
+            # Check the "discovered" polarizations against the expected
+            # `listOfPolarizations` dataset contents
+            list_of_pols_ds = self.get_list_of_polarizations(freq=freq)
             if set(pols) != set(list_of_pols_ds):
                 errmsg = (
                     f"Frequency {freq} contains polarizations {pols}, but"
