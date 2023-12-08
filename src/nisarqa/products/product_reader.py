@@ -446,7 +446,6 @@ class NisarProduct(ABC):
                         f"Input file does not contain frequency {freq} group at"
                         f" path: {path}"
                     )
-                    log.info(errmsg)
                     raise nisarqa.DatasetNotFoundError(errmsg)
 
         return _freq_path(freq)
@@ -2408,13 +2407,11 @@ class InsarProduct(NisarProduct):
                     f" `listOfPolarizations` says {list_of_pols_ds}"
                     " should be available."
                 )
-                print(errmsg)
                 raise nisarqa.InvalidNISARProductError(errmsg)
 
             if not pols:
                 # No polarizations were found for this frequency
                 errmsg = f"No polarizations were found for frequency {freq}"
-                print(errmsg)
                 raise nisarqa.DatasetNotFoundError(errmsg)
 
             return pols
@@ -2994,7 +2991,6 @@ class OffsetProduct(InsarProduct):
                 " the product only contains layers"
                 f" {self.available_layer_numbers}."
             )
-            print(errmsg)
             raise nisarqa.InvalidNISARProductError(errmsg)
 
     def _get_path_containing_freq_pol(self, freq: str, pol: str) -> str:
