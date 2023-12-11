@@ -6,6 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import ClassVar, Optional
+from collections.abc import Sequence
 
 import h5py
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
@@ -300,6 +301,76 @@ class YamlParamGroup(ABC):
 
         # For readability, add a newline before the new params_cm group
         parent_cm.yaml_set_comment_before_after_key(path[-1], before="\n")
+
+    # TODO - delete this comment during code review. This function was
+    # moved 100% from this class' child: `QuiverParamGroup`. Thanks!
+    @staticmethod
+    def _validate_pair_of_numeric(
+        param_value: Optional[Sequence[int]],
+        param_name: str,
+        min: Optional[int | float] = None,
+        max: Optional[int | float] = None,
+        none_is_valid_value: bool = False,
+        strictly_increasing: bool = False,
+    ) -> None:
+        """
+        Raise exception if `param_value` is not a valid input.
+
+        Parameters
+        ----------
+        param_value : None or pair of int or float
+            Sequence of two int or float value, or None.
+        param_name : str
+            Name of this parameter. Will be used for the error message.
+        min, max : None or int or float, optional
+            The minimum or maximum allowed values (respectively) for each value in
+            `param_value`. `param_value` may not be outside this range.
+        none_is_valid_value : bool, optional
+            True if `None` is a valid value. Defaults to False.
+        strictly_increasing : bool, optional
+            True if `input_value[0]` must be less than `input_value[1]`.
+            Defaults to False.
+        """
+        if param_value is None:
+            if none_is_valid_value:
+                return
+            else:
+                raise TypeError(
+                    f"`{param_name}` is None, but must be a pair of numeric."
+                )
+
+        if not isinstance(param_value, Sequence):
+            msg = f"`{param_name}` must be a sequence"
+            if none_is_valid_value:
+                msg += " or None."
+            raise TypeError(msg)
+
+        if len(param_value) != 2:
+            raise ValueError(
+                f"{param_name}={param_value}; must have a length of two."
+            )
+
+        if not all(isinstance(e, (float, int)) for e in param_value):
+            raise TypeError(
+                f"{param_name}={param_value}; must contain only float or int."
+            )
+
+        if (min is not None) and (any((e < min) for e in param_value)):
+            raise ValueError(
+                f"{param_name}={param_value}; must be in range [{min}, {max}]."
+            )
+
+        if (max is not None) and (any((e > max) for e in param_value)):
+            raise ValueError(
+                f"{param_name}={param_value}; must be in range [{min}, {max}]."
+            )
+
+        if strictly_increasing:
+            if param_value[0] >= param_value[1]:
+                raise ValueError(
+                    f"{param_name}={param_value}; values must be"
+                    " strictly increasing."
+                )
 
 
 class HDF5ParamGroup:

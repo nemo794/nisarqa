@@ -172,6 +172,13 @@ def verify_offset(
                 browse_png=browse_file_png,
             )
 
+            nisarqa.process_az_and_slant_rg_variances_from_offset_product(
+                product=product,
+                params=root_params.variances,
+                report_pdf=report_pdf,
+                stats_h5=stats_h5,
+            )
+
         log.info(f"PDF reports saved to {report_file}")
         log.info(f"HDF5 statistics saved to {stats_file}")
         log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")

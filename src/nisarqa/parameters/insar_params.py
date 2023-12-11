@@ -696,73 +696,8 @@ class QuiverParamGroup(YamlParamGroup):
                 f"`longest_side_max` must be positive: {self.longest_side_max}"
             )
 
-    @staticmethod
-    def _validate_pair_of_numeric(
-        param_value: Optional[Sequence[int]],
-        param_name: str,
-        min: Optional[int | float] = None,
-        max: Optional[int | float] = None,
-        none_is_valid_value: bool = False,
-        strictly_increasing: bool = False,
-    ) -> None:
-        """
-        Raise exception if `param_value` is not a valid input.
-
-        Parameters
-        ----------
-        param_value : None or pair of int or float
-            Sequence of two int or float value, or None.
-        param_name : str
-            Name of this parameter. Will be used for the error message.
-        min, max : None or int or float, optional
-            The minimum or maximum allowed values (respectively) for each value in
-            `param_value`. `param_value` may not be outside this range.
-        none_is_valid_value : bool, optional
-            True if `None` is a valid value. Defaults to False.
-        strictly_increasing : bool, optional
-            True if `input_value[0]` must be less than `input_value[1]`.
-            Defaults to False.
-        """
-        if param_value is None:
-            if none_is_valid_value:
-                return
-            else:
-                raise TypeError(
-                    f"`{param_name}` is None, but must be a pair of numeric."
-                )
-
-        if not isinstance(param_value, Sequence):
-            msg = f"`{param_name}` must be a sequence"
-            if none_is_valid_value:
-                msg += " or None."
-            raise TypeError(msg)
-
-        if len(param_value) != 2:
-            raise ValueError(
-                f"{param_name}={param_value}; must have a length of two."
-            )
-
-        if not all(isinstance(e, (float, int)) for e in param_value):
-            raise TypeError(
-                f"{param_name}={param_value}; must contain only float or int."
-            )
-
-        if (min is not None) and (any((e < min) for e in param_value)):
-            raise ValueError(
-                f"{param_name}={param_value}; must be in range [{min}, {max}]."
-            )
-
-        if (max is not None) and (any((e > max) for e in param_value)):
-            raise ValueError(
-                f"{param_name}={param_value}; must be in range [{min}, {max}]."
-            )
-
-        if strictly_increasing:
-            if param_value[0] >= param_value[1]:
-                raise ValueError(
-                    f"{param_name}={param_value}; values must be"
-                    " strictly increasing."
-                )
+    # TODO - delete this comment during code review. This function was
+    # moved 100% to this class' parent: `YamlParamGroup`. Thanks!
 
 
 @dataclass(frozen=True)
@@ -790,6 +725,79 @@ class GOFFQuiverParamGroup(QuiverParamGroup):
             "goff",
             "qa_reports",
             "quiver_plots",
+        ]
+
+
+@dataclass(frozen=True)
+class VarianceLayersParamGroup(YamlParamGroup):
+    """
+    Parameters to generate Variance Layer Plots for ROFF and GOFF.
+
+    Parameters
+    ----------
+    cbar_min_max : None or pair of float or int, optional
+        The vmin and vmax values to generate the plots
+        for the variance layers for ROFF and GOFF.
+        The magnitude of these layers is clipped to this interval,
+        which (in turn) is used for the interval of the colorbar.
+        If None, the interval is computed using the min and max
+        magnitudes of along track and slant range offset variances
+        Defaults to [0.0, 0.1].
+    """
+
+    cbar_min_max: Optional[Sequence[float]] = field(
+        default=(0.0, 0.1),
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="colorbar_min_max",
+                descr="""The vmin and vmax values to generate the plots
+                for the variance layers for ROFF and GOFF.
+                The magnitude of these layers is clipped to this interval,
+                which (in turn) is used for the interval of the colorbar.
+                If None, the interval is computed using the min and max 
+                magnitudes of along track and slant range offset variances.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        self._validate_pair_of_numeric(
+            param_value=self.cbar_min_max,
+            param_name="colorbar_min_max",
+            min=None,
+            max=None,
+            none_is_valid_value=True,
+            strictly_increasing=True,
+        )
+
+
+@dataclass(frozen=True)
+class ROFFVarianceLayersParamGroup(VarianceLayersParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "roff",
+            "qa_reports",
+            "variance_plots",
+        ]
+
+
+@dataclass(frozen=True)
+class GOFFVarianceLayersParamGroup(VarianceLayersParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "goff",
+            "qa_reports",
+            "variance_plots",
         ]
 
 
@@ -1048,6 +1056,8 @@ class ROFFRootParamGroup(RootParamGroup):
         Product Path Group parameters.
     quiver : ROFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
+    variances : ROFFQuiverParamGroup or None, optional
+        Parameters for *Variance layers' plots.
     """
 
     workflows: ROFFWorkflowsParamGroup
@@ -1057,6 +1067,7 @@ class ROFFRootParamGroup(RootParamGroup):
     prodpath: Optional[ROFFProductPathGroupParamGroup] = None
 
     quiver: Optional[ROFFQuiverParamGroup] = None
+    variances: Optional[ROFFVarianceLayersParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1082,6 +1093,11 @@ class ROFFRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="quiver",
                 param_grp_cls_obj=ROFFQuiverParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="variances",
+                param_grp_cls_obj=ROFFVarianceLayersParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1095,6 +1111,7 @@ class ROFFRootParamGroup(RootParamGroup):
             ROFFProductPathGroupParamGroup,
             ROFFWorkflowsParamGroup,
             ROFFQuiverParamGroup,
+            ROFFVarianceLayersParamGroup,
         )
 
 
@@ -1120,6 +1137,8 @@ class GOFFRootParamGroup(RootParamGroup):
         Product Path Group parameters.
     quiver : GOFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
+    variances : GOFFQuiverParamGroup or None, optional
+        Parameters for *Variance layers' plots.
     """
 
     workflows: GOFFWorkflowsParamGroup
@@ -1129,6 +1148,7 @@ class GOFFRootParamGroup(RootParamGroup):
     prodpath: Optional[GOFFProductPathGroupParamGroup] = None
 
     quiver: Optional[GOFFQuiverParamGroup] = None
+    variances: Optional[GOFFVarianceLayersParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1154,6 +1174,11 @@ class GOFFRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="quiver",
                 param_grp_cls_obj=GOFFQuiverParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="variances",
+                param_grp_cls_obj=GOFFVarianceLayersParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1167,6 +1192,7 @@ class GOFFRootParamGroup(RootParamGroup):
             GOFFProductPathGroupParamGroup,
             GOFFWorkflowsParamGroup,
             GOFFQuiverParamGroup,
+            GOFFVarianceLayersParamGroup
         )
 
 
