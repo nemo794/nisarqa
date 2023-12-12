@@ -90,19 +90,30 @@ def verify_igram(
     if not verbose:
         print(msg)
 
+    if product_type == "rifg":
+        product = nisarqa.RIFG(input_file)
+    elif product_type == "runw":
+        product = nisarqa.RUNW(input_file)
+    else:
+        assert product_type == "gunw"
+        product = nisarqa.GUNW(input_file)
+
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
         log.info(msg)
 
-        # TODO Validate file structure
-        # (After this, we can assume the file structure for all
-        # subsequent accesses to it)
-        # NOTE: Refer to the original get_freq_pol() for the verification
-        # checks. This could trigger a fatal error!
+        # Build list of polarizations
+        freq_pol: dict[str, list[str]] = {}
+        for freq in product.list_of_frequencies:
+            freq_pol[freq] = product.get_list_of_polarizations(freq=freq)
 
-        # These reports will be saved to the SUMMARY.csv file.
-        # For now, output the stub file
-        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
+        nisarqa.verify_file(
+            input_file=product.filepath,
+            product_type=product.product_type.lower(),
+            product_spec_version=product.product_spec_version,
+            freq_pols=freq_pol,
+        )
+
         msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
         log.info(msg)
         msg = "Input file validation complete."
@@ -110,16 +121,11 @@ def verify_igram(
         if not verbose:
             print(msg)
 
+        # TODO - Sam, remove this line once the PASS/FAIL checks are implemented.
+        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
+
     if root_params.workflows.qa_reports:
         log.info("Beginning processing of `qa_reports` items...")
-
-        if product_type == "rifg":
-            product = nisarqa.RIFG(input_file)
-        elif product_type == "runw":
-            product = nisarqa.RUNW(input_file)
-        else:
-            assert product_type == "gunw"
-            product = nisarqa.GUNW(input_file)
 
         # TODO qa_reports will add to the SUMMARY.csv file.
         # For now, make sure that the stub file is output

@@ -92,9 +92,9 @@ def verify_gcov(
 
         nisarqa.verify_file(
             input_file=product.filepath,
-            product_type=product.product_type,
+            product_type=product.product_type.lower(),
             product_spec_version=product.product_spec_version,
-            pols=freq_cov,
+            freq_pols=freq_cov,
         )
 
         msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
@@ -104,10 +104,8 @@ def verify_gcov(
         if not verbose:
             print(msg)
 
-        # TODO - Tyler, please delete this next line once XML-checker is integrated
+        # TODO - Sam, remove this line once the PASS/FAIL checks are implemented.
         nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
-
-        ########## End Sample Usage Code #########
 
         # TODO - this GCOV validation check should be integrated into
         # the actual product validation. For now, we'll leave it here.

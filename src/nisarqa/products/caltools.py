@@ -266,7 +266,7 @@ def populate_abscal_hdf5_output(
 def run_abscal_tool(
     abscal_params: AbsCalParamGroup,
     dyn_anc_params: DynamicAncillaryFileParamGroup,
-    input_filename: str | os.PathLike,
+    rslc: nisarqa.RSLC,
     stats_filename: str | os.PathLike,
 ) -> None:
     """
@@ -280,16 +280,12 @@ def run_abscal_tool(
     dyn_anc_params : DynamicAncillaryFileParamGroup
         A dataclass containing the parameters for the dynamic
         ancillary files.
-    input_filename : path-like
-        Filename (with path) for input NISAR Product
+    rslc : nisarqa.RSLC
+        The RSLC product.
     stats_filename : path-like
         Filename (with path) for output STATS.h5 file. This is where
         outputs from the CalTool should be stored.
     """
-    # Init RSLC product reader.
-    # Note that this does not store an open file handle.
-    rslc = nisarqa.RSLC(input_filename)
-
     for freq in rslc.freqs:
         # The scattering matrix of a canonical triangular trihedral corner
         # reflector is diagonal. We're only interested in measuring the co-pol
@@ -299,7 +295,7 @@ def run_abscal_tool(
         for pol in pols:
             results = run_abscal_single_freq_pol(
                 corner_reflector_csv=dyn_anc_params.corner_reflector_file,
-                rslc_hdf5=input_filename,
+                rslc_hdf5=rslc.filepath,
                 freq=freq,
                 pol=pol,
                 abscal_params=abscal_params,
@@ -714,7 +710,7 @@ def populate_pta_hdf5_output(
 def run_pta_tool(
     pta_params: PointTargetAnalyzerParamGroup,
     dyn_anc_params: DynamicAncillaryFileParamGroup,
-    input_filename: str | os.PathLike,
+    rslc: nisarqa.RSLC,
     stats_filename: str | os.PathLike,
 ) -> None:
     """
@@ -728,15 +724,12 @@ def run_pta_tool(
     dyn_anc_params : DynamicAncillaryFileParamGroup
         A dataclass containing the parameters for the dynamic
         ancillary files.
-    input_filename : path-like
-        Filename (with path) for input NISAR Product
+    rslc : nisarqa.RSLC
+        The RSLC product.
     stats_filename : path-like
         Filename (with path) for output STATS.h5 file. This is where
         outputs from the CalTool should be stored.
     """
-    # Init RSLC product reader.
-    # Note that this does not store an open file handle.
-    rslc = nisarqa.RSLC(input_filename)
 
     for freq in rslc.freqs:
         # The scattering matrix of a canonical triangular trihedral corner
@@ -747,7 +740,7 @@ def run_pta_tool(
         for pol in pols:
             results = run_pta_single_freq_pol(
                 corner_reflector_csv=dyn_anc_params.corner_reflector_file,
-                rslc_hdf5=input_filename,
+                rslc_hdf5=rslc.filepath,
                 freq=freq,
                 pol=pol,
                 pta_params=pta_params,

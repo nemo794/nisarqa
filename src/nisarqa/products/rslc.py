@@ -88,32 +88,35 @@ def verify_rslc(
     if not verbose:
         print(msg)
 
+    # All worksflows use the RSLC() product; only initialize once.
+    product = nisarqa.RSLC(filepath=input_file)
+
     # Run validate first because it checks the product spec
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
         log.info(msg)
 
-        # TODO Validate file structure
-        # (After this, we can assume the file structure for all
-        # subsequent accesses to it)
-        # NOTE: Refer to the original 'get_bands()' to check that in_file
-        # contains metadata, swaths, Identification groups, and that it
-        # is SLC/RSLC compliant. These should trigger a fatal error!
-        # NOTE: Refer to the original get_freq_pol() for the verification
-        # checks. This could trigger a fatal error!
+        # Build list of polarizations
+        freq_pol: dict[str, list[str]] = {}
+        for freq in product.list_of_frequencies:
+            freq_pol[freq] = product.get_list_of_polarizations(freq=freq)
 
-        # These reports will be saved to the SUMMARY.csv file.
-        # For now, output the stub file
-        nisarqa.output_stub_files(
-            output_dir=out_dir,
-            stub_files="summary_csv",
+        nisarqa.verify_file(
+            input_file=product.filepath,
+            product_type=product.product_type.lower(),
+            product_spec_version=product.product_spec_version,
+            freq_pols=freq_pol,
         )
+
         msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
         log.info(msg)
         msg = "Input file validation complete."
         log.info(msg)
         if not verbose:
             print(msg)
+
+        # TODO - Sam, remove this line once the PASS/FAIL checks are implemented.
+        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
 
     # If running these workflows, save the processing parameters and
     # identification group to STATS.h5
@@ -127,8 +130,6 @@ def verify_rslc(
         # workflow, so open in 'w' mode.
         # After this, always open STATS.h5 in 'r+' mode.
         with h5py.File(stats_file, mode="w") as stats_h5:
-            product = nisarqa.RSLC(input_file)
-
             # Save the processing parameters to the stats.h5 file
             # Note: If only the validate workflow is requested,
             # this will do nothing.
@@ -165,8 +166,6 @@ def verify_rslc(
         with h5py.File(stats_file, mode="r+") as stats_h5, PdfPages(
             report_file
         ) as report_pdf:
-            product = nisarqa.RSLC(filepath=input_file)
-
             # Save frequency/polarization info to stats file
             save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, product=product)
 
@@ -231,7 +230,7 @@ def verify_rslc(
         nisarqa.caltools.run_abscal_tool(
             abscal_params=root_params.abs_cal,
             dyn_anc_params=root_params.anc_files,
-            input_filename=input_file,
+            rslc=product,
             stats_filename=stats_file,
         )
         log.info(
@@ -267,7 +266,7 @@ def verify_rslc(
         nisarqa.caltools.run_pta_tool(
             pta_params=root_params.pta,
             dyn_anc_params=root_params.anc_files,
-            input_filename=input_file,
+            rslc=product,
             stats_filename=stats_file,
         )
         log.info(

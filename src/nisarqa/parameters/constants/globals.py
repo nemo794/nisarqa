@@ -104,8 +104,7 @@ def get_possible_pols(product_type):
     """
     if product_type not in LIST_OF_NISAR_PRODUCTS:
         raise ValueError(
-            f"input product type is {product_type}, but "
-            f"must be one of: {LIST_OF_NISAR_PRODUCTS}"
+            f"`{product_type=}`, but must be one of: {LIST_OF_NISAR_PRODUCTS}"
         )
 
     if product_type.endswith("slc"):

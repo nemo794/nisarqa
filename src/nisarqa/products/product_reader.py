@@ -284,8 +284,11 @@ class NisarProduct(ABC):
         KeyError
             If `listOfFrequencies` is missing.
         """
+        log = nisarqa.get_logger()
+
         id_group = self.identification_path
-        with nisarqa.open_h5_file(self.filepath) as f:
+
+        with h5py.File(self.filepath) as f:
             # listOfFrequencies should be in all test datasets.
             # If not, let h5py handle raising an error message.
             list_of_freqs = f[id_group]["listOfFrequencies"]
@@ -296,15 +299,36 @@ class NisarProduct(ABC):
                 list_of_freqs = [
                     nisarqa.byte_string_to_python_str(list_of_freqs[()])
                 ]
-                warnings.warn(
+                log.error(
                     "`listOfFrequencies` dataset is a scalar string, should"
                     " be a list of strings."
                 )
             else:
-                list_of_freqs = [
-                    nisarqa.byte_string_to_python_str(my_str)
-                    for my_str in list_of_freqs[()]
-                ]
+                if isinstance(list_of_freqs[0], np.bytes_):
+                    # list of byte strings. Yay!
+                    list_of_freqs = [
+                        nisarqa.byte_string_to_python_str(my_str)
+                        for my_str in list_of_freqs[()]
+                    ]
+                elif isinstance(list_of_freqs[0], bytes):
+                    # list of Python bytes objects. Boo.
+                    # This edge case occurs in some InSAR datasets, and should
+                    # be fixed for R4.
+                    list_of_freqs = [
+                        my_str.decode("utf-8") for my_str in list_of_freqs[()]
+                    ]
+                    # That's what we want to return in this function, but it
+                    # does not meet NISAR specs, so log an error.
+                    log.error(
+                        "`listOfPolarizations` dataset is a list of objects of"
+                        " type `bytes`, but should be a list of byte strings."
+                    )
+                else:
+                    raise TypeError(
+                        "`listOfPolarizations` dataset is a list of items of"
+                        f" type {type(list_of_freqs[0])}, but should be a list"
+                        " of byte strings."
+                    )
 
             # Sanity check that the contents make sense
             if not set(list_of_freqs).issubset({"A", "B"}):
@@ -335,8 +359,9 @@ class NisarProduct(ABC):
 
         # `listOfPolarizations` is always a child of the frequency group.
         freq_group = self.get_freq_path(freq=freq)
+        log = nisarqa.get_logger()
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             # `listOfPolarizations` should be in all frequency groups.
             # If not, let h5py handle raising an error message.
             list_of_pols = f[freq_group]["listOfPolarizations"]
@@ -347,7 +372,7 @@ class NisarProduct(ABC):
                 list_of_pols = [
                     nisarqa.byte_string_to_python_str(list_of_pols[()])
                 ]
-                warnings.warn(
+                log.error(
                     "`listOfPolarizations` dataset is a scalar string, should"
                     " be a list of strings."
                 )
@@ -360,14 +385,16 @@ class NisarProduct(ABC):
                     ]
                 elif isinstance(list_of_pols[0], bytes):
                     # list of Python bytes objects. Boo.
+                    # This edge case occurs in some InSAR datasets, and should
+                    # be fixed for R4.
                     list_of_pols = [
                         my_str.decode("utf-8") for my_str in list_of_pols[()]
                     ]
                     # That's what we want to return in this function, but it
-                    # does not meet NISAR specs, so emit a warning.
-                    warnings.warn(
-                        "`listOfPolarizations` dataset is a list of bytes"
-                        " objects, but should be a list of byte strings."
+                    # does not meet NISAR specs, so log an error.
+                    log.error(
+                        "`listOfPolarizations` dataset is a list of objects of"
+                        " type `bytes`, but should be a list of byte strings."
                     )
                 else:
                     raise TypeError(
@@ -2389,7 +2416,7 @@ class GCOV(NonInsarGeoProduct):
         # `listOfCovarianceTerms` is always a child of the frequency group.
         freq_group = self.get_freq_path(freq=freq)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             # `listOfCovarianceTerms` should be in all frequency groups.
             # If not, let h5py handle raising an error message.
             list_of_cov = f[freq_group]["listOfCovarianceTerms"]
@@ -2400,7 +2427,7 @@ class GCOV(NonInsarGeoProduct):
                 list_of_cov = [
                     nisarqa.byte_string_to_python_str(list_of_cov[()])
                 ]
-                warnings.warn(
+                nisarqa.get_logger().error(
                     "`listOfCovarianceTerms` dataset is a scalar string, should"
                     " be a list of strings."
                 )
