@@ -79,23 +79,24 @@ def verify_gcov(
     if not verbose:
         print(msg)
 
+    product = nisarqa.GCOV(filepath=input_file)
+
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
         log.info(msg)
 
-        # TODO Validate file structure
-        # (After this, we can assume the file structure for all
-        # subsequent accesses to it)
-        # NOTE: Refer to the original 'get_bands()' to check that in_file
-        # contains metadata, swaths, Identification groups, and that it
-        # is SLC/RSLC compliant. These should trigger a fatal error!
-        # NOTE: Refer to the original get_freq_pol() for the verification
-        # checks. This could trigger a fatal error!
+        # Build list of polarizations (terms)
+        freq_cov: dict[str, list[str]] = {}
+        for freq in product.list_of_frequencies:
+            freq_cov[freq] = product.get_list_of_covariance_terms(freq=freq)
 
-    if root_params.workflows.validate:
-        # These reports will be saved to the SUMMARY.csv file.
-        # For now, output the stub file
-        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
+        nisarqa.verify_file(
+            input_file=product.filepath,
+            product_type=product.product_type,
+            product_spec_version=product.product_spec_version,
+            pols=freq_cov,
+        )
+
         msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
         log.info(msg)
         msg = "Input file validation complete."
@@ -103,18 +104,8 @@ def verify_gcov(
         if not verbose:
             print(msg)
 
-        ####### Begin Sample Usage Code #######
-        list_of_freqs = product.list_of_frequencies
-
-        freq_pol: dict[str, list[str]] = {}
-        freq_cov: dict[str, list[str]] = {}
-        for freq in list_of_freqs:
-            freq_pol[freq] = product.get_list_of_polarizations(freq=freq)
-            freq_cov[freq] = product.get_list_of_covariance_terms(freq=freq)
-
-        # TODO: Fancy XML-HDF5 input file verification. For now, just print:
-        print(freq_pol)
-        print(freq_cov)
+        # TODO - Tyler, please delete this next line once XML-checker is integrated
+        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
 
         ########## End Sample Usage Code #########
 

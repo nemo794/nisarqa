@@ -117,6 +117,7 @@ from .parameters.gslc_params import *
 from .parameters.gcov_params import *
 from .parameters.insar_params import *
 from .products.product_reader import *
+from .products.file_verification.verify import *
 
 # keep individual products in their own namespace
 from .products import (
