@@ -2392,7 +2392,7 @@ class GCOV(NonInsarGeoProduct):
         with nisarqa.open_h5_file(self.filepath) as f:
             # `listOfCovarianceTerms` should be in all frequency groups.
             # If not, let h5py handle raising an error message.
-            list_of_cov = f[freq_group]["listOfCovarianceTers"]
+            list_of_cov = f[freq_group]["listOfCovarianceTerms"]
             nisarqa.verify_str_meets_isce3_conventions(ds=list_of_cov)
 
             if list_of_cov.shape == ():
