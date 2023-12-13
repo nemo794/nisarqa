@@ -1844,17 +1844,17 @@ class GSLC(SLC, NonInsarGeoProduct):
         log = nisarqa.get_logger()
         msg = (
             f"(%s) PASS/FAIL Check: Product raster dtype conforms"
-            f" to GSLC Product Spec dtype of complex64."
+            f" to GSLC Product Spec dtype of complex64. Dataset: %s "
         )
         if nisarqa.is_complex32(h5_file[raster_path]):
             # The GSLC dataset is complex32. Use the
             # ComplexFloat16Decoder so that numpy et al can read the datasets.
             dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
-            log.error(msg % "FAIL")
+            log.error(msg % ("FAIL", raster_path))
         else:
             # Use h5py's standard reader
             dataset = h5_file[raster_path]
-            log.info(msg % "PASS")
+            log.info(msg % ("PASS", raster_path))
 
         return dataset
 

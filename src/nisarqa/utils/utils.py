@@ -334,6 +334,9 @@ def set_logger_handler(
             " path-like or None."
         )
 
+    if mode not in ("w", "a"):
+        raise ValueError(f"{mode=}, must be either 'w' or 'a'.")
+
     # Setup the QA logger
     log = logging.getLogger("QA")
     # remove all existing (old) handlers

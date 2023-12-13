@@ -183,11 +183,16 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
         my_string = arr[idx]
         if not my_string:
             # empty string
-            errmsg = (
+            # Reason why warning and not error: By changes introduced to RSLC
+            # in PR: isce#1584, empty strings may be intentionally written to
+            # some datasets. This means an empty string is valid in some cases,
+            # but most datasets will not contain empty strings. Ref:
+            # https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1584/files#r19689
+            msg = (
                 f"Dataset `{ds.name}` is a 1D array of strings, but string at"
                 f" index {idx} is an empty string."
             )
-            log.error(errmsg)
+            log.warning(msg)
 
         verify_byte_string(my_string)
 

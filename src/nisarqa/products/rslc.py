@@ -711,8 +711,8 @@ def apply_gamma_correction(img_arr, gamma):
     invert_gamma_correction : inverts this function
     """
     # Normalize to range [0,1]
-    # There is at least one zero in the image array, which will cause an
-    # expected Runtime error. Ok to suppress.
+    # Any zeros in the image array will cause an expected Runtime warning.
+    # Ok to suppress.
     with nisarqa.ignore_runtime_warnings():
         # This line throws these warnings:
         #   "RuntimeWarning: divide by zero encountered in divide"
