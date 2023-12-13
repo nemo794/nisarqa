@@ -1227,7 +1227,7 @@ class NonInsarProduct(NisarProduct):
         return name
 
     @cached_property
-    def _layers(self) -> Mapping[str, dict[str, str]]:
+    def _layers(self) -> dict[str, dict[str, str]]:
         """
         Locate available bands, frequencies, and polarizations in the product.
 
@@ -1690,7 +1690,7 @@ class RSLC(SLC, NisarRadarProduct):
         else:
             # Use h5py's standard reader
             dataset = h5_file[raster_path]
-            log.warning(msg % ("FAIL", raster_path))
+            log.error(msg % ("FAIL", raster_path))
 
         return dataset
 
@@ -1818,7 +1818,7 @@ class RSLC(SLC, NisarRadarProduct):
                 if (units[0].lower() != "h") or (units[-1].lower() != "z"):
                     errmsg = (
                         "Input product's `processedCenterFrequency` dataset"
-                        f" has units of {units}, but should be in Hertz."
+                        f" has units of {units}, but should be in hertz."
                     )
                     log.error(errmsg)
 
@@ -1850,7 +1850,7 @@ class GSLC(SLC, NonInsarGeoProduct):
             # The GSLC dataset is complex32. Use the
             # ComplexFloat16Decoder so that numpy et al can read the datasets.
             dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
-            log.warning(msg % "FAIL")
+            log.error(msg % "FAIL")
         else:
             # Use h5py's standard reader
             dataset = h5_file[raster_path]
@@ -1882,10 +1882,11 @@ class GCOV(NonInsarGeoProduct):
             spec_dtype = np.complex64
 
         raster_dtype = dataset.dtype
+        # If the check passes, log that as 'INFO', otherwise log as 'ERROR'
         pass_fail, logger = (
             ("PASS", log.info)
             if (raster_dtype == spec_dtype)
-            else ("FAIL", log.warning)
+            else ("FAIL", log.error)
         )
 
         logger(
