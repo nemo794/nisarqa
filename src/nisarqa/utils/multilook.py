@@ -45,7 +45,9 @@ def multilook(arr, nlooks):
         raise ValueError(f"Input array has {arr.ndim} but must be 1D or 2D.")
     nisarqa.verify_real_or_complex_dtype(arr)
     nlooks = normalize_nlooks(nlooks, arr)
-    validate_nlooks(nlooks, arr)
+
+    with nisarqa.ignore_runtime_warnings():
+        validate_nlooks(nlooks, arr)
 
     # Step 2: Initialize output array with zeros.
     out_shape = tuple([m // n for m, n in zip(arr.shape, nlooks)])

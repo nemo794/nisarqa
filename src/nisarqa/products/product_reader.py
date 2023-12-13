@@ -2303,10 +2303,11 @@ class InsarProduct(NisarProduct):
             # dataset.dtype returns e.g. "<f4" for NISAR products.
             # Use .base to convert to equivalent native numpy dtype.
             log = nisarqa.get_logger()
+            # If the check passes, log as 'INFO', otherwise log as 'WARNING'
             pass_fail, logger = (
                 ("PASS", log.info)
                 if (product_dtype.base == expected_dtype)
-                else ("FAIL", log.warning)
+                else ("FAIL", log.error)
             )
 
             logger(
@@ -2722,7 +2723,7 @@ class RIFG(WrappedGroup, IgramOffsetsGroup, NisarRadarProduct):
             wrapped_pols = super(WrappedGroup, self).get_pols(freq)
             offset_pols = super(IgramOffsetsGroup, self).get_pols(freq)
             if set(wrapped_pols) != set(offset_pols):
-                warnings.warn(
+                nisarqa.get_logger().error(
                     f"Wrapped interferogram group contains {wrapped_pols},"
                     f" but the pixel offsets group contains {offset_pols}."
                 )
@@ -2745,7 +2746,7 @@ class RUNW(UnwrappedGroup, IgramOffsetsGroup, NisarRadarProduct):
             unwrapped_pols = super(UnwrappedGroup, self).get_pols(freq)
             offset_pols = super(IgramOffsetsGroup, self).get_pols(freq)
             if set(unwrapped_pols) != set(offset_pols):
-                warnings.warn(
+                nisarqa.get_logger().error(
                     f"Unwrapped interferogram group contains {unwrapped_pols},"
                     f" but the pixel offsets group contains {offset_pols}."
                 )
@@ -2774,14 +2775,15 @@ class GUNW(
             unwrapped_pols = super(UnwrappedGroup, self).get_pols(freq)
             offset_pols = super(IgramOffsetsGroup, self).get_pols(freq)
 
+            log = nisarqa.get_logger()
             if set(wrapped_pols) != set(unwrapped_pols):
-                warnings.warn(
+                log.error(
                     f"Wrapped interferogram group contains {wrapped_pols},"
                     " but the unwrapped phase image group contains "
                     f" {unwrapped_pols}."
                 )
             if set(wrapped_pols) != set(offset_pols):
-                warnings.warn(
+                log.error(
                     f"Wrapped interferogram group contains {wrapped_pols},"
                     f" but the pixel offsets group contains {offset_pols}."
                 )
@@ -2936,15 +2938,15 @@ class OffsetProduct(InsarProduct):
                         golden_layers = layers_tmp.copy()
                         golden_pol = pol
                     elif set(golden_layers) != set(layers_tmp):
-                        warnings.warn(
+                        nisarqa.get_logger().error(
                             f"Freq {freq} Pol {golden_pol} contains layers"
                             f" {golden_layers}, but Freq {freq} Pol {pol}"
                             f" contains layers {layers_tmp}."
                         )
 
             if not golden_layers:
-                warnings.warn(f"No layer groups found for Freq {freq}.")
-                raise nisarqa.DatasetNotFoundError
+                msg = f"No layer groups found for Freq {freq}."
+                raise nisarqa.DatasetNotFoundError(msg)
 
             return golden_layers
 
@@ -2957,7 +2959,7 @@ class OffsetProduct(InsarProduct):
         if len(self.freqs) == 2:
             layers_2 = _get_available_layer_numbers(self.freqs[1])
             if set(layers_1) != set(layers_2):
-                warnings.warn(
+                nisarqa.get_logger().error(
                     f"Frequency {self.freqs[0]} contains layers {layers_1}, but"
                     f" Frequency {self.freqs[1]} contains layers {layers_2}."
                 )
