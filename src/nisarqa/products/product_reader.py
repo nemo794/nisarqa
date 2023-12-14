@@ -797,24 +797,40 @@ class NisarRadarProduct(NisarProduct):
         az_start = float(h5_file[path][0]) - 0.5 * ground_az_spacing
         az_stop = float(h5_file[path][-1]) + 0.5 * ground_az_spacing
 
-        # Use zeroDopplerTime's units attribute to read the epoch
-        # output of the next line will have the format:
-        #       'seconds since YYYY-MM-DD HH:MM:SS'
-        sec_since_epoch = h5_file[path].attrs["units"].decode("utf-8")
-        epoch = sec_since_epoch.replace("seconds since ", "").strip()
+        # Use zeroDopplerTime's units attribute to read the epoch.
+        sec_since_epoch = h5_file[path].attrs["units"]
+        sec_since_epoch = nisarqa.byte_string_to_python_str(sec_since_epoch)
 
-        # Sanity Check
-        format_data = "seconds since %Y-%m-%d %H:%M:%S"
+        # Datetime Format Validation check
+        meaningful_datetime = True
+        epoch_format = f"seconds since {nisarqa.NISAR_DATETIME_FORMAT_PYTHON}"
         try:
-            datetime.strptime(sec_since_epoch, format_data)
+            # If this does not error, then epoch has correct format. Yay!
+            datetime.strptime(sec_since_epoch, epoch_format)
         except ValueError:
-            nisarqa.get_logger().error(
-                f"Invalid epoch format in input file: {sec_since_epoch}"
+            msg = (
+                f"The units attribute of dataset {path} has format"
+                f" '{sec_since_epoch}', but should follow format"
+                f" 'seconds since {nisarqa.NISAR_DATETIME_FORMAT_HUMAN}'"
             )
-            # This text should appear in the REPORT.pdf to make it obvious:
-            epoch = "INVALID EPOCH"
-        else:
+            nisarqa.get_logger().error(msg)
+
+            # Old test datasets used the format: YYYY-mm-dd HH:MM:SS.
+            # If so, that is still meaningful to human users in the PDF report.
+            old_data_format = "seconds since %Y-%m-%d %H:%M:%S"
+            try:
+                datetime.strptime(sec_since_epoch, old_data_format)
+            except:
+                # The format is unexpected, so no meaningful knowledge can
+                # be extracted in an automated way to populate the PDF report.
+                meaningful_datetime = False
+
+        # Validation complete. Set the epoch string variable accordingly.
+        if meaningful_datetime:
+            # Extract the date and time portion from the epoch string
             epoch = sec_since_epoch.replace("seconds since ", "").strip()
+        else:
+            epoch = "INVALID EPOCH"
 
         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
         # 'Nominal ground range spacing in meters between consecutive pixels
