@@ -1319,33 +1319,33 @@ def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
     # Get size of ax window in inches
     bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
 
-    height, width = np.shape(arr)[:2]
-    if height >= width:
+    src_arr_height, src_arr_width = np.shape(arr)[:2]
+    if src_arr_height >= src_arr_width:
         # In this conditional, the image is taller than it is wide.
         # So, we'll want to "shrink" the image to the height of the axis.
         # (Multiply by fig.dpi to convert from inches to pixels.)
         desired_longest = bbox.height * fig.dpi
 
-        if desired_longest <= height:
-            # array is smaller than the window extent. No decimation needed.
+        if src_arr_height <= desired_longest:
+            # input array is smaller than window extent. No decimation needed.
             return arr
 
         # Use floor division. (Better to have resolution that is *slightly*
         # better than the axes size, rather than the image being too small
         # and needing to re-stretch it bigger to the size of the axes.)
-        stride = int(height / desired_longest)
+        stride = int(src_arr_height / desired_longest)
     else:
         # In this conditional, the image is shorter than it is tall.
         # So,  we'll want to "shrink" the image to the width of the axis.
         # (Multiply by fig.dpi to convert from inches to pixels.)
         desired_longest = bbox.width * fig.dpi
 
-        if desired_longest <= width:
-            # array is smaller than the window extent. No decimation needed.
+        if src_arr_width <= desired_longest:
+            # input array is smaller than window extent. No decimation needed.
             return arr
 
         # Use floor division. See explanation above.)
-        stride = int(width / desired_longest)
+        stride = int(src_arr_width / desired_longest)
 
     # Decimate to the correct size along the X and Y directions.
     return arr[::stride, ::stride]
