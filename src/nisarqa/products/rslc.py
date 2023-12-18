@@ -563,11 +563,11 @@ def get_multilooked_backscatter_img(
             grp_path=grp_path,
             ds_name=dataset_name,
             ds_data=nlooks,
-            ds_units="unitless",
+            ds_units="1",
             ds_description=(
                 f"Number of looks along {axes} axes of "
                 f"Frequency {img.freq.upper()} image arrays "
-                "for multilooking the backscatter and browse images."
+                "for multilooking the backscatter and browse images"
             ),
         )
 
@@ -1591,7 +1591,7 @@ def generate_range_spectra_single_freq(
         ds_data=fft_freqs,
         ds_units=freq_units,
         ds_description=(
-            f"Frequency coordinates for Frequency {freq} range power spectra."
+            f"Frequency coordinates for Frequency {freq} range power spectra"
         ),
     )
 
@@ -1627,7 +1627,7 @@ def generate_range_spectra_single_freq(
                 ds_units=rng_spec_units,
                 ds_description=(
                     "Normalized range power spectral density for Frequency"
-                    f" {freq}, Polarization {pol}."
+                    f" {freq}, Polarization {pol}"
                 ),
             )
 

@@ -314,7 +314,7 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="equalizeBrowse",
-                units="unitless",
+                units="1",
                 descr=(
                     "If True, histogram equalization was applied to the"
                     " intensity channel (coherence magnitude layer) in the"
@@ -390,7 +390,7 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="HSIImageRewrap",
-                units="unitless",
+                units="1",
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
                     " image in the HSI image(s). 'None' if no rewrapping"
@@ -465,7 +465,7 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="phaseImageRewrap",
-                units="unitless",
+                units="1",
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
                     " image. 'None' if no rewrapping"

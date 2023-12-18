@@ -49,14 +49,20 @@ class HDF5Attrs:
     units : str
         Units for this dataset; will be stored in a `units` attribute
         for the new Dataset.
-        For NISAR datasets, use this convention:
-            - If the values have dimensions, use CF-compliant names (e.g. 'meters')
-            - If the values are numeric but dimensionless (e.g. ratios),
-                set `units` to 'unitless'
-            - If the values are inherently descriptive and have no units
-                (e.g. a file name, or a list of frequency names such as ['A', 'B']),
-                then set `units` to None so that no units attribute
-                is created.
+        NISAR datasets use this convention:
+            - If values have dimensions, use CF- and UDUNITS-compliant names.
+              Units should be spelled out:
+                  Correct: "meters"
+                  Incorrect: "m"
+              Units should favor math symbols:
+                  Correct: "meters / second ^ 2"
+                  Incorrect: "meters per second squared"
+            - If values are numeric but dimensionless (e.g. ratios),
+              set `ds_units` to "1" (the string "1").
+            - If values are inherently descriptive and have no units
+              (e.g. a file name, or a list of frequency names like: ['A', 'B']),
+              then set `ds_units` to None so that no units attribute
+              is created.
     descr : str
         Short one-line description of this parameter. Preferably,
         this should meet CF conventions; can be used for the stats.h5 file.

@@ -260,7 +260,7 @@ def populate_abscal_hdf5_output(
             " in linear units."
         ),
         ds_dtype=np.float_,
-        ds_units="unitless",
+        ds_units="1",
     )
 
 
@@ -365,7 +365,7 @@ def run_noise_estimation_tool(params, input_filename, stats_filename):
                 ds_name="NoiseEstimationToolResult",
                 ds_data=result,
                 ds_description="Percent better than 12.0 parsecs",
-                ds_units="unitless",
+                ds_units="1",
             )
 
 
@@ -559,7 +559,7 @@ def populate_pta_hdf5_output(
         ds_name="peakMagnitude",
         ds_descr="The peak magnitude of the impulse response.",
         ds_dtype=np.float_,
-        ds_units="unitless",
+        ds_units="1",
     )
 
     create_dataset_from_pta_results(
@@ -601,7 +601,7 @@ def populate_pta_hdf5_output(
                 " lobe + first sidelobe."
             ),
             ds_dtype=np.float_,
-            ds_units="unitless",
+            ds_units="1",
         )
 
         create_dataset_from_pta_results(
@@ -615,7 +615,7 @@ def populate_pta_hdf5_output(
                 " to the peak main lobe power."
             ),
             ds_dtype=np.float_,
-            ds_units="unitless",
+            ds_units="1",
         )
 
         create_dataset_from_pta_results(
@@ -696,7 +696,7 @@ def populate_pta_hdf5_output(
                 f" {direction}."
             ),
             ds_dtype=np.float_,
-            ds_units="unitless",
+            ds_units="1",
         )
 
         create_dataset_from_pta_results(

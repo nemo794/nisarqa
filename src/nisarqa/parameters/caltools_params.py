@@ -1,12 +1,7 @@
 from dataclasses import dataclass, field
 
 import nisarqa
-from nisarqa import (
-    HDF5Attrs,
-    HDF5ParamGroup,
-    YamlAttrs,
-    YamlParamGroup,
-)
+from nisarqa import HDF5Attrs, HDF5ParamGroup, YamlAttrs, YamlParamGroup
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -103,7 +98,7 @@ class AbsCalParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="upsampleFactor",
-                units="unitless",
+                units="1",
                 descr="The upsampling ratio.",
                 group_path=nisarqa.STATS_H5_ABSCAL_PROCESSING_GROUP,
             ),
@@ -399,7 +394,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="upsampleFactor",
-                units="unitless",
+                units="1",
                 descr="The upsampling ratio.",
                 group_path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP,
             ),
@@ -506,7 +501,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="samplingRateBandwidthRatio",
-                units="unitless",
+                units="1",
                 descr=(
                     "Assumed ratio of sampling rate to bandwidth in the RSLC"
                     " image data."
@@ -566,7 +561,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="windowShape",
-                units="unitless",
+                units="1",
                 descr="Assumed window shape parameter used in RSLC formation.",
                 group_path=nisarqa.STATS_H5_PTA_PROCESSING_GROUP,
             ),

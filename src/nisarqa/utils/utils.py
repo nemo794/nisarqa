@@ -175,27 +175,53 @@ def create_dataset_in_h5group(
     ds_units : str or None, optional
         Units of `ds_data`; will be stored in a `units` attribute
         for the new Dataset.
-        For NISAR datasets, use this convention:
-            - If values have dimensions, use CF-compliant names (e.g. 'meters')
+        NISAR datasets use this convention:
+            - If values have dimensions, use CF- and UDUNITS-compliant names.
+              Units should be spelled out:
+                  Correct: "meters"
+                  Incorrect: "m"
+              Units should favor math symbols:
+                  Correct: "meters / second ^ 2"
+                  Incorrect: "meters per second squared"
             - If values are numeric but dimensionless (e.g. ratios),
-              set `ds_units` to 'unitless'
+              set `ds_units` to "1" (the string "1").
             - If values are inherently descriptive and have no units
               (e.g. a file name, or a list of frequency names like: ['A', 'B']),
               then set `ds_units` to None so that no units attribute
               is created.
         Defaults to None (no units attribute will be created)
+
+    Notes
+    -----
+    Please supply Python strings for arguments. This function handles the
+    conversion to fixed-length byte strings to meet ISCE3 conventions for R4.
     """
+    if not (isinstance(ds_units, str) or (ds_units is None)):
+        raise TypeError(
+            f"`{ds_units=}` and has type `{type(ds_units)}`, but must be a"
+            " string or None."
+        )
+
+    if ds_units == "unitless":
+        raise ValueError(
+            f"{ds_units=}. As of R4, please use the string '1' as the"
+            " `ds_units` for numeric but unitless datasets."
+        )
+
     grp = h5_file.require_group(grp_path)
 
+    # If a string or a list of strings, convert to fixed-length byte strings
+    if isinstance(ds_data, str):
+        ds_data = np.bytes_(ds_data)
+    elif isinstance(ds_data, (list, tuple)) and isinstance(ds_data[0], str):
+        ds_data = np.bytes_(ds_data)
+
+    # Create dataset and add attributes
     ds = grp.create_dataset(ds_name, data=ds_data)
     if ds_units is not None:
-        ds.attrs.create(name="units", data=ds_units, dtype=f"<S{len(ds_units)}")
+        ds.attrs.create(name="units", data=np.bytes_(ds_units))
 
-    ds.attrs.create(
-        name="description",
-        data=ds_description,
-        dtype=f"<S{len(ds_description)}",
-    )
+    ds.attrs.create(name="description", data=np.bytes_(ds_description))
 
 
 def multi_line_string_iter(multiline_str):

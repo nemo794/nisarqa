@@ -1605,7 +1605,7 @@ def process_az_and_range_combo_plots(
             grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP % product.band,
             ds_name="browseDecimation",
             ds_data=[y_dec, x_dec],
-            ds_units="unitless",
+            ds_units="1",
             ds_description=(
                 "Decimation strides for the browse image."
                 " Format: [<y decimation>, <x decimation>]."

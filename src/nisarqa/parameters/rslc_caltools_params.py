@@ -252,7 +252,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="backscatterImagePercentileClipped",
-                units="unitless",
+                units="1",
                 descr=(
                     "Percentile range that the image array was clipped to"
                     " and that the colormap covers"
@@ -278,7 +278,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="backscatterImageGammaCorrection",
-                units="unitless",
+                units="1",
                 descr=(
                     "Gamma correction parameter applied to backscatter and"
                     " browse image(s). Dataset will be type float if gamma was"
@@ -489,7 +489,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="histogramDecimationRatio",
-                units="unitless",
+                units="1",
                 descr=(
                     "Image decimation strides used to compute backscatter"
                     " and phase histograms. Format: [<azimuth>, <range>]"
@@ -706,7 +706,7 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="rangeSpectraDecimationAlongAzimuth",
-                units="unitless",
+                units="1",
                 descr=(
                     "Decimation stride along the azimuth axis used to"
                     " compute the range spectra."
