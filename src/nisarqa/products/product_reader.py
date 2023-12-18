@@ -495,21 +495,41 @@ class NisarProduct(ABC):
                 # Check that `isGeocoded` is set correctly, i.e. that it is
                 # False in range Doppler products, and True in Geocoded products
                 ds_handle = f[id_group]["isGeocoded"]
-                if self.is_geocoded is not bool(ds_handle[...]):
+
+                # Check that the value has the correct dtype and formatting
+                # (this reports the results to the log)
+                nisarqa.verify_isce3_boolean(ds_handle)
+
+                data = ds_handle[()]
+
+                if np.issubdtype(data.dtype, np.bytes_):
+                    data = nisarqa.byte_string_to_python_str(data)
+
+                    # Convert from string to boolean. (`verify_isce3_boolean()`
+                    # already logged if data is one of True or False.)
+                    # Without this conversion, casting the string "False" as
+                    # a boolean results in True.
+                    data = True if (data == "True") else False
+
+                if self.is_geocoded is not bool(data):
                     log.error(
                         "WARNING `/identification/isGeocoded` field has value"
                         f" {ds_handle[...]}, which is inconsistent with"
                         f" product type of {self.product_type}."
                     )
-                # Check that the value has the correct dtype and formatting
-                nisarqa.verify_isce3_boolean(ds_handle)
+                else:
+                    log.info(
+                        "`/identification/isGeocoded` field has value"
+                        f" {ds_handle[...]}, which is consistent with"
+                        f" product type of {self.product_type}."
+                    )
             else:
                 # The `isGeocoded` field is not necessary for successful
                 # completion QA SAS: whether a product is geocoded
                 # or not can be determined by the product type (e.g. RSLC vs.
                 # GSLC). So let's simply log the error and let QA continue;
                 # this will alert developers that the product is faulty.
-                log.error("Product missing `identification > isGeocoded` field")
+                log.error("Product missing `/identification/isGeocoded` field")
 
     def _check_data_group_path(self) -> None:
         """Sanity check to ensure the grid path exists in the input file."""
