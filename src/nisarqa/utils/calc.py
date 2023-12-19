@@ -244,6 +244,7 @@ def hz2mhz(arr: np.ndarray) -> np.ndarray:
 
 def compute_and_save_basic_statistics(
     arr: ArrayLike,
+    is_geocoded: bool,
     units: str,
     grp_path: str,
     stats_h5: h5py.File,
@@ -259,6 +260,15 @@ def compute_and_save_basic_statistics(
     ----------
     arr : ArrayLike
         Input array.
+    is_geocoded : bool
+        Set to `True` if `arr` is a geocoded product, otherwise False.
+        This flag will be used to set the thresholds for alerting users if the
+        percentage of NaN or zero valued pixels to above a certain threshold.
+        If False, this threshold will be set to 25%; images in range Doppler
+        products should be mostly numeric.
+        If True, this threshold will be set to 95.0%; images in geocoded
+        products have fill values in non-imagery areas, which are likely
+        to make up a significant portion of the raster.
     units : str
         The units of the input array. If `data` is numeric but unitless
         (e.g ratios), by NISAR convention please use the string "1".
@@ -269,6 +279,8 @@ def compute_and_save_basic_statistics(
     arr_name : string, optional
         A human-readable name for `arr`. (To be used in log messages.)
     """
+    log = nisarqa.get_logger()
+
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
@@ -305,27 +317,28 @@ def compute_and_save_basic_statistics(
         ds_description="Standard deviation of dataset, excluding NaN.",
     )
 
-    percent_nan = 100 * np.sum(np.isfinite(arr)) / arr.size
+    percent_nan = 100 * np.sum(~np.isfinite(arr)) / arr.size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
         ds_name="percentNan",
         ds_data=percent_nan,
         ds_units="1",
-        ds_description="Percent of dataset elements with NaN value.",
+        ds_description="Percent of dataset elements with non-finite value.",
     )
 
-    threshhold = 95.0
+    threshhold = 95.0 if is_geocoded else 25.0
     if arr_name is None:
         arr_name = ""
+
     msg = (
-        f"(%s) PASS/FAIL: Array {arr_name} has less than {threshhold} percent"
-        " NaN."
+        f"(%s) PASS/FAIL: Array {arr_name} is {percent_nan} percent NaN pixels,"
+        f" which is greater than the threshold of {threshhold} percent NaN."
     )
-    if percent_nan >= 95.0:
-        warnings.warn(msg % "FAIL")
+    if percent_nan >= threshhold:
+        log.error(msg % "FAIL")
     else:
-        print(msg % "PASS")
+        log.info(msg % "PASS")
 
     percent_zero = 100 * np.sum(np.abs(arr) < 1e-6) / arr.size
     nisarqa.create_dataset_in_h5group(
@@ -338,13 +351,14 @@ def compute_and_save_basic_statistics(
     )
 
     msg = (
-        f"(%s) PASS/FAIL: Array {arr_name} has less than {threshhold} percent"
+        f"(%s) PASS/FAIL: Array {arr_name} is {percent_zero} percent zero"
+        f" pixels, which is greater than the threshold of {threshhold} percent"
         " zeros."
     )
-    if percent_zero >= 95.0:
-        warnings.warn(msg % "FAIL")
+    if percent_zero >= threshhold:
+        log.error(msg % "FAIL")
     else:
-        print(msg % "PASS")
+        log.info(msg % "PASS")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
