@@ -116,7 +116,9 @@ def plot_ionosphere_phase_screen_to_pdf(
     screen layer will be rewrapped to (-pi, pi] and not [-pi, pi).
     """
     # Validate that the pertinent metadata in the rasters is equal.
-    nisarqa.compare_raster_metadata(iono_raster, iono_uncertainty_raster)
+    nisarqa.compare_raster_metadata(
+        iono_raster, iono_uncertainty_raster, almost_identical=False
+    )
 
     # Setup the side-by-side PDF page
     fig, (ax1, ax2) = plt.subplots(
@@ -259,7 +261,7 @@ def process_phase_image_unwrapped(
                     units=img.units,
                     grp_path=img.stats_h5_group_path,
                     stats_h5=stats_h5,
-                    arr_name=img.name
+                    arr_name=img.name,
                 )
 
 
@@ -432,7 +434,7 @@ def process_phase_image_wrapped(
                     units=complex_img.units,
                     grp_path=complex_img.stats_h5_group_path,
                     stats_h5=stats_h5,
-                    arr_name=complex_img.name
+                    arr_name=complex_img.name,
                 )
                 nisarqa.compute_and_save_basic_statistics(
                     arr=coh_img.data,
@@ -440,7 +442,7 @@ def process_phase_image_wrapped(
                     units=coh_img.units,
                     grp_path=coh_img.stats_h5_group_path,
                     stats_h5=stats_h5,
-                    arr_name=coh_img.name
+                    arr_name=coh_img.name,
                 )
 
 
@@ -481,7 +483,9 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     """
 
     # Validate that the pertinent metadata in the rasters is equal.
-    nisarqa.compare_raster_metadata(complex_raster, coh_raster)
+    nisarqa.compare_raster_metadata(
+        complex_raster, coh_raster, almost_identical=False
+    )
 
     phs_img, cbar_min_max = get_phase_array(
         phs_or_complex_raster=complex_raster,
@@ -1073,7 +1077,9 @@ def make_hsi_raster(
         will be the range [-pi, +pi].
     """
     # Validate input rasters
-    nisarqa.compare_raster_metadata(phs_or_complex_raster, coh_raster)
+    nisarqa.compare_raster_metadata(
+        phs_or_complex_raster, coh_raster, almost_identical=False
+    )
 
     phs_img, cbar_min_max = get_phase_array(
         phs_or_complex_raster=phs_or_complex_raster,
@@ -1543,7 +1549,7 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
         units=az_offset.units,
         grp_path=az_offset.stats_h5_group_path,
         stats_h5=stats_h5,
-        arr_name=az_offset.name
+        arr_name=az_offset.name,
     )
 
     nisarqa.compute_and_save_basic_statistics(
@@ -1552,7 +1558,7 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
         units=rg_offset.units,
         grp_path=rg_offset.stats_h5_group_path,
         stats_h5=stats_h5,
-        arr_name=rg_offset.name
+        arr_name=rg_offset.name,
     )
 
 
@@ -1592,7 +1598,7 @@ def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
         The output PDF file to append the offsets plots to.
     """
     # Validate that the pertinent metadata in the rasters is equal.
-    nisarqa.compare_raster_metadata(az_offset, rg_offset)
+    nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
 
     az_img = nisarqa.decimate_raster_array_to_square_pixels(az_offset)
     rg_img = nisarqa.decimate_raster_array_to_square_pixels(rg_offset)
@@ -1834,7 +1840,7 @@ def plot_offsets_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
         the pixel offset displacement image.
     """
     # Validate input rasters
-    nisarqa.compare_raster_metadata(az_offset, rg_offset)
+    nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
 
     # Grab the datasets into arrays in memory (with square pixels).
     az_off = nisarqa.decimate_raster_array_to_square_pixels(
@@ -1938,7 +1944,7 @@ def plot_single_quiver_plot_to_png(
         direction (respectively).
     """
     # Validate input rasters
-    nisarqa.compare_raster_metadata(az_offset, rg_offset)
+    nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
 
     # Compute decimation values for the browse image PNG.
     if (az_offset.freq == "A") and (params.browse_decimation_freqa is not None):

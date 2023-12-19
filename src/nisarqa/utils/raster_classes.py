@@ -378,6 +378,7 @@ class GeoRaster(SARRaster):
 def compare_raster_metadata(
     raster1: nisarqa.RadarRaster,
     raster2: nisarqa.RadarRaster,
+    almost_identical: bool,
 ) -> None: ...
 
 
@@ -385,13 +386,11 @@ def compare_raster_metadata(
 def compare_raster_metadata(
     raster1: nisarqa.GeoRaster,
     raster2: nisarqa.GeoRaster,
+    almost_identical: bool,
 ) -> None: ...
 
 
-def compare_raster_metadata(
-    raster1,
-    raster2,
-):
+def compare_raster_metadata(raster1, raster2, almost_identical=True):
     """
     Compare the primary metadata and shape of two *Raster instances.
 
@@ -407,6 +406,19 @@ def compare_raster_metadata(
     ----------
     raster1, raster2 : nisarqa.RadarRaster | nisarqa.GeoRaster
         *Raster to compare. `raster1` and `raster2` must have the same type.
+    almost_identical : bool, optional
+        True if the two inputs rasters are expected to have identical metadata
+        (except for the layer name).
+            Ex 1: RSLC's frequency A HH Raster vs frequency A VV Raster
+            Ex 2: RIFG's freq A HH alongTrackOffset Raster vs
+                  freq A HH slantRangeOffset Raster
+        False if the two input rasters are expected to have more differences in their
+        metadata, and should only have matching shape, spacing, etc.
+        In practise, this supresses warnings about expected dissimilar
+        fields, such as `units`.
+            Ex: RIFG's freq A HH wrappedInterferogram Raster vs freq A HH
+                coherenceMagnitude Raster
+        Defaults to True (more verbose).
 
     Raises
     ------
@@ -434,14 +446,14 @@ def compare_raster_metadata(
                     f"Values do not match: {np.shape(raster1.data)=} but"
                     f" {np.shape(raster2.data)=}."
                 )
-        elif r1.name == "units":
+        elif (not almost_identical) and (r1.name == "units"):
             if raster1.units != raster2.units:
                 log.warning(
                     f"Layer `{raster1.name}` has units attribute of"
                     f" `{raster1.units}`, and is being compared to layer"
                     f" `{raster2.name}` which has units attribute of"
-                    f" `{raster2.units}`. Please confirm these two rasters are"
-                    " ok to have different units."
+                    f" `{raster2.units}`. Please confirm these two rasters"
+                    " are ok to have different units."
                 )
         elif r1.name == "name":
             # "name" dataclass attributes should be the same
