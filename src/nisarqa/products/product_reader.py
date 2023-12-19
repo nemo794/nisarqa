@@ -3468,7 +3468,6 @@ class OffsetProduct(InsarProduct):
         with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
-
     @contextmanager
     def get_along_track_offset_variance(
         self, freq: str, pol: str, layer_num: int
@@ -3493,7 +3492,7 @@ class OffsetProduct(InsarProduct):
         path = f"{parent_path}/alongTrackOffsetVariance"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
@@ -3520,7 +3519,7 @@ class OffsetProduct(InsarProduct):
         path = f"{parent_path}/slantRangeOffsetVariance"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
-        with nisarqa.open_h5_file(self.filepath) as f:
+        with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
 

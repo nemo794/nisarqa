@@ -2220,6 +2220,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
                     # raise ValueError("TODO: Fill value is 999!")
                     nisarqa.compute_and_save_basic_statistics(
                         arr=az_off_var.data,
+                        is_geocoded=isinstance(az_off_var, nisarqa.GeoRaster),
                         units=az_off_var.units,
                         grp_path=az_off_var.stats_h5_group_path,
                         stats_h5=stats_h5,
@@ -2227,6 +2228,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
                     )
                     nisarqa.compute_and_save_basic_statistics(
                         arr=rg_off_var.data,
+                        is_geocoded=isinstance(rg_off_var, nisarqa.GeoRaster),
                         units=rg_off_var.units,
                         grp_path=rg_off_var.stats_h5_group_path,
                         stats_h5=stats_h5,
@@ -2311,7 +2313,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     im1 = ax1.imshow(
         az_var,
         aspect="equal",
-        cmap="magma",
+        cmap="magma_r",
         interpolation="none",
         vmin=cbar_min,
         vmax=cbar_max,
@@ -2331,7 +2333,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     im2 = ax2.imshow(
         rg_var,
         aspect="equal",
-        cmap="magma",
+        cmap="magma_r",
         interpolation="none",
         vmin=cbar_min,
         vmax=cbar_max,
