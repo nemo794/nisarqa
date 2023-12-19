@@ -1579,9 +1579,9 @@ def generate_range_spectra_single_freq(
         if params.hz_to_mhz:
             fft_freqs = nisarqa.hz2mhz(fft_freqs)
             proc_center_freq = nisarqa.hz2mhz(proc_center_freq)
-            freq_units = "MHz"
+            freq_units = "megahertz"
         else:
-            freq_units = "Hz"
+            freq_units = "hertz"
 
     # Save x-axis values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
