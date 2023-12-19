@@ -287,7 +287,7 @@ def compute_and_save_basic_statistics(
         ds_name="min_value",
         ds_data=np.nanmin(arr),
         ds_units=units,
-        ds_description="Minimum value in dataset, excluding NaN.",
+        ds_description="Minimum value of the numeric data points",
     )
 
     nisarqa.create_dataset_in_h5group(
@@ -296,7 +296,7 @@ def compute_and_save_basic_statistics(
         ds_name="max_value",
         ds_data=np.nanmax(arr),
         ds_units=units,
-        ds_description="Maximum value in dataset, excluding NaN.",
+        ds_description="Maximum value of the numeric data points",
     ),
 
     nisarqa.create_dataset_in_h5group(
@@ -305,7 +305,7 @@ def compute_and_save_basic_statistics(
         ds_name="mean_value",
         ds_data=np.nanmean(arr),
         ds_units=units,
-        ds_description="Mean of dataset, excluding NaN.",
+        ds_description="Arithmetic average of the numeric data points",
     )
 
     nisarqa.create_dataset_in_h5group(
@@ -314,7 +314,7 @@ def compute_and_save_basic_statistics(
         ds_name="sample_standard_deviation",
         ds_data=np.nanstd(arr),
         ds_units=units,
-        ds_description="Standard deviation of dataset, excluding NaN.",
+        ds_description="Standard deviation of the numeric data points",
     )
 
     percent_nan = 100 * np.sum(~np.isfinite(arr)) / arr.size
