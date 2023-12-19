@@ -855,6 +855,27 @@ class NisarProduct(ABC):
         """
         pass
 
+    @abstractmethod
+    def _get_raster_name(self, raster_path: str) -> str:
+        """
+        Return a name for the raster, e.g. 'RSLC_LSAR_A_HH'.
+
+        Parameters
+        ----------
+        raster_path : str
+            Full path in `h5_file` to the desired raster dataset.
+            Examples:
+                "/science/LSAR/GSLC/grids/frequencyA/HH"
+                "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
+
+        Returns
+        -------
+        name : str
+            The human-understandable name that is derived from the dataset.
+            Examples: "GSLC_L_A_HH" or "GUNW_L_A_HH_unwrappedPhase".
+        """
+        pass
+
 
 @dataclass
 class NisarRadarProduct(NisarProduct):
@@ -911,29 +932,6 @@ class NisarRadarProduct(NisarProduct):
             clockwise_corners[2],
         )
         return nisarqa.LatLonQuad(*geo_corners)
-
-    @abstractmethod
-    def _get_raster_name(self, raster_path: str) -> str:
-        """
-        Get the name for the raster, e.g. 'RSLC_LSAR_A_HH'.
-
-        Parameters
-        ----------
-        raster_path : str
-            Full path in `h5_file` to the desired raster dataset
-            Examples:
-                "/science/LSAR/GSLC/grids/frequencyA/HH"
-                "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
-
-        Returns
-        -------
-        name : str
-            The human-understandable name that is derived from the dataset.
-            Examples:
-                "GSLC_L_A_HH"
-                "GUNW_L_A_HH_unwrappedPhase"
-        """
-        pass
 
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str
@@ -1213,27 +1211,6 @@ class NisarGeoProduct(NisarProduct):
             The range of the y coordinates for the browse image.
             Format:
                 (<y_start>, <y_stop>)
-        """
-        pass
-
-    @abstractmethod
-    def _get_raster_name(self, raster_path: str) -> str:
-        """
-        Return a name for the raster, e.g. 'RSLC_LSAR_A_HH'.
-
-        Parameters
-        ----------
-        raster_path : str
-            Full path in `h5_file` to the desired raster dataset.
-            Examples:
-                "/science/LSAR/GSLC/grids/frequencyA/HH"
-                "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
-
-        Returns
-        -------
-        name : str
-            The human-understandable name that is derived from the dataset.
-            Examples: "GSLC_L_A_HH" or "GUNW_L_A_HH_unwrappedPhase".
         """
         pass
 
