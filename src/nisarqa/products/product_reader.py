@@ -778,6 +778,52 @@ class NisarProduct(ABC):
         """
         return "/".join([self._root_path, self.product_type, "metadata"])
 
+    def _get_stats_h5_group_path(self, raster_path: str) -> str:
+        """
+        Return path in STATS.h5 file where metrics for `raster_path` should be saved.
+
+        Parameters
+        ----------
+        raster_path : str
+            Full path in `h5_file` to a raster dataset.
+            Examples:
+                GSLC (similar for RSLC/GCOV):
+                    "/science/LSAR/GSLC/grids/frequencyA/HH"
+                GUNW (similar for RIFG/RUNW):
+                    "/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                GOFF (similar for ROFF):
+                    "/science/LSAR/GOFF/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+
+        Returns
+        -------
+        path : str
+            Path in the STATS.h5 file for the group where all metrics and
+            statistics re: this raster should be saved.
+            Note that a path to a h5py.Dataset was passed in as an argument to
+            this function, but a path to a h5py Group will be returned.
+            Examples:
+                RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+                RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+
+        See Also
+        --------
+        NisarGeoProduct._get_stats_h5_group_path : Identical function.
+        """
+        # Let's mirror the structure of the input product for the STATS.h5 file
+        # In essence, we need to replace the beginning part of the base path.
+
+        # Check that the substring "frequency" occurs exactly once in `raster_path`
+        assert raster_path.count("frequency") == 1
+        suffix = raster_path.split("frequency")
+        # remove everything before "frequency":
+        suffix = f"frequency{suffix[-1]}"
+
+        # Append the QA STATS.h5 data group path to the beginning
+        path = f"{nisarqa.STATS_H5_QA_DATA_GROUP % self.band}/{suffix}"
+
+        return path
+
     @abstractmethod
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str
@@ -888,52 +934,6 @@ class NisarRadarProduct(NisarProduct):
                 "GUNW_L_A_HH_unwrappedPhase"
         """
         pass
-
-    def _get_stats_h5_group_path(self, raster_path: str) -> str:
-        """
-        Return path in STATS.h5 file where metrics for `raster_path` should be saved.
-
-        Parameters
-        ----------
-        raster_path : str
-            Full path in `h5_file` to a raster dataset.
-            Examples:
-                GSLC (similar for RSLC/GCOV):
-                    "/science/LSAR/GSLC/grids/frequencyA/HH"
-                GUNW (similar for RIFG/RUNW):
-                    "/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
-                GOFF (similar for ROFF):
-                    "/science/LSAR/GOFF/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-
-        Returns
-        -------
-        path : str
-            Path in the STATS.h5 file for the group where all metrics and
-            statistics re: this raster should be saved.
-            Note that a path to a h5py.Dataset was passed in as an argument to
-            this function, but a path to a h5py Group will be returned.
-            Examples:
-                RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
-                RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
-                ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-
-        See Also
-        --------
-        NisarGeoProduct._get_stats_h5_group_path : Identical function.
-        """
-        # Let's mirror the structure of the input product for the STATS.h5 file
-        # In essence, we need to replace the beginning part of the base path.
-
-        # Check that the substring "frequency" occurs exactly once in `raster_path`
-        assert raster_path.count("frequency") == 1
-        suffix = raster_path.split("frequency")
-        # remove everything before "frequency":
-        suffix = f"frequency{suffix[-1]}"
-
-        # Append the QA STATS.h5 data group path to the beginning
-        path = f"{nisarqa.STATS_H5_QA_DATA_GROUP % self.band}/{suffix}"
-
-        return path
 
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str
@@ -1236,52 +1236,6 @@ class NisarGeoProduct(NisarProduct):
             Examples: "GSLC_L_A_HH" or "GUNW_L_A_HH_unwrappedPhase".
         """
         pass
-
-    def _get_stats_h5_group_path(self, raster_path: str) -> str:
-        """
-        Return path in STATS.h5 file where metrics for `raster_path` should be saved.
-
-        Parameters
-        ----------
-        raster_path : str
-            Full path in `h5_file` to a raster dataset.
-            Examples:
-                GSLC (similar for RSLC/GCOV):
-                    "/science/LSAR/GSLC/grids/frequencyA/HH"
-                GUNW (similar for RIFG/RUNW):
-                    "/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
-                GOFF (similar for ROFF):
-                    "/science/LSAR/GOFF/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-
-        Returns
-        -------
-        path : str
-            Path in the STATS.h5 file for the group where all metrics and
-            statistics re: this raster should be saved.
-            Note that a path to a h5py.Dataset was passed in as an argument to
-            this function, but a path to a h5py Group will be returned.
-            Examples:
-                RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
-                RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
-                ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-
-        See Also
-        --------
-        NisarRadarProduct._get_stats_h5_group_path : Identical function.
-        """
-        # Let's mirror the structure of the input product for the STATS.h5 file
-        # In essence, we need to replace the beginning part of the base path.
-
-        # Check that the substring "frequency" occurs exactly once in `raster_path`
-        assert raster_path.count("frequency") == 1
-        suffix = raster_path.split("frequency")
-        # remove everything before "frequency":
-        suffix = f"frequency{suffix[-1]}"
-
-        # Append the QA STATS.h5 data group path to the beginning
-        path = f"{nisarqa.STATS_H5_QA_DATA_GROUP % self.band}/{suffix}"
-
-        return path
 
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str
