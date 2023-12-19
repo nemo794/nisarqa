@@ -436,7 +436,7 @@ def compare_raster_metadata(
                 )
         elif r1.name == "units":
             if raster1.units != raster2.units:
-                warnings.warn(
+                log.warning(
                     f"Layer `{raster1.name}` has units attribute of"
                     f" `{raster1.units}`, and is being compared to layer"
                     f" `{raster2.name}` which has units attribute of"
@@ -455,7 +455,7 @@ def compare_raster_metadata(
             # "stats_h5_group_path" dataclass attributes should be the same
             # except for the final layer name
             if r1_val.split("/")[:-1] != r2_val.split("/")[:-1]:
-                warnings.warn(
+                log.warning(
                     f"{raster1.stats_h5_group_path=} but"
                     f" {raster2.stats_h5_group_path=}. Consider checking if"
                     " these base paths should match."
