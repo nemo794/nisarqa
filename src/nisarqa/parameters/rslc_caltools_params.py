@@ -444,7 +444,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         the backscatter and phase histograms.
         For example, (2,3) means every 2nd azimuth line and
         every 3rd range sample will be used to compute the histograms.
-        Defaults to (10,10).
+        Defaults to (8, 8).
         Format: (<azimuth>, <range>)
     backscatter_histogram_bin_edges_range : pair of int or float, optional
         The dB range for the backscatter histogram's bin edges. Endpoint will
@@ -477,7 +477,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
 
     decimation_ratio: Iterable[int] = field(
-        default=(10, 10),
+        default=(8, 8),
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="decimation_ratio",
