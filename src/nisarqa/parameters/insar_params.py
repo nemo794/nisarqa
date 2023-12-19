@@ -742,11 +742,11 @@ class VarianceLayersParamGroup(YamlParamGroup):
         which (in turn) is used for the interval of the colorbar.
         If None, the interval is computed using the min and max
         magnitudes of along track and slant range offset variances
-        Defaults to [0.0, 0.1].
+        Defaults to [0.0, 0.01].
     """
 
     cbar_min_max: Optional[Sequence[float]] = field(
-        default=(0.0, 0.1),
+        default=(0.0, 0.01),
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="colorbar_min_max",
@@ -1192,7 +1192,7 @@ class GOFFRootParamGroup(RootParamGroup):
             GOFFProductPathGroupParamGroup,
             GOFFWorkflowsParamGroup,
             GOFFQuiverParamGroup,
-            GOFFVarianceLayersParamGroup
+            GOFFVarianceLayersParamGroup,
         )
 
 

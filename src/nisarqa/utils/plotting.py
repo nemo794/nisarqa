@@ -70,8 +70,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.RadarRaster,
     iono_uncertainty_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -79,8 +78,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.GeoRaster,
     iono_uncertainty_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 def plot_ionosphere_phase_screen_to_pdf(
@@ -435,8 +433,7 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.RadarRaster,
     coh_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -444,8 +441,7 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.GeoRaster,
     coh_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None:
-    ...
+) -> None: ...
 
 
 def plot_wrapped_phase_image_and_coh_mag_to_pdf(
@@ -999,8 +995,7 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.RadarRaster, list[float]]:
-    ...
+) -> tuple[nisarqa.RadarRaster, list[float]]: ...
 
 
 @overload
@@ -1010,8 +1005,7 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.GeoRaster, list[float]]:
-    ...
+) -> tuple[nisarqa.GeoRaster, list[float]]: ...
 
 
 def make_hsi_raster(
@@ -1489,8 +1483,7 @@ def process_range_and_az_offsets(
     rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -1499,8 +1492,7 @@ def process_range_and_az_offsets(
     rg_offset: nisarqa.GeoRaster,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
-) -> None:
-    ...
+) -> None: ...
 
 
 def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
@@ -1550,8 +1542,7 @@ def plot_range_and_az_offsets_to_pdf(
     rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -1560,8 +1551,7 @@ def plot_range_and_az_offsets_to_pdf(
     rg_offset: nisarqa.GeoRaster,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
-) -> None:
-    ...
+) -> None: ...
 
 
 def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
@@ -1790,8 +1780,7 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-) -> tuple[float, float]:
-    ...
+) -> tuple[float, float]: ...
 
 
 @overload
@@ -1800,8 +1789,7 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-) -> tuple[float, float]:
-    ...
+) -> tuple[float, float]: ...
 
 
 def plot_offsets_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
@@ -1891,8 +1879,7 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     browse_png: str | os.PathLike,
-) -> tuple[int, int]:
-    ...
+) -> tuple[int, int]: ...
 
 
 @overload
@@ -1901,8 +1888,7 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     browse_png: str | os.PathLike,
-) -> tuple[int, int]:
-    ...
+) -> tuple[int, int]: ...
 
 
 def plot_single_quiver_plot_to_png(
@@ -2254,8 +2240,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     rg_offset_variance: nisarqa.RadarRaster,
     report_pdf: PdfPages,
     cbar_min_max: Optional[Sequence[float, float]],
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -2264,12 +2249,11 @@ def plot_range_and_az_offsets_variances_to_pdf(
     rg_offset_variance: nisarqa.GeoRaster,
     report_pdf: PdfPages,
     cbar_min_max: Optional[Sequence[float, float]],
-) -> None:
-    ...
+) -> None: ...
 
 
 def plot_range_and_az_offsets_variances_to_pdf(
-    az_offset_variance, rg_offset_variance, report_pdf, cbar_min_max=[0.0, 0.1]
+    az_offset_variance, rg_offset_variance, report_pdf, cbar_min_max=[0.0, 0.01]
 ) -> None:
     """
     Plot azimuth and slant range offset variance layers to PDF.
@@ -2288,7 +2272,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
         The range for the colorbar for the image raster. Both layers will be
         clipped to this range and plotted.
         `None` to use the min and max of the image for the colorbar range.
-        Defaults to [0.0, 0.1].
+        Defaults to [0.0, 0.01].
     """
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(az_offset_variance, az_offset_variance)
