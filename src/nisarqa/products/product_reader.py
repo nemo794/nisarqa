@@ -899,11 +899,11 @@ class NisarRadarProduct(NisarProduct):
             Full path in `h5_file` to a raster dataset.
             Examples:
                 GSLC (similar for RSLC/GCOV):
-                    "/science/LSAR/RSLC/grids/frequencyA/HH"
+                    "/science/LSAR/GSLC/grids/frequencyA/HH"
                 GUNW (similar for RIFG/RUNW):
-                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                    "/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
                 GOFF (similar for ROFF):
-                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+                    "/science/LSAR/GOFF/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
 
         Returns
         -------
@@ -924,8 +924,10 @@ class NisarRadarProduct(NisarProduct):
         # Let's mirror the structure of the input product for the STATS.h5 file
         # In essence, we need to replace the beginning part of the base path.
 
-        # remove everything before "frequency":
+        # Check that the substring "frequency" occurs exactly once in `raster_path`
+        assert raster_path.count("frequency") == 1
         suffix = raster_path.split("frequency")
+        # remove everything before "frequency":
         suffix = f"frequency{suffix[-1]}"
 
         # Append the QA STATS.h5 data group path to the beginning
@@ -985,7 +987,13 @@ class NisarRadarProduct(NisarProduct):
         dataset = self._get_dataset_handle(h5_file, raster_path)
 
         # Extract the units attribute
-        units = nisarqa.byte_string_to_python_str(dataset.attrs["units"])
+        try:
+            units = nisarqa.byte_string_to_python_str(dataset.attrs["units"])
+        except KeyError:
+            nisarqa.get_logger().error(
+                f"Missing `units` attribute for Dataset: {raster_path}"
+            )
+            units = "ERROR: UNITS NOT PROVIDED"
 
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
         # 'Nominal along track spacing in meters between consecutive lines
@@ -1239,11 +1247,11 @@ class NisarGeoProduct(NisarProduct):
             Full path in `h5_file` to a raster dataset.
             Examples:
                 GSLC (similar for RSLC/GCOV):
-                    "/science/LSAR/RSLC/grids/frequencyA/HH"
+                    "/science/LSAR/GSLC/grids/frequencyA/HH"
                 GUNW (similar for RIFG/RUNW):
-                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                    "/science/LSAR/GUNW/grids/frequencyA/pixelOffsets/HH/alongTrackOffset"
                 GOFF (similar for ROFF):
-                    "/science/LSAR/RSLC/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+                    "/science/LSAR/GOFF/grids/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
 
         Returns
         -------
@@ -1264,8 +1272,10 @@ class NisarGeoProduct(NisarProduct):
         # Let's mirror the structure of the input product for the STATS.h5 file
         # In essence, we need to replace the beginning part of the base path.
 
-        # remove everything before "frequency":
+        # Check that the substring "frequency" occurs exactly once in `raster_path`
+        assert raster_path.count("frequency") == 1
         suffix = raster_path.split("frequency")
+        # remove everything before "frequency":
         suffix = f"frequency{suffix[-1]}"
 
         # Append the QA STATS.h5 data group path to the beginning
@@ -1322,7 +1332,13 @@ class NisarGeoProduct(NisarProduct):
         dataset = self._get_dataset_handle(h5_file, raster_path)
 
         # Extract the units attribute
-        units = nisarqa.byte_string_to_python_str(dataset.attrs["units"])
+        try:
+            units = nisarqa.byte_string_to_python_str(dataset.attrs["units"])
+        except KeyError:
+            nisarqa.get_logger().error(
+                f"Missing `units` attribute for Dataset: {raster_path}"
+            )
+            units = "ERROR: UNITS NOT PROVIDED"
 
         # From the xml Product Spec, xCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive pixels'
