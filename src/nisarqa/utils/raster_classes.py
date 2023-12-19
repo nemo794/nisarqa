@@ -378,16 +378,14 @@ class GeoRaster(SARRaster):
 def compare_raster_metadata(
     raster1: nisarqa.RadarRaster,
     raster2: nisarqa.RadarRaster,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
 def compare_raster_metadata(
     raster1: nisarqa.GeoRaster,
     raster2: nisarqa.GeoRaster,
-) -> None:
-    ...
+) -> None: ...
 
 
 def compare_raster_metadata(
@@ -439,8 +437,11 @@ def compare_raster_metadata(
         elif r1.name == "units":
             if raster1.units != raster2.units:
                 warnings.warn(
-                    f"{raster1.units=} but {raster2.units=}. Please confirm"
-                    " these two rasters are ok to have different units."
+                    f"Layer `{raster1.name}` has units attribute of"
+                    f" `{raster1.units}`, and is being compared to layer"
+                    f" `{raster2.name}` which has units attribute of"
+                    f" `{raster2.units}`. Please confirm these two rasters are"
+                    " ok to have different units."
                 )
         elif r1.name == "name":
             # "name" dataclass attributes should be the same
