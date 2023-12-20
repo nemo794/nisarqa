@@ -2295,7 +2295,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(az_offset_variance.name.split("_")[:-1])
-    title = f"Azimuth and Slant Range Offsets Variances\n{name}"
+    title = f"Azimuth and Slant Range Offsets Variances (unitless)\n{name}"
     fig.suptitle(title)
 
     if cbar_min_max is None:
@@ -2352,7 +2352,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     # raise ValueError("TODO: Complete the title!")
     cax = fig.colorbar(im2, ax=ax2)
     cax.ax.set_ylabel(
-        ylabel="Variance ????",
+        ylabel="Variance (unitless)",
         rotation=270,
         labelpad=10.0,
     )
