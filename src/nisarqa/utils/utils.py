@@ -218,11 +218,11 @@ def create_dataset_in_h5group(
     ):
         ds_data = np.bytes_(ds_data)
     elif isinstance(ds_data, np.ndarray) and (
-        (ds_data.dtype == np.object_)
+        np.issubdtype(ds_data.dtype, np.object_)
         or np.issubdtype(ds_data.dtype, np.unicode_)
     ):
         raise NotImplementedError(
-            f"`{ds_data=}` and has dtype {ds_data.dtype}, which is not"
+            f"`{ds_data=}` and has dtype `{ds_data.dtype}`, which is not"
             " currently supported. Suggestion: Make `ds_data` a list or tuple"
             " of Python strings, or an ndarray of fixed-length byte strings."
         )
