@@ -509,9 +509,9 @@ class NisarProduct(ABC):
                     # already logged if data is one of True or False.)
                     # Without this conversion, casting the string "False" as
                     # a boolean results in True.
-                    data = True if (data == "True") else False
+                    data = (data == "True")
 
-                if self.is_geocoded is not bool(data):
+                if self.is_geocoded != bool(data):
                     log.error(
                         "WARNING `/identification/isGeocoded` field has value"
                         f" {ds_handle[...]}, which is inconsistent with"
