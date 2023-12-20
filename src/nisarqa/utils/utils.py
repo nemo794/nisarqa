@@ -213,7 +213,9 @@ def create_dataset_in_h5group(
     # If a string or a list of strings, convert to fixed-length byte strings
     if isinstance(ds_data, str):
         ds_data = np.bytes_(ds_data)
-    elif isinstance(ds_data, ArrayLike) and all(isinstance(s, str) for s in ds_data)):
+    elif isinstance(ds_data, Sequence) and all(
+        isinstance(s, str) for s in ds_data
+    ):
         ds_data = np.bytes_(ds_data)
 
     # Create dataset and add attributes
