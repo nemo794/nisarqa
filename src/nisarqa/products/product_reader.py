@@ -820,7 +820,7 @@ class NisarRadarProduct(NisarProduct):
             old_data_format = "seconds since %Y-%m-%d %H:%M:%S"
             try:
                 datetime.strptime(sec_since_epoch, old_data_format)
-            except:
+            except ValueError:
                 # The format is unexpected, so no meaningful knowledge can
                 # be extracted in an automated way to populate the PDF report.
                 meaningful_datetime = False
