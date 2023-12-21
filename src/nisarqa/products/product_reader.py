@@ -841,7 +841,7 @@ class NisarRadarProduct(NisarProduct):
     def _get_epoch(ds: h5py.Dataset) -> str:
         """
         Parse, validate, and return the dataset's reference epoch.
-        
+
         Reference epoch will be returned as an RFC 3339 string with
         full-date and partial-time.
         Ref: https://datatracker.ietf.org/doc/html/rfc3339#section-5.6
@@ -875,9 +875,9 @@ class NisarRadarProduct(NisarProduct):
             # is missing the 'T' between the date and the time.
             # In this case, the string still contains useful information, so
             # we should log the error, and still use the string.
-            log.error(e)
+            log.error(f"{e} Source: `units` attribute of Dataset: {ds.name}")
         except ValueError as e:
-            log.error(e)
+            log.error(f"{e} Source: `units` attribute of Dataset: {ds.name}")
             return "INVALID EPOCH"
         else:
             log.info(
