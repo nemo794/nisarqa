@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import os
-import warnings
 from abc import ABC, abstractmethod, abstractproperty
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime
 from functools import cached_property, lru_cache
 
 import h5py
@@ -509,7 +507,7 @@ class NisarProduct(ABC):
                     # already logged if data is one of True or False.)
                     # Without this conversion, casting the string "False" as
                     # a boolean results in True.
-                    data = (data == "True")
+                    data = data == "True"
 
                 if self.is_geocoded != bool(data):
                     log.error(
@@ -797,40 +795,8 @@ class NisarRadarProduct(NisarProduct):
         az_start = float(h5_file[path][0]) - 0.5 * ground_az_spacing
         az_stop = float(h5_file[path][-1]) + 0.5 * ground_az_spacing
 
-        # Use zeroDopplerTime's units attribute to read the epoch.
-        sec_since_epoch = h5_file[path].attrs["units"]
-        sec_since_epoch = nisarqa.byte_string_to_python_str(sec_since_epoch)
-
-        # Datetime Format Validation check
-        meaningful_datetime = True
-        epoch_format = f"seconds since {nisarqa.NISAR_DATETIME_FORMAT_PYTHON}"
-        try:
-            # If this does not error, then epoch has correct format. Yay!
-            datetime.strptime(sec_since_epoch, epoch_format)
-        except ValueError:
-            msg = (
-                f"The units attribute of dataset {path} has format"
-                f" '{sec_since_epoch}', but should follow format"
-                f" 'seconds since {nisarqa.NISAR_DATETIME_FORMAT_HUMAN}'"
-            )
-            nisarqa.get_logger().error(msg)
-
-            # Old test datasets used the format: YYYY-mm-dd HH:MM:SS.
-            # If so, that is still meaningful to human users in the PDF report.
-            old_data_format = "seconds since %Y-%m-%d %H:%M:%S"
-            try:
-                datetime.strptime(sec_since_epoch, old_data_format)
-            except ValueError:
-                # The format is unexpected, so no meaningful knowledge can
-                # be extracted in an automated way to populate the PDF report.
-                meaningful_datetime = False
-
-        # Validation complete. Set the epoch string variable accordingly.
-        if meaningful_datetime:
-            # Extract the date and time portion from the epoch string
-            epoch = sec_since_epoch.replace("seconds since ", "").strip()
-        else:
-            epoch = "INVALID EPOCH"
+        # Use zeroDopplerTime's units attribute to get the epoch.
+        epoch = self._get_epoch(ds=h5_file[path])
 
         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
         # 'Nominal ground range spacing in meters between consecutive pixels
@@ -870,6 +836,58 @@ class NisarRadarProduct(NisarProduct):
             rng_stop=rng_stop,
             epoch=epoch,
         )
+
+    @staticmethod
+    def _get_epoch(ds: h5py.Dataset) -> str:
+        """
+        Parse, validate, and return the epoch's datetime string.
+
+        Parameters
+        ----------
+        ds : h5py.Dataset
+            Dataset with an attribute named "units", where `units` contains
+            a byte string with the format 'seconds since YYYY-mm-ddTHH:MM:SS'.
+
+        Returns
+        -------
+        datetime_str : str
+            A string following the format 'YYYY-mm-ddTHH:MM:SS'.
+            If input product is old, then the 'T' might be absent.
+            If datetime could not be parsed, then "INVALID EPOCH" is returned.
+        """
+        log = nisarqa.get_logger()
+        prefix = "seconds since "
+
+        sec_since_epoch = ds.attrs["units"]
+        sec_since_epoch = nisarqa.byte_string_to_python_str(sec_since_epoch)
+
+        # Assume the string was correctly formatted, and prepare `epoch` here.
+        # (This line will not break, even with incorrect formatting.)
+        # If the string ends up being incorrect, then update `epoch` later.
+        epoch = sec_since_epoch.replace(prefix, "").strip()
+
+        # Datetime Format Validation check
+        try:
+            nisarqa.verify_datetime_format(
+                datetime_str=sec_since_epoch, prefix=prefix
+            )
+        except nisarqa.InvalidNISARProductError as e:
+            # Input string has nearly the correct datetime format, but
+            # is missing the 'T' between the date and the time.
+            # In this case, the string still contains useful information, so
+            # we should log the error, and still use the string.
+            log.error(e)
+        except ValueError as e:
+            log.error(e)
+            # Overwrite `epoch`
+            epoch = "INVALID EPOCH"
+        else:
+            log.info(
+                "Correct datetime format for epoch in `units` attribute of"
+                f" Dataset {ds.name}"
+            )
+
+        return epoch
 
     @abstractmethod
     def _get_dataset_handle(

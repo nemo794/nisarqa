@@ -1,4 +1,6 @@
 import os
+import warnings
+from datetime import datetime
 
 import h5py
 import numpy as np
@@ -266,6 +268,61 @@ def validate_is_file(filepath, parameter_name, extension=None):
         raise ValueError(
             f"`{parameter_name}` must end with {extension}: {filepath}"
         )
+
+
+def verify_datetime_format(datetime_str: str, prefix: str = "") -> None:
+    """
+    Verify that a string contains a properly-formatted datetime.
+
+    Parameters
+    ----------
+    datetime_str : str
+        A string which ends with a datetime. By NISAR convention for R4,
+        this should have the format: 'YYYY-mm-ddTHH:MM:SS'.
+    prefix : str
+        The beginning of `datetime_str`, which includes all characters
+        before the datetime appears.
+        Ex: If `datetime_str` is "seconds since %Y-%m-%dT%H:%M:%S", then
+            prefix` should be "seconds since ", (including the space).
+
+    Raises
+    ------
+    ValueError
+        If `datetime_str` does not match the NISAR convention for
+        datetime format. Note: If the format is only incorrect by a 'T',
+        an InvalidNISARProductError will be raised instead.
+    nisarqa.InvalidNISARProductError
+        If the input string has nearly the correct datetime format, but
+        is missing the 'T' between the date and the time.
+        In this case, the string still contains useful information; the
+        calling function can catch this exception, and handle accordingly.
+    """
+    format = f"{prefix}{nisarqa.NISAR_DATETIME_FORMAT_PYTHON}"
+    human_format = f"{prefix}{nisarqa.NISAR_DATETIME_FORMAT_HUMAN}"
+
+    try:
+        # If this does not error, then string has correct format. Yay!
+        datetime.strptime(datetime_str, format)
+    except ValueError:
+        # Old test datasets used the format: YYYY-mm-dd HH:MM:SS.
+        # If so, that is still meaningful to human users.
+        old_format = f"{prefix}%Y-%m-%d %H:%M:%S"
+        try:
+            datetime.strptime(datetime_str, old_format)
+        except ValueError:
+            # The format does not match the known formats.
+            raise ValueError(
+                f"The provided datetime string has format '{datetime_str}',"
+                f" but should follow format '{human_format}'"
+            )
+        else:
+            # The string still contains useful information, so raise a
+            # special-case exception.
+            raise nisarqa.InvalidNISARProductError(
+                f"The provided datetime string is '{datetime_str}'. It uses"
+                f" old datetime format: '{old_format}'. Please update to"
+                f" new format: '{format}'."
+            )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
