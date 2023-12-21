@@ -861,11 +861,6 @@ class NisarRadarProduct(NisarProduct):
         sec_since_epoch = ds.attrs["units"]
         sec_since_epoch = nisarqa.byte_string_to_python_str(sec_since_epoch)
 
-        # Assume the string was correctly formatted, and prepare `epoch` here.
-        # (This line will not break, even with incorrect formatting.)
-        # If the string ends up being incorrect, then update `epoch` later.
-        epoch = sec_since_epoch.replace(prefix, "").strip()
-
         # Datetime Format Validation check
         try:
             nisarqa.verify_datetime_format(
@@ -879,15 +874,14 @@ class NisarRadarProduct(NisarProduct):
             log.error(e)
         except ValueError as e:
             log.error(e)
-            # Overwrite `epoch`
-            epoch = "INVALID EPOCH"
+            return "INVALID EPOCH"
         else:
             log.info(
                 "Correct datetime format for epoch in `units` attribute of"
                 f" Dataset {ds.name}"
             )
 
-        return epoch
+        return sec_since_epoch.replace(prefix, "").strip()
 
     @abstractmethod
     def _get_dataset_handle(
