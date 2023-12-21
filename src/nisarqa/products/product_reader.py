@@ -840,7 +840,11 @@ class NisarRadarProduct(NisarProduct):
     @staticmethod
     def _get_epoch(ds: h5py.Dataset) -> str:
         """
-        Parse, validate, and return the epoch's datetime string.
+        Parse, validate, and return the dataset's reference epoch.
+        
+        Reference epoch will be returned as an RFC 3339 string with
+        full-date and partial-time.
+        Ref: https://datatracker.ietf.org/doc/html/rfc3339#section-5.6
 
         Parameters
         ----------
@@ -852,7 +856,7 @@ class NisarRadarProduct(NisarProduct):
         -------
         datetime_str : str
             A string following the format 'YYYY-mm-ddTHH:MM:SS'.
-            If input product is old, then the 'T' might be absent.
+            If input product is old, then the 'T' might instead be a space.
             If datetime could not be parsed, then "INVALID EPOCH" is returned.
         """
         log = nisarqa.get_logger()
