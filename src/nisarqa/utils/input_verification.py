@@ -279,9 +279,9 @@ def verify_datetime_format(datetime_str: str, prefix: str = "") -> None:
     datetime_str : str
         A string which ends with a datetime. By NISAR convention for R4,
         this should have the format: 'YYYY-mm-ddTHH:MM:SS'.
-    prefix : str
+    prefix : str, optional
         The beginning of `datetime_str`, which includes all characters
-        before the datetime appears.
+        before the datetime appears. Defaults to ''.
         Ex: If `datetime_str` is "seconds since %Y-%m-%dT%H:%M:%S", then
             prefix` should be "seconds since ", (including the space).
 
