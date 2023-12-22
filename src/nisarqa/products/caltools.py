@@ -238,7 +238,6 @@ def populate_abscal_hdf5_output(
         ds_dtype=np.bytes_,
     )
 
-    # XXX Elevation angle is always NaN currently. Should be fixed in R4.
     create_dataset_from_abscal_results(
         key="elevation_angle",
         ds_name="elevationAngle",
@@ -571,7 +570,6 @@ def populate_pta_hdf5_output(
         ds_units="radians",
     )
 
-    # XXX Elevation angle is always NaN currently. Should be fixed in R4.
     create_dataset_from_pta_results(
         key="elevation_angle",
         grp_path=grp_path,
