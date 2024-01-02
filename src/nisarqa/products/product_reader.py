@@ -304,7 +304,7 @@ class NisarProduct(ABC):
                     " be a list of strings."
                 )
             else:
-                if isinstance(list_of_freqs[0], np.bytes_):
+                if np.issubdtype(list_of_freqs.dtype, np.bytes_):
                     # list of byte strings. Yay!
                     list_of_freqs = [
                         nisarqa.byte_string_to_python_str(my_str)
@@ -373,11 +373,11 @@ class NisarProduct(ABC):
                     nisarqa.byte_string_to_python_str(list_of_pols[()])
                 ]
                 log.error(
-                    "`listOfPolarizations` dataset is a scalar string, should"
+                    f"`{list_of_pols.name}` dataset is a scalar string, should"
                     " be a list of strings."
                 )
             else:
-                if isinstance(list_of_pols[0], np.bytes_):
+                if np.issubdtype(list_of_pols.dtype, np.bytes_):
                     # list of byte strings. Yay!
                     list_of_pols = [
                         nisarqa.byte_string_to_python_str(my_str)

@@ -87,6 +87,7 @@ def verify_offset(
     if product_type == "roff":
         product = nisarqa.ROFF(input_file)
     else:
+        assert product_type == "goff"
         product = nisarqa.GOFF(input_file)
 
     if root_params.workflows.validate:

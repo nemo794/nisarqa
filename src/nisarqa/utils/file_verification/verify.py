@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Sequence
-from typing import Mapping, Optional
+from collections.abc import Mapping, Sequence
+from typing import Optional
 
 import numpy as np
 
@@ -33,7 +33,7 @@ def verify_file(
         Contents of `../identification/productSpecificationVersion` from input
         file. Examples: "0.0.9", "1.0.0"
     freq_pols : Mapping[str, Sequence[str]]
-        Nested dict of the expected polarizations for each frequency. Example:
+        Dict of the expected polarizations for each frequency. Example:
             { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
     layer_numbers : Sequence[int] or None, optional
         ROFF and GOFF products contain HDF5 Groups referred to as "layer number
@@ -67,7 +67,7 @@ def verify_file(
                 f"`{layer_numbers=}` must be a sequence of integers in range"
                 " [1, 8], or None."
             )
-            raise TypeError(msg)
+            raise ValueError(msg)
     else:
         if layer_numbers is not None:
             raise ValueError(
