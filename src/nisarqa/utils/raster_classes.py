@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import warnings
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
-from typing import overload
+from typing import Optional, overload
 
 import h5py
 import numpy as np
@@ -132,6 +131,9 @@ class Raster:
     units : str
         The units of the data. If `data` is numeric but unitless (e.g ratios),
         by NISAR convention please use the string "1".
+    fill_value : float or None
+        The fill value for the dataset. In general, all imagery datasets should
+        have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str
         Name for the dataset
     stats_h5_group_path : str
@@ -150,6 +152,7 @@ class Raster:
     # Raster data. Could be a numpy.ndarray, h5py.Dataset, etc.
     data: npt.ArrayLike
     units: str
+    fill_value: Optional[float]
 
     # identifying name of this Raster; can be used for logging
     # e.g. 'LSAR_A_HH'
@@ -218,6 +221,9 @@ class RadarRaster(SARRaster):
     units : str
         The units of the data. If `data` is numeric but unitless (e.g ratios),
         by NISAR convention please use the string "1".
+    fill_value : float or None
+        The fill value for the dataset. In general, all imagery datasets should
+        have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str
         Name for the dataset
     band : str
@@ -309,6 +315,9 @@ class GeoRaster(SARRaster):
     units : str
         The units of the data. If `data` is numeric but unitless (e.g ratios),
         by NISAR convention please use the string "1".
+    fill_value : float or None
+        The fill value for the dataset. In general, all imagery datasets should
+        have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str
         Name for the dataset
     band : str

@@ -993,6 +993,15 @@ class NisarRadarProduct(NisarProduct):
             )
             units = "ERROR: UNITS NOT PROVIDED"
 
+        # Extract the _FillValue
+        try:
+            fv = dataset.attrs["_FillValue"][()]
+        except KeyError:
+            nisarqa.get_logger().error(
+                f"Missing `_FillValue` attribute for Dataset: {raster_path}"
+            )
+            fv = None
+
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
         # 'Nominal along track spacing in meters between consecutive lines
         # near mid swath of the RSLC image.'
@@ -1047,6 +1056,7 @@ class NisarRadarProduct(NisarProduct):
         return nisarqa.RadarRaster(
             data=dataset,
             units=units,
+            fill_value=fv,
             name=name,
             stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
             band=self.band,
@@ -1271,6 +1281,15 @@ class NisarGeoProduct(NisarProduct):
             )
             units = "ERROR: UNITS NOT PROVIDED"
 
+        # Extract the _FillValue
+        try:
+            fv = dataset.attrs["_FillValue"][()]
+        except KeyError:
+            nisarqa.get_logger().error(
+                f"Missing `_FillValue` attribute for Dataset: {raster_path}"
+            )
+            fv = None
+
         # From the xml Product Spec, xCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive pixels'
         path = _get_path_to_nearest_dataset(
@@ -1319,6 +1338,7 @@ class NisarGeoProduct(NisarProduct):
         return nisarqa.GeoRaster(
             data=dataset,
             units=units,
+            fill_value=fv,
             name=name,
             stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
             band=self.band,
