@@ -320,13 +320,13 @@ class NisarProduct(ABC):
                     # That's what we want to return in this function, but it
                     # does not meet NISAR specs, so log an error.
                     log.error(
-                        "`listOfFrequencies` dataset is a list of objects of"
+                        "`listOfFrequencies` dataset is an array of objects of"
                         " type `bytes`, but should be an array of byte strings."
                     )
                 else:
                     raise TypeError(
-                        "`listOfFrequencies` dataset is a list of items of"
-                        f" type {type(list_of_freqs[0])}, but should be a list"
+                        "`listOfFrequencies` dataset is an array of items of"
+                        f" type {type(list_of_freqs[0])}, but should be an array"
                         " of byte strings."
                     )
 
@@ -374,7 +374,7 @@ class NisarProduct(ABC):
                 ]
                 log.error(
                     f"`{list_of_pols.name}` dataset is a scalar string, should"
-                    " be an array of strings."
+                    " be an array of byte strings."
                 )
             else:
                 if np.issubdtype(list_of_pols.dtype, np.bytes_):
@@ -393,12 +393,12 @@ class NisarProduct(ABC):
                     # That's what we want to return in this function, but it
                     # does not meet NISAR specs, so log an error.
                     log.error(
-                        "`listOfPolarizations` dataset is a list of objects of"
+                        "`listOfPolarizations` dataset is an array of objects of"
                         " type `bytes`, but should be an array of byte strings."
                     )
                 else:
                     raise TypeError(
-                        "`listOfPolarizations` dataset is a list of items of"
+                        "`listOfPolarizations` dataset is an array of items of"
                         f" type {type(list_of_pols[0])}, but should be an array"
                         " of byte strings."
                     )
