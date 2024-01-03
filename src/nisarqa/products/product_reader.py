@@ -301,7 +301,7 @@ class NisarProduct(ABC):
                 ]
                 log.error(
                     "`listOfFrequencies` dataset is a scalar string, should"
-                    " be a list of strings."
+                    " be an array of byte strings."
                 )
             else:
                 if np.issubdtype(list_of_freqs.dtype, np.bytes_):
@@ -320,12 +320,12 @@ class NisarProduct(ABC):
                     # That's what we want to return in this function, but it
                     # does not meet NISAR specs, so log an error.
                     log.error(
-                        "`listOfPolarizations` dataset is a list of objects of"
-                        " type `bytes`, but should be a list of byte strings."
+                        "`listOfFrequencies` dataset is a list of objects of"
+                        " type `bytes`, but should be an array of byte strings."
                     )
                 else:
                     raise TypeError(
-                        "`listOfPolarizations` dataset is a list of items of"
+                        "`listOfFrequencies` dataset is a list of items of"
                         f" type {type(list_of_freqs[0])}, but should be a list"
                         " of byte strings."
                     )
@@ -368,13 +368,13 @@ class NisarProduct(ABC):
             nisarqa.verify_str_meets_isce3_conventions(ds=list_of_pols)
 
             if list_of_pols.shape == ():
-                # dataset is scalar, not a list
+                # dataset is scalar, not an array
                 list_of_pols = [
                     nisarqa.byte_string_to_python_str(list_of_pols[()])
                 ]
                 log.error(
                     f"`{list_of_pols.name}` dataset is a scalar string, should"
-                    " be a list of strings."
+                    " be an array of strings."
                 )
             else:
                 if np.issubdtype(list_of_pols.dtype, np.bytes_):
@@ -394,12 +394,12 @@ class NisarProduct(ABC):
                     # does not meet NISAR specs, so log an error.
                     log.error(
                         "`listOfPolarizations` dataset is a list of objects of"
-                        " type `bytes`, but should be a list of byte strings."
+                        " type `bytes`, but should be an array of byte strings."
                     )
                 else:
                     raise TypeError(
                         "`listOfPolarizations` dataset is a list of items of"
-                        f" type {type(list_of_pols[0])}, but should be a list"
+                        f" type {type(list_of_pols[0])}, but should be an array"
                         " of byte strings."
                     )
 
@@ -557,6 +557,18 @@ class NisarProduct(ABC):
             else:
                 found_freqs.append(freq)
                 log.info(f"Found Frequency {freq} group: {path}")
+
+        # Sanity checks
+        # Check the "discovered" frequencies against the contents of the
+        # `listOfFrequencies` dataset
+        list_of_frequencies = self.list_of_frequencies
+        if set(found_freqs) != set(list_of_frequencies):
+            errmsg = (
+                f"Input products contains frequencies {found_freqs}, but"
+                f" `listOfFrequencies` says {list_of_frequencies}"
+                " should be available."
+            )
+            raise nisarqa.InvalidNISARProductError(errmsg)
 
         if not found_freqs:
             errmsg = "Input product does not contain any frequency groups."
@@ -1500,7 +1512,25 @@ class NonInsarProduct(NisarProduct):
             )
 
         layers = self._layers
-        return tuple(layers[freq].keys())
+        pols = tuple(layers[freq].keys())
+
+        # Check the "discovered" polarizations against the expected
+        # `listOfPolarizations` dataset contents
+        list_of_pols_ds = self.get_list_of_polarizations(freq=freq)
+        if set(pols) != set(list_of_pols_ds):
+            errmsg = (
+                f"Frequency {freq} contains polarizations {pols}, but"
+                f" `listOfPolarizations` says {list_of_pols_ds}"
+                " should be available."
+            )
+            raise nisarqa.InvalidNISARProductError(errmsg)
+
+        if not pols:
+            # No polarizations were found for this frequency
+            errmsg = f"No polarizations were found for frequency {freq}"
+            raise nisarqa.DatasetNotFoundError(errmsg)
+
+        return pols
 
 
 @dataclass

@@ -99,11 +99,14 @@ def verify_offset(
         for freq in product.list_of_frequencies:
             freq_pol[freq] = product.get_list_of_polarizations(freq=freq)
 
-        nisarqa.verify_file(
+        nisarqa.verify_file_against_xml(
             input_file=product.filepath,
             product_type=product.product_type.lower(),
             product_spec_version=product.product_spec_version,
             freq_pols=freq_pol,
+            # TODO - create a new function in the product reader
+            # called "get_list_of_layers(freq)" to extract the contents of
+            # the `listOfLayers` dataset
             layer_numbers=product.available_layer_numbers,
         )
 

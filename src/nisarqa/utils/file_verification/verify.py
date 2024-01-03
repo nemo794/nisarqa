@@ -13,7 +13,7 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_file(
+def verify_file_against_xml(
     input_file: str | os.PathLike,
     product_type: str,
     product_spec_version: str,
