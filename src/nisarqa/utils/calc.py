@@ -248,6 +248,7 @@ def compute_and_save_basic_statistics(
     units: str,
     grp_path: str,
     stats_h5: h5py.File,
+    fill_value=np.nan,
     arr_name: str = "",
 ) -> None:
     """
@@ -276,78 +277,112 @@ def compute_and_save_basic_statistics(
         Path to h5py Group to add the computed statistics to.
     stats_h5 : h5py.File
         The output file to save QA metrics to.
+    fill_value : float, optional
+        The fill value for `arr`. Defaults to NaN.
     arr_name : string, optional
         A human-readable name for `arr`. (To be used in log messages.)
     """
     log = nisarqa.get_logger()
+    arr_size = arr.size
+    threshhold = 95.0 if is_geocoded else 25.0
 
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="min_value",
-        ds_data=np.nanmin(arr),
-        ds_units=units,
-        ds_description="Minimum value of the numeric data points",
-    )
+    # First, compute percentage of invalid pixels. Afterwards, we'll fill
+    # all of these invalid pixels with NaN to compute min/max/mean/std.
 
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="max_value",
-        ds_data=np.nanmax(arr),
-        ds_units=units,
-        ds_description="Maximum value of the numeric data points",
-    ),
-
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="mean_value",
-        ds_data=np.nanmean(arr),
-        ds_units=units,
-        ds_description="Arithmetic average of the numeric data points",
-    )
-
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="sample_standard_deviation",
-        ds_data=np.nanstd(arr),
-        ds_units=units,
-        ds_description="Standard deviation of the numeric data points",
-    )
-
-    percent_nan = 100 * np.sum(~np.isfinite(arr)) / arr.size
+    # Compute NaN value metrics
+    num_nan = np.sum(np.isnan(arr))
+    percent_nan = 100 * num_nan / arr_size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
         ds_name="percentNan",
         ds_data=percent_nan,
         ds_units="1",
-        ds_description="Percent of dataset elements with non-finite value.",
+        ds_description="Percent of dataset elements with NaN value.",
     )
+    if np.isnan(fill_value):
+        msg = (
+            f"(%s) PASS/FAIL: Array {arr_name} is {percent_nan} percent NaN"
+            " pixels, which is greater than the threshold of"
+            f" {threshhold} percent NaN."
+        )
+        if percent_nan >= threshhold:
+            log.error(msg % "FAIL")
+        else:
+            log.info(msg % "PASS")
 
-    threshhold = 95.0 if is_geocoded else 25.0
-    if arr_name is None:
-        arr_name = ""
+    else:
+        # Fill Value is not NaN. If the fill value is not NaN, then the
+        # raster should not contain NaN values.
+        msg = (
+            f"(%s) PASS/FAIL: Array {arr_name} has a fill value of"
+            f" {fill_value}, so it should contain no NaN pixels. (It contains"
+            f" {num_nan} NaN pixels.)"
+        )
+        if num_nan > 0:
+            log.error(msg % "FAIL")
+        else:
+            log.info(msg % "PASS")
 
+    # Compute non-finite elements metrics.
+    # (This is counts +/- inf elements, excluding NaN values.)
+    num_inf = np.sum(np.isinf(arr))
+    percent_inf = 100 * num_inf / arr_size
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="percentInfinite",
+        ds_data=percent_inf,
+        ds_units="1",
+        ds_description="Percent of dataset elements with +/- inf value.",
+    )
     msg = (
-        f"(%s) PASS/FAIL: Array {arr_name} is {percent_nan} percent NaN pixels,"
-        f" which is greater than the threshold of {threshhold} percent NaN."
+        f"(%s) PASS/FAIL: Array {arr_name} is {percent_nan} percent +/-"
+        " infinity pixels, which is greater than the threshold of"
+        f" {threshhold} percent inf."
     )
-    if percent_nan >= threshhold:
+    if percent_inf >= threshhold:
         log.error(msg % "FAIL")
     else:
         log.info(msg % "PASS")
 
-    percent_zero = 100 * np.sum(np.abs(arr) < 1e-6) / arr.size
+    # Compute fill value metrics. (It's ok if this is redundant to the
+    # NaN value metrics. The more info, the better!)
+    num_fill = np.sum(arr == fill_value)
+    percent_fill = 100 * num_fill / arr_size
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="percentFill",
+        ds_data=percent_fill,
+        ds_units="1",
+        ds_description=(
+            "Percent of dataset elements containing the fill value, which"
+            f" is: {fill_value}."
+        ),
+    )
+    msg = (
+        f"(%s) PASS/FAIL: Array {arr_name} is {percent_fill} percent fill"
+        " value pixels, which is greater than the threshold of"
+        f" {threshhold} percent fill value."
+    )
+    if percent_fill >= threshhold:
+        log.error(msg % "FAIL")
+    else:
+        log.info(msg % "PASS")
+
+    # Compute number of zeros metrics.
+    num_zero = np.sum(np.abs(arr) < 1e-6)
+    percent_zero = 100 * num_zero / arr.size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
         ds_name="percentZero",
         ds_data=percent_zero,
         ds_units="1",
-        ds_description="Percent of dataset elements that are zero.",
+        ds_description=(
+            "Percent of dataset elements that are within 1e-6 of zero."
+        ),
     )
 
     msg = (
@@ -359,6 +394,46 @@ def compute_and_save_basic_statistics(
         log.error(msg % "FAIL")
     else:
         log.info(msg % "PASS")
+
+    # Fill all invalid pixels in the array with NaN, to easily compute metrics
+    arr_copy = np.where((np.isfinite(arr) & arr != fill_value), arr, np.nan)
+
+    # Compute min/max/mean/std of valid pixels
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="min_value",
+        ds_data=np.nanmin(arr_copy),
+        ds_units=units,
+        ds_description="Minimum value of the numeric data points",
+    )
+
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="max_value",
+        ds_data=np.nanmax(arr_copy),
+        ds_units=units,
+        ds_description="Maximum value of the numeric data points",
+    ),
+
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="mean_value",
+        ds_data=np.nanmean(arr_copy),
+        ds_units=units,
+        ds_description="Arithmetic average of the numeric data points",
+    )
+
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="sample_standard_deviation",
+        ds_data=np.nanstd(arr_copy),
+        ds_units=units,
+        ds_description="Sample standard deviation of the numeric data points",
+    )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
