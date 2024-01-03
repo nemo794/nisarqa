@@ -1514,6 +1514,20 @@ class NonInsarProduct(NisarProduct):
         layers = self._layers
         pols = tuple(layers[freq].keys())
 
+        if not pols:
+            # No polarizations were found for this frequency
+            errmsg = f"No polarizations were found for frequency {freq}"
+            raise nisarqa.DatasetNotFoundError(errmsg)
+
+        return pols
+
+
+@dataclass
+class SLC(NonInsarProduct):
+    def get_pols(self, freq: str) -> tuple[str, ...]:
+        pols = super().get_pols(freq)
+
+        # Sanity checks
         # Check the "discovered" polarizations against the expected
         # `listOfPolarizations` dataset contents
         list_of_pols_ds = self.get_list_of_polarizations(freq=freq)
@@ -1525,16 +1539,8 @@ class NonInsarProduct(NisarProduct):
             )
             raise nisarqa.InvalidNISARProductError(errmsg)
 
-        if not pols:
-            # No polarizations were found for this frequency
-            errmsg = f"No polarizations were found for frequency {freq}"
-            raise nisarqa.DatasetNotFoundError(errmsg)
-
         return pols
 
-
-@dataclass
-class SLC(NonInsarProduct):
     def get_layers_for_browse(self) -> dict[str, list[str]]:
         """
         Assign polarizations to grayscale or RGBA channels for the Browse Image.
@@ -2102,6 +2108,23 @@ class GCOV(NonInsarGeoProduct):
     @property
     def product_type(self) -> str:
         return "GCOV"
+
+    def get_pols(self, freq: str) -> tuple[str, ...]:
+        pols = super().get_pols(freq)
+
+        # Sanity checks
+        # Check the "discovered" polarizations against the expected
+        # `listOfCovarianceTermss` dataset contents
+        list_of_pols_ds = self.get_list_of_covariance_terms(freq=freq)
+        if set(pols) != set(list_of_pols_ds):
+            errmsg = (
+                f"Frequency {freq} contains terms {pols}, but"
+                f" `listOfCovarianceTerms` says {list_of_pols_ds}"
+                " should be available."
+            )
+            raise nisarqa.InvalidNISARProductError(errmsg)
+
+        return pols
 
     def _get_dataset_handle(
         self, h5_file: h5py.File, raster_path: str
