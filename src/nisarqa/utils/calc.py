@@ -535,41 +535,20 @@ def compute_and_save_basic_statistics(
         )
 
         # Compute min/max/mean/std of valid pixels
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name=my_dict["min"].name,
-            ds_data=np.nanmin(arr_copy),
-            ds_units=units,
-            ds_description=my_dict["min"].descr,
-        )
-
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name=my_dict["max"].name,
-            ds_data=np.nanmax(arr_copy),
-            ds_units=units,
-            ds_description=my_dict["max"].descr,
-        ),
-
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name=my_dict["mean"].name,
-            ds_data=np.nanmean(arr_copy),
-            ds_units=units,
-            ds_description=my_dict["mean"].descr,
-        )
-
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name=my_dict["std"].name,
-            ds_data=np.nanstd(arr_copy, ddof=1),
-            ds_units=units,
-            ds_description=my_dict["std"].descr,
-        )
+        for key, func in [
+            ("min", np.nanmin),
+            ("max", np.nanmax),
+            ("mean", np.nanmean),
+            ("std", lambda x: np.nanstd(x, ddof=1)),
+        ]:
+            nisarqa.create_dataset_in_h5group(
+                h5_file=stats_h5,
+                grp_path=grp_path,
+                ds_name=my_dict[key].name,
+                ds_data=func(arr_copy),
+                ds_units=units,
+                ds_description=my_dict[key].descr,
+            )
 
     if np.issubdtype(arr, np.complexfloating):
         # HDF5 Datasets cannot access .real nor .imag, so we need
