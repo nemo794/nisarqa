@@ -2372,4 +2372,225 @@ def plot_range_and_az_offsets_variances_to_pdf(
     plt.close(fig)
 
 
+def process_cross_variance_and_surface_peak(
+    product: nisarqa.OffsetProduct,
+    params: nisarqa.VarianceLayersParamGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None:
+    """
+    Process cross offset variance and correlation surface peak layers.
+
+    This function takes each pair of cross offset variance and
+    correlation surface peak layers, and:
+        * Plots them side-by-side and appends this plot to PDF
+        * Computes statistics for these layers
+
+    This function is for use with nisarqa.OffsetProduct products (ROFF, GOFF).
+    It it not compatible with nisarqa.IgramOffsetsGroup products (RIFG,
+    RUNW, GUNW).
+
+    Parameters
+    ----------
+    product : nisarqa.OffsetProduct
+        Input NISAR product.
+    params : nisarqa.VarianceLayersParamGroup
+        A structure containing processing parameters to generate the plots
+        for the *Variance layers.
+    report_pdf : PdfPages
+        The output pdf file to append the quiver plot to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    """
+    for freq in product.freqs:
+        for pol in product.get_pols(freq):
+            for layer_num in product.available_layer_numbers:
+                with product.get_cross_offset_variance(
+                    freq=freq, pol=pol, layer_num=layer_num
+                ) as cross_off_var, product.get_correlation_surface_peak(
+                    freq=freq, pol=pol, layer_num=layer_num
+                ) as surface_peak:
+
+                    # Compute Statistics first, in case of malformed layers
+                    nisarqa.compute_and_save_basic_statistics(
+                        raster=cross_off_var, stats_h5=stats_h5
+                    )
+                    nisarqa.compute_and_save_basic_statistics(
+                        raster=surface_peak, stats_h5=stats_h5
+                    )
+
+                    plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
+                        cross_offset_variance=cross_off_var,
+                        corr_surf_peak=surface_peak,
+                        report_pdf=report_pdf,
+                        offset_cbar_min_max=params.cbar_min_max,
+                    )
+
+                    # TODO Compute histograms
+
+
+@overload
+def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
+    cross_offset_variance: nisarqa.RadarRaster,
+    corr_surf_peak: nisarqa.RadarRaster,
+    report_pdf: PdfPages,
+    offset_cbar_min_max: Optional[Sequence[float, float]],
+) -> None: ...
+
+
+@overload
+def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
+    cross_offset_variance: nisarqa.GeoRaster,
+    corr_surf_peak: nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+    offset_cbar_min_max: Optional[Sequence[float, float]],
+) -> None: ...
+
+
+def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
+    cross_offset_variance,
+    corr_surf_peak,
+    report_pdf,
+    offset_cbar_min_max=[0.0, 0.01],
+) -> None:
+    """
+    Plot azimuth and slant range offset variance layers to PDF.
+
+    Parameters
+    ----------
+    cross_offset_variance : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Cross offset layer to be processed. Should correspond to
+        `corr_surf_peak`.
+    corr_surf_peak : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Correlation Surface Peak layer to be processed. Should correspond to
+        `cross_offset_variance`.
+    report_pdf : PdfPages
+        The output PDF file to append the offsets plots to.
+    offset_cbar_min_max : pair of float or None, optional
+        The range for the colorbar for the cross offset variance raster.
+        `None` to use the min and max of the image for the colorbar range.
+        Defaults to [0.0, 0.01].
+    """
+    # Validate that the pertinent metadata in the rasters is equal.
+    nisarqa.compare_raster_metadata(
+        cross_offset_variance, corr_surf_peak, almost_identical=False
+    )
+
+    # Setup the side-by-side PDF page
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=2,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+        sharey=True,
+    )
+
+    # Construct title for the overall PDF page. (`*raster.name` has a format
+    # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
+    # remove the final layer name of e.g. "_slantRangeOffset".)
+    name = "_".join(cross_offset_variance.name.split("_")[:-1])
+    title = (
+        "Cross Offset Variance and Correlation Surface Peak (both"
+        f" unitless)\n{name}"
+    )
+    fig.suptitle(title)
+
+    # Prepare and plot the cross offset layer on the left sub-plot
+    cross_off = nisarqa.decimate_raster_array_to_square_pixels(
+        cross_offset_variance
+    )
+    # The InSAR product lead has said previously that the *Variance layers
+    # have a big dynamic range of [0,999], and that 999 is the rubbish value.
+    # So, we should exclude 999 from the colorbar range.
+    # Also exclude Inf values, to keep the colorbar ticks easy to read.
+    cross_off[
+        ~np.isfinite(cross_off)
+        | (cross_off == cross_offset_variance.fill_value)
+    ] = np.nan
+
+    if offset_cbar_min_max is None:
+        # Use same colorbar scale for both plots
+        offset_cbar_min = np.nanmin(cross_off)
+        offset_cbar_max = np.nanmax(cross_off)
+    else:
+        offset_cbar_min, offset_cbar_max = offset_cbar_min_max
+
+    # Decimate to fit nicely on the figure.
+    cross_off = decimate_img_to_size_of_axes(ax=ax1, arr=cross_off)
+
+    # Add the azimuth offsets variance plot (left plot)
+    im1 = ax1.imshow(
+        cross_off,
+        aspect="equal",
+        cmap="magma_r",
+        interpolation="none",
+        vmin=offset_cbar_min,
+        vmax=offset_cbar_max,
+    )
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax1,
+        xlim=cross_offset_variance.x_axis_limits,
+        ylim=cross_offset_variance.y_axis_limits,
+        img_arr_shape=np.shape(cross_off),
+        xlabel=cross_offset_variance.x_axis_label,
+        ylabel=cross_offset_variance.y_axis_label,
+        title=cross_offset_variance.name.split("_")[-1],
+    )
+
+    # Add a colorbar to the variance plot
+    cax1 = fig.colorbar(im1, ax=ax1)
+    cax1.ax.set_ylabel(
+        ylabel="Variance (unitless)",
+        rotation=270,
+        labelpad=10.0,
+    )
+
+    # Prepare and plot the correlation surface peak on the right sub-plot
+    surf_peak = nisarqa.decimate_raster_array_to_square_pixels(corr_surf_peak)
+
+    # Decimate to fit nicely on the figure.
+    surf_peak = decimate_img_to_size_of_axes(ax=ax2, arr=surf_peak)
+
+    # Correlation surface peak should always be in range [0, 1]
+    if np.any(surf_peak < 0.0) or np.any(surf_peak > 1.0):
+        nisarqa.get_logger().error(
+            f"{corr_surf_peak.name} contains elements outside of expected range"
+            " of [0, 1]."
+        )
+
+    # Add the slant range offsets variance plot (right plot)
+    im2 = ax2.imshow(
+        surf_peak,
+        aspect="equal",
+        cmap="gray",
+        interpolation="none",
+        vmin=0.0,
+        vmax=1.0,
+    )
+
+    # No y-axis label nor ticks. This is the right side plot; y-axis is shared.
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax2,
+        xlim=corr_surf_peak.x_axis_limits,
+        img_arr_shape=np.shape(surf_peak),
+        xlabel=corr_surf_peak.x_axis_label,
+        title=corr_surf_peak.name.split("_")[-1],
+    )
+
+    # Add a colorbar to the surface peak plot
+    cax1 = fig.colorbar(im2, ax=ax2)
+    cax1.ax.set_ylabel(
+        ylabel="Normalized (unitless)",
+        rotation=270,
+        labelpad=10.0,
+    )
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

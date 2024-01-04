@@ -3522,6 +3522,60 @@ class OffsetProduct(InsarProduct):
         with h5py.File(self.filepath) as f:
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
+    @contextmanager
+    def get_cross_offset_variance(
+        self, freq: str, pol: str, layer_num: int
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the cross offset variance *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+        layer_num : int
+            Layer number of the desired raster. For example, to get the
+            requested raster from the `layer1` group, set `layer_num` to `1`.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
+        path = f"{parent_path}/crossOffsetVariance"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with h5py.File(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+    @contextmanager
+    def get_correlation_surface_peak(
+        self, freq: str, pol: str, layer_num: int
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the correlation surface peak *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+        layer_num : int
+            Layer number of the desired raster. For example, to get the
+            requested raster from the `layer1` group, set `layer_num` to `1`.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
+        path = f"{parent_path}/correlationSurfacePeak"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with h5py.File(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
 
 @dataclass
 class ROFF(OffsetProduct, NisarRadarProduct):

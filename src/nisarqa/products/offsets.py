@@ -179,6 +179,13 @@ def verify_offset(
                 stats_h5=stats_h5,
             )
 
+            nisarqa.process_cross_variance_and_surface_peak(
+                product=product,
+                params=root_params.variances,
+                report_pdf=report_pdf,
+                stats_h5=stats_h5,
+            )
+
         log.info(f"PDF reports saved to {report_file}")
         log.info(f"HDF5 statistics saved to {stats_file}")
         log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
