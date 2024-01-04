@@ -246,7 +246,7 @@ def hz2mhz(arr: np.ndarray) -> np.ndarray:
 def compute_and_save_basic_statistics(
     raster: nisarqa.Raster,
     stats_h5: h5py.File,
-    is_geocoded: bool,
+    threshold: float = nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
 ) -> None:
     """
     Compute and save min, max, mean, std, % nan, % zero, % fill, % inf to HDF5.
@@ -260,29 +260,16 @@ def compute_and_save_basic_statistics(
         Input Raster.
     stats_h5 : h5py.File
         The output file to save QA metrics to.
-    is_geocoded : bool
-        Set to `True` if `arr` is a geocoded product, otherwise False.
-        This flag will be used to set the thresholds for alerting users if the
-        percentage of NaN or zero valued pixels to above a certain threshold.
-        If False, this threshold will be set to 25%; images in range Doppler
-        products should be mostly numeric.
-        If True, this threshold will be set to 95.0%; images in geocoded
-        products have fill values in non-imagery areas, which are likely
-        to make up a significant portion of the raster.
+    threshold : float, optional
+        The threshold value for alerting users to possible malformed datasets.
+        If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
+        is above `threshold`, it will be logged as an error.
+        Defaults to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
 
     Notes
     -----
     If the fill value is set to None in the input *Raster, that field will
     not be computed nor included in the STATS.h5 file.
-
-    If a dataset is complex-valued, this function currently only supports
-    complex64 data. This function does not support complex32 nor complex128
-    data. Baseline NISAR products do not contain complex128 data, and only
-    RSLC and non-baseline GSLC products contain complex32 data.
-    If/when this function needs to support those other datatypes, it should be
-    modified at that time. For working with complex32 data, see
-    `raster_classes.is_complex32()` and
-    `raster_classes.ComplexFloat16Decoder.read_c4_dataset_as_c8()`.
     """
     # Create a flag, to be used in the PASS/FAIL Summary CSV
     all_metrics_pass = True
@@ -296,7 +283,6 @@ def compute_and_save_basic_statistics(
     arr_name = raster.name
 
     arr_size = arr.size
-    threshhold = 95.0 if is_geocoded else 25.0
 
     # First, compute percentage of invalid pixels. Afterwards, we'll fill
     # all of these invalid pixels with NaN to compute min/max/mean/std.
@@ -318,9 +304,9 @@ def compute_and_save_basic_statistics(
         # If the fill value is NaN, then check the threshold.
         msg = (
             f"Array {arr_name} is {percent_nan} percent NaN pixels. (Acceptable"
-            f" threshold is {threshhold} percent NaN.)"
+            f" threshold is {threshold} percent NaN.)"
         )
-        if percent_nan >= threshhold:
+        if percent_nan >= threshold:
             log.error(msg)
             all_metrics_pass = False
         else:
@@ -359,9 +345,9 @@ def compute_and_save_basic_statistics(
     )
     msg = (
         f"Array {arr_name} is {percent_nan} percent +/- infinity pixels. "
-        f" (Acceptable threshold is {threshhold} percent inf.)"
+        f" (Acceptable threshold is {threshold} percent inf.)"
     )
-    if percent_inf >= threshhold:
+    if percent_inf >= threshold:
         log.error(msg)
         all_metrics_pass = False
     else:
@@ -390,9 +376,9 @@ def compute_and_save_basic_statistics(
         )
         msg = (
             f"Array {arr_name} is {percent_fill} percent fill value pixels."
-            f" (Acceptable threshold is {threshhold} percent fill value.)"
+            f" (Acceptable threshold is {threshold} percent fill value.)"
         )
-        if percent_fill >= threshhold:
+        if percent_fill >= threshold:
             log.error(msg)
             all_metrics_pass = False
         else:
@@ -416,9 +402,9 @@ def compute_and_save_basic_statistics(
 
     msg = (
         f"Array {arr_name} is {percent_zero} percent zero pixels."
-        f" (Acceptable threshold is {threshhold} percent zeros.)"
+        f" (Acceptable threshold is {threshold} percent zeros.)"
     )
-    if percent_zero >= threshhold:
+    if percent_zero >= threshold:
         log.error(msg)
         all_metrics_pass = False
     else:

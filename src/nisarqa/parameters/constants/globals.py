@@ -34,6 +34,11 @@ FIG_SIZE_TWO_PLOTS_PER_PAGE = (10.0, 4.8)
 
 PI_UNICODE = "\u03c0"
 
+# This is used for logging errors during computation of statistics.
+# Ex: if a raster has greater than `STATISTICS_THRESHOLD` percent NaN values,
+# an error should be logged.
+STATISTICS_THRESHOLD_PERCENTAGE = 95.0
+
 
 LIST_OF_NISAR_PRODUCTS = [
     "rslc",
@@ -176,6 +181,7 @@ __all__ = [
     "PI_UNICODE",
     "NISAR_DATETIME_FORMAT_PYTHON",
     "NISAR_DATETIME_FORMAT_HUMAN",
+    "STATISTICS_THRESHOLD_PERCENTAGE",
     "get_possible_pols",
     "GCOV_DIAG_POLS",
     "GCOV_OFF_DIAG_POLS",
