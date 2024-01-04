@@ -56,10 +56,12 @@ def process_ionosphere_phase_screen(
                 nisarqa.compute_and_save_basic_statistics(
                     raster=iono_phs,
                     stats_h5=stats_h5,
+                    nearly_all_zeros_is_ok=True,
                 )
                 nisarqa.compute_and_save_basic_statistics(
                     raster=iono_uncertainty,
                     stats_h5=stats_h5,
+                    nearly_all_zeros_is_ok=True,
                 )
 
 

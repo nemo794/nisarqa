@@ -248,6 +248,7 @@ def compute_and_save_basic_statistics(
     stats_h5: h5py.File,
     threshold: float = nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
     epsilon: float = 1e-6,
+    nearly_all_zeros_is_ok: bool = False,
 ) -> None:
     """
     Compute and save min, max, mean, std, % nan, % zero, % fill, % inf to HDF5.
@@ -270,6 +271,22 @@ def compute_and_save_basic_statistics(
         The tolerance used for computing if raster pixels are "almost zero".
         This will be used during the check for percentage of near-zero pixels.
         Defaults to 1e-6.
+    nearly_all_zeros_is_ok : bool, optional
+        False to have this function issue an error if the raster contains
+        more than `threshold` percentage of near-zero pixels.
+        True to have this function suppress that same error. The percentage
+        will still be computed, logged, and saved to the STATS.h5 file, but
+        it will not be considered an error.
+
+        For most rasters, if there are greater than `threshold` percent
+        near-zero pixels, then this should be an error and an indication of
+        a faulty NISAR input product. In this case, set
+        `nearly_all_zeros_is_ok` to False.
+        However, some raster layers (e.g. GUNW's `ionospherePhaseScreen`)
+        are known to be populated with all zero values if the ionosphere phase
+        module was disabled for GUNW ISCE3 processing. In this case, set
+        `nearly_all_zeros_is_ok` to True.
+
 
     Notes
     -----
@@ -407,7 +424,7 @@ def compute_and_save_basic_statistics(
         f"Array {arr_name} is {percent_zero} percent near-zero pixels."
         f" (Acceptable threshold is {threshold} percent zeros.)"
     )
-    if percent_zero >= threshold:
+    if (percent_zero >= threshold) and not nearly_all_zeros_is_ok:
         log.error(msg)
         all_metrics_pass = False
     else:
