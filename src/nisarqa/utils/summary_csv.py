@@ -1,18 +1,46 @@
 from __future__ import annotations
 
-import csv
 import logging
 import os
 from dataclasses import InitVar, dataclass
 
-# import nisarqa
+import nisarqa
 
-# objects_to_skip = nisarqa.get_all(name=__name__)
+objects_to_skip = nisarqa.get_all(name=__name__)
 
 
 @dataclass
 class GetSummary:
-    """The global SUMMARY.csv writer for PASS/FAIL checks."""
+    """
+    The global SUMMARY.csv writer for PASS/FAIL checks.
+
+    This class can be called from anywhere in the nisarqa package, and it
+    will always write the pass/fail checks to the same SUMMARY.csv file.
+
+    Notes
+    -----
+    Looking under the hood, this class is a wrapper around the Python
+    logging module, using a logger called "SUMMARY". By using the logging
+    module, we some nice features for free:
+        * The logger can be set up once at the beginning of QA, and then
+          be called from anywhere in the nisarqa package while still
+          retaining the same formatting, output file, etc.
+        * In the event of a crash, whatever was already written to the
+          SUMMARY.csv file will still be there. (We will not lose it.)
+        * The logger enforces a strict format, ensuring that we do not
+          accidentally write a row that is missing the spot for an entry
+    Unfortunately, by using the logger and writing as we go, certain things
+    are much trickier:
+        * We cannot have a list of checks, and then ensure that each check
+          actually occurred.
+        * The order of the checks is dependent upon the order of execution
+          of the source code; if functions in the source code get reordered,
+          then the order that the checks are printed in the SUMMARY.csv
+
+    There are pros and cons to both approaches. The first approach provides
+    protection against crashes and is less invasive to integrate into
+    the existing code, hence choosing that approach for now.
+    """
 
     csv_file: InitVar[str | os.PathLike | None] = None
 
@@ -219,6 +247,63 @@ class GetSummary:
         # Use "" as dummy value.
         summary.info(msg="", extra=extra)
 
+    def custom(
+        self,
+        tool: str,
+        description: str,
+        result: str,
+        threshold: str = "",
+        actual: str = "",
+        notes: str = "",
+    ) -> None:
+        """
+        Write a fully custom PASS/FAIL check to the SUMMARY CSV file.
+
+        Parameters
+        ----------
+        tool : str
+            Short name for the QA workflow generating the summary check.
+            One of: "QA", "PTA", "AbsCal", "NET"
+        description : str
+            The PASS/FAIL check. Note: this should be a short, unabiguous
+            phrase or question that has a response of "PASS" or "FAIL".
+            Example 1: "Able to open NISAR input file?"
+            Example 2: "Percentage of invalid pixels under threshold?"
+        result : str
+            The result of the check. Must be one of: "PASS" or "FAIL"
+        threshold : str, optional
+            If a threshold value was used to determine the outcome of the
+            PASS/FAIL check, note that value here. Defaults to the empty
+            string `""`, meaning that no threshold was used.
+        actual : str
+            The quantity determined from the input NISAR product which was used
+            to compare against the threshold value, etc. in order to
+            determine the outcome of the PASS/FAIL check. Defaults to the empty
+            string `""`, meaning that no meaningful actual value was used.
+            Example 1: the check "Able to open NISAR input file?" would not
+                involve an quantative value, so leave this as the empty string.
+            Example 2: the check "All statistics under acceptable threshold?"
+                might set `actual` to 10.4, to indicate that 10.4% of
+        notes : st
+            Additional notes to better describe the check.
+
+
+
+
+        """
+        log = nisarqa.get_logger()
+        if tool not in ("QA", "PTA", "AbsCal", "NET"):
+            raise ValueError(
+                f"`{tool=}`, must be one of ['QA', 'PTA', 'AbsCal', 'NET']."
+            )
+        if len(description) > 88:
+            log.warning(
+                f"{description=}, and has length {len(description)}. Consider"
+                " shortening it to make it more concise."
+            )
+        if result not in ("PASS", "FAIL"):
+            raise ValueError(f"`{result=}`, must be one of ['PASS', 'FAIL'].")
+
     def check_can_open_input_file(self, result: str) -> None:
         extra = self._make_extra(
             description="Able to open NISAR input file?", result=result
@@ -248,4 +333,4 @@ summary.check_statistics_within_threshold(result="FAIL", notes="RSLC_L_A_HH")
 summary.check_can_open_input_file(result="FAIL")
 
 
-# __all__ = nisarqa.get_all(__name__, objects_to_skip)
+__all__ = nisarqa.get_all(__name__, objects_to_skip)
