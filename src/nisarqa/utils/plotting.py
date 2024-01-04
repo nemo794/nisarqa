@@ -1520,6 +1520,7 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
         The output file to save QA metrics, etc. to.
     """
     # Compute Statistics first, in case of malformed layers
+    # (which could cause plotting to fail)
     nisarqa.compute_and_save_basic_statistics(
         raster=az_offset,
         stats_h5=stats_h5,
