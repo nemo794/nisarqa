@@ -324,7 +324,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
         lobe does *not* include the first sidelobe. `predict_null` has no effect
         on peak-to-sidelobe ratio (PSLR) computation -- for PSLR analysis, the
         null locations are always determined by searching for nulls in the RSLC
-        data. Defaults to True.
+        data. Defaults to False.
     fs_bw_ratio : float, optional
         The ratio of sampling rate to bandwidth in the RSLC image data. Must be
         the same for both range & azimuth. It is ignored if `predict_null` was
@@ -455,7 +455,7 @@ class PointTargetAnalyzerParamGroup(YamlParamGroup, HDF5ParamGroup):
     )
 
     predict_null: bool = field(
-        default=True,
+        default=False,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="predict_null",
