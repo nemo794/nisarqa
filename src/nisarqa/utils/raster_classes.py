@@ -131,7 +131,7 @@ class Raster:
     units : str
         The units of the data. If `data` is numeric but unitless (e.g ratios),
         by NISAR convention please use the string "1".
-    fill_value : float or None
+    fill_value : int, float, complex, or None
         The fill value for the dataset. In general, all imagery datasets should
         have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str
@@ -152,7 +152,7 @@ class Raster:
     # Raster data. Could be a numpy.ndarray, h5py.Dataset, etc.
     data: npt.ArrayLike
     units: str
-    fill_value: Optional[float]
+    fill_value: Optional[int | float | complex]
 
     # identifying name of this Raster; can be used for logging
     # e.g. 'LSAR_A_HH'
@@ -221,7 +221,7 @@ class RadarRaster(SARRaster):
     units : str
         The units of the data. If `data` is numeric but unitless (e.g ratios),
         by NISAR convention please use the string "1".
-    fill_value : float or None
+    fill_value : int, float, complex, or None
         The fill value for the dataset. In general, all imagery datasets should
         have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str
@@ -315,7 +315,7 @@ class GeoRaster(SARRaster):
     units : str
         The units of the data. If `data` is numeric but unitless (e.g ratios),
         by NISAR convention please use the string "1".
-    fill_value : float or None
+    fill_value : int, float, complex, or None
         The fill value for the dataset. In general, all imagery datasets should
         have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str

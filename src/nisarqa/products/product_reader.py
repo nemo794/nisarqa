@@ -19,6 +19,70 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
+def _get_units(
+    ds: h5py.Dataset,
+) -> str | None:
+    """
+    Parse, validate, and return the dataset's units.
+
+    Parameters
+    ----------
+    ds : h5py.Dataset
+        Dataset with an attribute named "units".
+
+    Returns
+    -------
+    units : str or None
+        The contents of the "units" attribute.
+        If the attribute does not exist, `None` will be returned.
+    """
+    log = nisarqa.get_logger()
+
+    # Extract the units attribute
+    try:
+        units = ds.attrs["units"]
+    except KeyError:
+        log.error(f"Missing `units` attribute for Dataset: {ds.name}")
+        units = None
+    else:
+        units = nisarqa.byte_string_to_python_str(units)
+    if units in ("unitless", "DN"):
+        log.error(
+            f"{units=}. As of R4, please use the string '1' as the"
+            " `units` for numeric but unitless datasets."
+        )
+        units = "1"
+
+
+def _get_fill_value(
+    ds: h5py.Dataset,
+) -> int | float | complex | None:
+    """
+    Parse, validate, and return the dataset's fill value.
+
+    Parameters
+    ----------
+    ds : h5py.Dataset
+        Dataset with an attribute named "_FillValue".
+
+    Returns
+    -------
+    fill_value : int, float, complex, or None
+        The contents of the "_FillValue" attribute.
+        If that attribute does not exist, `None` is returned.
+    """
+    # Extract the _FillValue
+    try:
+        fill_value = ds.attrs["_FillValue"][()]
+    except KeyError:
+        nisarqa.get_logger().error(
+            f"Missing `_FillValue` attribute for Dataset: {ds.name}"
+        )
+        fill_value = None
+
+    return fill_value
+
+
 def _get_path_to_nearest_dataset(
     h5_file: h5py.File, starting_path: str, dataset_to_find: str
 ) -> str:
@@ -786,7 +850,7 @@ class NisarProduct(ABC):
         Parameters
         ----------
         raster_path : str
-            Full path in `h5_file` to a raster dataset.
+            Full path in the input HDF5 file to a raster dataset.
             Examples:
                 GSLC (similar for RSLC/GCOV):
                     "/science/LSAR/GSLC/grids/frequencyA/HH"
@@ -872,52 +936,6 @@ class NisarProduct(ABC):
             Examples: "GSLC_L_A_HH" or "GUNW_L_A_HH_unwrappedPhase".
         """
         pass
-
-    @staticmethod
-    def _get_units_and_fill_value(
-        ds: h5py.Dataset,
-    ) -> tuple[str | None, str | None]:
-        """
-        Parse, validate, and return the dataset's units and fill value.
-
-        Parameters
-        ----------
-        ds : h5py.Dataset
-            Dataset with an attribute named "units" and an attribute named "_FillValue".
-
-        Returns
-        -------
-        units, fill_value : str or None
-            The contents of the "units" and "_FillValue" attributes.
-            If an attribute does not exist, it will be returned as None.
-        """
-        log = nisarqa.get_logger()
-
-        # Extract the units attribute
-        try:
-            units = ds.attrs["units"]
-        except KeyError:
-            log.error(f"Missing `units` attribute for Dataset: {ds.name}")
-            units = None
-        else:
-            units = nisarqa.byte_string_to_python_str(units)
-        if units in ("unitless", "DN"):
-            log.error(
-                f"{units=}. As of R4, please use the string '1' as the"
-                " `units` for numeric but unitless datasets."
-            )
-            units = "1"
-
-        # Extract the _FillValue
-        try:
-            fill_value = ds.attrs["_FillValue"][()]
-        except KeyError:
-            nisarqa.get_logger().error(
-                f"Missing `_FillValue` attribute for Dataset: {ds.name}"
-            )
-            fill_value = None
-
-        return units, fill_value
 
 
 @dataclass
@@ -1027,7 +1045,8 @@ class NisarRadarProduct(NisarProduct):
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
 
-        units, fill_value = self._get_units_and_fill_value(dataset)
+        units = _get_units(dataset)
+        fill_value = _get_fill_value(dataset)
 
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
         # 'Nominal along track spacing in meters between consecutive lines
@@ -1299,7 +1318,8 @@ class NisarGeoProduct(NisarProduct):
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
 
-        units, fill_value = self._get_units_and_fill_value(dataset)
+        units = _get_units(dataset)
+        fill_value = _get_fill_value(dataset)
 
         # From the xml Product Spec, xCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive pixels'
