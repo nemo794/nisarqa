@@ -247,6 +247,7 @@ def compute_and_save_basic_statistics(
     raster: nisarqa.Raster,
     stats_h5: h5py.File,
     threshold: float = nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
+    epsilon: float = 1e-6,
 ) -> None:
     """
     Compute and save min, max, mean, std, % nan, % zero, % fill, % inf to HDF5.
@@ -265,6 +266,10 @@ def compute_and_save_basic_statistics(
         If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
         is above `threshold`, it will be logged as an error.
         Defaults to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+    epsilon : float or int, optional
+        The tolerance used for computing if raster pixels are "almost zero".
+        This will be used during the check for percentage of near-zero pixels.
+        Defaults to 1e-6.
 
     Notes
     -----
@@ -385,16 +390,16 @@ def compute_and_save_basic_statistics(
     # Compute number of zeros metrics.
     # By using np.abs(), for complex values this will compute the magnitude.
     # The magnitude will only be ~0.0 if both real and imaj are ~0.0.
-    num_zero = np.sum(np.abs(arr) < 1e-6)
+    num_zero = np.sum(np.abs(arr) < epsilon)
     percent_zero = 100 * num_zero / arr.size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
-        ds_name="percentZero",
+        ds_name="percentNearZero",
         ds_data=percent_zero,
         ds_units="1",
         ds_description=(
-            "Percent of dataset elements that are within 1e-6 of zero."
+            f"Percent of dataset elements that are within {epsilon} of zero."
         ),
     )
 
