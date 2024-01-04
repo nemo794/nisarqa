@@ -54,20 +54,14 @@ def process_ionosphere_phase_screen(
 
                 # Compute statistics
                 nisarqa.compute_and_save_basic_statistics(
-                    arr=iono_phs.data,
-                    is_geocoded=isinstance(iono_phs, nisarqa.GeoRaster),
-                    units=iono_phs.units,
-                    grp_path=iono_phs.stats_h5_group_path,
+                    raster=iono_phs,
                     stats_h5=stats_h5,
-                    arr_name=iono_phs.name,
+                    is_geocoded=isinstance(iono_phs, nisarqa.GeoRaster),
                 )
                 nisarqa.compute_and_save_basic_statistics(
-                    arr=iono_uncertainty.data,
-                    is_geocoded=isinstance(iono_uncertainty, nisarqa.GeoRaster),
-                    units=iono_uncertainty.units,
-                    grp_path=iono_uncertainty.stats_h5_group_path,
+                    raster=iono_uncertainty,
                     stats_h5=stats_h5,
-                    arr_name=iono_uncertainty.name,
+                    is_geocoded=isinstance(iono_uncertainty, nisarqa.GeoRaster),
                 )
 
 
@@ -256,12 +250,9 @@ def process_phase_image_unwrapped(
 
                 # Compute Statistics
                 nisarqa.compute_and_save_basic_statistics(
-                    arr=img.data,
-                    is_geocoded=isinstance(img, nisarqa.GeoRaster),
-                    units=img.units,
-                    grp_path=img.stats_h5_group_path,
+                    raster=img,
                     stats_h5=stats_h5,
-                    arr_name=img.name,
+                    is_geocoded=isinstance(img, nisarqa.GeoRaster),
                 )
 
 
@@ -429,20 +420,14 @@ def process_phase_image_wrapped(
 
                 # Compute Statistics
                 nisarqa.compute_and_save_basic_statistics(
-                    arr=complex_img.data,
-                    is_geocoded=isinstance(complex_img, nisarqa.GeoRaster),
-                    units=complex_img.units,
-                    grp_path=complex_img.stats_h5_group_path,
+                    raster=complex_img,
                     stats_h5=stats_h5,
-                    arr_name=complex_img.name,
+                    is_geocoded=isinstance(complex_img, nisarqa.GeoRaster),
                 )
                 nisarqa.compute_and_save_basic_statistics(
-                    arr=coh_img.data,
-                    is_geocoded=isinstance(coh_img, nisarqa.GeoRaster),
-                    units=coh_img.units,
-                    grp_path=coh_img.stats_h5_group_path,
+                    raster=coh_img,
                     stats_h5=stats_h5,
-                    arr_name=coh_img.name,
+                    is_geocoded=isinstance(coh_img, nisarqa.GeoRaster),
                 )
 
 
@@ -1544,21 +1529,15 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
 
     # Compute Statistics
     nisarqa.compute_and_save_basic_statistics(
-        arr=az_offset.data,
-        is_geocoded=isinstance(az_offset, nisarqa.GeoRaster),
-        units=az_offset.units,
-        grp_path=az_offset.stats_h5_group_path,
+        raster = az_offset,
         stats_h5=stats_h5,
-        arr_name=az_offset.name,
+        is_geocoded=isinstance(az_offset, nisarqa.GeoRaster),
     )
 
     nisarqa.compute_and_save_basic_statistics(
-        arr=rg_offset.data,
-        is_geocoded=isinstance(rg_offset, nisarqa.GeoRaster),
-        units=rg_offset.units,
-        grp_path=rg_offset.stats_h5_group_path,
+        raster=rg_offset,
         stats_h5=stats_h5,
-        arr_name=rg_offset.name,
+        is_geocoded=isinstance(rg_offset, nisarqa.GeoRaster),
     )
 
 

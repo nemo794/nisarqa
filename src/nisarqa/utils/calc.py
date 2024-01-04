@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from collections import namedtuple
 from collections.abc import Sequence
 
 import h5py
@@ -243,24 +244,22 @@ def hz2mhz(arr: np.ndarray) -> np.ndarray:
 
 
 def compute_and_save_basic_statistics(
-    arr: ArrayLike,
-    is_geocoded: bool,
-    units: str,
-    grp_path: str,
+    raster: nisarqa.Raster,
     stats_h5: h5py.File,
-    fill_value=np.nan,
-    arr_name: str = "",
+    is_geocoded: bool,
 ) -> None:
     """
-    Compute and save min, max, mean, std, % nan, and % zero statistics to HDF5.
+    Compute and save min, max, mean, std, % nan, % zero, % fill, % inf to HDF5.
 
-    Warning: Entire input array will be read into memory. Only use this
-    function for small datasets.
+    Warning: Entire input array will be read into memory and processed.
+    Only use this function for small datasets.
 
     Parameters
     ----------
-    arr : ArrayLike
-        Input array.
+    raster : nisarqa.Raster
+        Input Raster.
+    stats_h5 : h5py.File
+        The output file to save QA metrics to.
     is_geocoded : bool
         Set to `True` if `arr` is a geocoded product, otherwise False.
         This flag will be used to set the thresholds for alerting users if the
@@ -270,19 +269,32 @@ def compute_and_save_basic_statistics(
         If True, this threshold will be set to 95.0%; images in geocoded
         products have fill values in non-imagery areas, which are likely
         to make up a significant portion of the raster.
-    units : str
-        The units of the input array. If `data` is numeric but unitless
-        (e.g ratios), by NISAR convention please use the string "1".
-    grp_path : str
-        Path to h5py Group to add the computed statistics to.
-    stats_h5 : h5py.File
-        The output file to save QA metrics to.
-    fill_value : float, optional
-        The fill value for `arr`. Defaults to NaN.
-    arr_name : string, optional
-        A human-readable name for `arr`. (To be used in log messages.)
+
+    Notes
+    -----
+    If the fill value is set to None in the input *Raster, that field will
+    not be computed nor included in the STATS.h5 file.
+
+    If a dataset is complex-valued, this function currently only supports
+    complex64 data. This function does not support complex32 nor complex128
+    data. Baseline NISAR products do not contain complex128 data, and only
+    RSLC and non-baseline GSLC products contain complex32 data.
+    If/when this function needs to support those other datatypes, it should be
+    modified at that time. For working with complex32 data, see
+    `raster_classes.is_complex32()` and
+    `raster_classes.ComplexFloat16Decoder.read_c4_dataset_as_c8()`.
     """
+    # Create a flag, to be used in the PASS/FAIL Summary CSV
+    all_metrics_pass = True
+
     log = nisarqa.get_logger()
+
+    arr = raster.data
+    units = raster.units
+    grp_path = raster.stats_h5_group_path
+    fill_value = raster.fill_value
+    arr_name = raster.name
+
     arr_size = arr.size
     threshhold = 95.0 if is_geocoded else 25.0
 
@@ -290,6 +302,8 @@ def compute_and_save_basic_statistics(
     # all of these invalid pixels with NaN to compute min/max/mean/std.
 
     # Compute NaN value metrics
+    # (np.isnan works for both real and complex data. For complex data, if
+    # either the real or imag part is NaN, then the pixel is considered NaN.)
     num_nan = np.sum(np.isnan(arr))
     percent_nan = 100 * num_nan / arr_size
     nisarqa.create_dataset_in_h5group(
@@ -298,80 +312,95 @@ def compute_and_save_basic_statistics(
         ds_name="percentNan",
         ds_data=percent_nan,
         ds_units="1",
-        ds_description="Percent of dataset elements with NaN value.",
+        ds_description="Percent of dataset elements with a NaN value.",
     )
     if np.isnan(fill_value):
+        # If the fill value is NaN, then check the threshold.
         msg = (
-            f"(%s) PASS/FAIL: Array {arr_name} is {percent_nan} percent NaN"
-            " pixels, which is greater than the threshold of"
-            f" {threshhold} percent NaN."
+            f"Array {arr_name} is {percent_nan} percent NaN pixels. (Acceptable"
+            f" threshold is {threshhold} percent NaN.)"
         )
         if percent_nan >= threshhold:
-            log.error(msg % "FAIL")
+            log.error(msg)
+            all_metrics_pass = False
         else:
-            log.info(msg % "PASS")
+            log.info(msg)
 
     else:
-        # Fill Value is not NaN. If the fill value is not NaN, then the
-        # raster should not contain NaN values.
+        # If the fill value is not NaN (i.e. it is a float or None), then
+        # the raster should not contain any NaN values.
+        # Note: the only known case where the fill value is intentionally
+        # set to None (meaning, it does not exist) is for RSLC backscatter
+        # datasets. In this case, there should not be any NaN pixels.
         msg = (
-            f"(%s) PASS/FAIL: Array {arr_name} has a fill value of"
-            f" {fill_value}, so it should contain no NaN pixels. (It contains"
-            f" {num_nan} NaN pixels.)"
+            f"Array {arr_name} contains"
+            f" {num_nan} NaN pixels, but it has a fill value of"
+            f" {fill_value}, so it should contain no NaN pixels."
         )
         if num_nan > 0:
-            log.error(msg % "FAIL")
+            log.error(msg)
+            all_metrics_pass = False
         else:
-            log.info(msg % "PASS")
+            log.info(msg)
 
     # Compute non-finite elements metrics.
     # (This is counts +/- inf elements, excluding NaN values.)
+    # (np.isinf works for both real and complex data. For complex data, if
+    # either real or imag part is +/- inf, then the pixel is considered inf.)
     num_inf = np.sum(np.isinf(arr))
     percent_inf = 100 * num_inf / arr_size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
-        ds_name="percentInfinite",
+        ds_name="percentInf",
         ds_data=percent_inf,
         ds_units="1",
-        ds_description="Percent of dataset elements with +/- inf value.",
+        ds_description="Percent of dataset elements with a +/- inf value.",
     )
     msg = (
-        f"(%s) PASS/FAIL: Array {arr_name} is {percent_nan} percent +/-"
-        " infinity pixels, which is greater than the threshold of"
-        f" {threshhold} percent inf."
+        f"Array {arr_name} is {percent_nan} percent +/- infinity pixels. "
+        f" (Acceptable threshold is {threshhold} percent inf.)"
     )
     if percent_inf >= threshhold:
-        log.error(msg % "FAIL")
+        log.error(msg)
+        all_metrics_pass = False
     else:
-        log.info(msg % "PASS")
+        log.info(msg)
 
-    # Compute fill value metrics. (It's ok if this is redundant to the
-    # NaN value metrics. The more info, the better!)
-    num_fill = np.sum(arr == fill_value)
-    percent_fill = 100 * num_fill / arr_size
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="percentFill",
-        ds_data=percent_fill,
-        ds_units="1",
-        ds_description=(
-            "Percent of dataset elements containing the fill value, which"
-            f" is: {fill_value}."
-        ),
-    )
-    msg = (
-        f"(%s) PASS/FAIL: Array {arr_name} is {percent_fill} percent fill"
-        " value pixels, which is greater than the threshold of"
-        f" {threshhold} percent fill value."
-    )
-    if percent_fill >= threshhold:
-        log.error(msg % "FAIL")
-    else:
-        log.info(msg % "PASS")
+    if fill_value is not None:
+        # Compute fill value metrics. (If the fill value is NaN, it's ok that
+        # this is redundant to the NaN value metrics.)
+        if np.isnan(fill_value):
+            # `np.nan == np.nan` evaluates to False, so handle this case here
+            num_fill = num_nan
+        else:
+            num_fill = np.sum(arr == fill_value)
+
+        percent_fill = 100 * num_fill / arr_size
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name="percentFill",
+            ds_data=percent_fill,
+            ds_units="1",
+            ds_description=(
+                "Percent of dataset elements containing the fill value, which"
+                f" is: {fill_value}."
+            ),
+        )
+        msg = (
+            f"Array {arr_name} is {percent_fill} percent fill value pixels."
+            f" (Acceptable threshold is {threshhold} percent fill value.)"
+        )
+        if percent_fill >= threshhold:
+            log.error(msg)
+            all_metrics_pass = False
+        else:
+            log.info(msg)
 
     # Compute number of zeros metrics.
+    # By using np.abs(), for complex values this will compute the magnitude.
+    # The magnitude will only be ~0.0 if both real and imaj are ~0.0.
     num_zero = np.sum(np.abs(arr) < 1e-6)
     percent_zero = 100 * num_zero / arr.size
     nisarqa.create_dataset_in_h5group(
@@ -386,54 +415,185 @@ def compute_and_save_basic_statistics(
     )
 
     msg = (
-        f"(%s) PASS/FAIL: Array {arr_name} is {percent_zero} percent zero"
-        f" pixels, which is greater than the threshold of {threshhold} percent"
-        " zeros."
+        f"Array {arr_name} is {percent_zero} percent zero pixels."
+        f" (Acceptable threshold is {threshhold} percent zeros.)"
     )
     if percent_zero >= threshhold:
-        log.error(msg % "FAIL")
+        log.error(msg)
+        all_metrics_pass = False
     else:
-        log.info(msg % "PASS")
+        log.info(msg)
 
-    # Fill all invalid pixels in the array with NaN, to easily compute metrics
-    arr_copy = np.where((np.isfinite(arr) & arr != fill_value), arr, np.nan)
-
-    # Compute min/max/mean/std of valid pixels
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="min_value",
-        ds_data=np.nanmin(arr_copy),
-        ds_units=units,
-        ds_description="Minimum value of the numeric data points",
+    # Note the metrics in the SUMMARY CSV
+    summary = (
+        f"(%s) PASS/FAIL: All metrics within threshold for raster {arr_name}."
     )
+    if all_metrics_pass:
+        log.info(summary % "PASS")
+    else:
+        log.error(summary % "FAIL")
 
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="max_value",
-        ds_data=np.nanmax(arr_copy),
-        ds_units=units,
-        ds_description="Maximum value of the numeric data points",
-    ),
+    def _compute_min_max_mean_std(arr: np.ndarray, data_type: str) -> None:
+        """
+        Compute min, max, mean, and samples standard deviation; save to HDF5.
 
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="mean_value",
-        ds_data=np.nanmean(arr_copy),
-        ds_units=units,
-        ds_description="Arithmetic average of the numeric data points",
-    )
+        Parameters
+        ----------
+        arr : numpy.ndarray
+            The input array to have statistics run on. Note: If `arr` has a
+            complex dtype, this function will need to acces the `arr.real`
+            and `arr.imag` parts separately. Unfortunately, h5py.Dataset
+            instances do not allow access to these parts using that syntax,
+            so to be safe, please pass in a Numpy array.
+        data_type : str
+            The type data being passed in.
+            One of: "float", "real_comp", or "imag_comp".
 
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="sample_standard_deviation",
-        ds_data=np.nanstd(arr_copy),
-        ds_units=units,
-        ds_description="Sample standard deviation of the numeric data points",
-    )
+        Notes
+        -----
+        TODO: This is a clunky, kludgy function. When these statistics get
+        implemented for RSLC, GSLC, and GCOV after R4, the developer
+        should consider pulling this function out into a standalone function.
+        For expediency, for R4, all InSAR products will use this function,
+        so this information can live here.
+        """
+
+        # Step 1: Create a dict to hold common naming conventions:
+
+        # Per ISCE3 R4 conventions, for floating-point datasets, use:
+        # min_value
+        # mean_value
+        # max_value
+        # sample_stddev
+
+        # For complex-valued dataset, use:
+        # min_real_value
+        # mean_real_value
+        # max_real_value
+        # sample_stddev_real
+        # min_imag_value
+        # mean_imag_value
+        # max_imag_value
+        # sample_stddev_imag
+        Stat = namedtuple("Stat", "name descr")
+
+        my_dict = {
+            "float": {
+                "min": Stat(
+                    "min_value", "Minimum value of the numeric data points"
+                ),
+                "max": Stat(
+                    "max_value", "Maximum value of the numeric data points"
+                ),
+                "mean": Stat(
+                    "mean_value",
+                    "Arithmetic average of the numeric data points",
+                ),
+                "std": Stat(
+                    "sample_stddev",
+                    "Sample standard deviation of the numeric data points",
+                ),
+            },
+            "real_comp": {
+                "min": Stat(
+                    "min_real_value",
+                    "Minimum value of the real component of the numeric data"
+                    " points",
+                ),
+                "max": Stat(
+                    "max_real_value",
+                    "Maximum value of the real component of the numeric data"
+                    " points",
+                ),
+                "mean": Stat(
+                    "mean_real_value",
+                    "Arithmetic average of the real component of the numeric"
+                    " data points",
+                ),
+                "std": Stat(
+                    "sample_stddev_real",
+                    "Sample standard deviation of the real component of the"
+                    " numeric data points",
+                ),
+            },
+            "imag_comp": {
+                "min": Stat(
+                    "min_imag_value",
+                    "Minimum value of the imaginary component of the numeric"
+                    " data points",
+                ),
+                "max": Stat(
+                    "max_imag_value",
+                    "Maximum value of the imaginary component of the numeric"
+                    " data points",
+                ),
+                "mean": Stat(
+                    "mean_imag_value",
+                    "Arithmetic average of the imaginary component of the"
+                    " numeric data points",
+                ),
+                "std": Stat(
+                    "sample_stddev_imag",
+                    "Sample standard deviation of the imaginary component of"
+                    " the numeric data points",
+                ),
+            },
+        }
+
+        if data_type not in my_dict:
+            raise ValueError(f"{data_type=}, must be one of {my_dict.keys()}.")
+
+        my_dict = my_dict[data_type]
+
+        # Fill all invalid pixels in the array with NaN, to easily compute metrics
+        arr_copy = np.where(
+            (np.isfinite(arr) & (arr != fill_value)), arr, np.nan
+        )
+
+        # Compute min/max/mean/std of valid pixels
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name=my_dict["min"].name,
+            ds_data=np.nanmin(arr_copy),
+            ds_units=units,
+            ds_description=my_dict["min"].descr,
+        )
+
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name=my_dict["max"].name,
+            ds_data=np.nanmax(arr_copy),
+            ds_units=units,
+            ds_description=my_dict["max"].descr,
+        ),
+
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name=my_dict["mean"].name,
+            ds_data=np.nanmean(arr_copy),
+            ds_units=units,
+            ds_description=my_dict["mean"].descr,
+        )
+
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name=my_dict["std"].name,
+            ds_data=np.nanstd(arr_copy, ddof=1),
+            ds_units=units,
+            ds_description=my_dict["std"].descr,
+        )
+
+    if np.issubdtype(arr, np.complexfloating):
+        # HDF5 Datasets cannot access .real nor .imag, so we need
+        # to read the array into a numpy array in memory first.
+        _compute_min_max_mean_std(arr[()].real, "real_comp")
+        _compute_min_max_mean_std(arr[()].imag, "imag_comp")
+    else:
+        _compute_min_max_mean_std(arr[()], "float")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
