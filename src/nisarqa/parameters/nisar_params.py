@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import collections
 import dataclasses
 import os
 import sys
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import ClassVar, Optional
-from collections.abc import Sequence
 
 import h5py
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
