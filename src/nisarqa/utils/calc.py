@@ -284,7 +284,7 @@ def compute_and_save_basic_statistics(
 
     arr_size = arr.size
 
-    # First, compute percentage of invalid pixels.
+    # First, compute percentage of invalid (non-finite and/or "fill") pixels.
 
     # Compute NaN value metrics
     # (np.isnan works for both real and complex data. For complex data, if
@@ -318,8 +318,8 @@ def compute_and_save_basic_statistics(
         # set to None (meaning, it does not exist) is for RSLC backscatter
         # datasets. In this case, there should not be any NaN pixels.
         msg = (
-            f"Array {arr_name} contains"
-            f" {num_nan} NaN pixels, but it has a fill value of"
+            f"Array {arr_name} contains {num_nan} NaN pixels"
+            f" ({percent_nan} percent NaN), but it has a fill value of"
             f" {fill_value}, so it should contain no NaN pixels."
         )
         if num_nan > 0:
