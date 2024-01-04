@@ -806,10 +806,6 @@ class NisarProduct(ABC):
                 RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
                 RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
                 ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-
-        See Also
-        --------
-        NisarGeoProduct._get_stats_h5_group_path : Identical function.
         """
         # Let's mirror the structure of the input product for the STATS.h5 file
         # In essence, we need to replace the beginning part of the base path.
@@ -1294,8 +1290,6 @@ class NisarGeoProduct(NisarProduct):
             yCoordinateSpacing
             yCoordinates
         """
-        log = nisarqa.get_logger()
-
         if raster_path not in h5_file:
             errmsg = f"Input file does not contain raster {raster_path}"
             raise nisarqa.DatasetNotFoundError(errmsg)
