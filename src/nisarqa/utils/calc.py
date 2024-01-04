@@ -396,7 +396,8 @@ def compute_and_save_basic_statistics(
         )
         msg = (
             f"Array {arr_name} is {percent_fill} percent fill value pixels."
-            f" (Acceptable threshold is {threshold} percent fill value.)"
+            f" (Fill value is {fill_value}. Acceptable threshold is"
+            f" {threshold} percent fill value.)"
         )
         if percent_fill >= threshold:
             log.error(msg)

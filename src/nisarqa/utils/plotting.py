@@ -2219,20 +2219,10 @@ def process_az_and_slant_rg_variances_from_offset_product(
                     # Compute Statistics
                     # raise ValueError("TODO: Fill value is 999!")
                     nisarqa.compute_and_save_basic_statistics(
-                        arr=az_off_var.data,
-                        is_geocoded=isinstance(az_off_var, nisarqa.GeoRaster),
-                        units=az_off_var.units,
-                        grp_path=az_off_var.stats_h5_group_path,
-                        stats_h5=stats_h5,
-                        arr_name=az_off_var.name,
+                        raster=az_off_var, stats_h5=stats_h5
                     )
                     nisarqa.compute_and_save_basic_statistics(
-                        arr=rg_off_var.data,
-                        is_geocoded=isinstance(rg_off_var, nisarqa.GeoRaster),
-                        units=rg_off_var.units,
-                        grp_path=rg_off_var.stats_h5_group_path,
-                        stats_h5=stats_h5,
-                        arr_name=rg_off_var.name,
+                        raster=rg_off_var, stats_h5=stats_h5
                     )
 
 
@@ -2297,6 +2287,17 @@ def plot_range_and_az_offsets_variances_to_pdf(
     name = "_".join(az_offset_variance.name.split("_")[:-1])
     title = f"Azimuth and Slant Range Offsets Variances (unitless)\n{name}"
     fig.suptitle(title)
+
+    # The InSAR product lead has said previously that the *Variance layers
+    # have a big dynamic range of [0,999], and that 999 is the rubbish value.
+    # So, we should exclude 999 from the colorbar range.
+    # Also exclude Inf values, to keep the colorbar ticks easy to read.
+    az_var[~np.isfinite(az_var) | (az_var == az_offset_variance.fill_value)] = (
+        np.nan
+    )
+    rg_var[~np.isfinite(rg_var) | (rg_var == rg_offset_variance.fill_value)] = (
+        np.nan
+    )
 
     if cbar_min_max is None:
         # Use same colorbar scale for both plots
