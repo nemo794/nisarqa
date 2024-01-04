@@ -423,7 +423,7 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
                   freq A HH slantRangeOffset Raster
         False if the two input rasters are expected to have more differences in their
         metadata, and should only have matching shape, spacing, etc.
-        In practise, this supresses warnings about expected dissimilar
+        In practice, this suppresses warnings about expected dissimilar
         fields, such as `units`.
             Ex: RIFG's freq A HH wrappedInterferogram Raster vs freq A HH
                 coherenceMagnitude Raster

@@ -781,7 +781,7 @@ class NisarProduct(ABC):
 
     def _get_stats_h5_group_path(self, raster_path: str) -> str:
         """
-        Return path in STATS.h5 file where metrics for `raster_path` should be saved.
+        Return path where metrics for `raster_path` should be saved in STATS.h5 file.
 
         Parameters
         ----------
@@ -812,9 +812,9 @@ class NisarProduct(ABC):
 
         # Check that the substring "frequency" occurs exactly once in `raster_path`
         assert raster_path.count("frequency") == 1
-        suffix = raster_path.split("frequency")
+        _, suffix = raster_path.split("frequency")
         # remove everything before "frequency":
-        suffix = f"frequency{suffix[-1]}"
+        suffix = f"frequency{suffix}"
 
         # Append the QA STATS.h5 data group path to the beginning
         path = f"{nisarqa.STATS_H5_QA_DATA_GROUP % self.band}/{suffix}"
@@ -895,10 +895,12 @@ class NisarProduct(ABC):
 
         # Extract the units attribute
         try:
-            units = nisarqa.byte_string_to_python_str(ds.attrs["units"])
+            units = ds.attrs["units"]
         except KeyError:
             log.error(f"Missing `units` attribute for Dataset: {ds.name}")
             units = None
+        else:
+            units = nisarqa.byte_string_to_python_str(units)
         if units in ("unitless", "DN"):
             log.error(
                 f"{units=}. As of R4, please use the string '1' as the"

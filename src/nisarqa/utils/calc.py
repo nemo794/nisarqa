@@ -284,8 +284,7 @@ def compute_and_save_basic_statistics(
 
     arr_size = arr.size
 
-    # First, compute percentage of invalid pixels. Afterwards, we'll fill
-    # all of these invalid pixels with NaN to compute min/max/mean/std.
+    # First, compute percentage of invalid pixels.
 
     # Compute NaN value metrics
     # (np.isnan works for both real and complex data. For complex data, if
@@ -313,7 +312,7 @@ def compute_and_save_basic_statistics(
             log.info(msg)
 
     else:
-        # If the fill value is not NaN (i.e. it is a float or None), then
+        # If the fill value is not NaN, then
         # the raster should not contain any NaN values.
         # Note: the only known case where the fill value is intentionally
         # set to None (meaning, it does not exist) is for RSLC backscatter
@@ -329,8 +328,7 @@ def compute_and_save_basic_statistics(
         else:
             log.info(msg)
 
-    # Compute non-finite elements metrics.
-    # (This is counts +/- inf elements, excluding NaN values.)
+    # Compute +/- inf metrics.
     # (np.isinf works for both real and complex data. For complex data, if
     # either real or imag part is +/- inf, then the pixel is considered inf.)
     num_inf = np.sum(np.isinf(arr))
@@ -344,7 +342,7 @@ def compute_and_save_basic_statistics(
         ds_description="Percent of dataset elements with a +/- inf value.",
     )
     msg = (
-        f"Array {arr_name} is {percent_nan} percent +/- infinity pixels. "
+        f"Array {arr_name} is {percent_inf} percent +/- infinity pixels. "
         f" (Acceptable threshold is {threshold} percent inf.)"
     )
     if percent_inf >= threshold:
@@ -401,7 +399,7 @@ def compute_and_save_basic_statistics(
     )
 
     msg = (
-        f"Array {arr_name} is {percent_zero} percent zero pixels."
+        f"Array {arr_name} is {percent_zero} percent near-zero pixels."
         f" (Acceptable threshold is {threshold} percent zeros.)"
     )
     if percent_zero >= threshold:
@@ -427,7 +425,7 @@ def compute_and_save_basic_statistics(
         ----------
         arr : numpy.ndarray
             The input array to have statistics run on. Note: If `arr` has a
-            complex dtype, this function will need to acces the `arr.real`
+            complex dtype, this function will need to access the `arr.real`
             and `arr.imag` parts separately. Unfortunately, h5py.Dataset
             instances do not allow access to these parts using that syntax,
             so to be safe, please pass in a Numpy array.
@@ -526,10 +524,10 @@ def compute_and_save_basic_statistics(
             },
         }
 
-        if data_type not in my_dict:
+        try:
+            my_dict = my_dict[data_type]
+        except KeyError:
             raise ValueError(f"{data_type=}, must be one of {my_dict.keys()}.")
-
-        my_dict = my_dict[data_type]
 
         # Fill all invalid pixels in the array with NaN, to easily compute metrics
         arr_copy = np.where(
