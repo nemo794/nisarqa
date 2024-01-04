@@ -1056,7 +1056,7 @@ class ROFFRootParamGroup(RootParamGroup):
         Product Path Group parameters.
     quiver : ROFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
-    variances : ROFFQuiverParamGroup or None, optional
+    variances : ROFFVarianceLayersParamGroup or None, optional
         Parameters for *Variance layers' plots.
     """
 
@@ -1137,7 +1137,7 @@ class GOFFRootParamGroup(RootParamGroup):
         Product Path Group parameters.
     quiver : GOFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
-    variances : GOFFQuiverParamGroup or None, optional
+    variances : GOFFVarianceLayersParamGroup or None, optional
         Parameters for *Variance layers' plots.
     """
 

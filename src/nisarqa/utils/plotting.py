@@ -44,15 +44,7 @@ def process_ionosphere_phase_screen(
             ) as iono_phs, product.get_ionosphere_phase_screen_uncertainty(
                 freq=freq, pol=pol
             ) as iono_uncertainty:
-                plot_ionosphere_phase_screen_to_pdf(
-                    iono_raster=iono_phs,
-                    iono_uncertainty_raster=iono_uncertainty,
-                    report_pdf=report_pdf,
-                )
-
-                # TODO - Process histograms
-
-                # Compute statistics
+                # Compute Statistics first, in case of malformed layers
                 nisarqa.compute_and_save_basic_statistics(
                     raster=iono_phs,
                     stats_h5=stats_h5,
@@ -63,6 +55,14 @@ def process_ionosphere_phase_screen(
                     stats_h5=stats_h5,
                     nearly_all_zeros_is_ok=True,
                 )
+
+                plot_ionosphere_phase_screen_to_pdf(
+                    iono_raster=iono_phs,
+                    iono_uncertainty_raster=iono_uncertainty,
+                    report_pdf=report_pdf,
+                )
+
+                # TODO - Process histograms
 
 
 @overload
@@ -241,18 +241,18 @@ def process_phase_image_unwrapped(
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
             with product.get_unwrapped_phase(freq=freq, pol=pol) as img:
+                # Compute Statistics first, in case of malformed layers
+                nisarqa.compute_and_save_basic_statistics(
+                    raster=img,
+                    stats_h5=stats_h5,
+                )
+
                 # Plot phase image
                 plot_unwrapped_phase_image_to_pdf(
                     phs_raster=img, report_pdf=report_pdf, rewrap=params.rewrap
                 )
 
                 # TODO: Plot Histogram
-
-                # Compute Statistics
-                nisarqa.compute_and_save_basic_statistics(
-                    raster=img,
-                    stats_h5=stats_h5,
-                )
 
 
 def plot_unwrapped_phase_image_to_pdf(
@@ -409,15 +409,7 @@ def process_phase_image_wrapped(
             ) as complex_img, product.get_wrapped_coh_mag(
                 freq=freq, pol=pol
             ) as coh_img:
-                plot_wrapped_phase_image_and_coh_mag_to_pdf(
-                    complex_raster=complex_img,
-                    coh_raster=coh_img,
-                    report_pdf=report_pdf,
-                )
-
-                # TODO: Plot Histogram
-
-                # Compute Statistics
+                # Compute Statistics first, in case of malformed layers
                 nisarqa.compute_and_save_basic_statistics(
                     raster=complex_img,
                     stats_h5=stats_h5,
@@ -426,6 +418,14 @@ def process_phase_image_wrapped(
                     raster=coh_img,
                     stats_h5=stats_h5,
                 )
+
+                plot_wrapped_phase_image_and_coh_mag_to_pdf(
+                    complex_raster=complex_img,
+                    coh_raster=coh_img,
+                    report_pdf=report_pdf,
+                )
+
+                # TODO: Plot Histogram
 
 
 @overload
@@ -1516,15 +1516,7 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
     """
-
-    # Plot offset layers to PDF
-    plot_range_and_az_offsets_to_pdf(
-        az_offset=az_offset, rg_offset=rg_offset, report_pdf=report_pdf
-    )
-
-    # TODO Plot Histograms
-
-    # Compute Statistics
+    # Compute Statistics first, in case of malformed layers
     nisarqa.compute_and_save_basic_statistics(
         raster=az_offset,
         stats_h5=stats_h5,
@@ -1535,13 +1527,19 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
         stats_h5=stats_h5,
     )
 
+    # Plot offset layers to PDF
+    plot_range_and_az_offsets_to_pdf(
+        az_offset=az_offset, rg_offset=rg_offset, report_pdf=report_pdf
+    )
+
+    # TODO Plot Histograms
+
 
 @overload
 def plot_range_and_az_offsets_to_pdf(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-    stats_h5: h5py.File,
 ) -> None: ...
 
 
@@ -1550,7 +1548,6 @@ def plot_range_and_az_offsets_to_pdf(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-    stats_h5: h5py.File,
 ) -> None: ...
 
 
@@ -2176,7 +2173,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
     stats_h5: h5py.File,
 ) -> None:
     """
-    Process az and range offset vairances layers: plots to PDF, metrics to HDF5.
+    Process az and range offset variance layers: plots to PDF, metrics to HDF5.
 
     This function takes each pair of along track offset and slant range offset
     variance layers, and:
@@ -2207,6 +2204,15 @@ def process_az_and_slant_rg_variances_from_offset_product(
                 ) as az_off_var, product.get_slant_range_offset_variance(
                     freq=freq, pol=pol, layer_num=layer_num
                 ) as rg_off_var:
+
+                    # Compute Statistics first, in case of malformed layers
+                    nisarqa.compute_and_save_basic_statistics(
+                        raster=az_off_var, stats_h5=stats_h5
+                    )
+                    nisarqa.compute_and_save_basic_statistics(
+                        raster=rg_off_var, stats_h5=stats_h5
+                    )
+
                     plot_range_and_az_offsets_variances_to_pdf(
                         az_offset_variance=az_off_var,
                         rg_offset_variance=rg_off_var,
@@ -2215,15 +2221,6 @@ def process_az_and_slant_rg_variances_from_offset_product(
                     )
 
                     # TODO Compute histograms
-
-                    # Compute Statistics
-                    # raise ValueError("TODO: Fill value is 999!")
-                    nisarqa.compute_and_save_basic_statistics(
-                        raster=az_off_var, stats_h5=stats_h5
-                    )
-                    nisarqa.compute_and_save_basic_statistics(
-                        raster=rg_off_var, stats_h5=stats_h5
-                    )
 
 
 @overload
