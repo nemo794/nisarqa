@@ -44,7 +44,7 @@ class GetSummary:
 
     csv_file: InitVar[str | os.PathLike | None] = None
 
-    def __post_init__(self, csv_file):
+    def __post_init__(self, csv_file: str | os.PathLike | None) -> None:
         logger = self._get_summary_logger()
         if not logger.handlers:
             # First time GetSummary is instantiated; set up the internal logger
@@ -131,8 +131,8 @@ class GetSummary:
 
         # Write the header row of the CSV
         # Kludge: `_construct_extra_dict()` requires `result` and `tool` to be
-        # one of a set of acceptable options. This is to ensure that other checks
-        # adhere to a strict guidelines to maintain uniformity.
+        # one of a set of acceptable options. This is to ensure that PASS/FAIL checks
+        # adhere to strict guidelines to maintain uniformity.
         # The only exception is the header row, so we'll use a hack:
         extra = self._construct_extra_dict(
             tool="QA",  # Kludge; will be corrected below
@@ -163,7 +163,8 @@ class GetSummary:
 
         Raises
         ------
-        ValueError : If `result` is neither 'PASS' nor 'FAIL'.
+        ValueError
+            If `result` is neither 'PASS' nor 'FAIL'.
         """
         result = self._validate_string(result)
         if result not in ("PASS", "FAIL"):
@@ -219,15 +220,15 @@ class GetSummary:
 
     @staticmethod
     def _validate_string(my_str: str) -> str:
-        """Validates that `my_str` is a string; if so, returns `my_str`."""
+        """Validates that `my_str` is a string and does not contain commas; if so, returns `my_str`."""
         if not isinstance(my_str, str):
             raise TypeError(
-                f"`{my_str=}` and has type {type(my_str)}, must be type string."
+                f"`{my_str=}` and has type {type(my_str)}, must be type str."
             )
 
         if "," in my_str:
             raise ValueError(
-                "Given string contains a comma (','). This used in a"
+                "Given string contains a comma (','). This is used in a"
                 " a CSV file with comma delimiters, so there cannot be"
                 f" additional commas. Provided string: '{my_str}'"
             )
@@ -238,14 +239,14 @@ class GetSummary:
         self,
         description: str,
         result: str,
-        threshold="",
-        actual="",
-        notes="",
+        threshold: str = "",
+        actual: str = "",
+        notes: str = "",
         tool: str = "QA",
     ) -> dict[str, str]:
         """Make the `extra` dictionary that will populate a row of the CSV."""
 
-        # The keys in `extra` must key must match exactly the user-defined
+        # The keys in `extra` must match exactly the user-defined
         # fields in the underlying logger's format string.
         # This formatter string is set in `_setup_summary_csv()`.
         extra = {
@@ -313,7 +314,7 @@ class GetSummary:
             Example 1: the check "Able to open NISAR input file?" would not
                 involve an quantative value, so leave this as the empty string.
             Example 2: the check "All statistics under acceptable threshold?"
-                might set `actual` to 10.4, to indicate that 10.4% of
+                might set `actual` to 10.4, to indicate that 10.4% of computed metrics were below the threshold.
         notes : str, optional
             Additional notes to better describe the check. For example,
             this would be a good place for the name of the raster being checked.

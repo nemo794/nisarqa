@@ -291,6 +291,8 @@ def compute_and_save_basic_statistics(
     """
     # Create flags, to be used for the PASS/FAIL Summary CSV
     all_metrics_pass = True
+
+    # Total number of pixels that were NaN, +/-Inf or fill
     total_num_invalid = 0
 
     log = nisarqa.get_logger()
@@ -429,8 +431,8 @@ def compute_and_save_basic_statistics(
     # By using np.abs(), for complex values this will compute the magnitude.
     # The magnitude will only be ~0.0 if both real and imaj are ~0.0.
     num_zero = np.sum(np.abs(arr) < epsilon)
-    # Zeros are often a valid value; do not include them in `total_num_invalid`.
 
+    # Zeros are often a valid value; do not include them in `total_num_invalid`.
     percent_zero = 100 * num_zero / arr.size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -456,8 +458,6 @@ def compute_and_save_basic_statistics(
     # Compute overall invalid pixels
     assert total_num_invalid <= arr_size
     percent_invalid = 100 * (total_num_invalid / arr_size)
-    if percent_invalid > threshold:
-        all_metrics_pass = False
     msg_for_total_invalid_pixels = (
         f"Array {arr_name} is {percent_invalid} percent non-finite and/or"
         f" 'fill' pixels. (Acceptable threshold is {threshold} percent.)"
@@ -469,7 +469,7 @@ def compute_and_save_basic_statistics(
         log.info(msg_for_total_invalid_pixels)
 
     # Note the metrics in the SUMMARY CSV
-    sum_result = "PASS" if all_metrics_pass else "FAIL"
+    invalid_pass = "PASS" if (percent_invalid >= threshold) else "FAIL"
     summary.check_invalid_pixels_within_threshold(
         result=sum_result,
         threshold=str(threshold),

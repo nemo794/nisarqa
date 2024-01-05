@@ -451,9 +451,7 @@ def compute_histogram_by_tiling(
     else:
         sum_check = "FAIL"
         errmsg = (
-            f"{arr_name} histogram contains all zero values. Likely cause: the"
-            " source raster contains all pixels outside of range"
-            f" [{bin_edges[0]}, {bin_edges[-1]}]. This often occurs if the"
+            f"{arr_name} histogram contains all zero values. This often occurs if the"
             " source raster contains all NaN values."
         )
         nisarqa.get_logger().error(errmsg)
@@ -461,11 +459,10 @@ def compute_histogram_by_tiling(
     # Note result of the check in the summary file before raising an Exception.
     nisarqa.GetSummary().check_invalid_pixels_within_threshold(
         result=sum_check,
-        threshold="100",
-        actual="",  # We are working with the decimated raster.
         notes=(
-            f"{arr_name} histogram. Note: check performed on decimated raster"
-            " not full raster."
+            f"{arr_name}: all histogram bin counts are zero."
+            " This likely indicates that the raster contained no valid data."
+            " Note: check performed on decimated raster not full raster."
         ),
     )
 
