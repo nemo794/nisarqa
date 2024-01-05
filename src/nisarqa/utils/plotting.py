@@ -2192,7 +2192,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
         A structure containing processing parameters to generate the plots
         for the *Variance layers.
     report_pdf : PdfPages
-        The output pdf file to append the quiver plot to.
+        The output pdf file to append the plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
     """
@@ -2243,28 +2243,28 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
 def plot_range_and_az_offsets_variances_to_pdf(
     az_offset_variance, rg_offset_variance, report_pdf, cbar_min_max=[0.0, 0.01]
-) -> None:
+):
     """
     Plot azimuth and slant range offset variance layers to PDF.
 
     Parameters
     ----------
     az_offset_variance : nisarqa.RadarRaster or nisarqa.GeoRaster
-        Along track offset layer to be processed. Must correspond to
-        `rg_offset`.
+        Along track offset variance layer to be processed. Must correspond to
+        `rg_offset_variance `.
     rg_offset_variance : nisarqa.RadarRaster or nisarqa.GeoRaster
-        Slant range offset layer to be processed. Must correspond to
-        `az_offset`.
+        Slant range offset variance layer to be processed. Must correspond to
+        `az_offset_variance `.
     report_pdf : PdfPages
         The output PDF file to append the offsets plots to.
     cbar_min_max : pair of float or None, optional
         The range for the colorbar for the image raster. Both layers will be
         clipped to this range and plotted.
-        `None` to use the min and max of the image for the colorbar range.
+        `None` to use the min and max of both images for the colorbar range.
         Defaults to [0.0, 0.01].
     """
     # Validate that the pertinent metadata in the rasters is equal.
-    nisarqa.compare_raster_metadata(az_offset_variance, az_offset_variance)
+    nisarqa.compare_raster_metadata(az_offset_variance, rg_offset_variance, almost_identical=True)
 
     az_var = nisarqa.decimate_raster_array_to_square_pixels(az_offset_variance)
     rg_var = nisarqa.decimate_raster_array_to_square_pixels(rg_offset_variance)
@@ -2282,19 +2282,14 @@ def plot_range_and_az_offsets_variances_to_pdf(
     # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(az_offset_variance.name.split("_")[:-1])
-    title = f"Azimuth and Slant Range Offsets Variances (unitless)\n{name}"
+    title = f"Azimuth and Slant Range Offsets StdDev. (pixels)\n{name}"
     fig.suptitle(title)
 
-    # The InSAR product lead has said previously that the *Variance layers
-    # have a big dynamic range of [0,999], and that 999 is the rubbish value.
-    # So, we should exclude 999 from the colorbar range.
-    # Also exclude Inf values, to keep the colorbar ticks easy to read.
-    az_var[~np.isfinite(az_var) | (az_var == az_offset_variance.fill_value)] = (
-        np.nan
-    )
-    rg_var[~np.isfinite(rg_var) | (rg_var == rg_offset_variance.fill_value)] = (
-        np.nan
-    )
+    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill value) with NaNs.
+    az_fill = az_offset_variance.fill_value
+    az_var[~np.isfinite(az_var) | (az_var == az_fill)] = np.nan
+    rg_fill = rg_offset_variance.fill_value
+    rg_var[~np.isfinite(rg_var) | (rg_var == rg_fill)] = np.nan
 
     if cbar_min_max is None:
         # Use same colorbar scale for both plots
@@ -2347,10 +2342,9 @@ def plot_range_and_az_offsets_variances_to_pdf(
     )
 
     # Add a colorbar to the figure
-    # raise ValueError("TODO: Complete the title!")
     cax = fig.colorbar(im2, ax=ax2)
     cax.ax.set_ylabel(
-        ylabel="Variance (unitless)",
+        ylabel="Standard deviation (pixels)",
         rotation=270,
         labelpad=10.0,
     )

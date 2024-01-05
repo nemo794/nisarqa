@@ -696,10 +696,6 @@ class QuiverParamGroup(YamlParamGroup):
                 f"`longest_side_max` must be positive: {self.longest_side_max}"
             )
 
-    # TODO - delete this comment during code review. This function was
-    # moved 100% to this class' parent: `YamlParamGroup`. Thanks!
-
-
 @dataclass(frozen=True)
 class ROFFQuiverParamGroup(QuiverParamGroup):
     @staticmethod
@@ -741,7 +737,7 @@ class VarianceLayersParamGroup(YamlParamGroup):
         The magnitude of these layers is clipped to this interval,
         which (in turn) is used for the interval of the colorbar.
         If None, the interval is computed using the min and max
-        magnitudes of along track and slant range offset variances
+        magnitudes of along track, slant range, and cross offset variances
         Defaults to [0.0, 0.01].
     """
 
@@ -755,7 +751,7 @@ class VarianceLayersParamGroup(YamlParamGroup):
                 The magnitude of these layers is clipped to this interval,
                 which (in turn) is used for the interval of the colorbar.
                 If None, the interval is computed using the min and max 
-                magnitudes of along track and slant range offset variances.""",
+                magnitudes of along track, slant range, and cross offset variances.""",
             )
         },
     )
@@ -766,7 +762,7 @@ class VarianceLayersParamGroup(YamlParamGroup):
         self._validate_pair_of_numeric(
             param_value=self.cbar_min_max,
             param_name="colorbar_min_max",
-            min=None,
+            min=0.0,
             max=None,
             none_is_valid_value=True,
             strictly_increasing=True,
