@@ -2398,7 +2398,7 @@ def process_cross_variance_and_surface_peak(
         A structure containing processing parameters to generate the plots
         for the *Variance layers.
     report_pdf : PdfPages
-        The output pdf file to append the quiver plot to.
+        The output pdf file to append the plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
     """
@@ -2434,7 +2434,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_offset_variance: nisarqa.RadarRaster,
     corr_surf_peak: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-    offset_cbar_min_max: Optional[Sequence[float, float]],
+    offset_cbar_min_max: Optional[Sequence[float]],
 ) -> None: ...
 
 
@@ -2443,7 +2443,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_offset_variance: nisarqa.GeoRaster,
     corr_surf_peak: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-    offset_cbar_min_max: Optional[Sequence[float, float]],
+    offset_cbar_min_max: Optional[Sequence[float]],
 ) -> None: ...
 
 
@@ -2452,9 +2452,9 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     corr_surf_peak,
     report_pdf,
     offset_cbar_min_max=[0.0, 0.01],
-) -> None:
+):
     """
-    Plot azimuth and slant range offset variance layers to PDF.
+    Plot cross offset variance and correlation surface peak layers to PDF.
 
     Parameters
     ----------
@@ -2490,8 +2490,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(cross_offset_variance.name.split("_")[:-1])
     title = (
-        "Cross Offset Variance and Correlation Surface Peak (both"
-        f" unitless)\n{name}"
+        "Cross Offset StdDev. (pixels) and Correlation Surface Peak (unitless)\n{name}"
     )
     fig.suptitle(title)
 
@@ -2499,14 +2498,9 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_off = nisarqa.decimate_raster_array_to_square_pixels(
         cross_offset_variance
     )
-    # The InSAR product lead has said previously that the *Variance layers
-    # have a big dynamic range of [0,999], and that 999 is the rubbish value.
-    # So, we should exclude 999 from the colorbar range.
-    # Also exclude Inf values, to keep the colorbar ticks easy to read.
-    cross_off[
-        ~np.isfinite(cross_off)
-        | (cross_off == cross_offset_variance.fill_value)
-    ] = np.nan
+    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill value) with NaNs.
+    cross_fill = cross_offset_variance.fill_value
+    cross_off[~np.isfinite(cross_off) | (cross_off == cross_fill)] = np.nan
 
     if offset_cbar_min_max is None:
         # Use same colorbar scale for both plots
@@ -2541,7 +2535,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # Add a colorbar to the variance plot
     cax1 = fig.colorbar(im1, ax=ax1)
     cax1.ax.set_ylabel(
-        ylabel="Variance (unitless)",
+        ylabel="Standard deviation (pixels)",
         rotation=270,
         labelpad=10.0,
     )
@@ -2581,7 +2575,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # Add a colorbar to the surface peak plot
     cax1 = fig.colorbar(im2, ax=ax2)
     cax1.ax.set_ylabel(
-        ylabel="Normalized (unitless)",
+        ylabel="Normalized correlation peak (unitless)",
         rotation=270,
         labelpad=10.0,
     )
