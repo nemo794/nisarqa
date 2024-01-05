@@ -2451,10 +2451,13 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_offset_variance,
     corr_surf_peak,
     report_pdf,
-    offset_cbar_min_max=[0.0, 0.01],
+    offset_cbar_min_max=[0.0, 0.1],
 ):
     """
     Plot cross offset variance and correlation surface peak layers to PDF.
+
+    The variance raster layer contains "variance" values. This function
+    plots the square root of the variance, aka the standard deviation.
 
     Parameters
     ----------
@@ -2468,8 +2471,9 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         The output PDF file to append the offsets plots to.
     offset_cbar_min_max : pair of float or None, optional
         The range for the colorbar for the cross offset variance raster.
-        `None` to use the min and max of the image for the colorbar range.
-        Defaults to [0.0, 0.01].
+        `None` to use the min and max of the standard deviation values
+        for the colorbar range.
+        Defaults to [0.0, 0.1].
     """
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(
@@ -2490,7 +2494,8 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(cross_offset_variance.name.split("_")[:-1])
     title = (
-        "Cross Offset StdDev. (pixels) and Correlation Surface Peak (unitless)\n{name}"
+        "Cross Offset StdDev. (pixels) and Correlation Surface Peak"
+        f" (unitless)\n{name}"
     )
     fig.suptitle(title)
 
@@ -2498,9 +2503,14 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_off = nisarqa.decimate_raster_array_to_square_pixels(
         cross_offset_variance
     )
-    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill value) with NaNs.
+
+    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill
+    # value) with NaNs.
     cross_fill = cross_offset_variance.fill_value
     cross_off[~np.isfinite(cross_off) | (cross_off == cross_fill)] = np.nan
+
+    # convert variance layer to standard deviation form
+    cross_off = np.sqrt(cross_off)
 
     if offset_cbar_min_max is None:
         # Use same colorbar scale for both plots
