@@ -317,10 +317,19 @@ class NisarProduct(ABC):
             if "productSpecificationVersion" in f[id_group]:
                 spec_version = f[id_group]["productSpecificationVersion"][...]
                 spec_version = nisarqa.byte_string_to_python_str(spec_version)
+                nisarqa.get_logger().info(
+                    "Input product's"
+                    " `identification/productSpecificationVersion` dataset"
+                    f" contains {spec_version}."
+                )
             else:
                 # spec for very old test datasets.
                 # `productSpecificationVersion` metadata was added after this.
                 spec_version = "0.0.0"
+                nisarqa.get_logger().error(
+                    "`productSpecificationVersion` missing from input product's"
+                    " `identification` group. Defaulting to '0.0.0'."
+                )
 
             return spec_version
 
