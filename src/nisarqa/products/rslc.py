@@ -88,14 +88,19 @@ def verify_rslc(
     if not verbose:
         print(msg)
 
-    # All worksflows use the RSLC() product; only initialize once.
-    product = nisarqa.RSLC(filepath=input_file)
-
     # Initialize the PASS/FAIL checks summary file
     summary = nisarqa.GetSummary(summary_file)
 
-    # Input product could be opened via the product reader.
-    summary.check_can_open_input_file(result="PASS")
+    try:
+        # All worksflows use the RSLC() product; only initialize once.
+        product = nisarqa.RSLC(filepath=input_file)
+    except:
+        # Input product could not be opened via the product reader.
+        summary.check_can_open_input_file(result="FAIL")
+        raise
+    else:
+        # Input product could be opened via the product reader.
+        summary.check_can_open_input_file(result="PASS")
 
     # Run validate first because it checks the product spec
     if root_params.workflows.validate:

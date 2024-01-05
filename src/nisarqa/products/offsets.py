@@ -84,17 +84,22 @@ def verify_offset(
     if not verbose:
         print(msg)
 
-    if product_type == "roff":
-        product = nisarqa.ROFF(input_file)
-    else:
-        assert product_type == "goff"
-        product = nisarqa.GOFF(input_file)
-
     # Initialize the PASS/FAIL checks summary file
     summary = nisarqa.GetSummary(summary_file)
 
-    # Input product could be opened via the product reader.
-    summary.check_can_open_input_file(result="PASS")
+    try:
+        if product_type == "roff":
+            product = nisarqa.ROFF(input_file)
+        else:
+            assert product_type == "goff"
+            product = nisarqa.GOFF(input_file)
+    except:
+        # Input product could not be opened via the product reader.
+        summary.check_can_open_input_file(result="FAIL")
+        raise
+    else:
+        # Input product could be opened via the product reader.
+        summary.check_can_open_input_file(result="PASS")
 
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
