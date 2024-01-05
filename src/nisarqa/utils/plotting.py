@@ -353,13 +353,10 @@ def plot_unwrapped_phase_image_to_pdf(
             ax=ax2, arr=phs_img_rewrapped
         )
 
-        # If rewrap is 2, then use a cyclic colormap. Otherwise, use sequential.
-        rewrap_cmap = "twilight_shifted" if np.isclose(rewrap, 2) else "plasma"
-
         im2 = ax2.imshow(
             phs_img_rewrapped,
             aspect="equal",
-            cmap=rewrap_cmap,
+            cmap="plasma",
             interpolation="none",
         )
 
