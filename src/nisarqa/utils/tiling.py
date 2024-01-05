@@ -319,13 +319,14 @@ def compute_multilooked_backscatter_by_tiling(
 
 
 def compute_histogram_by_tiling(
-    arr,
-    bin_edges,
-    data_prep_func=None,
-    density=False,
-    decimation_ratio=(1, 1),
-    tile_shape=(512, -1),
-):
+    arr: ArrayLike,
+    bin_edges: np.ndarray,
+    arr_name: str = "",
+    data_prep_func: callable or None = None,
+    density: bool = False,
+    decimation_ratio: tuple[int, int] = (1, 1),
+    tile_shape: tuple[int, int] = (512, -1),
+) -> np.ndarray:
     """
     Compute decimated histograms by tiling.
 
@@ -335,6 +336,8 @@ def compute_histogram_by_tiling(
         The input array
     bin_edges : numpy.ndarray
         The bin edges to use for the histogram
+    arr_name : str
+        Name for the array. (Will be used for log messages.)
     data_prep_func : Callable or None, optional
         Function to process each tile of data through before computing
         the histogram counts. For example, this function can be used
@@ -439,6 +442,35 @@ def compute_histogram_by_tiling(
         # Accumulate the counts
         counts, _ = np.histogram(arr_slice, bins=bin_edges)
         hist_counts += counts
+
+    # If the histogram counts are all zero, then the raster likely did not
+    # contain any valid imagery pixels. (Typically, this occurs when
+    # there was an issue with ISCE3 processing, and the raster is all NaNs.)
+    if np.any(hist_counts):
+        sum_check = "PASS"
+    else:
+        sum_check = "FAIL"
+        errmsg = (
+            f"{arr_name} histogram contains all zero values. Likely cause: the"
+            " source raster contains all pixels outside of range"
+            f" [{bin_edges[0]}, {bin_edges[-1]}]. This often occurs if the"
+            " source raster contains all NaN values."
+        )
+        nisarqa.get_logger().error(errmsg)
+
+    # Note result of the check in the summary file before raising an Exception.
+    nisarqa.GetSummary().check_invalid_pixels_within_threshold(
+        result=sum_check,
+        threshold="100",
+        actual="",  # do not include. We are working with the decimated raster.
+        notes=(
+            f"{arr_name} histogram. Note: check performed on decimated raster"
+            " not full raster."
+        ),
+    )
+
+    if sum_check == "FAIL":
+        raise nisarqa.InvalidRasterError(errmsg)
 
     if density:
         # Change dtype to float

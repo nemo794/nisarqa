@@ -621,7 +621,7 @@ def compute_and_save_basic_statistics(
     # Now, all metrics have been computed and logged. Raise exception
     # if an issue was identified.
     if not all_metrics_pass:
-        raise nisarqa.InvalidNISARProductError(msg_for_total_invalid_pixels)
+        raise nisarqa.InvalidRasterError(msg_for_total_invalid_pixels)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

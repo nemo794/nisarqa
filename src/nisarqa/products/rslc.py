@@ -1285,6 +1285,7 @@ def generate_backscatter_image_histogram_single_freq(
             # Get histogram probability density
             hist_density = nisarqa.compute_histogram_by_tiling(
                 arr=pol_data.data,
+                arr_name=f"{pol_data.name} backscatter",
                 bin_edges=params.backscatter_bin_edges,
                 data_prep_func=img_prep,
                 density=True,
@@ -1426,6 +1427,7 @@ def generate_phase_histogram_single_freq(
             # Get histogram probability densities
             hist_density = nisarqa.compute_histogram_by_tiling(
                 arr=pol_data.data,
+                arr_name=f"{pol_data.name} phase",
                 bin_edges=params.phs_bin_edges,
                 data_prep_func=img_prep,
                 density=True,

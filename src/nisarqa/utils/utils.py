@@ -56,6 +56,28 @@ class InvalidNISARProductError(Exception):
         super().__init__(msg)
 
 
+class InvalidRasterError(Exception):
+    """
+    Raster is invalid.
+
+    This exception can be used when a raster was improperly formed.
+    A common example is when the raster is filled with all NaN values
+    (or nearly 100% NaN values).
+
+    Parameters
+    ----------
+    msg : str, optional
+        Error message.
+        Default: "Raster is invalid.".
+    """
+
+    def __init__(
+        self,
+        msg: str = "Raster is invalid.",
+    ) -> None:
+        super().__init__(msg)
+
+
 def raise_(exc):
     """
     Wrapper to raise an Exception for use in e.g. lambda functions.
