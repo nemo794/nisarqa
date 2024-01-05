@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass, fields
-from typing import Optional, overload
+from typing import Any, Optional, overload
 
 import h5py
 import numpy as np
@@ -117,6 +118,14 @@ class ComplexFloat16Decoder(object):
     @property
     def ndim(self):
         return self.dataset.ndim
+
+    @property
+    def attrs(self) -> Mapping[str, Any]:
+        return self.dataset.attrs
+
+    @property
+    def name(self) -> str:
+        return self.dataset.name
 
 
 @dataclass
