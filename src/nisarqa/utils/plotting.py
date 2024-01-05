@@ -2252,22 +2252,23 @@ def plot_range_and_az_offsets_variances_to_pdf(
     Plot azimuth and slant range offset variance layers as standard dev to PDF.
 
     The variance raster layers contain "variance" values. This function
-    plots the square root of the variance layers, aka the standard deviation.
+    plots the square root of the variance layers, aka the standard deviation
+    of the offsets.
 
     Parameters
     ----------
     az_offset_variance : nisarqa.RadarRaster or nisarqa.GeoRaster
-        Along track offset variance layer to be processed. Must correspond to
+        Along track offset variance layer to be plotted. Must correspond to
         `rg_offset_variance `.
     rg_offset_variance : nisarqa.RadarRaster or nisarqa.GeoRaster
-        Slant range offset variance layer to be processed. Must correspond to
+        Slant range offset variance layer to be plotted. Must correspond to
         `az_offset_variance `.
     report_pdf : PdfPages
         The output PDF file to append the plots to.
     cbar_min_max : pair of float or None, optional
-        The range for the colorbar for the image raster. Both layers will be
-        clipped to this range and plotted.
-        `None` to use the min and max of the standard deviation of both images
+        The range for the colorbar for the plotted images. After taking the
+        square root, both rasters will be clipped to this range and plotted.
+        `None` to use the min and max of the square root of both images
         for the colorbar range.
         Defaults to [0.0, 0.1].
     """
@@ -2302,23 +2303,23 @@ def plot_range_and_az_offsets_variances_to_pdf(
     rg_var[~np.isfinite(rg_var) | (rg_var == rg_fill)] = np.nan
 
     # convert variance layers to standard deviation form
-    az_var = np.sqrt(az_var)
-    rg_var = np.sqrt(rg_var)
+    az_std = np.sqrt(az_var)
+    rg_std = np.sqrt(rg_var)
 
     if cbar_min_max is None:
         # Use same colorbar scale for both plots
-        cbar_min = min(np.nanmin(az_var), np.nanmin(rg_var))
-        cbar_max = max(np.nanmax(az_var), np.nanmax(rg_var))
+        cbar_min = min(np.nanmin(az_std), np.nanmin(rg_std))
+        cbar_max = max(np.nanmax(az_std), np.nanmax(rg_std))
     else:
         cbar_min, cbar_max = cbar_min_max
 
     # Decimate to fit nicely on the figure.
-    az_var = decimate_img_to_size_of_axes(ax=ax1, arr=az_var)
-    rg_var = decimate_img_to_size_of_axes(ax=ax2, arr=rg_var)
+    az_std = decimate_img_to_size_of_axes(ax=ax1, arr=az_std)
+    rg_std = decimate_img_to_size_of_axes(ax=ax2, arr=rg_std)
 
     # Add the azimuth offsets variance plot (left plot)
     im1 = ax1.imshow(
-        az_var,
+        az_std,
         aspect="equal",
         cmap="magma_r",
         interpolation="none",
@@ -2330,7 +2331,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
         ax=ax1,
         xlim=az_offset_variance.x_axis_limits,
         ylim=az_offset_variance.y_axis_limits,
-        img_arr_shape=np.shape(az_var),
+        img_arr_shape=np.shape(az_std),
         xlabel=az_offset_variance.x_axis_label,
         ylabel=az_offset_variance.y_axis_label,
         title=az_offset_variance.name.split("_")[-1],
@@ -2338,7 +2339,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
     # Add the slant range offsets variance plot (right plot)
     im2 = ax2.imshow(
-        rg_var,
+        rg_std,
         aspect="equal",
         cmap="magma_r",
         interpolation="none",
@@ -2350,7 +2351,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax2,
         xlim=rg_offset_variance.x_axis_limits,
-        img_arr_shape=np.shape(rg_var),
+        img_arr_shape=np.shape(rg_std),
         xlabel=rg_offset_variance.x_axis_label,
         title=rg_offset_variance.name.split("_")[-1],
     )

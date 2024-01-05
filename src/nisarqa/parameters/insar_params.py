@@ -734,11 +734,12 @@ class VarianceLayersParamGroup(YamlParamGroup):
     ----------
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
-        for the variance layers for ROFF and GOFF.
-        The magnitude of these layers is clipped to this interval,
+        for the az and slant range variance layers for ROFF and GOFF.
+        The square root of these layers (i.e. the standard deviation
+        of the offsets) is clipped to this interval,
         which (in turn) is used for the interval of the colorbar.
         If None, the interval is computed using the min and max
-        magnitudes of along track, slant range, and cross offset variances
+        of the square root of these layers.
         Defaults to [0.0, 0.1].
     """
 
@@ -748,11 +749,12 @@ class VarianceLayersParamGroup(YamlParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="colorbar_min_max",
                 descr="""The vmin and vmax values to generate the plots
-                for the variance layers for ROFF and GOFF.
-                The magnitude of these layers is clipped to this interval,
+                for the az and slant range variance layers for ROFF and GOFF.
+                The square root of these layers (i.e. the standard deviation
+                of the offsets) is clipped to this interval,
                 which (in turn) is used for the interval of the colorbar.
                 If None, the interval is computed using the min and max 
-                magnitudes of along track, slant range, and cross offset variances.""",
+                of the square root of these layers.""",
             )
         },
     )
