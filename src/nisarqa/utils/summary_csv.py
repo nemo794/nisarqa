@@ -9,8 +9,90 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
+def get_summary() -> SummaryCSV:
+    """Get the SUMMARY.csv writer."""
+
+    sum_logger = SummaryCSV._get_summary_logger()
+
+    # The summary file should only be set up once during the execution of QA.
+    # If any handlers exist, this means it was previously set up. Bad!
+    if not sum_logger.handlers:
+        raise RuntimeError(
+            " `setup_summary_csv(..)` must be called prior to calling"
+            " `get_summary()`."
+        )
+
+    return SummaryCSV()
+
+
+def setup_summary_csv(csv_file: str | os.PathLike) -> None:
+    """
+    Setup the SUMMARY CSV file with correct filepath and formatting.
+
+    Parameters
+    ----------
+    csv_file : path-like
+        Filepath (with basepath) to the SUMMARY file. If `csv_file` already
+        exists, it will be overwritten.
+    """
+
+    # The GetSummary class uses the Python `logging` module under the hood
+    # to handle formatting, file location, etc.
+    # See SummaryCSV() docstring for more details.
+
+    summary_logger = SummaryCSV._get_summary_logger()
+    if summary_logger.handlers:
+        # Summary CSV logger was previously set up
+        raise ValueError(
+            f"`setup_summary_csv()` should be called by the program at most"
+            f" once. This will prevent silly potential"
+            f" bugs where the handlers are accidentally set multiple times"
+            f" during QA, resulting in earlier CSV message getting discarded."
+        )
+
+    # Clean the filepath
+    csv_file = os.fspath(csv_file)
+
+    # Setup the SUMMARY logger
+
+    # Set minimum log level for the root logger; this sets the minimum
+    # possible log level for all handlers. (It typically defaults to WARNING.)
+    # Later, set the minimum log level for individual handlers.
+    summary_logger.setLevel(logging.DEBUG)
+
+    # Create a formatter
+    fmt = logging.Formatter(
+        "%(tool)s,%(description)s,%(result)s,%(threshold)s,%(actual)s,%(notes)s"
+    )
+
+    # Write messages to the specified file. Since this function will only
+    # be called the first time, open in "w" mode for a fresh file.
+    handler = logging.FileHandler(filename=csv_file, mode="w")
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(fmt)
+    summary_logger.addHandler(handler)
+
+    # Write the header row of the CSV
+    # Kludge: `_construct_extra_dict()` requires `result` and `tool` to be
+    # one of a set of acceptable options. This is to ensure that PASS/FAIL checks
+    # adhere to strict guidelines to maintain uniformity.
+    # The only exception is the header row, so we'll use a hack:
+    extra = SummaryCSV._construct_extra_dict(
+        tool="QA",  # Kludge; will be corrected below
+        description="Check",
+        result="PASS",  # Kludge; will be corrected below
+        threshold="Threshold",
+        actual="Actual",
+        notes="Notes",
+    )
+    extra["result"] = "Result"
+    extra["tool"] = "Tool"
+
+    SummaryCSV._write_to_csv(extra=extra)
+
+
 @dataclass
-class GetSummary:
+class SummaryCSV:
     """
     The global SUMMARY.csv writer for PASS/FAIL checks.
 
@@ -70,82 +152,6 @@ class GetSummary:
     def _get_summary_logger() -> logging.Logger:
         """Get the underlying Logger for the SUMMARY CSV file."""
         return logging.getLogger("SUMMARY")
-
-    def _setup_summary_csv(self, csv_file: str | os.PathLike) -> None:
-        """
-        Setup the SUMMARY CSV file with correct filepath and formatting.
-
-        Parameters
-        ----------
-        csv_file : path-like
-            Filepath (with basepath) to the SUMMARY file.
-        """
-
-        # Internal to the GetSummary class, we'll use the Python `logging`
-        # module to handle formatting, file location, etc..
-        # The `logging` module will also allow global access, so we will not
-        # need to pass a logger object around in the rest of the code.
-        # If QA SAS exits early, a partial output of the SUMMARY CSV will have
-        # been generated and written, too.
-
-        # Get the SUMMARY logger
-        summary = self._get_summary_logger()
-
-        # The summary file should only be set up once during the execution of QA.
-        # If any handlers exist, this means it was previously set up. Bad!
-        if summary.handlers:
-            raise RuntimeError(
-                " `GetSummary._setup_summary_csv(..)` can only be called"
-                " once during the execution of QA SAS. This is at least the"
-                " second time it was called."
-            )
-
-        # Input validation
-        if not isinstance(csv_file, (str, os.PathLike)):
-            raise TypeError(
-                f"`{csv_file=}` and has type {type(csv_file)}, but must be"
-                " path-like."
-            )
-
-        # Clean the filepath
-        csv_file = os.fspath(csv_file)
-
-        # Setup the SUMMARY logger
-
-        # Set minimum log level for the root logger; this sets the minimum
-        # possible log level for all handlers. (It typically defaults to WARNING.)
-        # Later, set the minimum log level for individual handlers.
-        summary.setLevel(logging.DEBUG)
-
-        # Create a formatter
-        fmt = logging.Formatter(
-            "%(tool)s,%(description)s,%(result)s,%(threshold)s,%(actual)s,%(notes)s"
-        )
-
-        # Write messages to the specified file. Since this function will only
-        # be called the first time, open in "w" mode for a fresh file.
-        handler = logging.FileHandler(filename=csv_file, mode="w")
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(fmt)
-        summary.addHandler(handler)
-
-        # Write the header row of the CSV
-        # Kludge: `_construct_extra_dict()` requires `result` and `tool` to be
-        # one of a set of acceptable options. This is to ensure that PASS/FAIL checks
-        # adhere to strict guidelines to maintain uniformity.
-        # The only exception is the header row, so we'll use a hack:
-        extra = self._construct_extra_dict(
-            tool="QA",  # Kludge; will be corrected below
-            description="Check",
-            result="PASS",  # Kludge; will be corrected below
-            threshold="Threshold",
-            actual="Actual",
-            notes="Notes",
-        )
-        extra["result"] = "Result"
-        extra["tool"] = "Tool"
-
-        self._write_to_csv(extra=extra)
 
     def _validate_result(self, result: str) -> str:
         """
