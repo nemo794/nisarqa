@@ -107,7 +107,6 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 
 # Import Globals first (these must be imported before the parameters)
 from .parameters.constants.globals import *
-from .parameters.constants.stub_outputs import *
 
 # Next import parameters, products, utils, etc.
 from .parameters.nisar_params import *
