@@ -149,7 +149,7 @@ class GetSummary:
 
     def _validate_result(self, result: str) -> str:
         """
-        Validates that `result` is either 'PASS' or 'FAIL'.
+        Validate that `result` is either 'PASS' or 'FAIL'.
 
         Parameters
         ----------
@@ -173,7 +173,7 @@ class GetSummary:
 
     def _validate_description(self, description: str) -> str:
         """
-        Checks that `description` is a string and not too long.
+        Check that `description` is a string and not too long.
 
         Parameters
         ----------
@@ -196,7 +196,7 @@ class GetSummary:
 
     def _validate_tool(self, tool: str) -> str:
         """
-        Validates that `tool` is one of "QA", "AbsCal", "PTA", "NESZ".
+        Validate that `tool` is one of "QA", "AbsCal", "PTA", "NESZ".
 
         Parameters
         ----------
@@ -219,21 +219,19 @@ class GetSummary:
         return tool
 
     @staticmethod
-    def _validate_string(my_str: str) -> str:
-        """Validates that `my_str` is a string and does not contain commas; if so, returns `my_str`."""
-        if not isinstance(my_str, str):
-            raise TypeError(
-                f"`{my_str=}` and has type {type(my_str)}, must be type str."
-            )
+    def _validate_string(s: str) -> str:
+        """Validate that `s` is a string and does not contain commas; if so, returns `s`."""
+        if not isinstance(s, str):
+            raise TypeError(f"`{s=}` and has type {type(s)}, must be type str.")
 
-        if "," in my_str:
+        if "," in s:
             raise ValueError(
                 "Given string contains a comma (','). This is used in a"
                 " a CSV file with comma delimiters, so there cannot be"
-                f" additional commas. Provided string: '{my_str}'"
+                f" additional commas. Provided string: '{s}'"
             )
 
-        return my_str
+        return s
 
     def _construct_extra_dict(
         self,
@@ -278,7 +276,7 @@ class GetSummary:
         # Use "" as dummy value.
         summary.info(msg="", extra=extra)
 
-    def check_custom(
+    def check(
         self,
         description: str,
         result: str,
@@ -288,13 +286,10 @@ class GetSummary:
         tool: str = "QA",
     ) -> None:
         """
-        Write a custom PASS/FAIL check to the SUMMARY CSV file.
+        Write a PASS/FAIL check to the SUMMARY CSV file.
 
         Parameters
         ----------
-        tool : str
-            Short name for the QA workflow generating the summary check.
-            One of: "QA", "PTA", "AbsCal", "NET"
         description : str
             The PASS/FAIL check. Note: this should be a short, unabiguous
             phrase or question that has a response of "PASS" or "FAIL".
@@ -318,6 +313,9 @@ class GetSummary:
         notes : str, optional
             Additional notes to better describe the check. For example,
             this would be a good place for the name of the raster being checked.
+        tool : str, optional
+            Short name for the QA workflow generating the summary check.
+            One of: "QA", "PTA", "AbsCal", "NESZ". Defaults to "QA".
         """
         extra = self._construct_extra_dict(
             description=description,
@@ -332,15 +330,13 @@ class GetSummary:
 
     def check_can_open_input_file(self, result: str) -> None:
         """Check: 'Able to open input NISAR file?'"""
-        self.check_custom(
-            description="Able to open input NISAR file?", result=result
-        )
+        self.check(description="Able to open input NISAR file?", result=result)
 
     def check_invalid_pixels_within_threshold(
-        self, result: str, threshold: str, actual: str, notes: str
+        self, result: str, threshold: str, actual: str, notes: str = ""
     ) -> None:
         """Check: '% Non-finite and/or 'fill' pixels under threshold?'"""
-        self.check_custom(
+        self.check(
             description="% Non-finite and/or 'fill' pixels under threshold?",
             threshold=threshold,
             actual=actual,
@@ -349,10 +345,10 @@ class GetSummary:
         )
 
     def check_nan_pixels_within_threshold(
-        self, result: str, threshold: str, actual: str, notes: str
+        self, result: str, threshold: str, actual: str, notes: str = ""
     ) -> None:
         """Check: '% NaN pixels under threshold?'"""
-        self.check_custom(
+        self.check(
             description="% NaN pixels under threshold?",
             threshold=threshold,
             actual=actual,
@@ -362,7 +358,7 @@ class GetSummary:
 
     def check_QA_completed_no_exceptions(self, result: str) -> None:
         """Check: 'QA SAS completed with no exceptions?'"""
-        self.check_custom(
+        self.check(
             description="QA completed with no exceptions?",
             result=result,
         )

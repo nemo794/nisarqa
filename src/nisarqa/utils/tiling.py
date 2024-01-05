@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import warnings
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -322,7 +325,7 @@ def compute_histogram_by_tiling(
     arr: ArrayLike,
     bin_edges: np.ndarray,
     arr_name: str = "",
-    data_prep_func: callable or None = None,
+    data_prep_func: Callable | None = None,
     density: bool = False,
     decimation_ratio: tuple[int, int] = (1, 1),
     tile_shape: tuple[int, int] = (512, -1),
@@ -451,8 +454,8 @@ def compute_histogram_by_tiling(
     else:
         sum_check = "FAIL"
         errmsg = (
-            f"{arr_name} histogram contains all zero values. This often occurs if the"
-            " source raster contains all NaN values."
+            f"{arr_name} histogram contains all zero values. This often occurs"
+            " if the source raster contains all NaN values."
         )
         nisarqa.get_logger().error(errmsg)
 
