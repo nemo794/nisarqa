@@ -810,13 +810,13 @@ class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
         for the cross offset variance layer for ROFF and GOFF.
-        If None, the interval is computed using the min and max
-        of the square root of these layers.
+        If None, then the colorbar range will be computed based
+        on `percentile_for_clipping`.
         Defaults to None.
     percentile_for_clipping : pair of float, optional
         Defines the percentile range that the image array will be clipped to
         and that the colormap covers. Must be in the range [0.0, 100.0].
-        Defaults to [1.0, 99.0].
+        Superseded by `cbar_min_max` parameter. Defaults to [1.0, 99.0].
     """
 
     cbar_min_max: Optional[Sequence[float]] = field(

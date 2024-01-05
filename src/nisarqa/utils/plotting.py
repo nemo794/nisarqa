@@ -2514,15 +2514,16 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         cross_offset_variance
     )
 
+    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill
+    # value) with NaNs. Make sure to do this before any clipping occurs;
+    # otherwise, 'fill' pixels might influence the clipping values.
+    cross_fill = cross_offset_variance.fill_value
+    cross_off[~np.isfinite(cross_off) | (cross_off == cross_fill)] = np.nan
+
     if offset_cbar_min_max is None:
         cross_off = nisarqa.rslc.clip_array(
             arr=cross_off, percentile_range=percentile_for_clipping
         )
-
-    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill
-    # value) with NaNs.
-    cross_fill = cross_offset_variance.fill_value
-    cross_off[~np.isfinite(cross_off) | (cross_off == cross_fill)] = np.nan
 
     if offset_cbar_min_max is None:
         offset_cbar_min = np.nanmin(cross_off)
