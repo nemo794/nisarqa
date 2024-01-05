@@ -782,7 +782,7 @@ class ROFFVarianceLayersParamGroup(VarianceLayersParamGroup):
             "qa",
             "roff",
             "qa_reports",
-            "az_and_rg_variance_plots",
+            "az_and_rg_variance",
         ]
 
 
@@ -796,7 +796,7 @@ class GOFFVarianceLayersParamGroup(VarianceLayersParamGroup):
             "qa",
             "goff",
             "qa_reports",
-            "az_and_rg_variance_layers",
+            "az_and_rg_variance",
         ]
 
 
@@ -881,7 +881,7 @@ class ROFFCrossOffsetVarianceLayerParamGroup(
             "qa",
             "roff",
             "qa_reports",
-            "cross_offset_variance_layer",
+            "cross_offset_variance",
         ]
 
 
@@ -897,7 +897,7 @@ class GOFFCrossOffsetVarianceLayerParamGroup(
             "qa",
             "goff",
             "qa_reports",
-            "cross_offset_variance_layer",
+            "cross_offset_variance",
         ]
 
 

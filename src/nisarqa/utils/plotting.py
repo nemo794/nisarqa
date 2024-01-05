@@ -2435,8 +2435,8 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_offset_variance: nisarqa.RadarRaster,
     corr_surf_peak: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-    offset_cbar_min_max: Optional[Sequence[float]],
-    percentile_for_clipping: Sequence[float],
+    offset_cbar_min_max: Optional[Sequence[float]] = None,
+    percentile_for_clipping: Sequence[float] = (1.0, 99.0),
 ) -> None: ...
 
 
@@ -2445,8 +2445,8 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_offset_variance: nisarqa.GeoRaster,
     corr_surf_peak: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-    offset_cbar_min_max: Optional[Sequence[float]],
-    percentile_for_clipping: Sequence[float],
+    offset_cbar_min_max: Optional[Sequence[float]] = None,
+    percentile_for_clipping: Sequence[float] = (1.0, 99.0),
 ) -> None: ...
 
 
