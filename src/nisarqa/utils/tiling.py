@@ -462,7 +462,7 @@ def compute_histogram_by_tiling(
     nisarqa.GetSummary().check_invalid_pixels_within_threshold(
         result=sum_check,
         threshold="100",
-        actual="",  # do not include. We are working with the decimated raster.
+        actual="",  # We are working with the decimated raster.
         notes=(
             f"{arr_name} histogram. Note: check performed on decimated raster"
             " not full raster."

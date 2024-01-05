@@ -220,12 +220,19 @@ class GetSummary:
     @staticmethod
     def _validate_string(my_str: str) -> str:
         """Validates that `my_str` is a string; if so, returns `my_str`."""
-        if isinstance(my_str, str):
-            return my_str
-        else:
+        if not isinstance(my_str, str):
             raise TypeError(
                 f"`{my_str=}` and has type {type(my_str)}, must be type string."
             )
+
+        if "," in my_str:
+            raise ValueError(
+                "Given string contains a comma (','). This used in a"
+                " a CSV file with comma delimiters, so there cannot be"
+                f" additional commas. Provided string: '{my_str}'"
+            )
+
+        return my_str
 
     def _construct_extra_dict(
         self,
