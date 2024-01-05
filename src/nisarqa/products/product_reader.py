@@ -322,13 +322,6 @@ class NisarProduct(ABC):
                 # `productSpecificationVersion` metadata was added after this.
                 spec_version = "0.0.0"
 
-            # Sanity check for if QA has been tested with this product spec
-            if spec_version not in ("0.0.0", "0.9.0"):
-                nisarqa.get_logger().warning(
-                    f"QA for product specification version {spec_version}"
-                    " not tested."
-                )
-
             return spec_version
 
     @cached_property
