@@ -153,7 +153,9 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_arr = decimate_img_to_size_of_axes(ax=ax1, arr=iono_arr)
 
     # Add the wrapped phase image plot
-    im = ax1.imshow(iono_arr, aspect="equal", cmap="hsv", interpolation="none")
+    im = ax1.imshow(
+        iono_arr, aspect="equal", cmap="twilight_shifted", interpolation="none"
+    )
 
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
@@ -316,7 +318,7 @@ def plot_unwrapped_phase_image_to_pdf(
     phs_img_unw = decimate_img_to_size_of_axes(ax=ax1, arr=phs_img_unw)
 
     im1 = ax1.imshow(
-        phs_img_unw, aspect="equal", cmap="hsv", interpolation="none"
+        phs_img_unw, aspect="equal", cmap="plasma", interpolation="none"
     )
 
     nisarqa.rslc.format_axes_ticks_and_labels(
@@ -351,8 +353,14 @@ def plot_unwrapped_phase_image_to_pdf(
             ax=ax2, arr=phs_img_rewrapped
         )
 
+        # If rewrap is 2, then use a cyclic colormap. Otherwise, use sequential.
+        rewrap_cmap = "twilight_shifted" if np.isclose(rewrap, 2) else "plasma"
+
         im2 = ax2.imshow(
-            phs_img_rewrapped, aspect="equal", cmap="hsv", interpolation="none"
+            phs_img_rewrapped,
+            aspect="equal",
+            cmap=rewrap_cmap,
+            interpolation="none",
         )
 
         pi_unicode = "\u03c0"
@@ -500,7 +508,9 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     fig.suptitle(title)
 
     # Add the wrapped phase image plot
-    im1 = ax1.imshow(phs_img, aspect="equal", cmap="hsv", interpolation="none")
+    im1 = ax1.imshow(
+        phs_img, aspect="equal", cmap="twilight_shifted", interpolation="none"
+    )
 
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
