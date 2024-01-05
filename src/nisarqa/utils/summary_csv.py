@@ -130,11 +130,11 @@ class GetSummary:
         summary.addHandler(handler)
 
         # Write the header row of the CSV
-        # Kludge: `_make_extra()` requires `result` and `tool` to be one of
-        # a few acceptable options. This is to ensure that other checks
+        # Kludge: `_construct_extra_dict()` requires `result` and `tool` to be
+        # one of a set of acceptable options. This is to ensure that other checks
         # adhere to a strict guidelines to maintain uniformity.
         # The only exception is the header row, so we'll use a hack:
-        extra = self._make_extra(
+        extra = self._construct_extra_dict(
             tool="QA",  # Kludge; will be corrected below
             description="Check",
             result="PASS",  # Kludge; will be corrected below
@@ -170,6 +170,29 @@ class GetSummary:
             raise ValueError(f"`{result=}`, must be either 'PASS' or 'FAIL'.")
         return result
 
+    def _validate_description(self, description: str) -> str:
+        """
+        Checks that `description` is a string and not too long.
+
+        Parameters
+        ----------
+        description : str
+            The description field for a summary check.
+
+        Returns
+        -------
+        out : str
+            Same as `description`.
+        """
+        description = self._validate_string(description)
+        if len(description) > 88:
+            nisarqa.get_logger().warning(
+                f"{description=}, and has length {len(description)}. Consider"
+                " making it more concise."
+            )
+
+        return description
+
     def _validate_tool(self, tool: str) -> str:
         """
         Validates that `tool` is one of "QA", "AbsCal", "PTA", "NESZ".
@@ -204,7 +227,7 @@ class GetSummary:
                 f"`{my_str=}` and has type {type(my_str)}, must be type string."
             )
 
-    def _make_extra(
+    def _construct_extra_dict(
         self,
         description: str,
         result: str,
@@ -220,7 +243,7 @@ class GetSummary:
         # This formatter string is set in `_setup_summary_csv()`.
         extra = {
             "tool": self._validate_tool(tool),
-            "description": self._validate_string(description),
+            "description": self._validate_description(description),
             "result": self._validate_result(result),
             "threshold": self._validate_string(threshold),
             "actual": self._validate_string(actual),
@@ -237,7 +260,7 @@ class GetSummary:
         extra : dict[str, str]
             A dictionary which is used to populate the new row in the CSV.
             It must contain the identical keys to the dictionary returned
-            by `_make_extra()`. Any additional keys will be ignored.
+            by `_construct_extra_dict()`. Any additional keys will be ignored.
             Missing keys will result in an error.
         """
         summary = self._get_summary_logger()
@@ -247,17 +270,17 @@ class GetSummary:
         # Use "" as dummy value.
         summary.info(msg="", extra=extra)
 
-    def custom(
+    def check_custom(
         self,
-        tool: str,
         description: str,
         result: str,
         threshold: str = "",
         actual: str = "",
         notes: str = "",
+        tool: str = "QA",
     ) -> None:
         """
-        Write a fully custom PASS/FAIL check to the SUMMARY CSV file.
+        Write a custom PASS/FAIL check to the SUMMARY CSV file.
 
         Parameters
         ----------
@@ -275,7 +298,7 @@ class GetSummary:
             If a threshold value was used to determine the outcome of the
             PASS/FAIL check, note that value here. Defaults to the empty
             string `""`, meaning that no threshold was used.
-        actual : str
+        actual : str, optional
             The quantity determined from the input NISAR product which was used
             to compare against the threshold value, etc. in order to
             determine the outcome of the PASS/FAIL check. Defaults to the empty
@@ -284,53 +307,36 @@ class GetSummary:
                 involve an quantative value, so leave this as the empty string.
             Example 2: the check "All statistics under acceptable threshold?"
                 might set `actual` to 10.4, to indicate that 10.4% of
-        notes : st
-            Additional notes to better describe the check.
-
-
-
-
+        notes : str, optional
+            Additional notes to better describe the check. For example,
+            this would be a good place for the name of the raster being checked.
         """
-        log = nisarqa.get_logger()
-        if tool not in ("QA", "PTA", "AbsCal", "NET"):
-            raise ValueError(
-                f"`{tool=}`, must be one of ['QA', 'PTA', 'AbsCal', 'NET']."
-            )
-        if len(description) > 88:
-            log.warning(
-                f"{description=}, and has length {len(description)}. Consider"
-                " shortening it to make it more concise."
-            )
-        if result not in ("PASS", "FAIL"):
-            raise ValueError(f"`{result=}`, must be one of ['PASS', 'FAIL'].")
+        extra = self._construct_extra_dict(
+            description=description,
+            result=result,
+            threshold=threshold,
+            actual=actual,
+            notes=notes,
+            tool=tool,
+        )
+
+        self._write_to_csv(extra)
 
     def check_can_open_input_file(self, result: str) -> None:
-        extra = self._make_extra(
-            description="Able to open NISAR input file?", result=result
+        """Check: 'Able to open input NISAR file?'"""
+        self.check_custom(
+            description="Able to open input NISAR file?", result=result
         )
-        self._write_to_csv(extra)
 
     def check_statistics_within_threshold(
         self, result: str, notes: str
     ) -> None:
-        extra = self._make_extra(
-            description="Statistics within acceptable threshold?",
+        """Check: 'Raster statistics within acceptable threshold?'"""
+        self.check_custom(
+            description="Raster statistics within acceptable threshold?",
             result=result,
             notes=notes,
         )
-        self._write_to_csv(extra)
-
-
-# Example usage:
-summary = GetSummary("./test_log.txt")
-
-summary.check_can_open_input_file(result="PASS")
-
-sum2 = GetSummary()
-
-summary.check_statistics_within_threshold(result="FAIL", notes="RSLC_L_A_HH")
-
-summary.check_can_open_input_file(result="FAIL")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

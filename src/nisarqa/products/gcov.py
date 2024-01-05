@@ -81,6 +81,12 @@ def verify_gcov(
 
     product = nisarqa.GCOV(filepath=input_file)
 
+    # Initialize the PASS/FAIL checks summary file
+    summary = nisarqa.GetSummary(summary_file)
+
+    # Input product could be opened via the product reader.
+    summary.check_can_open_input_file(result="PASS")
+
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
         log.info(msg)
@@ -97,15 +103,10 @@ def verify_gcov(
             freq_pols=freq_cov,
         )
 
-        msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
-        log.info(msg)
         msg = "Input file validation complete."
         log.info(msg)
         if not verbose:
             print(msg)
-
-        # TODO - Sam, remove this line once the PASS/FAIL checks are implemented.
-        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
 
         # TODO - this GCOV validation check should be integrated into
         # the actual product validation. For now, we'll leave it here.
@@ -126,22 +127,6 @@ def verify_gcov(
 
     if root_params.workflows.qa_reports:
         log.info(f"Beginning `qa_reports` processing...")
-
-        # TODO qa_reports will add to the SUMMARY.csv file.
-        # For now, make sure that the stub file is output
-        if not os.path.isfile(summary_file):
-            nisarqa.output_stub_files(
-                output_dir=out_dir,
-                stub_files="summary_csv",
-            )
-            nisarqa.output_stub_files(
-                output_dir=out_dir, stub_files="summary_csv"
-            )
-            log.info(f"PASS/FAIL checks saved to {summary_file}")
-            msg = "PASS/FAIL checks complete."
-            log.info(msg)
-            if not verbose:
-                print(msg)
 
         log.info(f"Beginning processing of browse KML...")
         nisarqa.write_latlonquad_to_kml(

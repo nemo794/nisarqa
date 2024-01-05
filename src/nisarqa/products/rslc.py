@@ -91,6 +91,12 @@ def verify_rslc(
     # All worksflows use the RSLC() product; only initialize once.
     product = nisarqa.RSLC(filepath=input_file)
 
+    # Initialize the PASS/FAIL checks summary file
+    summary = nisarqa.GetSummary(summary_file)
+
+    # Input product could be opened via the product reader.
+    summary.check_can_open_input_file(result="PASS")
+
     # Run validate first because it checks the product spec
     if root_params.workflows.validate:
         msg = f"Beginning validation of input file against XML Product Spec..."
@@ -108,15 +114,10 @@ def verify_rslc(
             freq_pols=freq_pol,
         )
 
-        msg = f"Input file validation PASS/FAIL checks saved: {summary_file}"
-        log.info(msg)
         msg = "Input file validation complete."
         log.info(msg)
         if not verbose:
             print(msg)
-
-        # TODO - Sam, remove this line once the PASS/FAIL checks are implemented.
-        nisarqa.output_stub_files(output_dir=out_dir, stub_files="summary_csv")
 
     # If running these workflows, save the processing parameters and
     # identification group to STATS.h5
