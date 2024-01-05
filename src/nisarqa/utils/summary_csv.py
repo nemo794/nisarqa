@@ -352,5 +352,12 @@ class GetSummary:
             notes=notes,
         )
 
+    def check_QA_completed_no_exceptions(self, result: str) -> None:
+        """Check: 'QA SAS completed with no exceptions?'"""
+        self.check_custom(
+            description="QA completed with no exceptions?",
+            result=result,
+        )
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

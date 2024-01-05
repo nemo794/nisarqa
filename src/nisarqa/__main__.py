@@ -248,8 +248,24 @@ def main():
         # been redirected to the log file instead of stderr.
         log.exception(e)
 
+        try:
+            summary = nisarqa.GetSummary()
+        except ValueError:
+            # Summary CSV was never initialized. Cannot note the failure.
+            pass
+        else:
+            summary.check_QA_completed_no_exceptions(result="FAIL")
+
         # Do not silently fail! Alert user via the console
         raise
+
+    try:
+        summary = nisarqa.GetSummary()
+    except ValueError:
+        # Summary CSV was never initialized. Cannot note the success.
+        pass
+    else:
+        summary.check_QA_completed_no_exceptions(result="PASS")
 
 
 if __name__ == "__main__":
