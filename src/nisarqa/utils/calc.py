@@ -454,6 +454,7 @@ def compute_and_save_basic_statistics(
         log.info(msg)
 
     # Compute overall invalid pixels
+    assert total_num_invalid <= arr_size
     percent_invalid = 100 * (total_num_invalid / arr_size)
     if percent_invalid > threshold:
         all_metrics_pass = False
