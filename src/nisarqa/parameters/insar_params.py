@@ -696,6 +696,7 @@ class QuiverParamGroup(YamlParamGroup):
                 f"`longest_side_max` must be positive: {self.longest_side_max}"
             )
 
+
 @dataclass(frozen=True)
 class ROFFQuiverParamGroup(QuiverParamGroup):
     @staticmethod
@@ -738,11 +739,11 @@ class VarianceLayersParamGroup(YamlParamGroup):
         which (in turn) is used for the interval of the colorbar.
         If None, the interval is computed using the min and max
         magnitudes of along track, slant range, and cross offset variances
-        Defaults to [0.0, 0.01].
+        Defaults to [0.0, 0.1].
     """
 
     cbar_min_max: Optional[Sequence[float]] = field(
-        default=(0.0, 0.01),
+        default=(0.0, 0.1),
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="colorbar_min_max",

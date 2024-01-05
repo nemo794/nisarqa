@@ -45,6 +45,7 @@ def process_ionosphere_phase_screen(
                 freq=freq, pol=pol
             ) as iono_uncertainty:
                 # Compute Statistics first, in case of malformed layers
+                # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
                     raster=iono_phs,
                     stats_h5=stats_h5,
@@ -242,6 +243,7 @@ def process_phase_image_unwrapped(
         for pol in product.get_pols(freq=freq):
             with product.get_unwrapped_phase(freq=freq, pol=pol) as img:
                 # Compute Statistics first, in case of malformed layers
+                # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
                     raster=img,
                     stats_h5=stats_h5,
@@ -410,6 +412,7 @@ def process_phase_image_wrapped(
                 freq=freq, pol=pol
             ) as coh_img:
                 # Compute Statistics first, in case of malformed layers
+                # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
                     raster=complex_img,
                     stats_h5=stats_h5,
@@ -2206,6 +2209,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
                 ) as rg_off_var:
 
                     # Compute Statistics first, in case of malformed layers
+                    # (which could cause plotting to fail)
                     nisarqa.compute_and_save_basic_statistics(
                         raster=az_off_var, stats_h5=stats_h5
                     )
@@ -2242,10 +2246,13 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
 
 def plot_range_and_az_offsets_variances_to_pdf(
-    az_offset_variance, rg_offset_variance, report_pdf, cbar_min_max=[0.0, 0.01]
+    az_offset_variance, rg_offset_variance, report_pdf, cbar_min_max=[0.0, 0.1]
 ):
     """
-    Plot azimuth and slant range offset variance layers to PDF.
+    Plot azimuth and slant range offset variance layers as standard dev to PDF.
+
+    The variance raster layers contain "variance" values. This function
+    plots the square root of the variance layers, aka the standard deviation.
 
     Parameters
     ----------
@@ -2256,15 +2263,18 @@ def plot_range_and_az_offsets_variances_to_pdf(
         Slant range offset variance layer to be processed. Must correspond to
         `az_offset_variance `.
     report_pdf : PdfPages
-        The output PDF file to append the offsets plots to.
+        The output PDF file to append the plots to.
     cbar_min_max : pair of float or None, optional
         The range for the colorbar for the image raster. Both layers will be
         clipped to this range and plotted.
-        `None` to use the min and max of both images for the colorbar range.
-        Defaults to [0.0, 0.01].
+        `None` to use the min and max of the standard deviation of both images
+        for the colorbar range.
+        Defaults to [0.0, 0.1].
     """
     # Validate that the pertinent metadata in the rasters is equal.
-    nisarqa.compare_raster_metadata(az_offset_variance, rg_offset_variance, almost_identical=True)
+    nisarqa.compare_raster_metadata(
+        az_offset_variance, rg_offset_variance, almost_identical=True
+    )
 
     az_var = nisarqa.decimate_raster_array_to_square_pixels(az_offset_variance)
     rg_var = nisarqa.decimate_raster_array_to_square_pixels(rg_offset_variance)
@@ -2290,6 +2300,10 @@ def plot_range_and_az_offsets_variances_to_pdf(
     az_var[~np.isfinite(az_var) | (az_var == az_fill)] = np.nan
     rg_fill = rg_offset_variance.fill_value
     rg_var[~np.isfinite(rg_var) | (rg_var == rg_fill)] = np.nan
+
+    # convert variance layers to standard deviation form
+    az_var = np.sqrt(az_var)
+    rg_var = np.sqrt(rg_var)
 
     if cbar_min_max is None:
         # Use same colorbar scale for both plots

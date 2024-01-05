@@ -304,8 +304,6 @@ class YamlParamGroup(ABC):
         # For readability, add a newline before the new params_cm group
         parent_cm.yaml_set_comment_before_after_key(path[-1], before="\n")
 
-    # TODO - delete this comment during code review. This function was
-    # moved 100% from this class' child: `QuiverParamGroup`. Thanks!
     @staticmethod
     def _validate_pair_of_numeric(
         param_value: Optional[Sequence[int]],
