@@ -2467,7 +2467,8 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         The output PDF file to append the offsets plots to.
     offset_cbar_min_max : pair of float or None, optional
         The range for the colorbar for the cross offset variance raster.
-        `None` to use the min and max of that raster.
+        `None` to clip the raster to the (1, 99) percentile, then then
+        use the min and max of that raster for the colorbar range.
         Defaults to None.
     """
     # Validate that the pertinent metadata in the rasters is equal.
@@ -2497,6 +2498,12 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # Prepare and plot the cross offset layer on the left sub-plot
     cross_off = nisarqa.decimate_raster_array_to_square_pixels(
         cross_offset_variance
+    )
+
+    # TODO: Make this an input parameter to the runconfig. (raise Issue for now)
+    percentile_range = (1.0, 99.0)
+    cross_off = nisarqa.rslc.clip_array(
+        arr=cross_off, percentile_range=percentile_range
     )
 
     # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill
@@ -2530,7 +2537,10 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         img_arr_shape=np.shape(cross_off),
         xlabel=cross_offset_variance.x_axis_label,
         ylabel=cross_offset_variance.y_axis_label,
-        title=cross_offset_variance.name.split("_")[-1],
+        title=(
+            f"{cross_offset_variance.name.split('_')[-1]}\nclipped to"
+            f" percentile range {percentile_range}"
+        ),
     )
 
     # Add a colorbar to the variance plot
