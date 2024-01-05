@@ -156,20 +156,14 @@ class GetSummary:
         result : str
             Either 'PASS' or 'FAIL'.
 
-        Returns
-        -------
-        out : str
-            Same as `result`, assuming `result` passes validation.
-
         Raises
         ------
         ValueError
             If `result` is neither 'PASS' nor 'FAIL'.
         """
-        result = self._validate_string(result)
+        self._validate_string(result)
         if result not in ("PASS", "FAIL"):
             raise ValueError(f"`{result=}`, must be either 'PASS' or 'FAIL'.")
-        return result
 
     def _validate_description(self, description: str) -> str:
         """
@@ -179,20 +173,13 @@ class GetSummary:
         ----------
         description : str
             The description field for a summary check.
-
-        Returns
-        -------
-        out : str
-            Same as `description`.
         """
-        description = self._validate_string(description)
+        self._validate_string(description)
         if len(description) > 88:
             nisarqa.get_logger().warning(
                 f"{description=}, and has length {len(description)}. Consider"
                 " making it more concise."
             )
-
-        return description
 
     def _validate_tool(self, tool: str) -> str:
         """
@@ -203,24 +190,18 @@ class GetSummary:
         tool : str
             One of "QA", "AbsCal", "PTA", "NESZ".
 
-        Returns
-        -------
-        out : str
-            Same as `tool`, assuming `tool` passes validation.
-
         Raises
         ------
         ValueError : If `tool` is not one of "QA", "AbsCal", "PTA", "NESZ".
         """
-        tool = self._validate_string(tool)
+        self._validate_string(tool)
         tools = ("QA", "AbsCal", "PTA", "NESZ")
         if tool not in tools:
             raise ValueError(f"`{tool=}`, must be one of {tools}.")
-        return tool
 
     @staticmethod
     def _validate_string(s: str) -> str:
-        """Validate that `s` is a string and does not contain commas; if so, returns `s`."""
+        """Validate that `s` is a string and does not contain commas."""
         if not isinstance(s, str):
             raise TypeError(f"`{s=}` and has type {type(s)}, must be type str.")
 
@@ -230,8 +211,6 @@ class GetSummary:
                 " a CSV file with comma delimiters, so there cannot be"
                 f" additional commas. Provided string: '{s}'"
             )
-
-        return s
 
     def _construct_extra_dict(
         self,
@@ -244,16 +223,23 @@ class GetSummary:
     ) -> dict[str, str]:
         """Make the `extra` dictionary that will populate a row of the CSV."""
 
+        self._validate_tool(tool)
+        self._validate_description(description)
+        self._validate_result(result)
+        self._validate_string(threshold)
+        self._validate_string(actual)
+        self._validate_string(notes)
+
         # The keys in `extra` must match exactly the user-defined
         # fields in the underlying logger's format string.
         # This formatter string is set in `_setup_summary_csv()`.
         extra = {
-            "tool": self._validate_tool(tool),
-            "description": self._validate_description(description),
-            "result": self._validate_result(result),
-            "threshold": self._validate_string(threshold),
-            "actual": self._validate_string(actual),
-            "notes": self._validate_string(notes),
+            "tool": tool,
+            "description": description,
+            "result": result,
+            "threshold": threshold,
+            "actual": actual,
+            "notes": notes,
         }
         return extra
 
