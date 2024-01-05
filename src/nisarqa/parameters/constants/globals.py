@@ -7,7 +7,7 @@ from pathlib import Path
 # List of first 6 Seaborn colorblind colors:
 # Hardcode these so that we do not add another dependency of `seaborn`
 # Source for values: output from seaborn.color_palette(palette='colorblind', n_colors=6)
-seaborn_colorblind = [
+SEABORN_COLORBLIND = [
     (0.00392156862745098, 0.45098039215686275, 0.6980392156862745),
     (0.8705882352941177, 0.5607843137254902, 0.0196078431372549),
     (0.00784313725490196, 0.6196078431372549, 0.45098039215686275),
@@ -16,7 +16,7 @@ seaborn_colorblind = [
     (0.792156862745098, 0.5686274509803921, 0.3803921568627451),
 ]
 CUSTOM_CYCLER = (
-    cycler(color=seaborn_colorblind)
+    cycler(color=SEABORN_COLORBLIND)
     + cycler(
         linestyle=[
             "-",
@@ -198,6 +198,7 @@ __all__ = [
     "get_possible_pols",
     "GCOV_DIAG_POLS",
     "GCOV_OFF_DIAG_POLS",
+    "SEABORN_COLORBLIND",
     "STATS_H5_BASE_GROUP",
     "STATS_H5_IDENTIFICATION_GROUP",
     "STATS_H5_QA_STATS_H5_BASE_GROUP",

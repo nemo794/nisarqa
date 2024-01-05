@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Mapping, Sequence
-from dataclasses import asdict
+from collections.abc import Iterator, Mapping, Sequence
+from dataclasses import asdict, dataclass
 from tempfile import NamedTemporaryFile
 from typing import Any
 
 import h5py
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 from nisar.workflows import estimate_abscal_factor, point_target_analysis
 from numpy.typing import DTypeLike
 
@@ -794,6 +796,430 @@ def run_pta_tool(
                             ),
                             ds_units="meters",
                         )
+
+
+@dataclass(frozen=True)
+class IPRCut:
+    """
+    1-D cut of a point-like target's impulse response (IPR).
+
+    Each cut is a 1-D cross-section of the target's impulse response through the
+    center of the target along either azimuth or range. Both magnitude and phase
+    information are stored.
+
+    Parameters
+    ----------
+    index : (N,) numpy.ndarray
+        A 1-D array of sample indices on which the impulse response function is
+        sampled, relative to the approximate location of the peak.
+    magnitude : (N,) numpy.ndarray
+        The magnitude (linear) of the impulse response. Must have the same shape
+        as `index`.
+    phase : (N,) numpy.ndarray
+        The phase of the impulse response, in radians. Must have the same shape
+        as `index`.
+    pslr : float
+        The peak-to-sidelobe ratio (PSLR) of the impulse response, in dB.
+    islr : float
+        The integrated sidelobe ratio (ISLR) of the impulse response, in dB.
+    """
+
+    index: np.ndarray
+    magnitude: np.ndarray
+    phase: np.ndarray
+    pslr: float
+    islr: float
+
+    def __post_init__(self) -> None:
+        # Check that the `index` array is 1-D.
+        if self.index.ndim != 1:
+            raise ValueError(
+                f"index must be a 1-D array, instead got ndim={self.index.ndim}"
+            )
+
+        # A helper function used to check that `magnitude` and `phase` each have the
+        # same shape as `index`.
+        def check_shape(name: str, shape: tuple[int, ...]) -> None:
+            if shape != self.index.shape:
+                raise ValueError(
+                    f"Shape mismatch: index and {name} must have the same"
+                    f" shape, instead got {shape} != {self.index.shape}"
+                )
+
+        check_shape("magnitude", self.magnitude.shape)
+        check_shape("phase", self.phase.shape)
+
+
+@dataclass
+class CornerReflectorIPRCuts:
+    """
+    Azimuth & range impulse response (IPR) cuts for a single corner reflector.
+
+    Parameters
+    ----------
+    id : str
+        Unique corner reflector ID.
+    az_cut : IPRCut
+        The azimuth impulse response cut.
+    rg_cut : IPRCut
+        The range impulse response cut.
+    """
+
+    id: str
+    az_cut: IPRCut
+    rg_cut: IPRCut
+
+
+def get_pta_data_group(file_: h5py.File) -> h5py.Group:
+    """
+    Get the 'pointTargetAnalyzer' data group in an RSLC QA STATS.h5 file.
+
+    Returns the group in the input HDF5 file containing the outputs of the Point
+    Target Analyzer (PTA) CalTool. The group name is expected to match the
+    pattern '/science/{L|S}SAR/pointTargetAnalyzer/data/'.
+
+    Parameters
+    ----------
+    file_ : h5py.File
+        The input HDF5 file. Must be a valid STATS.h5 file created by the RSLC
+        QA workflow with the PTA tool enabled.
+
+    Returns
+    -------
+    pta_data_group : h5py.Group
+        The HDF5 Group containing the PTA tool output.
+
+    Raises
+    ------
+    nisarqa.DatasetNotFoundError
+        If not such group was found in the input HDF5 file.
+
+    Notes
+    -----
+    Even if the PTA tool is enabled during RSLC QA, it still may not produce an
+    output 'data' group in the STATS.h5 file if the RSLC product did not contain
+    any valid corner reflectors. This is a requirement imposed on the PTA tool
+    in order to simplify processing rules for the NISAR RSLC PGE.
+    """
+    for band in nisarqa.NISAR_BANDS:
+        path = nisarqa.STATS_H5_PTA_DATA_GROUP % band
+        if path in file_:
+            return file_[path]
+
+    raise nisarqa.DatasetNotFoundError(
+        "Input STATS.h5 file did not contain a group matching"
+        f" '{nisarqa.STATS_H5_PTA_DATA_GROUP % '(L|S)'}' "
+    )
+
+
+def get_valid_freqs(group: h5py.Group) -> list[str]:
+    """
+    Get a list of frequency sub-bands contained within the input HDF5 Group.
+
+    The group is assumed to contain child groups corresponding to each sub-band,
+    with names 'frequencyA' and/or 'frequencyB'.
+
+    Parameters
+    ----------
+    group : h5py.Group
+        The input HDF5 Group.
+
+    Returns
+    -------
+    freqs : list of str
+        A list of frequency sub-bands found in the group. Each sub-band in the
+        list is denoted by its single-character identifier (e.g. 'A', 'B').
+    """
+    return [freq for freq in nisarqa.NISAR_FREQS if f"frequency{freq}" in group]
+
+
+def get_valid_pols(group: h5py.File) -> list[str]:
+    """
+    Get a list of polarization channels contained within the input HDF5 Group.
+
+    The group is assumed to contain child groups corresponding to each
+    polarization, with names like 'HH', 'HV', etc.
+
+    Parameters
+    ----------
+    group : h5py.Group
+        The input HDF5 Group.
+
+    Returns
+    -------
+    pols : list of str
+        A list of polarizations found in the group.
+    """
+    pols = ("HH", "HV", "VH", "VV", "LH", "LV", "RH", "RV")
+    return [pol for pol in pols if pol in group]
+
+
+def get_ipr_cut_data(group: h5py.Group) -> Iterator[CornerReflectorIPRCuts]:
+    """
+    Extract corner reflector IPR cuts from a group in an RSLC QA STATS.h5 file.
+
+    Get azimuth & range impulse response (IPR) cut data for each corner
+    reflector in a single RSLC image raster (i.e. a single freq/pol pair).
+
+    Parameters
+    ----------
+    group : h5py.Group
+        The group in the RSLC QA STATS.h5 file containing the Point Target
+        Analysis (PTA) results for a single frequency & polarization, e.g.
+        '/science/LSAR/pointTargetAnalyzer/data/frequencyA/HH/'.
+
+    Yields
+    ------
+    cuts : CornerReflectorIPRCuts
+        Azimuth and range cuts for a single corner reflector.
+    """
+    # Get 1-D array of corner reflector IDs and decode from
+    # np.bytes_ -> np.unicode_.
+    ids = group["cornerReflectorId"][()].astype(np.unicode_)
+
+    # Total number of corner reflectors.
+    num_corners = len(ids)
+
+    # A helper function to check that each corner reflector IPR cut dataset is
+    # valid and return its contents. Each dataset should contain an MxN array of
+    # impulse response azimuth/range cuts, where M is the total number of corner
+    # reflectors and N is the number of samples per cut. In general, N could be
+    # different for azimuth vs. range cuts but M should be the same for all
+    # datasets.
+    def ensure_valid_2d_dataset(dataset: h5py.Dataset) -> np.ndarray:
+        # The dataset must be 2-D and its number of rows must be equal to the
+        # number of corner reflectors.
+        if dataset.ndim != 2:
+            raise ValueError(
+                f"Expected dataset {dataset.name} to contain a 2-D array,"
+                f" instead got ndim={dataset.ndim}"
+            )
+        if dataset.shape[0] != num_corners:
+            raise ValueError(
+                "Expected the length (the number of rows) of dataset"
+                f" {dataset.name} to be equal to the number of corner"
+                f" reflectors ({num_corners}), but instead got"
+                f" len={dataset.shape[0]}"
+            )
+
+        # Return the contents.
+        return dataset[()]
+
+    az_index = ensure_valid_2d_dataset(group["azimuthIRF/cut/index"])
+    az_magnitude = ensure_valid_2d_dataset(group["azimuthIRF/cut/magnitude"])
+    az_phase = ensure_valid_2d_dataset(group["azimuthIRF/cut/phase"])
+
+    rg_index = ensure_valid_2d_dataset(group["rangeIRF/cut/index"])
+    rg_magnitude = ensure_valid_2d_dataset(group["rangeIRF/cut/magnitude"])
+    rg_phase = ensure_valid_2d_dataset(group["rangeIRF/cut/phase"])
+
+    # A helper function to check that PSLR/ISLR datasets are valid and return
+    # their contents. Each dataset should be 1-D array with length equal to the
+    # number of corner reflectors.
+    def ensure_valid_1d_dataset(dataset: h5py.Dataset) -> np.ndarray:
+        # Check dataset shape.
+        if dataset.shape != (num_corners,):
+            raise ValueError(
+                "Expected dataset to be a 1-D array with length equal to the"
+                f" number of corner reflectors ({num_corners}), but instead got"
+                f" len={dataset.shape[0]} for dataset {dataset.name}"
+            )
+
+        # Return the contents.
+        return dataset[()]
+
+    az_pslr = ensure_valid_1d_dataset(group["azimuthIRF/PSLR"])
+    az_islr = ensure_valid_1d_dataset(group["azimuthIRF/ISLR"])
+
+    rg_pslr = ensure_valid_1d_dataset(group["rangeIRF/PSLR"])
+    rg_islr = ensure_valid_1d_dataset(group["rangeIRF/ISLR"])
+
+    # Iterate over corner reflectors.
+    for i in range(num_corners):
+        id_ = ids[i]
+        az_cut = IPRCut(
+            index=az_index[i],
+            magnitude=az_magnitude[i],
+            phase=az_phase[i],
+            pslr=az_pslr[i],
+            islr=az_islr[i],
+        )
+        rg_cut = IPRCut(
+            index=rg_index[i],
+            magnitude=rg_magnitude[i],
+            phase=rg_phase[i],
+            pslr=rg_pslr[i],
+            islr=rg_islr[i],
+        )
+        yield CornerReflectorIPRCuts(id=id_, az_cut=az_cut, rg_cut=rg_cut)
+
+
+def plot_ipr_cuts(
+    cuts: CornerReflectorIPRCuts,
+    freq: str,
+    pol: str,
+    *,
+    xlim: tuple[float, float] | None = (-15.0, 15.0),
+) -> None:
+    """
+    Plot corner reflector impulse response cuts.
+
+    Parameters
+    ----------
+    cuts : CornerReflectorIPRCuts
+        The corner reflector azimuth & range impulse response cuts.
+    freq : str
+        The frequency sub-band of the RSLC image data (e.g. 'A', 'B').
+    pol : str
+        The polarization of the RSLC image data (e.g. 'HH', 'HV').
+    xlim : (float, float) or None, optional
+        X-axis limits of the plots. Defines the range of sample indices,
+        relative to the approximate location of the impulse response peak, to
+        display in each plot. Use a smaller range to include fewer sidelobes or
+        a wider range to include more sidelobes. If None, uses Matplotlib's
+        default limits. Defaults to (-15, 15).
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The created figure.
+    """
+    # Create two side-by-side sub-plots to plot azimuth & range impulse response
+    # cuts.
+    figsize = nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE
+    fig, axes = plt.subplots(figsize=figsize, ncols=2)
+
+    # Set figure title.
+    fig.suptitle(f"Corner Reflector {cuts.id!r} (freq={freq!r}, pol={pol!r})")
+
+    # Set sub-plot titles.
+    axes[0].set_title("Azimuth Impulse Response")
+    axes[1].set_title("Range Impulse Response")
+
+    # Each sub-plot should have both a left-edge y-axis and a right-edge y-axis.
+    # The two left-edge y-axes represent power, and are independent of the
+    # right-edge y-axes which represent phase.
+    raxes = [ax.twinx() for ax in axes]
+
+    # Share both (left & right) y-axes between both sub-plots.
+    axes[0].sharey(axes[1])
+    raxes[0].sharey(raxes[1])
+
+    # Set y-axis labels. Only label the left axis on the left sub-plot and only
+    # label the right axis on the right sub-plot.
+    axes[0].set_ylabel("Power (dB)")
+    raxes[1].set_ylabel("Phase (rad)")
+
+    # Get styling properties for power & phase curves. Power info should be most
+    # salient -- use a thinner line for the phase plot.
+    palette = nisarqa.SEABORN_COLORBLIND
+    power_props = dict(color=palette[0], linewidth=2.0)
+    phase_props = dict(color=palette[1], linewidth=1.0)
+
+    for ax, rax, cut in zip(axes, raxes, [cuts.az_cut, cuts.rg_cut]):
+        # Stack the power/phase plots so that power has higher precedence
+        # (https://stackoverflow.com/a/30506077).
+        ax.set_zorder(rax.get_zorder() + 1)
+        ax.set_frame_on(False)
+
+        # Set x-axis limits/label.
+        ax.set_xlim(xlim)
+        ax.set_xlabel("Rel. Sample Index")
+
+        # Plot impulse response power, in dB.
+        power_db = nisarqa.amp2db(cut.magnitude)
+        lines = ax.plot(cut.index, power_db, label="power", **power_props)
+
+        # Plot impulse response phase, in radians.
+        lines += rax.plot(cut.index, cut.phase, label="phase", **phase_props)
+
+        # Constrain the left y-axis (power) lower limit to 50dB below the peak.
+        # Otherwise, the nulls tend to stretch the y-axis range too much. (Note
+        # that the azimuth & range cuts both have the same peak value.)
+        peak_power = np.max(power_db)
+        ax.set_ylim([peak_power - 50.0, None])
+
+        # Set right y-axis (phase) limits. Note: don't use fixed limits for the
+        # left y-axis (power) -- let Matplotlib choose limits appropriate for
+        # the data.
+        rax.set_ylim([-np.pi, np.pi])
+
+        # Add a text box in the upper-right corner of each plot with PSLR & ISLR
+        # info.
+        ax.text(
+            x=0.97,
+            y=0.97,
+            s=f"PSLR = {cut.pslr:.3f} dB\nISLR = {cut.islr:.3f} dB",
+            transform=ax.transAxes,
+            horizontalalignment="right",
+            verticalalignment="top",
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.7),
+        )
+
+    # Add a legend to the left sub-plot.
+    labels = [line.get_label() for line in lines]
+    axes[0].legend(lines, labels, loc="upper left")
+
+
+def add_pta_plots_to_report(stats_h5: h5py.File, report_pdf: PdfPages) -> None:
+    """
+    Add plots of PTA results to the RSLC QA PDF report.
+
+    Extract the Point Target Analysis (PTA) results from `stats_h5`, use them to
+    generate plots of azimuth & range impulse response for each corner reflector
+    in the scene and add them to QA PDF report.
+
+    This function has no effect if the input STATS.h5 file did not contain a PTA
+    data group (for example, in the case where the RSLC product did not contain
+    any corner reflectors).
+
+    Parameters
+    ----------
+    stats_h5 : h5py.File
+        The input RSLC QA STATS.h5 file.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF report.
+    """
+    # Get the group in the HDF5 file containing the output from the PTA tool. If
+    # the group does not exist, we assume that the RSLC product did not contain
+    # any valid corner reflectors, so there is nothing to do here.
+    try:
+        pta_data_group = get_pta_data_group(stats_h5)
+    except nisarqa.DatasetNotFoundError:
+        return
+
+    # Get valid frequency groups within `.../data/`. If the data group exists,
+    # it must contain at least one frequency sub-group.
+    freqs = get_valid_freqs(pta_data_group)
+    if not freqs:
+        raise RuntimeError(
+            f"No frequency groups found in {pta_data_group.name}. The STATS.h5"
+            " file is ill-formed."
+        )
+
+    for freq in freqs:
+        freq_group = pta_data_group[f"frequency{freq}"]
+
+        # Get polarization sub-groups. Each frequency group must contain at
+        # least one polarization sub-group.
+        pols = get_valid_pols(freq_group)
+        if not pols:
+            raise RuntimeError(
+                f"No polarization groups found in {freq_group.name}. The"
+                " STATS.h5 file is ill-formed."
+            )
+
+        for pol in pols:
+            pol_group = freq_group[pol]
+
+            # Loop over corner reflectors. Generate azimuth & range cut plots
+            # for each and add them to the report.
+            for cuts in get_ipr_cut_data(pol_group):
+                fig = plot_ipr_cuts(cuts, freq, pol)
+                report_pdf.savefig(fig)
+
+                # Close the plot.
+                plt.close(fig)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

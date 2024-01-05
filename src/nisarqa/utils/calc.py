@@ -35,6 +35,23 @@ def arr2pow(arr):
     return power
 
 
+def amp2db(amp: ArrayLike) -> np.ndarray:
+    """
+    Convert a root-power quantity from linear units to decibels.
+
+    Parameters
+    ----------
+    amp : array_like
+        Input in linear units.
+
+    Returns
+    -------
+    db : numpy scalar or numpy.ndarray
+        Output in decibels, with the same shape as the input.
+    """
+    return 20.0 * np.log10(amp)
+
+
 def pow2db(power):
     """
     Convert a power quantity from linear units to decibels.

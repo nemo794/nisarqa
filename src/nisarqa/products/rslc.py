@@ -143,139 +143,162 @@ def verify_rslc(
             )
             log.info(f"Input file Identification group copied to {stats_file}")
 
-    if root_params.workflows.qa_reports:
-        log.info(f"Beginning `qa_reports` processing...")
+    # Both the `qa_reports` and/or `point_target` steps may generate a report
+    # PDF. If both are workflows are enabled, this can cause an issue, since
+    # closing and re-opening a `PdfPages` object causes the file to be
+    # overwritten, discarding the previous contents. The current solution is to
+    # unconditionally create the `PdfPages` object and keep it open during both
+    # steps. The file is automatically deleted upon closing if nothing was
+    # written to it.
+    with PdfPages(report_file, keep_empty=False) as report_pdf:
+        if root_params.workflows.qa_reports:
+            log.info(f"Beginning `qa_reports` processing...")
 
-        # TODO qa_reports will add to the SUMMARY.csv file.
-        # For now, make sure that the stub file is output
-        if not os.path.isfile(summary_file):
-            nisarqa.output_stub_files(
+            # TODO qa_reports will add to the SUMMARY.csv file.
+            # For now, make sure that the stub file is output
+            if not os.path.isfile(summary_file):
+                nisarqa.output_stub_files(
+                    output_dir=out_dir,
+                    stub_files="summary_csv",
+                )
+
+            log.info(f"Beginning processing of browse KML...")
+            nisarqa.write_latlonquad_to_kml(
+                llq=product.get_browse_latlonquad(),
                 output_dir=out_dir,
-                stub_files="summary_csv",
+                kml_filename=root_params.get_kml_browse_filename(),
+                png_filename=root_params.get_browse_png_filename(),
             )
+            log.info(f"Browse image kml file saved to {browse_file_kml}")
 
-        log.info(f"Beginning processing of browse KML...")
-        nisarqa.write_latlonquad_to_kml(
-            llq=product.get_browse_latlonquad(),
-            output_dir=out_dir,
-            kml_filename=root_params.get_kml_browse_filename(),
-            png_filename=root_params.get_browse_png_filename(),
-        )
-        log.info(f"Browse image kml file saved to {browse_file_kml}")
+            with h5py.File(stats_file, mode="r+") as stats_h5:
 
-        with h5py.File(stats_file, mode="r+") as stats_h5, PdfPages(
-            report_file
-        ) as report_pdf:
-            # Save frequency/polarization info to stats file
-            save_nisar_freq_metadata_to_h5(stats_h5=stats_h5, product=product)
+                # Save frequency/polarization info to stats file
+                save_nisar_freq_metadata_to_h5(
+                    stats_h5=stats_h5, product=product
+                )
 
-            input_raster_represents_power = False
-            name_of_backscatter_content = (
-                r"RSLC Backscatter Coefficient ($\beta^0$)"
+                input_raster_represents_power = False
+                name_of_backscatter_content = (
+                    r"RSLC Backscatter Coefficient ($\beta^0$)"
+                )
+
+                log.info("Beginning processing of backscatter images...")
+                process_backscatter_imgs_and_browse(
+                    product=product,
+                    params=root_params.backscatter_img,
+                    stats_h5=stats_h5,
+                    report_pdf=report_pdf,
+                    plot_title_prefix=name_of_backscatter_content,
+                    input_raster_represents_power=input_raster_represents_power,
+                    browse_filename=browse_file_png,
+                )
+                log.info("Processing of backscatter images complete.")
+                log.info(f"Browse image PNG file saved to {browse_file_png}")
+
+                log.info(
+                    "Beginning processing of backscatter and phase"
+                    " histograms..."
+                )
+                process_backscatter_and_phase_histograms(
+                    product=product,
+                    params=root_params.histogram,
+                    stats_h5=stats_h5,
+                    report_pdf=report_pdf,
+                    plot_title_prefix=name_of_backscatter_content,
+                    input_raster_represents_power=input_raster_represents_power,
+                )
+                log.info(
+                    "Processing of backscatter and phase histograms complete."
+                )
+
+                # Process Interferograms
+
+                log.info("Beginning processing of range power spectra...")
+                process_range_spectra(
+                    product=product,
+                    params=root_params.range_spectra,
+                    stats_h5=stats_h5,
+                    report_pdf=report_pdf,
+                )
+                log.info("Processing of range power spectra complete.")
+
+                # Check for invalid values
+
+                # Compute metrics for stats.h5
+
+                log.info(f"PDF reports saved to {report_file}")
+                log.info(f"HDF5 statistics saved to {stats_file}")
+                log.info(
+                    f"CSV Summary PASS/FAIL checks saved to {summary_file}"
+                )
+                msg = "`qa_reports` processing complete."
+                log.info(msg)
+                if not verbose:
+                    print(msg)
+
+        if root_params.workflows.abs_cal:
+            log.info("Beginning Absolute Radiometric Calibration CalTool...")
+
+            # Run Absolute Radiometric Calibration tool
+            nisarqa.caltools.run_abscal_tool(
+                abscal_params=root_params.abs_cal,
+                dyn_anc_params=root_params.anc_files,
+                rslc=product,
+                stats_filename=stats_file,
             )
-
-            log.info("Beginning processing of backscatter images...")
-            process_backscatter_imgs_and_browse(
-                product=product,
-                params=root_params.backscatter_img,
-                stats_h5=stats_h5,
-                report_pdf=report_pdf,
-                plot_title_prefix=name_of_backscatter_content,
-                input_raster_represents_power=input_raster_represents_power,
-                browse_filename=browse_file_png,
-            )
-            log.info("Processing of backscatter images complete.")
-            log.info(f"Browse image PNG file saved to {browse_file_png}")
-
             log.info(
-                "Beginning processing of backscatter and phase histograms..."
+                "Absolute Radiometric Calibration CalTool results saved to"
+                f" {stats_file}."
             )
-            process_backscatter_and_phase_histograms(
-                product=product,
-                params=root_params.histogram,
-                stats_h5=stats_h5,
-                report_pdf=report_pdf,
-                plot_title_prefix=name_of_backscatter_content,
-                input_raster_represents_power=input_raster_represents_power,
-            )
-            log.info("Processing of backscatter and phase histograms complete.")
-
-            # Process Interferograms
-
-            log.info("Beginning processing of range power spectra...")
-            process_range_spectra(
-                product=product,
-                params=root_params.range_spectra,
-                stats_h5=stats_h5,
-                report_pdf=report_pdf,
-            )
-            log.info("Processing of range power spectra complete.")
-
-            # Check for invalid values
-
-            # Compute metrics for stats.h5
-
-            log.info(f"PDF reports saved to {report_file}")
-            log.info(f"HDF5 statistics saved to {stats_file}")
-            log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
-            msg = "`qa_reports` processing complete."
+            msg = "Absolute Radiometric Calibration CalTool complete."
             log.info(msg)
             if not verbose:
                 print(msg)
 
-    if root_params.workflows.abs_cal:
-        log.info("Beginning Absolute Radiometric Calibration CalTool...")
+        if root_params.workflows.noise_estimation:
+            log.info("Beginning Noise Estimation Tool CalTool...")
 
-        # Run Absolute Radiometric Calibration tool
-        nisarqa.caltools.run_abscal_tool(
-            abscal_params=root_params.abs_cal,
-            dyn_anc_params=root_params.anc_files,
-            rslc=product,
-            stats_filename=stats_file,
-        )
-        log.info(
-            "Absolute Radiometric Calibration CalTool results saved to"
-            f" {stats_file}."
-        )
-        msg = "Absolute Radiometric Calibration CalTool complete."
-        log.info(msg)
-        if not verbose:
-            print(msg)
+            # Run NET tool
+            nisarqa.caltools.run_noise_estimation_tool(
+                params=root_params.noise_estimation,
+                input_filename=input_file,
+                stats_filename=stats_file,
+            )
+            log.info(
+                f"Noise Estimation Tool CalTool results saved to {stats_file}."
+            )
+            msg = "Noise Estimation Tool CalTool complete."
+            log.info(msg)
+            if not verbose:
+                print(msg)
 
-    if root_params.workflows.noise_estimation:
-        log.info("Beginning Noise Estimation Tool CalTool...")
+        if root_params.workflows.point_target:
+            log.info("Beginning Point Target Analyzer CalTool...")
 
-        # Run NET tool
-        nisarqa.caltools.run_noise_estimation_tool(
-            params=root_params.noise_estimation,
-            input_filename=input_file,
-            stats_filename=stats_file,
-        )
-        log.info(
-            f"Noise Estimation Tool CalTool results saved to {stats_file}."
-        )
-        msg = "Noise Estimation Tool CalTool complete."
-        log.info(msg)
-        if not verbose:
-            print(msg)
+            # Run Point Target Analyzer tool
+            nisarqa.caltools.run_pta_tool(
+                pta_params=root_params.pta,
+                dyn_anc_params=root_params.anc_files,
+                rslc=product,
+                stats_filename=stats_file,
+            )
+            log.info(
+                f"Point Target Analyzer CalTool results saved to {stats_file}."
+            )
 
-    if root_params.workflows.point_target:
-        log.info("Beginning Point Target Analyzer CalTool...")
+            # Read the PTA results from `stats_file`, generate plots of
+            # azimuth/range cuts, and add them to the PDF report.
+            with h5py.File(stats_file, mode="r") as stats_h5:
+                nisarqa.caltools.add_pta_plots_to_report(stats_h5, report_pdf)
+            log.info(
+                f"Point Target Analyzer CalTool plots saved to {report_file}."
+            )
 
-        # Run Point Target Analyzer tool
-        nisarqa.caltools.run_pta_tool(
-            pta_params=root_params.pta,
-            dyn_anc_params=root_params.anc_files,
-            rslc=product,
-            stats_filename=stats_file,
-        )
-        log.info(
-            f"Point Target Analyzer CalTool results saved to {stats_file}."
-        )
-        msg = "Point Target Analyzer CalTool complete."
-        log.info(msg)
-        if not verbose:
-            print(msg)
+            msg = "Point Target Analyzer CalTool complete."
+            log.info(msg)
+            if not verbose:
+                print(msg)
 
     msg = (
         "QA SAS complete. For details, warnings, and errors see output log"
