@@ -53,6 +53,8 @@ def _get_units(
         )
         units = "1"
 
+    return units
+
 
 def _get_fill_value(
     ds: h5py.Dataset,

@@ -455,15 +455,16 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
                     f"Values do not match: {np.shape(raster1.data)=} but"
                     f" {np.shape(raster2.data)=}."
                 )
-        elif (not almost_identical) and (r1.name == "units"):
-            if raster1.units != raster2.units:
-                log.warning(
-                    f"Layer `{raster1.name}` has units attribute of"
-                    f" `{raster1.units}`, and is being compared to layer"
-                    f" `{raster2.name}` which has units attribute of"
-                    f" `{raster2.units}`. Please confirm these two rasters"
-                    " are ok to have different units."
-                )
+        elif r1.name == "units":
+            if not almost_identical:
+                if raster1.units != raster2.units:
+                    log.warning(
+                        f"Layer `{raster1.name}` has units attribute of"
+                        f" `{raster1.units}`, and is being compared to layer"
+                        f" `{raster2.name}` which has units attribute of"
+                        f" `{raster2.units}`. Please confirm these two rasters"
+                        " are ok to have different units."
+                    )
         elif r1.name == "name":
             # "name" dataclass attributes should be the same
             # except for the final layer name
