@@ -155,14 +155,6 @@ def verify_rslc(
         if root_params.workflows.qa_reports:
             log.info(f"Beginning `qa_reports` processing...")
 
-            # TODO qa_reports will add to the SUMMARY.csv file.
-            # For now, make sure that the stub file is output
-            if not os.path.isfile(summary_file):
-                nisarqa.output_stub_files(
-                    output_dir=out_dir,
-                    stub_files="summary_csv",
-                )
-
             log.info(f"Beginning processing of browse KML...")
             nisarqa.write_latlonquad_to_kml(
                 llq=product.get_browse_latlonquad(),
