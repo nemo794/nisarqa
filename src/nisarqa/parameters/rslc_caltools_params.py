@@ -208,8 +208,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         Format: [<num_rows>, <num_cols>]
         Example: [6,7]
         If not provided, the QA code to compute the nlooks values
-        based on `longest_side_max`.
-    """
+        based on `longest_side_max`."""
 
     nlooks_freqa: Optional[Iterable[int]] = field(
         default=None,

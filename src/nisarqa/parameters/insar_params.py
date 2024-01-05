@@ -782,7 +782,7 @@ class ROFFVarianceLayersParamGroup(VarianceLayersParamGroup):
             "qa",
             "roff",
             "qa_reports",
-            "variance_plots",
+            "az_and_rg_variance_plots",
         ]
 
 
@@ -796,7 +796,108 @@ class GOFFVarianceLayersParamGroup(VarianceLayersParamGroup):
             "qa",
             "goff",
             "qa_reports",
-            "variance_plots",
+            "az_and_rg_variance_layers",
+        ]
+
+
+@dataclass(frozen=True)
+class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
+    """
+    Parameters to generate cross offset variance layer plots for ROFF and GOFF.
+
+    Parameters
+    ----------
+    cbar_min_max : None or pair of float or int, optional
+        The vmin and vmax values to generate the plots
+        for the cross offset variance layer for ROFF and GOFF.
+        If None, the interval is computed using the min and max
+        of the square root of these layers.
+        Defaults to None.
+    percentile_for_clipping : pair of float, optional
+        Defines the percentile range that the image array will be clipped to
+        and that the colormap covers. Must be in the range [0.0, 100.0].
+        Defaults to [1.0, 99.0].
+    """
+
+    cbar_min_max: Optional[Sequence[float]] = field(
+        default=None,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="colorbar_min_max",
+                descr="""The vmin and vmax values to generate the plots
+                for the cross offset variance layer for ROFF and GOFF.
+                If None, then the colorbar range will be computed based
+                on `percentile_for_clipping`.""",
+            )
+        },
+    )
+
+    percentile_for_clipping: tuple[float, float] = field(
+        default=(1.0, 99.0),
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="percentile_for_clipping",
+                descr="""Percentile range that the cross offset variance raster
+                    will be clipped to, which determines the colormap interval.
+                    Must be in range [0.0, 100.0].
+                    Superseded by `cbar_min_max` parameter.""",
+            ),
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        self._validate_pair_of_numeric(
+            param_value=self.cbar_min_max,
+            param_name="colorbar_min_max",
+            # crossOffsetVariance layer represents covariance values,
+            # which can be positive or negative.
+            min=None,
+            max=None,
+            none_is_valid_value=True,
+            strictly_increasing=True,
+        )
+
+        self._validate_pair_of_numeric(
+            param_value=self.percentile_for_clipping,
+            param_name="percentile_for_clipping",
+            min=0.0,
+            max=100.0,
+            none_is_valid_value=False,
+            strictly_increasing=True,
+        )
+
+
+@dataclass(frozen=True)
+class ROFFCrossOffsetVarianceLayerParamGroup(
+    CrossOffsetVarianceLayerParamGroup
+):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "roff",
+            "qa_reports",
+            "cross_offset_variance_layer",
+        ]
+
+
+@dataclass(frozen=True)
+class GOFFCrossOffsetVarianceLayerParamGroup(
+    CrossOffsetVarianceLayerParamGroup
+):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "goff",
+            "qa_reports",
+            "cross_offset_variance_layer",
         ]
 
 
@@ -1056,7 +1157,9 @@ class ROFFRootParamGroup(RootParamGroup):
     quiver : ROFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
     variances : ROFFVarianceLayersParamGroup or None, optional
-        Parameters for *Variance layers' plots.
+        Parameters for azimuth and slant range variance layers' plots.
+    cross_variance : ROFFCrossOffsetVarianceLayerParamGroup
+        Parameters for cross offset variance layer plots.
     """
 
     workflows: ROFFWorkflowsParamGroup
@@ -1067,6 +1170,7 @@ class ROFFRootParamGroup(RootParamGroup):
 
     quiver: Optional[ROFFQuiverParamGroup] = None
     variances: Optional[ROFFVarianceLayersParamGroup] = None
+    cross_variance: Optional[ROFFCrossOffsetVarianceLayerParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1097,6 +1201,11 @@ class ROFFRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="variances",
                 param_grp_cls_obj=ROFFVarianceLayersParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="cross_variance",
+                param_grp_cls_obj=ROFFCrossOffsetVarianceLayerParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1111,6 +1220,7 @@ class ROFFRootParamGroup(RootParamGroup):
             ROFFWorkflowsParamGroup,
             ROFFQuiverParamGroup,
             ROFFVarianceLayersParamGroup,
+            ROFFCrossOffsetVarianceLayerParamGroup,
         )
 
 
@@ -1138,6 +1248,8 @@ class GOFFRootParamGroup(RootParamGroup):
         Quiver plots and browse image group parameters.
     variances : GOFFVarianceLayersParamGroup or None, optional
         Parameters for *Variance layers' plots.
+    cross_variance : GOFFCrossOffsetVarianceLayerParamGroup
+        Parameters for cross offset variance layer plots.
     """
 
     workflows: GOFFWorkflowsParamGroup
@@ -1148,6 +1260,7 @@ class GOFFRootParamGroup(RootParamGroup):
 
     quiver: Optional[GOFFQuiverParamGroup] = None
     variances: Optional[GOFFVarianceLayersParamGroup] = None
+    cross_variance: Optional[GOFFCrossOffsetVarianceLayerParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1178,6 +1291,11 @@ class GOFFRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="variances",
                 param_grp_cls_obj=GOFFVarianceLayersParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="cross_variance",
+                param_grp_cls_obj=GOFFCrossOffsetVarianceLayerParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1192,6 +1310,7 @@ class GOFFRootParamGroup(RootParamGroup):
             GOFFWorkflowsParamGroup,
             GOFFQuiverParamGroup,
             GOFFVarianceLayersParamGroup,
+            GOFFCrossOffsetVarianceLayerParamGroup,
         )
 
 
