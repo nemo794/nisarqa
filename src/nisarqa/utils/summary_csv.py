@@ -328,12 +328,26 @@ class GetSummary:
             description="Able to open input NISAR file?", result=result
         )
 
-    def check_statistics_within_threshold(
-        self, result: str, notes: str
+    def check_invalid_pixels_within_threshold(
+        self, result: str, threshold: str, actual: str, notes: str
     ) -> None:
-        """Check: 'Raster statistics within acceptable threshold?'"""
+        """Check: '% Non-finite and/or 'fill' pixels under threshold?'"""
         self.check_custom(
-            description="Raster statistics within acceptable threshold?",
+            description="% Non-finite and/or 'fill' pixels under threshold?",
+            threshold=threshold,
+            actual=actual,
+            result=result,
+            notes=notes,
+        )
+
+    def check_nan_pixels_within_threshold(
+        self, result: str, threshold: str, actual: str, notes: str
+    ) -> None:
+        """Check: '% NaN pixels under threshold?'"""
+        self.check_custom(
+            description="% NaN pixels under threshold?",
+            threshold=threshold,
+            actual=actual,
             result=result,
             notes=notes,
         )

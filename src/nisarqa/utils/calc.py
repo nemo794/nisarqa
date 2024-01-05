@@ -289,10 +289,12 @@ def compute_and_save_basic_statistics(
     If the fill value is set to None in the input *Raster, that field will
     not be computed nor included in the STATS.h5 file.
     """
-    # Create a flag, to be used in the PASS/FAIL Summary CSV
+    # Create flags, to be used for the PASS/FAIL Summary CSV
     all_metrics_pass = True
+    total_num_invalid = 0
 
     log = nisarqa.get_logger()
+    summary = nisarqa.GetSummary()
 
     arr = raster.data
     units = raster.units
@@ -308,6 +310,8 @@ def compute_and_save_basic_statistics(
     # (np.isnan works for both real and complex data. For complex data, if
     # either the real or imag part is NaN, then the pixel is considered NaN.)
     num_nan = np.sum(np.isnan(arr))
+    total_num_invalid += num_nan
+
     percent_nan = 100 * num_nan / arr_size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -326,8 +330,11 @@ def compute_and_save_basic_statistics(
         if percent_nan >= threshold:
             log.error(msg)
             all_metrics_pass = False
+            nan_pass = "FAIL"
         else:
             log.info(msg)
+            nan_pass = "PASS"
+        nan_threshold = str(threshold)
 
     else:
         # If the fill value is not NaN, then
@@ -343,13 +350,25 @@ def compute_and_save_basic_statistics(
         if num_nan > 0:
             log.error(msg)
             all_metrics_pass = False
+            nan_pass = "FAIL"
         else:
             log.info(msg)
+            nan_pass = "PASS"
+        nan_threshold = "0"
+
+    summary.check_nan_pixels_within_threshold(
+        result=nan_pass,
+        threshold=nan_threshold,
+        actual=f"{percent_nan:.2f}",
+        notes=arr_name,
+    )
 
     # Compute +/- inf metrics.
     # (np.isinf works for both real and complex data. For complex data, if
     # either real or imag part is +/- inf, then the pixel is considered inf.)
     num_inf = np.sum(np.isinf(arr))
+    total_num_invalid += num_inf
+
     percent_inf = 100 * num_inf / arr_size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -375,8 +394,11 @@ def compute_and_save_basic_statistics(
         if np.isnan(fill_value):
             # `np.nan == np.nan` evaluates to False, so handle this case here
             num_fill = num_nan
+            # We already accumulated the number of NaN to `total_num_invalid`,
+            # skip doing that here so that we do not double-count the NaN
         else:
             num_fill = np.sum(arr == fill_value)
+            total_num_invalid += num_fill
 
         percent_fill = 100 * num_fill / arr_size
         nisarqa.create_dataset_in_h5group(
@@ -400,11 +422,15 @@ def compute_and_save_basic_statistics(
             all_metrics_pass = False
         else:
             log.info(msg)
+    else:
+        num_fill = 0
 
     # Compute number of zeros metrics.
     # By using np.abs(), for complex values this will compute the magnitude.
     # The magnitude will only be ~0.0 if both real and imaj are ~0.0.
     num_zero = np.sum(np.abs(arr) < epsilon)
+    # Zeros are often a valid value; do not include them in `total_num_invalid`.
+
     percent_zero = 100 * num_zero / arr.size
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -427,14 +453,28 @@ def compute_and_save_basic_statistics(
     else:
         log.info(msg)
 
-    # Note the metrics in the SUMMARY CSV
-    summary = (
-        f"(%s) PASS/FAIL: All metrics within threshold for raster {arr_name}."
+    # Compute overall invalid pixels
+    percent_invalid = 100 * (total_num_invalid / arr_size)
+    if percent_invalid > threshold:
+        all_metrics_pass = False
+    msg_for_total_invalid_pixels = (
+        f"Array {arr_name} is {percent_invalid} percent non-finite and/or"
+        f" 'fill' pixels. (Acceptable threshold is {threshold} percent.)"
     )
-    if all_metrics_pass:
-        log.info(summary % "PASS")
+    if percent_invalid >= threshold:
+        log.error(msg_for_total_invalid_pixels)
+        all_metrics_pass = False
     else:
-        log.error(summary % "FAIL")
+        log.info(msg_for_total_invalid_pixels)
+
+    # Note the metrics in the SUMMARY CSV
+    sum_result = "PASS" if all_metrics_pass else "FAIL"
+    summary.check_invalid_pixels_within_threshold(
+        result=sum_result,
+        threshold=str(threshold),
+        actual=f"{percent_invalid:.2f}",
+        notes=arr_name,
+    )
 
     def _compute_min_max_mean_std(arr: np.ndarray, data_type: str) -> None:
         """
@@ -576,6 +616,11 @@ def compute_and_save_basic_statistics(
         _compute_min_max_mean_std(arr[()].imag, "imag_comp")
     else:
         _compute_min_max_mean_std(arr[()], "float")
+
+    # Now, all metrics have been computed and logged. Raise exception
+    # if an issue was identified.
+    if not all_metrics_pass:
+        raise nisarqa.InvalidNISARProductError(msg_for_total_invalid_pixels)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
