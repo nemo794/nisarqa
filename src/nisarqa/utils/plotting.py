@@ -2374,7 +2374,6 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
 def process_cross_variance_and_surface_peak(
     product: nisarqa.OffsetProduct,
-    params: nisarqa.VarianceLayersParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -2394,9 +2393,6 @@ def process_cross_variance_and_surface_peak(
     ----------
     product : nisarqa.OffsetProduct
         Input NISAR product.
-    params : nisarqa.VarianceLayersParamGroup
-        A structure containing processing parameters to generate the plots
-        for the *Variance layers.
     report_pdf : PdfPages
         The output pdf file to append the plot to.
     stats_h5 : h5py.File
@@ -2423,7 +2419,7 @@ def process_cross_variance_and_surface_peak(
                         cross_offset_variance=cross_off_var,
                         corr_surf_peak=surface_peak,
                         report_pdf=report_pdf,
-                        offset_cbar_min_max=params.cbar_min_max,
+                        offset_cbar_min_max=None,
                     )
 
                     # TODO Compute histograms
@@ -2451,13 +2447,13 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_offset_variance,
     corr_surf_peak,
     report_pdf,
-    offset_cbar_min_max=[0.0, 0.1],
+    offset_cbar_min_max=None,
 ):
     """
     Plot cross offset variance and correlation surface peak layers to PDF.
 
-    The variance raster layer contains "variance" values. This function
-    plots the square root of the variance, aka the standard deviation.
+    Note: The cross offset variance raster layer actually contains "covariance"
+    values. So, that plot will be marked as having covariance values.
 
     Parameters
     ----------
@@ -2471,9 +2467,8 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         The output PDF file to append the offsets plots to.
     offset_cbar_min_max : pair of float or None, optional
         The range for the colorbar for the cross offset variance raster.
-        `None` to use the min and max of the standard deviation values
-        for the colorbar range.
-        Defaults to [0.0, 0.1].
+        `None` to use the min and max of that raster.
+        Defaults to None.
     """
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(
@@ -2494,7 +2489,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(cross_offset_variance.name.split("_")[:-1])
     title = (
-        "Cross Offset StdDev. (pixels) and Correlation Surface Peak"
+        "Cross Offset Covariance (pixels^2) and Correlation Surface Peak"
         f" (unitless)\n{name}"
     )
     fig.suptitle(title)
@@ -2509,11 +2504,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     cross_fill = cross_offset_variance.fill_value
     cross_off[~np.isfinite(cross_off) | (cross_off == cross_fill)] = np.nan
 
-    # convert variance layer to standard deviation form
-    cross_off = np.sqrt(cross_off)
-
     if offset_cbar_min_max is None:
-        # Use same colorbar scale for both plots
         offset_cbar_min = np.nanmin(cross_off)
         offset_cbar_max = np.nanmax(cross_off)
     else:
@@ -2522,7 +2513,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # Decimate to fit nicely on the figure.
     cross_off = decimate_img_to_size_of_axes(ax=ax1, arr=cross_off)
 
-    # Add the azimuth offsets variance plot (left plot)
+    # Add the cross offsets variance plot (left plot)
     im1 = ax1.imshow(
         cross_off,
         aspect="equal",
@@ -2545,7 +2536,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     # Add a colorbar to the variance plot
     cax1 = fig.colorbar(im1, ax=ax1)
     cax1.ax.set_ylabel(
-        ylabel="Standard deviation (pixels)",
+        ylabel="Covariance (pixels^2)",
         rotation=270,
         labelpad=10.0,
     )

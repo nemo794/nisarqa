@@ -181,7 +181,6 @@ def verify_offset(
 
             nisarqa.process_cross_variance_and_surface_peak(
                 product=product,
-                params=root_params.variances,
                 report_pdf=report_pdf,
                 stats_h5=stats_h5,
             )
