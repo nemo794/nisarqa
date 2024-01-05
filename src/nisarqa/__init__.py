@@ -117,7 +117,15 @@ from .parameters.gslc_params import *
 from .parameters.gcov_params import *
 from .parameters.insar_params import *
 from .products.product_reader import *
+from .utils.file_verification.policy import *
+from .utils.file_verification.data_annotation import *
+from .utils.file_verification.dataset import *
+from .utils.file_verification.checks import *
+from .utils.file_verification.h5_parser import *
+from .utils.file_verification.dataset_inclusion_rules import *
 from .utils.file_verification.verify import *
+from .utils.file_verification.xml_check import *
+from .utils.file_verification.xml_parser import *
 
 # keep individual products in their own namespace
 from .products import (

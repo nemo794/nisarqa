@@ -77,16 +77,25 @@ setup(
     # (A package is a directory containing an __init__.py file.)
     package_dir={"": "src"},
     packages=find_packages(where="src"),
+    # The data files associated with packages being installed here.
+    # For each package that is named as a key to this dictionary, a list of paths is
+    # given that are all relative to the directory of the package.
+    # (in this case, src/nisarqa.)
+    # Each of these paths will be saved to the same location relative to the place where
+    # the package is saved when installed.
+    package_data={
+        "nisarqa": glob.glob(
+                os.path.join(
+                    os.path.abspath("src/nisarqa"),
+                    "parameters",
+                    "product_specs",
+                    "**",
+                    "*.xml"),
+                recursive=True,
+            ),
+    },
     test_suite="tests",
     entry_points={"console_scripts": ["nisarqa = nisarqa.__main__:main"]},
-    data_files=[
-        (
-            "product_specs",
-            glob.glob(
-                os.path.join("src", "parameters", "product_specs", "*.xml")
-            ),
-        )
-    ],
     # Build dependencies
     # Can be removed if/when setup.py is replaced with pyproject.toml
     # See: https://pip.pypa.io/en/stable/reference/build-system/#controlling-setup-requires

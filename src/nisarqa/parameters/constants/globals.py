@@ -2,6 +2,7 @@ from itertools import product
 
 import numpy as np
 from cycler import cycler
+from pathlib import Path
 
 # List of first 6 Seaborn colorblind colors:
 # Hardcode these so that we do not add another dependency of `seaborn`
@@ -53,6 +54,11 @@ LIST_OF_NISAR_PRODUCTS = [
 
 NISAR_BANDS = ("L", "S")
 NISAR_FREQS = ("A", "B")
+NISAR_LAYERS = ("layer1", "layer2", "layer3")
+
+
+LIST_OF_INSAR_PRODUCTS = ["rifg", "roff", "runw", "goff", "gunw"]
+
 
 # As of Nov 2023, ADT agreed on the format: "%Y-%m-%dT%H:%M:%S",
 # which would be written in documentation as "YYYY-mm-ddTHH:MM:SS".
@@ -116,13 +122,17 @@ def get_possible_pols(product_type):
         return ("HH", "VV", "HV", "VH", "RH", "RV", "LH", "LV")
     elif product_type == "gcov":
         return GCOV_DIAG_POLS + GCOV_OFF_DIAG_POLS
-    elif product_type in ("rifg", "runw", "gunw", "roff", "goff"):
+    elif product_type in LIST_OF_INSAR_PRODUCTS:
         # As of 6/21/2023, baseline for NISAR InSAR mission processing
         # is to produce only HH and/or VV.
         # ISCE3 can also handle HV and/or VH. Compact Pol not supported.
         return ("HH", "VV", "HV", "VH")
     else:
         raise NotImplementedError
+
+
+PRODUCT_SPECS_PATH = \
+    Path(__file__).parent.parent / "product_specs"
 
 
 # Directory Structure and Paths in QA STATS.h5 file
@@ -174,11 +184,14 @@ STATS_H5_NOISE_EST_DATA_GROUP = (
 __all__ = [
     "CUSTOM_CYCLER",
     "LIST_OF_NISAR_PRODUCTS",
+    "LIST_OF_INSAR_PRODUCTS",
     "NISAR_BANDS",
     "NISAR_FREQS",
+    "NISAR_LAYERS",
     "FIG_SIZE_ONE_PLOT_PER_PAGE",
     "FIG_SIZE_TWO_PLOTS_PER_PAGE",
     "PI_UNICODE",
+    "PRODUCT_SPECS_PATH",
     "NISAR_DATETIME_FORMAT_PYTHON",
     "NISAR_DATETIME_FORMAT_HUMAN",
     "STATISTICS_THRESHOLD_PERCENTAGE",

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Iterable
 from typing import Optional
-
-import numpy as np
 
 import nisarqa
 
@@ -17,8 +15,8 @@ def verify_file_against_xml(
     input_file: str | os.PathLike,
     product_type: str,
     product_spec_version: str,
-    freq_pols: Mapping[str, Sequence[str]],
-    layer_numbers: Optional[Sequence[int]] = None,
+    freq_pols: Mapping[str, Iterable[str]],
+    layer_numbers: Iterable[int] | None = None,
 ) -> None:
     """
     Verify input HDF5 file meets the XML product specifications document.
@@ -31,14 +29,14 @@ def verify_file_against_xml(
         One of: 'rslc', 'gslc', 'gcov', 'rifg', 'runw', 'gunw', 'roff', 'goff'.
     product_spec_version : str
         Contents of `../identification/productSpecificationVersion` from input
-        file. Examples: "0.0.9", "1.0.0"
-    freq_pols : Mapping[str, Sequence[str]]
+        file. Examples: "0.0.9", "1.1.0"
+    freq_pols : Mapping[str, Iterable[str]]
         Dict of the expected polarizations for each frequency. Example:
             { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
-    layer_numbers : Sequence[int] or None, optional
+    layer_numbers : Iterable[int] or None, optional
         ROFF and GOFF products contain HDF5 Groups referred to as "layer number
         groups" (e.g. `../layer1/..`, `../layer3/..`).
-        This parameter should be a sequence of integers in domain [1, 8] of
+        This parameter should be an iterable of integers in domain [1, 8] of
         the expected layer number groups' numbers in `input_file`.
         If the product type is not ROFF or GOFF, this should be set to None.
         Defaults to `None`.
@@ -57,14 +55,14 @@ def verify_file_against_xml(
             raise ValueError(
                 f"{product_type=}, so `layer_numbers` cannot be None."
             )
-        elif not isinstance(layer_numbers, Sequence):
-            msg = f"`{layer_numbers=}` must be a sequence or None."
+        elif not isinstance(layer_numbers, Iterable):
+            msg = f"`{layer_numbers=}` must be an iterable or None."
             raise TypeError(msg)
         elif not all(
             (isinstance(n, int) and (n > 0) and (n < 9)) for n in layer_numbers
         ):
             msg = (
-                f"`{layer_numbers=}` must be a sequence of integers in range"
+                f"`{layer_numbers=}` must be an iterable of integers in range"
                 " [1, 8], or None."
             )
             raise ValueError(msg)
@@ -78,35 +76,36 @@ def verify_file_against_xml(
                 " None."
             )
 
-    # Here's how to get the list of all possible polarizations for this product
-    # type (returns the covarience terms for GCOV):
-    possible_pols = nisarqa.get_possible_pols(product_type=product_type)
-    log.info(
-        f"{product_type=}, which could include polarizations: {possible_pols}"
+    freq_pols_formatted = {
+        f"frequency{freq}": pols for (freq, pols) in freq_pols.items()
+    }
+    if product_type in ("roff", "goff"):
+        log.info(
+            f"Verification of HDF5 against XML will check for these numbered "
+            f"layer groups: {layer_numbers}")
+
+    log.info(f"Checking product version against supported versions.")
+    xml_version = nisarqa.get_xml_version_to_compare_against(
+        nisarqa.Version.from_string(product_spec_version)
     )
 
-    # To use any of the functions in QA, simply call from the nisarqa namespace.
-    x = np.bytes_("hello")
-    nisarqa.verify_byte_string(x)
+    xml_filepath = nisarqa.locate_spec_xml_file(
+        product_type=product_type,
+        version=xml_version,
+    )
+    log.debug(
+        "Validating input HDF5 product against XML spec located at: "
+        f"{xml_filepath}"
+    )
 
-    # TODO: Fancy XML-HDF5 input file verification. For now, just practise logging:
-    # Rules of Thumb for logging:
-    # debug   : pedantic debug statements
-    # info    : to let the users know what's up, and status updates on where the code is in execution
-    # warning : something slightly off-nominal happened for QA code, or
-    #           something could be a cause for concern in the input products,
-    #           but that thing could also be totally normal and expected.
-    # error   : the input product does not meet the XML product spec, or
-    #           some feature in QA needs to be skipped because of an error.
-    #           These are items that PGE should always inform ADT about.
-    # critical : Do not log as critical. Instead, raise an execption like
-    #           usual, and QA code's main() function will catch and log it.
-
-    log.info(f"TEMP: {input_file}")
-    log.info(f"TEMP: {product_type}")
-    log.info(f"TEMP: {product_spec_version}")
-    log.info(f"TEMP: {freq_pols}")
-    log.info(f"TEMP: {layer_numbers}")
+    nisarqa.check_hdf5_against_xml(
+        product_type=product_type,
+        xml_file=xml_filepath,
+        hdf5_file=input_file,
+        valid_freq_pols=freq_pols_formatted,
+        valid_layers=layer_numbers,
+        valid_subswaths=[],
+    )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

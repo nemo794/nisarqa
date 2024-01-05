@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
+<!-- product specification version is 1.1.0 -->
 <algorithm name="L1_SingleLookComplex"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-           xsi:noNamespaceSchemaLocation="https://github.jpl.nasa.gov/niessner/SDS/blob/master/pix/schema.xsd">
+           xsi:noNamespaceSchemaLocation="../../SDS/pix/schema.xsd">
     <product template="L1_RSLC_template">
     <!-- Start of the science section of product -->
     <science uid="sci_1">
@@ -10,8 +11,8 @@
                                     title="NISAR L1 RSLC Product"
                                     institution="NASA JPL"
                                     mission_name="NISAR"
-                                    reference_document="TBD"
-                                    contact="nisarops@jpl.nasa.gov"/>
+                                    reference_document="D-102268 NISAR NASA SDS Product Specification Level-1 Range Doppler Single Look Complex L1_RSLC"
+                                    contact="nisar-sds-ops@jpl.nasa.gov"/>
       <!-- End of global attributes for the product -->
 
       <nodes>
@@ -22,7 +23,7 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Absolute orbit number</annotation>
+                      units="1">Absolute orbit number</annotation>
         </integer>
         <integer name="/science/LSAR/identification/trackNumber"
                  shape="scalar"
@@ -30,7 +31,7 @@
                  width="8">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Track number</annotation>
+                      units="1">Track number</annotation>
         </integer>
         <integer name="/science/LSAR/identification/frameNumber"
                  shape="scalar"
@@ -38,7 +39,7 @@
                  width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Frame number</annotation>
+                      units="1">Frame number</annotation>
         </integer>
         <string length="0"
                 name="/science/LSAR/identification/missionId"
@@ -47,40 +48,58 @@
                       lang="en">Mission identifier</annotation>
         </string>
         <string length="0"
+                name="/science/LSAR/identification/processingCenter"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Data processing center</annotation>
+        </string>
+        <string length="0"
                 name="/science/LSAR/identification/productType"
                 shape="scalar">
           <annotation app="conformance"
                       lang="en">Product type</annotation>
         </string>
         <string length="0"
+                name="/science/LSAR/identification/granuleId"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Unique granule identification name</annotation>
+        </string>
+        <string length="0"
                 name="/science/LSAR/identification/productVersion"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Product version</annotation>
+                      lang="en">Product version which represents the structure of the product and the science content governed by the algorithm, input data, and processing parameters</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/productSpecificationVersion"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Product specification version which represents the schema of this product</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/lookDirection"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Look direction can be left or right</annotation>
+                      lang="en">Look direction, either "Left" or "Right"</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/orbitPassDirection"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Orbit direction can be ascending or descending</annotation>
+                      lang="en">Orbit direction, either "Ascending" or "Descending"</annotation>
         </string>
         <string length="27"
                 name="/science/LSAR/identification/zeroDopplerStartTime"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Azimuth start time of product</annotation>
+                      lang="en">Azimuth start time of the product</annotation>
         </string>
         <string length="27"
                 name="/science/LSAR/identification/zeroDopplerEndTime"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Azimuth stop time of product</annotation>
+                      lang="en">Azimuth stop time of the product</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/plannedDatatakeId"
@@ -96,9 +115,9 @@
         </string>
         <string  length="0"
                  name="/science/LSAR/identification/isUrgentObservation"
-                 shape="numberOfObservations">
+                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">List of booleans indicating if datatakes are nominal or urgent</annotation>
+                      lang="en">Flag indicating if observation is nominal ("False") or urgent ("True")</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/listOfFrequencies"
@@ -106,32 +125,68 @@
           <annotation app="conformance"
                       lang="en">List of frequency layers available in the product</annotation>
         </string>
-        <string  length="0"
-                 name="/science/LSAR/identification/diagnosticModeFlag"
-                 shape="scalar">
+	  <integer name="/science/LSAR/identification/diagnosticModeFlag"
+                 shape="scalar"
+                 signed="false"
+                 width="8">
+	    <annotation app="conformance"
+		      lang="en">Indicates if the radar operation mode is a diagnostic mode (1-2) or DBFed science (0): 0, 1, or 2</annotation>
+	  </integer>
+        <string length="0"
+                name="/science/LSAR/identification/productLevel"
+                shape="scalar">
           <annotation app="conformance"
-                      lang="en">Indicates if the radar mode is a diagnostic mode or not: True or False</annotation>
+                      lang="en">Product level. L0A: Unprocessed instrument data; L0B: Reformatted, unprocessed instrument data; L1: Processed instrument data in radar coordinates system; and L2: Processed instrument data in geocoded coordinates system</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/isGeocoded"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">Flag to indicate radar geometry or geocoded product</annotation>
+                      lang="en">Flag to indicate if the product data is in the radar geometry ("False") or in the map geometry ("True")</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/boundingPolygon"
                 shape="scalar">
                 <annotation app="conformance"
-                            lang="en">OGR compatible WKT representation of bounding polygon of the image</annotation>
-                <annotation app="conformance"
                             ogr_geometry="polygon"
-                            epsg="4326"></annotation>
+                            epsg="4326"
+                            lang="en">OGR compatible WKT representation of bounding polygon of the image</annotation>
+        </string>
+        <string length="27"
+              name="/science/LSAR/identification/processingDateTime"
+              shape="scalar">
+              <annotation app="conformance"
+                          lang="en">Processing UTC date and time in the format YYYY-mm-ddTHH:MM:SS</annotation>
+        </string>
+        <string length="0"
+              name="/science/LSAR/identification/radarBand"
+              shape="scalar">
+              <annotation app="conformance"
+                          lang="en">Acquired frequency band, either "L" or "S"</annotation>
+        </string>
+        <string length="0"
+              name="/science/LSAR/identification/instrumentName"
+              shape="scalar">
+              <annotation app="conformance"
+                          lang="en">Name of the instrument used to collect the remote sensing data provided in this product</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/processingType"
                 shape="scalar">
           <annotation app="conformance"
-                      lang="en">NOMINAL (or) URGENT (or) CUSTOM (or) UNDEFINED</annotation>
+                      lang="en">Nominal (or) Urgent (or) Custom (or) Undefined</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/isDithered"
+                shape="scalar">
+                <annotation app="conformance"
+                            lang="en">"True" if the pulse timing was varied (dithered) during acquisition, "False" otherwise.</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/isMixedMode"
+                shape="scalar">
+                <annotation app="conformance"
+                            lang="en">"True" if this product is a composite of data collected in multiple radar modes, "False" otherwise.</annotation>
         </string>
         <!-- End of product identification -->
 
@@ -142,14 +197,14 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-MM-DD HH:MM:SS">CF compliant dimension associated with azimuth time</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">CF compliant dimension associated with azimuth time</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/zeroDopplerTimeSpacing"
               shape="scalar"
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds">Time interval in the along track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
+                          units="seconds">Time interval in the along-track direction for raster layers. This is same as the spacing between consecutive entries in the zeroDopplerTime array</annotation>
         </real>
         <!-- Main layers for frequencyA -->
         <!-- Scalars -->
@@ -157,14 +212,14 @@
               name="/science/LSAR/RSLC/swaths/frequencyA/listOfPolarizations"
               shape="numberOfFrequencyAPolarizations">
           <annotation app="conformance"
-                      lang="en">List of processed polarization layers with frequencyA</annotation>
+                      lang="en">List of processed polarization layers with frequency A</annotation>
         </string>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/sceneCenterAlongTrackSpacing"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the RSLC image</annotation>
+                      units="meters">Nominal along-track spacing in meters between consecutive lines near mid swath of the RSLC image</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/sceneCenterGroundRangeSpacing"
               shape="scalar"
@@ -178,42 +233,42 @@
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Processed range bandwidth in Hz</annotation>
+                      units="hertz">Processed range bandwidth in hertz</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/acquiredRangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Acquisition range bandwidth in Hz. In case of mode combination, this corresponds to mode with lowest bandwidth.</annotation>
+                      units="hertz">Acquisition range bandwidth in hertz. In case of mode combination, this corresponds to mode with largest bandwidth.</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/processedAzimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Processed azimuth bandwidth in Hz</annotation>
+                      units="hertz">Processed azimuth bandwidth in hertz</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/nominalAcquisitionPRF"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Nominal PRF of acquisition. In case of mode combination, this corresponds to mode with least nominal PRF.</annotation>
+                      units="hertz">Nominal PRF of acquisition. In case of mode combination, this corresponds to mode with least nominal PRF.</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/processedCenterFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Center frequency of the processed image in Hz</annotation>
+                      units="hertz">Center frequency of the processed image in hertz</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/acquiredCenterFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Center frequency of the acquisition in Hz. In case of mode combination, this corresponds to the mode with lowest Center Frequency.</annotation>
+                      units="hertz">Center frequency of the acquisition in hertz. In case of mode combination, this corresponds to the mode with highest center frequency.</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/slantRangeSpacing"
               shape="scalar"
@@ -239,7 +294,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (HH)</annotation>
+                      units="1">Focused RSLC image (HH)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/HV"
@@ -247,7 +302,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (HV)</annotation>
+                      units="1">Focused RSLC image (HV)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/VH"
@@ -255,7 +310,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (VH)</annotation>
+                      units="1">Focused RSLC image (VH)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/VV"
@@ -263,7 +318,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (VV)</annotation>
+                      units="1">Focused RSLC image (VV)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/RH"
@@ -271,7 +326,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (RH)</annotation>
+                      units="1">Focused RSLC image (RH)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyA/RV"
@@ -279,7 +334,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (RV)</annotation>
+                      units="1">Focused RSLC image (RV)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
 
@@ -291,7 +346,7 @@
                  width="8">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Number of swaths of continuous imagery, due to transmit gaps</annotation>
+                      units="1">Number of swaths of continuous imagery, due to transmit gaps</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyA/validSamplesSubSwath1"
                  shape="validSamplesShape"
@@ -299,7 +354,7 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 1st subswath</annotation>
+                      units="1">First and last valid sample in each line of 1st subswath</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyA/validSamplesSubSwath2"
                  shape="validSamplesShape"
@@ -307,7 +362,7 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 2nd subswath</annotation>
+                      units="1">First and last valid sample in each line of 2nd subswath</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyA/validSamplesSubSwath3"
                  shape="validSamplesShape"
@@ -315,7 +370,7 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
+                      units="1">First and last valid sample in each line of 3rd subswath</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyA/validSamplesSubSwath4"
                  shape="validSamplesShape"
@@ -323,7 +378,15 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
+                      units="1">First and last valid sample in each line of 4th subswath</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSLC/swaths/frequencyA/validSamplesSubSwath5"
+                 shape="validSamplesShape"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="1">First and last valid sample in each line of 5th subswath</annotation>
         </integer>
         <!-- Main layers for frequencyB -->
         <!-- Scalars -->
@@ -331,14 +394,14 @@
               name="/science/LSAR/RSLC/swaths/frequencyB/listOfPolarizations"
               shape="numberOfFrequencyBPolarizations">
               <annotation app="conformance"
-                          lang="en">List of processed polarization layers with frequencyB</annotation>
+                          lang="en">List of processed polarization layers with frequency B</annotation>
         </string>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/sceneCenterAlongTrackSpacing"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="meters">Nominal along track spacing in meters between consecutive lines near mid swath of the RSLC image</annotation>
+                      units="meters">Nominal along-track spacing in meters between consecutive lines near mid swath of the RSLC image</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/sceneCenterGroundRangeSpacing"
               shape="scalar"
@@ -352,42 +415,42 @@
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Processed range bandwidth in Hz</annotation>
+                      units="hertz">Processed range bandwidth in hertz</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/acquiredRangeBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Acquisition range bandwidth in Hz. In case of mode combination, this corresponds to mode with lowest bandwidth.</annotation>
+                      units="hertz">Acquisition range bandwidth in hertz. In case of mode combination, this corresponds to mode with largest bandwidth.</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/processedAzimuthBandwidth"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Processed azimuth bandwidth in Hz</annotation>
+                      units="hertz">Processed azimuth bandwidth in hertz</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/nominalAcquisitionPRF"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Nominal PRF of acquisition. In case of mode combination, this corresponds to mode with least nominal PRF.</annotation>
+                      units="hertz">Nominal PRF of acquisition. In case of mode combination, this corresponds to mode with least nominal PRF.</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/processedCenterFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Center frequency of the processed image in Hz</annotation>
+                      units="hertz">Center frequency of the processed image in hertz</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/acquiredCenterFrequency"
               shape="scalar"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">Center frequency of the acquisition in Hz. In case of mode combination, this corresponds to the mode with lowest Center Frequency.</annotation>
+                      units="hertz">Center frequency of the acquisition in hertz. In case of mode combination, this corresponds to the mode with highest center frequency.</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/slantRangeSpacing"
               shape="scalar"
@@ -413,7 +476,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (HH)</annotation>
+                      units="1">Focused RSLC image (HH)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/HV"
@@ -421,7 +484,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (HV)</annotation>
+                      units="1">Focused RSLC image (HV)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/VH"
@@ -429,7 +492,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (VH)</annotation>
+                      units="1">Focused RSLC image (VH)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/VV"
@@ -437,7 +500,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (VV)</annotation>
+                      units="1">Focused RSLC image (VV)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/RH"
@@ -445,7 +508,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (RH)</annotation>
+                      units="1">Focused RSLC image (RH)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <real name="/science/LSAR/RSLC/swaths/frequencyB/RV"
@@ -453,7 +516,7 @@
               width="16">
           <annotation app="conformance"
                       lang="en"
-                      units="DN">Focused RSLC image (RV)</annotation>
+                      units="1">Focused RSLC image (RV)</annotation>
           <annotation app="io" kwd="complex" />
         </real>
 
@@ -465,7 +528,7 @@
                  width="8">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Number of swaths of continuous imagery, due to transmit gaps</annotation>
+                      units="1">Number of swaths of continuous imagery, due to transmit gaps</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyB/validSamplesSubSwath1"
                  shape="validSamplesShape"
@@ -473,7 +536,7 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 1st subswath</annotation>
+                      units="1">First and last valid sample in each line of 1st subswath</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyB/validSamplesSubSwath2"
                  shape="validSamplesShape"
@@ -481,7 +544,7 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 2nd subswath</annotation>
+                      units="1">First and last valid sample in each line of 2nd subswath</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyB/validSamplesSubSwath3"
                  shape="validSamplesShape"
@@ -489,7 +552,7 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
+                      units="1">First and last valid sample in each line of 3rd subswath</annotation>
         </integer>
         <integer name="/science/LSAR/RSLC/swaths/frequencyB/validSamplesSubSwath4"
                  shape="validSamplesShape"
@@ -497,7 +560,15 @@
                  width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">First and last valid sample in each line of 3rd subswath</annotation>
+                      units="1">First and last valid sample in each line of 4th subswath</annotation>
+        </integer>
+        <integer name="/science/LSAR/RSLC/swaths/frequencyB/validSamplesSubSwath5"
+                 shape="validSamplesShape"
+                 signed="false"
+                 width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="1">First and last valid sample in each line of 5th subswath</annotation>
         </integer>
         <!-- Start of Metadata cube -->
         <integer name="/science/LSAR/RSLC/metadata/geolocationGrid/epsg"
@@ -505,76 +576,75 @@
                  signed="true"
                  width="32">
                  <annotation app="conformance"
-                             lang="en"
-                             grid_mapping_name="TBD">EPSG code corresponding to coordinate system used for representing geolocation grid</annotation>
+                             lang="en">EPSG code corresponding to coordinate system used for representing geolocation grid</annotation>
         </integer>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/coordinateY"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="TBD">Y coordinate in specified EPSG code</annotation>
+                      units="meters">Y coordinates in specified EPSG code</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/coordinateX"
               shape="geolocationCubeShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="TBD">X coordinate in specified EPSG code</annotation>
+                      units="meters">X coordinates in specified EPSG code</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/incidenceAngle"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      max="90.0"
-                      min="0.0"
-                      units="degrees">Incidence angle is defined as angle between LOS vector and normal at the target</annotation>
+                      valid_max="90.0"
+                      valid_min="0.0"
+                      units="degrees">Incidence angle is defined as the angle between the LOS vector and the normal to the ellipsoid at the target height</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/losUnitVectorX"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      max="-1.0"
-                      min="1.0"
-                      units="unitless">East component of unit vector of LOS from target to sensor</annotation>
+                      valid_max="1.0"
+                      valid_min="-1.0"
+                      units="1">East component of unit vector of LOS from target to sensor</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/losUnitVectorY"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      max="-1.0"
-                      min="1.0"
-                      units="unitless">North component of unit vector of LOS from target to sensor</annotation>
+                      valid_max="1.0"
+                      valid_min="-1.0"
+                      units="1">North component of unit vector of LOS from target to sensor</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/alongTrackUnitVectorX"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      max="-1.0"
-                      min="1.0"
-                      units="unitless">East component of unit vector along ground track</annotation>
+                      valid_max="1.0"
+                      valid_min="-1.0"
+                      units="1">East component of unit vector along ground track</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/alongTrackUnitVectorY"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      max="-1.0"
-                      min="1.0"
-                      units="unitless">North component of unit vector along ground track</annotation>
+                      valid_max="1.0"
+                      valid_min="-1.0"
+                      units="1">North component of unit vector along ground track</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/elevationAngle"
               shape="geolocationCubeShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      max="90.0"
-                      min="0.0"
-                      units="degrees">Elevation angle is defined as angle between LOS vector and norm at the sensor</annotation>
+                      valid_max="90.0"
+                      valid_min="0.0"
+                      units="degrees">Elevation angle is defined as the angle between the LOS vector and the normal to the ellipsoid at the sensor</annotation>
         </real>
         <!-- 1D arrays / dimensions for metadata cube -->
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/slantRange"
@@ -589,14 +659,14 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since 1970.1.1">Zero Doppler time values corresponding to the geolocation grid</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time values corresponding to the geolocation grid</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/groundTrackVelocity"
               shape="geolocationCubeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters per second">Ground track velocity needed to convert azimuth offsets in pixels to meters</annotation>
+                          units="meters / second">Absolute value of the platform velocity scaled at the target height</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/geolocationGrid/heightAboveEllipsoid"
               shape="geolocationCubeHeight"
@@ -609,14 +679,14 @@
 
         <!-- Start of calibration section -->
         <!-- Start of LUTs. Ideally, these are function of geometry and independent of polarization / wavelength -->
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/zeroDopplerTime"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/geometry/zeroDopplerTime"
               shape="calibrationTimeLength"
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-MM-DD HH:MM:SS">Zero doppler time dimension corresponding to calibration records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to calibration records</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/slantRange"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/geometry/slantRange"
               shape="calibrationSlantRangeWidth"
               width="64">
               <annotation app="conformance"
@@ -628,211 +698,697 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">2D LUT to convert DN to beta 0 assuming as a function of zero doppler time and slant range</annotation>
+                      units="1">2D LUT to convert DN to beta 0 assuming as a function of zero doppler time and slant range</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/geometry/sigma0"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">2D LUT to convert DN to sigma 0 assuming as a function of zero doppler time and slant range</annotation>
+                      units="1">2D LUT to convert DN to sigma 0 assuming as a function of zero doppler time and slant range</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/geometry/gamma0"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">2D LUT to convert DN to gamma 0 as a function of zero doppler time and slant range</annotation>
+                      units="1">2D LUT to convert DN to gamma 0 as a function of zero doppler time and slant range</annotation>
         </real>
         <!-- End of LUTS -->
 
         <!-- Start of antenna pattern -->
         <!-- Ideally corresponds to number of available polarizations -->
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HH/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/zeroDopplerTime"
+              shape="calibrationTimeLength"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to calibration elevationAntennaPattern records</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/slantRange"
+              shape="calibrationSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range dimension corresponding to calibration elevationAntennaPattern records</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/HH"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HV/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/HV"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VH/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/VH"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VV/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/VV"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RH/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/RH"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RV/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/RV"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HH/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/zeroDopplerTime"
+              shape="calibrationTimeLength"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to calibration elevationAntennaPattern records</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/slantRange"
+              shape="calibrationSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range dimension corresponding to calibration elevationAntennaPattern records</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/HH"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HV/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/HV"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VH/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/VH"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VV/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/VV"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RH/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/RH"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RV/elevationAntennaPattern"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/RV"
               shape="antennaPatternComplexShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Complex two-way elevation antenna pattern</annotation>
+                      units="1">Complex two-way elevation antenna pattern</annotation>
           <annotation app="io" kwd="complex" />
         </real>
         <!-- End of antenna pattern -->
 
         <!-- Start of noise pattern -->
         <!-- Ideally corresponds to number of available polarizations -->
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HH/nes0"
-              shape="calibrationScaleShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/zeroDopplerTime"
+              shape="calibrationTimeLength"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to calibration nes0 records</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HV/nes0"
-              shape="calibrationScaleShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/slantRange"
+              shape="calibrationSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range dimension corresponding to calibration nes0 records</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VH/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/HH"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VV/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/HV"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RH/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/VH"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RV/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/VV"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HH/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/RH"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HV/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/nes0/RV"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VH/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/HH"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VV/nes0"
-              shape="calibrationScaleShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/zeroDopplerTime"
+              shape="calibrationTimeLength"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to calibration nes0 records</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RH/nes0"
-              shape="calibrationScaleShape"
-              width="32">
-          <annotation app="conformance"
-                      lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/slantRange"
+              shape="calibrationSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range dimension corresponding to calibration nes0 records</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RV/nes0"
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/HV"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Thermal noise equivalent sigma0</annotation>
+                      units="1">Noise equivalent sigma zero</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/VH"
+              shape="calibrationScaleShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="1">Noise equivalent sigma zero</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/VV"
+              shape="calibrationScaleShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="1">Noise equivalent sigma zero</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/RH"
+              shape="calibrationScaleShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="1">Noise equivalent sigma zero</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/nes0/RV"
+              shape="calibrationScaleShape"
+              width="32">
+          <annotation app="conformance"
+                      lang="en"
+                      units="1">Noise equivalent sigma zero</annotation>
         </real>
         <!-- End of noise patterns -->
+
+        <!-- Start of calibration parameters -->
+
+        <!-- Crosstalk 1D LUTs -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/crosstalk/slantRange"
+              shape="calibrationSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range dimension corresponding to crosstalk records</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/crosstalk/txHorizontalCrosspol"
+              shape="crosstalkComplexShape"
+              width="32">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Crosstalk in H-transmit channel expressed as ratio txV / txH</annotation>
+              <annotation app="io" kwd="complex" />
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/crosstalk/txVerticalCrosspol"
+              shape="crosstalkComplexShape"
+              width="32">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Crosstalk in V-transmit channel expressed as ratio txH / txV</annotation>
+              <annotation app="io" kwd="complex" />
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/crosstalk/rxHorizontalCrosspol"
+              shape="crosstalkComplexShape"
+              width="32">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Crosstalk in H-receive channel expressed as ratio rxV / rxH</annotation>
+              <annotation app="io" kwd="complex" />
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/crosstalk/rxVerticalCrosspol"
+              shape="crosstalkComplexShape"
+              width="32">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Crosstalk in V-recieve channel expressed as ratio rxH / rxV</annotation>
+              <annotation app="io" kwd="complex" />
+        </real>
+
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/commonDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to all polarimetric channels</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/faradayRotation"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Faraday rotation correction applied in processing</annotation>
+        </real>
+
+        <!-- channel-specific corrections -->
+        <!-- HH -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HH/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to HH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HH/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to HH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HH/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to HH channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HH/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to HH channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+
+        <!-- Repeat above four parameters for all polarizations -->
+        <!-- HV -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HV/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to HV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HV/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to HV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HV/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to HV channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/HV/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to HV channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- VH -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VH/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to VH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VH/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to VH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VH/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to VH channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VH/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to VH channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- VV -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VV/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to VV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VV/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to VV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VV/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to VV channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/VV/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to VV channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- RH -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RH/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to RH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RH/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to RH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RH/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to RH channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RH/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to RH channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- RV -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RV/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to RV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RV/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to RV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RV/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to RV channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/RV/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to RV channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+
+        <!-- Repeat above for frequency B -->
+
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/commonDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to all polarimetric channels</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/faradayRotation"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Faraday rotation correction applied in processing</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HH/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to HH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HH/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to HH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HH/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to HH channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HH/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to HH channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+
+        <!-- Repeat above four parameters for all polarizations -->
+        <!-- HV -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HV/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to HV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HV/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to HV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HV/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to HV channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/HV/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to HV channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- VH -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VH/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to VH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VH/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to VH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VH/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to VH channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VH/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to VH channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- VV -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VV/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to VV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VV/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to VV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VV/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to VV channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/VV/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to VV channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- RH -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RH/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to RH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RH/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to RH channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RH/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to RH channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RH/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to RH channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+        <!-- RV -->
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RV/differentialDelay"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Range delay correction applied to RV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RV/differentialPhase"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians">Phase correction applied to RV channel</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RV/scaleFactor"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="1">Scale factor applied to RV channel complex amplitude (at antenna boresite)</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/RV/scaleFactorSlope"
+              shape="scalar"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="radians^-1">Slope of scale factor applied to RV channel complex amplitude with respect to elevation angle</annotation>
+        </real>
+
+        <!-- End of calibration parameters -->
 
         <!-- Start of processing information -->
         <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/azimuthChirpWeighting"
@@ -863,50 +1419,56 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-MM-DD HH:MM:SS">Zero doppler time dimension corresponding to processing information records"</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to processing information records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/slantRange"
               shape="dopplerCentroidSlantRangeWidth"
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="meters">Slant range dimension corresponding to processing information records"</annotation>
+                          units="meters">Slant range dimension corresponding to processing information records</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/effectiveVelocity"
-              shape="dopplerCentroidShape"
+        <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyA/zeroDopplerTime"
+              shape="dopplerCentroidTimeLength"
               width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters per second">2D LUT of Effective Velocity from imaging geometry</annotation>
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to processing information records</annotation>
+        </real>
+        <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyA/slantRange"
+              shape="dopplerCentroidSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range dimension corresponding to processing information records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyA/dopplerCentroid"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">2D LUT of Doppler Centroid for Frequency A</annotation>
+                      units="hertz">2D LUT of Doppler centroid for frequency A</annotation>
         </real>
-        <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyA/azimuthFMRate"
-              shape="dopplerCentroidShape"
+        <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyB/zeroDopplerTime"
+              shape="dopplerCentroidTimeLength"
               width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz per second`">2D LUT of azimuth FM rate for Frequency A</annotation>
+              <annotation app="conformance"
+                          lang="en"
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time dimension corresponding to processing information records</annotation>
         </real>
-
+        <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyB/slantRange"
+              shape="dopplerCentroidSlantRangeWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
+                          units="meters">Slant range dimension corresponding to processing information records</annotation>
+        </real>
         <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyB/dopplerCentroid"
               shape="dopplerCentroidShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="Hz">2D LUT of Doppler Centroid for Frequency B</annotation>
-        </real>
-        <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyB/azimuthFMRate"
-              shape="dopplerCentroidShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="Hz per second`">2D LUT of azimuth FM rate for Frequency B</annotation>
+                      units="hertz">2D LUT of Doppler centroid for frequency B</annotation>
         </real>
 
         <!-- Orbit ephemeris -->
@@ -915,7 +1477,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-MM-DD HH:MM:SS">Time vector record. This record contains the time corresponding to position, velocity, acceleration records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Time vector record. This record contains the time corresponding to position and velocity records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/orbit/position"
               shape="orbitShape"
@@ -929,14 +1491,7 @@
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="meters per second">Velocity vector record. This record contains the platform velocity data with respect to WGS84 G1762 reference frame</annotation>
-        </real>
-        <real name="/science/LSAR/RSLC/metadata/orbit/acceleration"
-              shape="orbitShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="meters per second squared">Acceleration vector record. This record contains the platform acceleration data with respect to WGS84 G1762 reference frame</annotation>
+                      units="meters / second">Velocity vector record. This record contains the platform velocity data with respect to WGS84 G1762 reference frame</annotation>
         </real>
         <string length="0"
                 name="/science/LSAR/RSLC/metadata/orbit/orbitType"
@@ -951,21 +1506,14 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-MM-DD HH:MM:SS">Time vector record. This record contains the time corresponding to attitude and quaternion records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Time vector record. This record contains the time corresponding to attitude and quaternion records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/attitude/quaternions"
               shape="attitudeQuaternionShape"
               width="64">
           <annotation app="conformance"
                       lang="en"
-                      units="unitless">Attitude quaternions (q0, q1, q2, q3)</annotation>
-        </real>
-        <real name="/science/LSAR/RSLC/metadata/attitude/angularVelocity"
-              shape="attitudeShape"
-              width="64">
-          <annotation app="conformance"
-                      lang="en"
-                      units="radians per second">Attitude angular velocity vectors (wx, wy, wz)</annotation>
+                      units="1">Attitude quaternions (q0, q1, q2, q3)</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/attitude/eulerAngles"
               shape="attitudeShape"
@@ -981,162 +1529,82 @@
                             lang="en">PrOE (or) NOE (or) MOE (or) POE (or) Custom</annotation>
         </string>
 
+        <!-- Run configuration file contents -->
+        <string name="/science/LSAR/RSLC/metadata/processingInformation/parameters/runConfigurationContents"
+              length="0"
+              shape="scalar">
+              <annotation app="conformance"
+                          lang="en">Contents of the run configuration file with parameters used for processing</annotation>
+        </string>
+
         <!-- Versions of various algorithm modules used -->
         <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/internalCalibration"
-                shape="scalar">
-          <annotation algorithm_type="pre-processing"
-                      app="conformance"
-                      lang="en"
-                      name="internal calibration"
-                      software_ID="x"
-                      version="x"></annotation>
+              name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/demInterpolation"
+              shape="scalar">
+          <annotation app="conformance"
+                      lang="en">DEM interpolation method</annotation>
         </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/rangeReferenceFunctionGenerator"
+        <string length="0"
+                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/rfiDetection"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
-                      lang="en"
-                      name="range reference function generator"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm used for radio frequency interference (RFI) detection</annotation>
         </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/driftCompensator"
+        <string length="0"
+                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/rfiMitigation"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
-                      lang="en"
-                      name="drift compensation generator"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm used for radio frequency interference (RFI) mitigation</annotation>
         </string>
-        <string length="27"
+        <string length="0"
                 name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/rangeCompression"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
-                      lang="en"
-                      name="range compression"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm for focusing the data in the range direction</annotation>
         </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/rangeDependentGainCorrection"
-                shape="scalar">
-          <annotation algorithm_type="range processing"
-                      app="conformance"
-                      lang="en"
-                      name="range dependent gain correction"
-                      software_ID="x"
-                      version="x"></annotation>
-        </string>
-        <string length="27"
+        <string length="0"
                 name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/elevationAntennaPatternCorrection"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
-                      lang="en"
-                      name="elevation angle pattern correction"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm for calibrating the antenna pattern</annotation>
         </string>
-        <string length="27"
+        <string length="0"
                 name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/rangeSpreadingLossCorrection"
                 shape="scalar">
           <annotation algorithm_type="range processing"
                       app="conformance"
-                      lang="en"
-                      name="range spreading loss correction"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm for calibrating range fading</annotation>
         </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/SWSTCorrection"
-                shape="scalar">
-          <annotation algorithm_type="range processing"
-                      app="conformance"
-                      lang="en"
-                      name="SWST correction"
-                      software_ID="x"
-                      version="x"></annotation>
-        </string>
-        <string length="27"
+        <string length="0"
                 name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/dopplerCentroidEstimation"
                 shape="scalar">
           <annotation algorithm_type="doppler centroid estimation"
                       app="conformance"
-                      lang="en"
-                      name="absolute doppler centroid calculation"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm for calculating Doppler centroid</annotation>
         </string>
-        <string length="27"
+        <string length="0"
                 name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/azimuthPresumming"
                 shape="scalar">
           <annotation algorithm_type="azimuth regridding"
                       app="conformance"
-                      lang="en"
-                      name="azimuth presumming"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm for regridding and filling gaps in the raw data in azimuth</annotation>
         </string>
-        <string length="27"
+        <string length="0"
                 name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/azimuthCompression"
                 shape="scalar">
           <annotation algorithm_type="azimuth regridding"
                       app="conformance"
-                      lang="en"
-                      name="azimuth zero padding"
-                      software_ID="x"
-                      version="x"></annotation>
+                      lang="en">Algorithm for focusing the data in the azimuth direction</annotation>
         </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/secondaryRangeCompression"
-                shape="scalar">
-          <annotation algorithm_type="azimuth processing"
-                      app="conformance"
-                      lang="en"
-                      name="secondary range compression"
-                      software_ID="x"
-                      version="x"></annotation>
-        </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/rangeCellMigration"
-                shape="scalar">
-          <annotation algorithm_type="azimuth processing"
-                      app="conformance"
-                      lang="en"
-                      name="range cell migration correction"
-                      software_ID="x"
-                      version="x"></annotation>
-        </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/patchProcessing"
-                shape="scalar">
-          <annotation algorithm_type="patch processing"
-                      app="conformance"
-                      lang="en"
-                      name=""
-                      software_ID="x"
-                      version="x"></annotation>
-        </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/postProcessing"
-                shape="scalar">
-          <annotation algorithm_type="post processing"
-                      app="conformance"
-                      lang="en"
-                      name=""
-                      software_ID="x"
-                      version="x"></annotation>
-        </string>
-        <string length="27"
-                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/ISCEVersion"
+        <string length="0"
+                name="/science/LSAR/RSLC/metadata/processingInformation/algorithms/softwareVersion"
                 shape="scalar">
                 <annotation app="conformance"
-                            lang="en">ISCE version used for processing</annotation>
+                            lang="en">Software version used for processing</annotation>
         </string>
 
         <!-- List of inputs -->
@@ -1170,11 +1638,11 @@
           <annotation app="conformance"
                       lang="en">List of input config files used</annotation>
         </string>
-        <string length="0"
-                name="/science/LSAR/RSLC/metadata/processingInformation/inputs/demFiles"
-                shape="numberOfInputDEMFiles">
+        <string name="/science/LSAR/RSLC/metadata/processingInformation/inputs/demSource"
+              shape="scalar"
+              length="128">
           <annotation app="conformance"
-                      lang="en">List of input dem files used</annotation>
+                      lang="en">Description of the input digital elevation model (DEM)</annotation>
         </string>
       </nodes>
     </science>
@@ -1185,8 +1653,7 @@
     <shape name="scalar"
            order="irrelevant">
       <annotation app="conformance"
-                  lang="en"
-                  description="scalar values"/>
+                  lang="en">scalar values</annotation>
     </shape>
 
     <!-- Number of data takes in identification -->
@@ -1380,13 +1847,21 @@
                       name="calibrationSlantRangeWidth"/>
            <dimension name="complex" extent="2"/>
     </shape>
+    <shape name="crosstalkComplexShape"
+           order="slowest...fastest">
+           <annotation app="conformance"
+                       lang="en">Shape of crosstalk datasets</annotation>
+           <dimension extent="0"
+                      name="calibrationSlantRangeWidth"/>
+           <dimension name="complex" extent="2"/>
+    </shape>
 
 
     <!-- Orbit related shape -->
     <shape name="orbitListLength"
            order="slowest...fastest">
            <annotation app="conformance"
-                       lang="en">description="Number of orbit state vectors</annotation>
+                       lang="en">Number of orbit state vectors</annotation>
            <dimension extent="0"
                       name="orbitListLength"/>
     </shape>
@@ -1471,13 +1946,6 @@
                   lang="en">Number of input configuration files</annotation>
       <dimension extent="0"
                  name="numberOfInputConfigFiles"/>
-    </shape>
-    <shape name="numberOfInputDEMFiles"
-           order="slowest...fastest">
-      <annotation app="conformance"
-                  lang="en">Number of input DEM files</annotation>
-      <dimension extent="0"
-                 name="numberOfInputDEMFiles"/>
     </shape>
   </product>
 </algorithm>
