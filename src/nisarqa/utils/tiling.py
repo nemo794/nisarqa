@@ -465,7 +465,7 @@ def compute_histogram_by_tiling(
         threshold="",
         actual="",
         notes=(
-            f"{arr_name}: all histogram bin counts are zero."
+            f"{arr_name}: If a 'FAIL' then all histogram bin counts are zero."
             " This likely indicates that the raster contained no valid data."
             " Note: check performed on decimated raster not full raster."
         ),

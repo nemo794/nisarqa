@@ -469,9 +469,9 @@ def compute_and_save_basic_statistics(
         log.info(msg_for_total_invalid_pixels)
 
     # Note the metrics in the SUMMARY CSV
-    invalid_pass = "PASS" if (percent_invalid >= threshold) else "FAIL"
+    invalid_pass = "FAIL" if (percent_invalid >= threshold) else "PASS"
     summary.check_invalid_pixels_within_threshold(
-        result=sum_result,
+        result=invalid_pass,
         threshold=str(threshold),
         actual=f"{percent_invalid:.2f}",
         notes=arr_name,
