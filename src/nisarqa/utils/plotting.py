@@ -356,7 +356,7 @@ def plot_unwrapped_phase_image_to_pdf(
         im2 = ax2.imshow(
             phs_img_rewrapped,
             aspect="equal",
-            cmap="plasma",
+            cmap="twilight_shifted",
             interpolation="none",
         )
 
