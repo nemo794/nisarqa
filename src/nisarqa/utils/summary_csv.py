@@ -15,7 +15,7 @@ def get_summary() -> SummaryCSV:
     summary = SummaryCSV()
     if not summary.is_setup():
         raise RuntimeError(
-            " `setup_summary_csv(..)` must be called prior to calling"
+            "`setup_summary_csv(..)` must be called prior to calling"
             " `get_summary()`."
         )
 
@@ -60,6 +60,9 @@ def setup_summary_csv(csv_file: str | os.PathLike) -> None:
 class SummaryCSV:
     """
     The global SUMMARY.csv writer for PASS/FAIL checks.
+    
+    `SummaryCSV` objects should not be constructed directly, but should
+    instead be accessed via the `get_summary()` function.
 
     This class can be called from anywhere in the nisarqa package, and it
     will always write the pass/fail checks to the same SUMMARY.csv file.
@@ -118,7 +121,7 @@ class SummaryCSV:
                 f"`setup_summary_csv()` should be called by the program at most"
                 f" once. This will prevent silly potential bugs where the"
                 f" handlers are accidentally set multiple times during QA,"
-                f" resulting in earlier CSV message getting discarded."
+                f" resulting in earlier CSV messages getting discarded."
             )
 
         self._setup_handler_and_formatting(csv_file)
