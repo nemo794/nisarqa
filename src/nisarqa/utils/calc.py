@@ -81,26 +81,6 @@ def nearest_odd_int(k):
     return result
 
 
-def next_greater_odd_int(k):
-    """Compute the next odd integer greater than or equal to `k`"""
-    # Find the next-largest even or odd integer
-    if abs(k - np.rint(k)) < 0.0001:
-        # Accommodate floating point error
-        result = int(np.rint(k))
-    else:
-        # Round up to nearest integer
-        result = int(np.ceil(k))
-
-    if result % 2 == 0:
-        result = result + 1
-
-    # Sanity Check
-    assert result % 2 == 1, "the result should be an odd value."
-    assert isinstance(result, int), "the result should be an integer."
-
-    return result
-
-
 def counts2density(counts, bins):
     """
     Compute the probability density for the given counts and bins.

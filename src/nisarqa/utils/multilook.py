@@ -124,17 +124,18 @@ def validate_nlooks(nlooks: int | Sequence[int], arr: ArrayLike) -> None:
             break
 
 
+# TODO The documentation and comments in this function need an update after R4.0
+# to clarify the new algorithm. @gunter should write up a Jupyter notebook that
+# we can reference here.
 def compute_square_pixel_nlooks(
-    img_shape, sample_spacing, longest_side_max=2048, epsilon=1e-2
-):
+    img_shape: tuple[int, int],
+    sample_spacing: tuple[float, float],
+    longest_side_max: int = 2048,
+    epsilon: float = 1e-2,
+) -> tuple[int, int]:
     """
     Computes the nlooks values required to achieve approx. square pixels
     in a multilooked image.
-
-    `nlooks` values will be rounded to the nearest odd value to maintain
-    the same coordinate grid as the array that will be multilooked.
-    Using an even-valued 'look' would cause the multilooked image's
-    coordinates to be shifted a half-pixel from the source image's coordinates.
 
     Parameters
     ----------
@@ -196,7 +197,7 @@ def compute_square_pixel_nlooks(
             - dx_1 : (float) distance between samples in X direction
     Number of Looks:
         - These will be Real numbers during the computation, but then
-          rounded to the nearest odd integer for final output.
+          rounded to the nearest integer for final output.
         - ky : number of looks in the Y direction
         - kx : number of looks in the X direction
 
@@ -212,19 +213,24 @@ def compute_square_pixel_nlooks(
     Derivation:
     (8) WLOG, let Dy > Dx                 # Determine via a conditional
     (9) ky = M / longest_side_max         # By definitions
-    (9.5) ky = next_greater_odd_int(ky)   # round to next greater odd int here
+    (9.5) ky = ceil(ky)                   # round up to next smallest int here
                                           #    for "square-er" pixels
     (10) ky * dy = kx * dx                # from (5), (1), (2)
     (11) kx = (ky * dy) / dx              # from (10), (9)
-    (11.5) kx = next_greater_odd_int(kx)  # nlooks values are int
+    (11.5) kx = round(kx)                 # nlooks values are int
 
     ** `longest_side_max` provides an upper limit on the length of the
     longest side of the final multilooked image. So, during
     computation of ky and kx, they will be rounded to the nearest
     odd integer greater than the exact Real solution for ky and kx.
     Rounding up will ensure that we do not exceed `longest_side_max`.
-    Rounding to odd values will maintain the same coordinate grid
-    as the source image array during multilooking.
+
+    If kx and ky are both odd-valued, the output grid of the multilooked image
+    will be a decimated replica of the original image grid. However, if kx
+    and/or ky are even-valued, the phase delay between two original and
+    multilooked grids will include a half-pixel shift. For QA purposes, its not
+    typically necessary to book-keep the exact extents of multilooked arrays, so
+    we do not force the number of looks to be odd-valued.
     """
 
     for input in (img_shape[0], img_shape[1], longest_side_max):
@@ -240,24 +246,57 @@ def compute_square_pixel_nlooks(
     dy = np.abs(sample_spacing[0])  # Y
     dx = np.abs(sample_spacing[1])  # X
 
-    if M * dy >= N * dx:
-        # Y (azimuth) extent is longer
-        ky = M / longest_side_max
+    # A useful way to think about the problem is to first consider the
+    # hypothetical scenario where kx and ky need not be integer-valued. In that
+    # case, we want to choose a point (kx, ky) on the line `ky * dy = kx * dx`,
+    # so that the multilooked pixels are exactly square. The chosen point must
+    # be in the feasible region defined by `ky >= M/L` and `kx >= N/L` (where L
+    # is `longest_side_max`), which ensures that neither multilooked dimension
+    # exceeds `longest_side_max`. So we can simply find the intersection between
+    # the line and the feasible region, which exactly solves the problem without
+    # taking excessive looks.
+    # We can apply similar logic to compute kx & ky in the integer-valued case
+    # as well (with the appropriate rounding steps), but there may be a tradeoff
+    # between minimizing the number of looks and maximizing the "squareness" of
+    # the multilooked pixels. There's also possibly an edge case that we need to
+    # watch out for where a point that was inside the feasible region before
+    # rounding becomes infeasible after rounding.
 
-        # Adjust ky to be an odd integer before computing kx. This will
-        # keep the final multilooked pixels closer to being square pixels.
-        ky = nisarqa.next_greater_odd_int(ky)
+    # Get minimum allowable values of ky & kx such that the multilooked image
+    # dimensions are all <= longest_side_max. These define the boundaries of the
+    # feasible region.
+    ky_min = int(np.ceil(M / longest_side_max))
+    kx_min = int(np.ceil(N / longest_side_max))
 
-        kx = (ky * dy) / dx  # Formula (11)
-        kx = nisarqa.next_greater_odd_int(kx)
+    # The number of looks must not be less than 1. This is always guaranteed to
+    # be the case if the inputs are all greater than 0.
+    assert ky_min >= 1
+    assert kx_min >= 1
 
-    else:
-        # X (range) ground distance is longer
-        kx = N / longest_side_max
-        kx = nisarqa.next_greater_odd_int(kx)
+    # First, assume that we are bounded by kx and compute ky so that multilooked
+    # pixels are as close to square as possible, given that kx is kx_min. This
+    # means computing the intersection between `kx = kx_min` and
+    # `ky * dy = kx * dx`, and then rounding ky to the nearest integer.
+    kx = kx_min
+    ky = int(np.round(kx * dx / dy))
 
-        ky = (kx * dx) / dy  # Formula (11)
-        ky = nisarqa.next_greater_odd_int(ky)
+    # If `ky >= ky_min`, then we are done. Else, this means that we are
+    # (likely) bounded by ky. So, compute kx by setting ky to
+    # ky_min and trying to make multilooked pixels as close to square as
+    # possible, similar to before.
+    if ky < ky_min:
+        ky = ky_min
+        kx = int(np.round(ky * dy / dx))
+
+        # If `kx >= kx_min`, then we are done. But there's a special case where
+        # neither pair of (kx, ky) values was within the feasible region, due to
+        # rounding. This is only possible if the line `ky * dy = kx * dx`
+        # intersects with the feasible region very close to the corner
+        # (kx_min, ky_min). In this case, we can just set kx to kx_min and ky to
+        # ky_min and end up with multilooked pixels that are very nearly square!
+        if kx < kx_min:
+            kx = kx_min
+            ky = ky_min
 
     # Sanity Check
     assert N // kx <= longest_side_max
