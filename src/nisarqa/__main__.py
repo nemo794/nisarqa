@@ -249,8 +249,8 @@ def main():
         log.exception(e)
 
         try:
-            summary = nisarqa.GetSummary()
-        except ValueError:
+            summary = nisarqa.get_summary()
+        except RuntimeError:
             # Summary CSV was never initialized. Cannot note the failure.
             pass
         else:
@@ -260,8 +260,8 @@ def main():
         raise
 
     try:
-        summary = nisarqa.GetSummary()
-    except ValueError:
+        summary = nisarqa.get_summary()
+    except RuntimeError:
         # Summary CSV was never initialized. Cannot note the success.
         pass
     else:

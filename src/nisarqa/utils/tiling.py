@@ -460,8 +460,10 @@ def compute_histogram_by_tiling(
         nisarqa.get_logger().error(errmsg)
 
     # Note result of the check in the summary file before raising an Exception.
-    nisarqa.GetSummary().check_invalid_pixels_within_threshold(
+    nisarqa.get_summary().check_invalid_pixels_within_threshold(
         result=sum_check,
+        threshold="",
+        actual="",
         notes=(
             f"{arr_name}: all histogram bin counts are zero."
             " This likely indicates that the raster contained no valid data."

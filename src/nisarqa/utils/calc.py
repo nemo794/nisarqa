@@ -296,7 +296,7 @@ def compute_and_save_basic_statistics(
     total_num_invalid = 0
 
     log = nisarqa.get_logger()
-    summary = nisarqa.GetSummary()
+    summary = nisarqa.get_summary()
 
     arr = raster.data
     units = raster.units

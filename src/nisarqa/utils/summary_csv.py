@@ -12,36 +12,38 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def get_summary() -> SummaryCSV:
     """Get the SUMMARY.csv writer."""
 
-    sum_logger = SummaryCSV._get_summary_logger()
-
-    # The summary file should only be set up once during the execution of QA.
-    # If any handlers exist, this means it was previously set up. Bad!
-    if not sum_logger.handlers:
+    summary = SummaryCSV()
+    if not summary.is_setup():
         raise RuntimeError(
             " `setup_summary_csv(..)` must be called prior to calling"
             " `get_summary()`."
         )
 
-    return SummaryCSV()
+    return summary
 
 
 def setup_summary_csv(csv_file: str | os.PathLike) -> None:
     """
     Setup the SUMMARY CSV file with correct filepath and formatting.
 
+    This function must be called prior to `get_summary()`, but can only be
+    called once during the application. Calling it twice will
+    result in an exception.
+
+    If `csv_file` already exists, it will be overwritten.
+
     Parameters
     ----------
     csv_file : path-like
-        Filepath (with basepath) to the SUMMARY file. If `csv_file` already
-        exists, it will be overwritten.
+        Filepath (with basepath) to the SUMMARY file.
     """
 
-    # The GetSummary class uses the Python `logging` module under the hood
+    # The SummaryCSV class uses the Python `logging` module under the hood
     # to handle formatting, file location, etc.
     # See SummaryCSV() docstring for more details.
+    summary = SummaryCSV()
 
-    summary_logger = SummaryCSV._get_summary_logger()
-    if summary_logger.handlers:
+    if summary.is_setup():
         # Summary CSV logger was previously set up
         raise ValueError(
             f"`setup_summary_csv()` should be called by the program at most"
@@ -50,45 +52,8 @@ def setup_summary_csv(csv_file: str | os.PathLike) -> None:
             f" during QA, resulting in earlier CSV message getting discarded."
         )
 
-    # Clean the filepath
-    csv_file = os.fspath(csv_file)
-
     # Setup the SUMMARY logger
-
-    # Set minimum log level for the root logger; this sets the minimum
-    # possible log level for all handlers. (It typically defaults to WARNING.)
-    # Later, set the minimum log level for individual handlers.
-    summary_logger.setLevel(logging.DEBUG)
-
-    # Create a formatter
-    fmt = logging.Formatter(
-        "%(tool)s,%(description)s,%(result)s,%(threshold)s,%(actual)s,%(notes)s"
-    )
-
-    # Write messages to the specified file. Since this function will only
-    # be called the first time, open in "w" mode for a fresh file.
-    handler = logging.FileHandler(filename=csv_file, mode="w")
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(fmt)
-    summary_logger.addHandler(handler)
-
-    # Write the header row of the CSV
-    # Kludge: `_construct_extra_dict()` requires `result` and `tool` to be
-    # one of a set of acceptable options. This is to ensure that PASS/FAIL checks
-    # adhere to strict guidelines to maintain uniformity.
-    # The only exception is the header row, so we'll use a hack:
-    extra = SummaryCSV._construct_extra_dict(
-        tool="QA",  # Kludge; will be corrected below
-        description="Check",
-        result="PASS",  # Kludge; will be corrected below
-        threshold="Threshold",
-        actual="Actual",
-        notes="Notes",
-    )
-    extra["result"] = "Result"
-    extra["tool"] = "Tool"
-
-    SummaryCSV._write_to_csv(extra=extra)
+    summary.setup_summary_csv(csv_file=csv_file)
 
 
 @dataclass
@@ -124,34 +89,96 @@ class SummaryCSV:
     the existing code, hence choosing that approach for now.
     """
 
-    csv_file: InitVar[str | os.PathLike | None] = None
+    def is_setup(self) -> bool:
+        """Return True if summary CSV is already setup, False otherwise."""
+        sum_logger = self._get_summary_logger()
 
-    def __post_init__(self, csv_file: str | os.PathLike | None) -> None:
-        logger = self._get_summary_logger()
-        if not logger.handlers:
-            # First time GetSummary is instantiated; set up the internal logger
-            if csv_file is None:
-                raise ValueError(
-                    f" `{csv_file=}` but must be provided the first time that"
-                    " an instance of GetSummary() is generated. For all"
-                    " subsequent calls, user should use the default of None."
-                )
-            csv_file = os.fspath(csv_file)
-            self._setup_summary_csv(csv_file=csv_file)
-
+        # If any handlers exist, this means it was previously set up.
+        if sum_logger.handlers:
+            return True
         else:
-            # Logger was already set up
-            if csv_file is not None:
-                raise ValueError(
-                    f" `{csv_file=}` but can only be provided the first time"
-                    " that an instance of GetSummary() is generated. For all"
-                    " subsequent calls, please use the default of None."
-                )
+            return False
+
+    def setup_summary_csv(self, csv_file: str | os.PathLike) -> None:
+        """
+        Setup the SUMMARY CSV file with correct filepath and formatting.
+
+        If `csv_file` already exists, it will be overwritten.
+
+        Parameters
+        ----------
+        csv_file : path-like
+            Filepath (with basepath) to the SUMMARY file.
+        """
+
+        summary_logger = self._get_summary_logger()
+        if self.is_setup():
+            # Summary CSV logger was previously set up
+            raise ValueError(
+                f"`setup_summary_csv()` should be called by the program at most"
+                f" once. This will prevent silly potential bugs where the"
+                f" handlers are accidentally set multiple times during QA,"
+                f" resulting in earlier CSV message getting discarded."
+            )
+
+        self._setup_handler_and_formatting(csv_file)
+
+        self._add_header_row_to_csv()
+
+    def _setup_handler_and_formatting(
+        self, csv_file: str | os.PathLike
+    ) -> None:
+        """Setup the handler and formatting."""
+
+        summary_logger = self._get_summary_logger()
+
+        # Set minimum log level for the root logger; this sets the minimum
+        # possible log level for all handlers. (It typically defaults to WARNING.)
+        # Later, set the minimum log level for individual handlers.
+        summary_logger.setLevel(logging.DEBUG)
+
+        # Clean the filepath
+        csv_file = os.fspath(csv_file)
+
+        # Write messages to the specified file. Since this function will only
+        # be called the first time, open in "w" mode for a fresh file.
+        handler = logging.FileHandler(filename=csv_file, mode="w")
+        handler.setLevel(logging.DEBUG)
+
+        fmt = self._get_summary_formatter()
+        handler.setFormatter(fmt)
+        summary_logger.addHandler(handler)
 
     @staticmethod
     def _get_summary_logger() -> logging.Logger:
         """Get the underlying Logger for the SUMMARY CSV file."""
         return logging.getLogger("SUMMARY")
+
+    @staticmethod
+    def _get_summary_formatter() -> logging.Formatter:
+        """Get the Formatter for the SUMMARY CSV file."""
+        return logging.Formatter(
+            "%(tool)s,%(description)s,%(result)s,%(threshold)s,%(actual)s,%(notes)s"
+        )
+
+    def _add_header_row_to_csv(self) -> None:
+        """Add header row to the CSV."""
+        # Kludge: `_construct_extra_dict()` requires `result` and `tool` to be
+        # one of a set of acceptable options. This is to ensure that PASS/FAIL checks
+        # adhere to strict guidelines to maintain uniformity.
+        # The only exception is the header row, so we'll use a hack:
+        extra = self._construct_extra_dict(
+            tool="QA",  # Kludge; will be corrected below
+            description="Check",
+            result="PASS",  # Kludge; will be corrected below
+            threshold="Threshold",
+            actual="Actual",
+            notes="Notes",
+        )
+        extra["result"] = "Result"
+        extra["tool"] = "Tool"
+
+        self._write_to_csv(extra=extra)
 
     def _validate_result(self, result: str) -> str:
         """

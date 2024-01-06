@@ -89,7 +89,8 @@ def verify_rslc(
         print(msg)
 
     # Initialize the PASS/FAIL checks summary file
-    summary = nisarqa.GetSummary(summary_file)
+    nisarqa.setup_summary_csv(summary_file)
+    summary = nisarqa.get_summary()
 
     try:
         # All worksflows use the RSLC() product; only initialize once.
