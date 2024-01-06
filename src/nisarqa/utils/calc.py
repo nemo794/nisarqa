@@ -621,7 +621,9 @@ def compute_and_save_basic_statistics(
     # Now, all metrics have been computed and logged. Raise exception
     # if an issue was identified.
     if not all_metrics_pass:
-        if treat_all_zeros_as_error and not np.isclose(fill_value, 0.0):
+        if treat_all_zeros_as_error and not np.isclose(
+            fill_value, 0.0, atol=epsilon, rtol=0.0
+        ):
             total_num_invalid += num_zero
             assert total_num_invalid <= arr_size
 
