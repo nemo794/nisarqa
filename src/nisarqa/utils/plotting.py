@@ -49,12 +49,10 @@ def process_ionosphere_phase_screen(
                 nisarqa.compute_and_save_basic_statistics(
                     raster=iono_phs,
                     stats_h5=stats_h5,
-                    nearly_all_zeros_is_ok=True,
                 )
                 nisarqa.compute_and_save_basic_statistics(
                     raster=iono_uncertainty,
                     stats_h5=stats_h5,
-                    nearly_all_zeros_is_ok=True,
                 )
 
                 plot_ionosphere_phase_screen_to_pdf(
@@ -247,8 +245,7 @@ def process_phase_image_unwrapped(
                 # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
-                    raster=img,
-                    stats_h5=stats_h5,
+                    raster=img, stats_h5=stats_h5, treat_all_zeros_as_error=True
                 )
 
                 # Plot phase image
@@ -421,10 +418,12 @@ def process_phase_image_wrapped(
                 nisarqa.compute_and_save_basic_statistics(
                     raster=complex_img,
                     stats_h5=stats_h5,
+                    treat_all_zeros_as_error=True,
                 )
                 nisarqa.compute_and_save_basic_statistics(
                     raster=coh_img,
                     stats_h5=stats_h5,
+                    treat_all_zeros_as_error=True,
                 )
 
                 plot_wrapped_phase_image_and_coh_mag_to_pdf(
@@ -1529,11 +1528,12 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
     # Compute Statistics first, in case of malformed layers
     # (which could cause plotting to fail)
     nisarqa.compute_and_save_basic_statistics(
-        raster=az_offset, stats_h5=stats_h5, nearly_all_zeros_is_ok=True
+        raster=az_offset,
+        stats_h5=stats_h5,
     )
 
     nisarqa.compute_and_save_basic_statistics(
-        raster=rg_offset, stats_h5=stats_h5, nearly_all_zeros_is_ok=True
+        raster=rg_offset, stats_h5=stats_h5
     )
 
     # Plot offset layers to PDF
@@ -2219,12 +2219,10 @@ def process_az_and_slant_rg_variances_from_offset_product(
                     nisarqa.compute_and_save_basic_statistics(
                         raster=az_off_var,
                         stats_h5=stats_h5,
-                        nearly_all_zeros_is_ok=True,
                     )
                     nisarqa.compute_and_save_basic_statistics(
                         raster=rg_off_var,
                         stats_h5=stats_h5,
-                        nearly_all_zeros_is_ok=True,
                     )
 
                     plot_range_and_az_offsets_variances_to_pdf(
@@ -2424,10 +2422,11 @@ def process_cross_variance_and_surface_peak(
                     nisarqa.compute_and_save_basic_statistics(
                         raster=cross_off_var,
                         stats_h5=stats_h5,
-                        nearly_all_zeros_is_ok=True,
                     )
                     nisarqa.compute_and_save_basic_statistics(
-                        raster=surface_peak, stats_h5=stats_h5
+                        raster=surface_peak,
+                        stats_h5=stats_h5,
+                        treat_all_zeros_as_error=True,
                     )
 
                     plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
