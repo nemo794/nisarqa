@@ -1315,10 +1315,10 @@ def format_cbar_ticks_for_multiples_of_pi(
                 if np.isclose(x, 0.0, atol=atol):
                     return "0"
                 if np.isclose(x, 1.0, atol=atol):
-                    return "$\pi$"
+                    return r"$\pi$"
                 if np.isclose(x, -1.0, atol=atol):
-                    return "$-\pi$"
-                return f"{Fraction(f'{x:.2f}')}$\pi$"
+                    return r"$-\pi$"
+                return rf"{Fraction(f'{x:.2f}')}$\pi$"
 
             cax_yaxis.set_ticks(tick_vals)
             cax_yaxis.set_major_formatter(FuncFormatter(_format_pi))
