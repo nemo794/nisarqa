@@ -9,10 +9,10 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def get_summary() -> SummaryCSV:
+def get_summary() -> _SummaryCSV:
     """Get the SUMMARY.csv writer."""
 
-    summary = SummaryCSV()
+    summary = _SummaryCSV()
     if not summary.is_setup():
         raise RuntimeError(
             "`setup_summary_csv(..)` must be called prior to calling"
@@ -41,7 +41,7 @@ def setup_summary_csv(csv_file: str | os.PathLike) -> None:
     # The SummaryCSV class uses the Python `logging` module under the hood
     # to handle formatting, file location, etc.
     # See SummaryCSV() docstring for more details.
-    summary = SummaryCSV()
+    summary = _SummaryCSV()
 
     if summary.is_setup():
         # Summary CSV logger was previously set up
@@ -57,10 +57,10 @@ def setup_summary_csv(csv_file: str | os.PathLike) -> None:
 
 
 @dataclass
-class SummaryCSV:
+class _SummaryCSV:
     """
     The global SUMMARY.csv writer for PASS/FAIL checks.
-    
+
     `SummaryCSV` objects should not be constructed directly, but should
     instead be accessed via the `get_summary()` function.
 
@@ -300,6 +300,7 @@ class SummaryCSV:
 
     def check(
         self,
+        *,
         description: str,
         result: str,
         threshold: str = "",
@@ -331,7 +332,8 @@ class SummaryCSV:
             Example 1: the check "Able to open NISAR input file?" would not
                 involve an quantative value, so leave this as the empty string.
             Example 2: the check "All statistics under acceptable threshold?"
-                might set `actual` to 10.4, to indicate that 10.4% of computed metrics were below the threshold.
+                might set `actual` to 10.4, to indicate that 10.4% of computed
+                metrics were below the threshold.
         notes : str, optional
             Additional notes to better describe the check. For example,
             this would be a good place for the name of the raster being checked.
