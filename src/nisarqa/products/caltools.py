@@ -8,8 +8,8 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 import h5py
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from nisar.workflows import estimate_abscal_factor, point_target_analysis
 from numpy.typing import DTypeLike
@@ -320,15 +320,12 @@ def run_abscal_tool(
                     )
 
 
-def run_noise_estimation_tool(params, input_filename, stats_filename):
+def run_noise_estimation_tool(input_filename, stats_filename):
     """
     Run the Noise Estimation Tool workflow.
 
     Parameters
     ----------
-    params : NoiseEstimationParamGroup
-        A dataclass containing the parameters for processing
-        and outputting the Noise Estimation Tool workflow.
     input_filename : str
         Filename (with path) for input NISAR Product
     stats_filename : str
@@ -352,17 +349,17 @@ def run_noise_estimation_tool(params, input_filename, stats_filename):
     with h5py.File(stats_filename, mode="a") as stats_h5:
         for band in bands:
             # Step 1: Run the tool; get some results
-            result = ((12.0 - params.attr1) / params.attr1) * 100.0
+            result = "PLACEHOLDER"
 
             # Step 2: store the data
             grp_path = nisarqa.STATS_H5_NOISE_EST_DATA_GROUP % band
             nisarqa.create_dataset_in_h5group(
                 h5_file=stats_h5,
                 grp_path=grp_path,
-                ds_name="NoiseEstimationToolResult",
+                ds_name="Placeholder",
                 ds_data=result,
-                ds_description="Percent better than 12.0 parsecs",
-                ds_units="1",
+                ds_description="Placeholder",
+                ds_units="Placeholder",
             )
 
 

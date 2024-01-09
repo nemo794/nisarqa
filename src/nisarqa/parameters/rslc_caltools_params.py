@@ -774,72 +774,6 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         return ["runconfig", "groups", "qa", "qa_reports", "range_spectra"]
 
 
-@dataclass(frozen=True)
-class NoiseEstimationParamGroup(YamlParamGroup, HDF5ParamGroup):
-    """
-    Parameters from the QA-CalTools Noise Estimator (NET) runconfig group.
-
-    Parameters
-    ----------
-    attr1 : float, optional
-        Placeholder Attribute 1.
-
-    Attributes
-    ----------
-    attr2 : Param
-        Placeholder parameter of type bool. This is set based on `attr1`.
-    """
-
-    # Attributes for running the NET workflow
-    attr1: float = field(
-        default=11.9,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="attr1",
-                descr=f"""Placeholder: Attribute 1 description for runconfig.
-            Each new line of text will be a separate line in the runconfig
-            template. The Default value will be auto-appended to this
-            description by the QA code during generation of the template.
-            `attr1` is a positive float value.""",
-            )
-        },
-    )
-
-    # Auto-generated attributes. Set init=False for auto-generated attributes.
-    # attr2 is dependent upon attr1
-    attr2: bool = field(
-        init=False,
-        metadata={
-            "hdf5_attrs": HDF5Attrs(
-                name="attribute2",
-                units="parsecs",
-                descr="True if K-run was less than 12.0",
-                group_path=nisarqa.STATS_H5_NOISE_EST_PROCESSING_GROUP,
-            )
-        },
-    )
-
-    def __post_init__(self):
-        # VALIDATE INPUTS
-
-        # Validate attr1
-        if not isinstance(self.attr1, float):
-            raise TypeError(f"`attr1` must be a float: {self.attr1}")
-        if self.attr1 < 0.0:
-            raise TypeError(f"`attr1` must be postive: {self.attr1}")
-
-        # SET ATTRIBUTES DEPENDENT UPON INPUT PARAMETERS
-        # This dataclass is frozen to ensure that all inputs are validated,
-        # so we need to use object.__setattr__()
-
-        # set attr2 based on attr1
-        object.__setattr__(self, "attr2", (self.attr1 < 12.0))
-
-    @staticmethod
-    def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "noise_estimation"]
-
-
 @dataclass
 class RSLCRootParamGroup(RootParamGroup):
     """
@@ -870,8 +804,6 @@ class RSLCRootParamGroup(RootParamGroup):
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
     abs_cal : AbsCalParamGroup or None, optional
         Absolute Radiometric Calibration group parameters for RSLC QA-Caltools
-    noise_estimation : NoiseEstimationParamGroup or None, optional
-        Noise Estimation Tool group parameters for RSLC QA-Caltools
     pta : PointTargetAnalyzerParamGroup or None, optional
         Point Target Analyzer group parameters for RSLC QA-Caltools
     """
@@ -889,7 +821,6 @@ class RSLCRootParamGroup(RootParamGroup):
     # CalTools parameters
     anc_files: Optional[DynamicAncillaryFileParamGroup] = None
     abs_cal: Optional[AbsCalParamGroup] = None
-    noise_estimation: Optional[NoiseEstimationParamGroup] = None
     pta: Optional[PointTargetAnalyzerParamGroup] = None
 
     def __post_init__(self):
@@ -1012,11 +943,6 @@ class RSLCRootParamGroup(RootParamGroup):
                 param_grp_cls_obj=DynamicAncillaryFileParamGroup,
             ),
             Grp(
-                flag_param_grp_req=workflows.noise_estimation,
-                root_param_grp_attr_name="noise_estimation",
-                param_grp_cls_obj=NoiseEstimationParamGroup,
-            ),
-            Grp(
                 flag_param_grp_req=workflows.point_target,
                 root_param_grp_attr_name="pta",
                 param_grp_cls_obj=PointTargetAnalyzerParamGroup,
@@ -1038,7 +964,6 @@ class RSLCRootParamGroup(RootParamGroup):
             HistogramParamGroup,
             RangeSpectraParamGroup,
             AbsCalParamGroup,
-            NoiseEstimationParamGroup,
             PointTargetAnalyzerParamGroup,
         )
 

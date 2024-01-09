@@ -260,7 +260,6 @@ def verify_rslc(
 
             # Run NET tool
             nisarqa.caltools.run_noise_estimation_tool(
-                params=root_params.noise_estimation,
                 input_filename=input_file,
                 stats_filename=stats_file,
             )
