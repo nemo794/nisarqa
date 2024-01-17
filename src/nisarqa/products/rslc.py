@@ -980,11 +980,15 @@ def img2pdf_grayscale(
     f = plt.figure(figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE)
     ax = plt.gca()
 
+    # Decimate image to a size that fits on the axes without interpolation
+    # and without making the size (in MB) of the PDF explode.
+    img_arr = nisarqa.decimate_img_to_size_of_axes(ax=ax, arr=img_arr)
+
     # grayscale
     cmap = plt.cm.gray
 
     # Plot the img_arr image.
-    ax_img = ax.imshow(X=img_arr, cmap=cmap)
+    ax_img = ax.imshow(X=img_arr, cmap=cmap, interpolation="none")
 
     # Add Colorbar
     cbar = plt.colorbar(ax_img, ax=ax)
