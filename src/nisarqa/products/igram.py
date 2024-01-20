@@ -168,6 +168,13 @@ def verify_igram(
                     stats_h5=stats_h5,
                 )
 
+                nisarqa.process_connected_components(
+                    product=product,
+                    # params=root_params.connected_components,
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                )
+
             if isinstance(product, nisarqa.WrappedGroup):
                 nisarqa.process_phase_image_wrapped(
                     product=product,

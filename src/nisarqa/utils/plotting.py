@@ -2631,4 +2631,149 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     plt.close(fig)
 
 
+def process_connected_components(
+    product: nisarqa.UnwrappedGroup,
+    # params: nisarqa.ConnectedComponentsParamGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None:
+    """
+    Process connected components layer: metrics to STATS h5, plots to PDF.
+
+    Parameters
+    ----------
+    product : nisarqa.UnwrappedGroup
+        Input NISAR product.
+    report_pdf : PdfPages
+        The output PDF file to append the unwrapped phase image plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    """
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_connected_components(freq=freq, pol=pol) as cc:
+                # Compute Statistics first, in case of malformed layers
+                # (which could cause plotting to fail)
+                nisarqa.compute_and_save_basic_statistics(
+                    raster=cc,
+                    stats_h5=stats_h5,
+                )
+
+                # TODO - compute CC-specific metrics
+
+                plot_connected_components_layer(
+                    cc_raster=cc, report_pdf=report_pdf
+                )
+
+                # TODO - Process histograms
+
+
+def plot_connected_components_layer(
+    cc_raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Plot a connected components layer and unwrapped coherence magnitude layer
+    side-by-side on PDF.
+
+    Parameters
+    ----------
+    cc_raster : nisarqa.RadarRaster or nisarqa.GeoRaster
+        *Raster of connected components data. This should correspond to
+        `unw_coh_mag_raster`.
+    report_pdf : PdfPages
+        Output PDF file to append the generated plots to.
+    """
+
+    # Step 1: Compute metrics on full raster:
+    cc_full = cc_raster.data[()]
+
+    # TODO - delete. this is for testing.
+    cc_full[5:10, 40:420] = 11
+    cc_full[15:20, 40:420] = 12
+    cc_full[25:30, 40:420] = 123
+    cc_full[35:40, 40:420] = 45
+
+    labels, counts = np.unique(cc_full, return_counts=True)
+    num_features = len(labels)
+
+    # Find the connected components in the mask using scipy.ndimage.label
+    # Note: scipy.ndimage.label returns the image-processing-style
+    # connected components, not the graph-theory connected components.
+    # labels, num_features = label(cc)
+
+    # Create a color map with distinct color for each connected component
+    # If there are more than 10 connected components, simply repeat the colors.
+    # (Per the product lead, it will likely be an edge case if more than
+    # 10 connected components.)
+    cmap = colors.ListedColormap(
+        colors=nisarqa.SEABORN_COLORBLIND, N=num_features
+    )
+
+    bounds = np.concatenate(
+        (
+            [labels.min() - 1],
+            labels[:-1] + np.diff(labels) / 2.0,
+            [labels.max() + 1],
+        )
+    )
+
+    norm = colors.BoundaryNorm(bounds, len(bounds) - 1)
+
+    # Step 3: Decimate Connected Components array to fit nicely in the PDF
+    # TODO - since these are integers which could compress, see if there is
+    # actually a MB penalty for plotting the original, full array?
+    # cc_decimated = nisarqa.decimate_raster_array_to_square_pixels(cc_raster)
+
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=2,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+    )
+
+    # Construct title for the overall PDF page.
+    title = f"Connected Components Mask\n{cc_raster.name}"
+    fig.suptitle(title)
+
+    # Plot connected components mask
+    im1 = ax1.imshow(cc_full, cmap=cmap, norm=norm)
+
+    cax1 = fig.colorbar(im1, cmap=cmap, norm=norm)
+
+    cax1.set_ticks(bounds[:-1] + np.diff(bounds) / 2.0)
+    cax1.ax.set_yticklabels(labels)
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax1,
+        xlim=cc_raster.x_axis_limits,
+        ylim=cc_raster.y_axis_limits,
+        img_arr_shape=np.shape(cc_full),
+        xlabel=cc_raster.x_axis_label,
+        ylabel=cc_raster.y_axis_label,
+        title=f"{(cc_raster.name.split('_')[-1])} Layer",
+    )
+
+    # Create a bar chart of the connected components
+    # ax2.bar(labels, np.arange(len(counts)), color=cmap.colors)
+    ax2.bar(range(len(counts)), counts, color=cmap.colors)
+    ax2.set_ylabel("Total Number of Pixels")
+    ax2.xaxis.set_ticks(range(len(counts)))
+    ax2.set_xlabel(
+        "Connected Component Label\n(0 denotes pixels with invalid"
+        " unwrapping,\n255 is fill value from geocoding)"
+    )
+
+    ax2.xaxis.set_ticklabels(labels)
+
+    ax2.set_title("Number of Pixels per Connected Component")
+    # ax2.legend(title='Fruit color')
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

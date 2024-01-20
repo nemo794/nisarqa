@@ -2971,6 +2971,30 @@ class UnwrappedGroup(InsarProduct):
             yield self._get_raster_from_path(h5_file=f, raster_path=path)
 
     @contextmanager
+    def get_connected_components(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+        """
+        Get the connected components *Raster.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRaster or GeoRaster
+            Generated *Raster for the requested dataset.
+        """
+        parent_path = self._unwrapped_group_path(freq=freq, pol=pol)
+        path = f"{parent_path}/connectedComponents"
+        self._check_dtype(path=path, expected_dtype=np.uint32)
+
+        with h5py.File(self.filepath) as f:
+            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+
+    @contextmanager
     def get_unwrapped_coh_mag(
         self, freq: str, pol: str
     ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
