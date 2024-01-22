@@ -170,7 +170,6 @@ def verify_igram(
 
                 nisarqa.process_connected_components(
                     product=product,
-                    # params=root_params.connected_components,
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
                 )

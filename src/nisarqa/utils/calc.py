@@ -640,4 +640,17 @@ def compute_and_save_basic_statistics(
         raise nisarqa.InvalidRasterError(msg)
 
 
+def get_unique_elements_and_percentages(
+    cc_arr: ArrayLike,
+) -> tuple[np.ndarray, np.ndarray[float]]:
+    """Wrapper around `numpy.unique()` that returns the unique elements and
+    corresponding percentage of the array of those elements."""
+
+    labels, counts = np.unique(cc_arr, return_counts=True)
+
+    percentages = (counts / cc_arr.size) * 100.0
+
+    return labels, percentages
+
+
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

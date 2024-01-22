@@ -2633,7 +2633,6 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
 
 def process_connected_components(
     product: nisarqa.UnwrappedGroup,
-    # params: nisarqa.ConnectedComponentsParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -2673,58 +2672,17 @@ def plot_connected_components_layer(
     report_pdf: PdfPages,
 ) -> None:
     """
-    Plot a connected components layer and unwrapped coherence magnitude layer
-    side-by-side on PDF.
+    Plot a connected components layer and a bar chart of percentages on PDF.
 
     Parameters
     ----------
     cc_raster : nisarqa.RadarRaster or nisarqa.GeoRaster
-        *Raster of connected components data. This should correspond to
-        `unw_coh_mag_raster`.
+        *Raster of connected components data.
     report_pdf : PdfPages
         Output PDF file to append the generated plots to.
     """
 
-    # Step 1: Compute metrics on full raster:
-    cc_full = cc_raster.data[()]
-
-    # TODO - delete. this is for testing.
-    cc_full[5:10, 40:420] = 11
-    cc_full[15:20, 40:420] = 12
-    cc_full[25:30, 40:420] = 123
-    cc_full[35:40, 40:420] = 45
-
-    labels, counts = np.unique(cc_full, return_counts=True)
-    num_features = len(labels)
-
-    # Find the connected components in the mask using scipy.ndimage.label
-    # Note: scipy.ndimage.label returns the image-processing-style
-    # connected components, not the graph-theory connected components.
-    # labels, num_features = label(cc)
-
-    # Create a color map with distinct color for each connected component
-    # If there are more than 10 connected components, simply repeat the colors.
-    # (Per the product lead, it will likely be an edge case if more than
-    # 10 connected components.)
-    cmap = colors.ListedColormap(
-        colors=nisarqa.SEABORN_COLORBLIND, N=num_features
-    )
-
-    bounds = np.concatenate(
-        (
-            [labels.min() - 1],
-            labels[:-1] + np.diff(labels) / 2.0,
-            [labels.max() + 1],
-        )
-    )
-
-    norm = colors.BoundaryNorm(bounds, len(bounds) - 1)
-
-    # Step 3: Decimate Connected Components array to fit nicely in the PDF
-    # TODO - since these are integers which could compress, see if there is
-    # actually a MB penalty for plotting the original, full array?
-    # cc_decimated = nisarqa.decimate_raster_array_to_square_pixels(cc_raster)
-
+    # Setup PDF page
     fig, (ax1, ax2) = plt.subplots(
         ncols=2,
         nrows=1,
@@ -2736,6 +2694,49 @@ def plot_connected_components_layer(
     title = f"Connected Components Mask\n{cc_raster.name}"
     fig.suptitle(title)
 
+    # Step 1: Compute metrics on full raster:
+    cc_full = cc_raster.data[()]
+
+    labels, percentages = nisarqa.get_unique_elements_and_percentages(cc_full)
+    num_features = len(labels)
+
+    # Find the connected components in the mask using scipy.ndimage.label
+    # Note: scipy.ndimage.label returns the image-processing-style
+    # connected components, not the graph-theory connected components.
+    # labels, num_features = label(cc)
+
+    # Create a color map with distinct color for each connected component
+    # If there are more than 10 connected components, simply repeat the colors.
+    # (Per the product lead, it will likely be an edge case if more than
+    # 10 connected components.)
+    quot, rem = divmod(num_features, len(nisarqa.SEABORN_COLORBLIND))
+    colors_list = nisarqa.SEABORN_COLORBLIND * quot
+    colors_list += nisarqa.SEABORN_COLORBLIND[:rem]
+
+    # If the raster contains any fill value pixels, set them to white
+    # so they appear transparent in the PDF
+    fill_idx = np.where(labels == cc_raster.fill_value)[0]
+    if fill_idx.size > 0:
+        colors_list[fill_idx[0]] = (1.0, 1.0, 1.0)  # white
+
+    cmap = colors.ListedColormap(colors=colors_list)
+
+    bounds = np.concatenate(
+        (
+            [labels.min() - 1],
+            labels[:-1] + np.diff(labels) / 2.0,
+            [labels.max() + 1],
+        )
+    )
+
+    norm = colors.BoundaryNorm(bounds, len(bounds) - 1)
+
+    # Step 3: Decimate Connected Components array to square pixels
+    # Note: We do not need to decimate again to a smaller size to fit nicely
+    # on the axes. Even at full res, this plot does not have significant impact
+    # on the PDF file size.
+    cc_full = nisarqa.decimate_raster_array_to_square_pixels(cc_raster)
+
     # Plot connected components mask
     im1 = ax1.imshow(cc_full, cmap=cmap, norm=norm)
 
@@ -2743,6 +2744,7 @@ def plot_connected_components_layer(
 
     cax1.set_ticks(bounds[:-1] + np.diff(bounds) / 2.0)
     cax1.ax.set_yticklabels(labels)
+    cax1.ax.minorticks_off()
 
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
@@ -2755,19 +2757,45 @@ def plot_connected_components_layer(
     )
 
     # Create a bar chart of the connected components
-    # ax2.bar(labels, np.arange(len(counts)), color=cmap.colors)
-    ax2.bar(range(len(counts)), counts, color=cmap.colors)
-    ax2.set_ylabel("Total Number of Pixels")
-    ax2.xaxis.set_ticks(range(len(counts)))
-    ax2.set_xlabel(
-        "Connected Component Label\n(0 denotes pixels with invalid"
-        " unwrapping,\n255 is fill value from geocoding)"
+    ax2.set_title("Percentage of Pixels per Connected Component")
+
+    ax2.bar(
+        range(len(percentages)),
+        percentages,
+        color=cmap.colors,
+        edgecolor="black",
+        linewidth=0.5,
     )
+    ax2.set_ylabel("Percentage of Pixels")
+    ax2.xaxis.set_ticks(range(len(percentages)))
+    xlabel = (
+        "Connected Component Label\n(0 denotes pixels with invalid unwrapping"
+    )
+    if cc_raster.fill_value in labels:
+        xlabel += f",\n{cc_raster.fill_value} is fill value from geocoding)"
+    else:
+        xlabel += ")"
+    ax2.set_xlabel(xlabel)
 
-    ax2.xaxis.set_ticklabels(labels)
+    rotation = 45 if len(labels) > 10 else 0
+    ax2.xaxis.set_ticklabels(labels, rotation=rotation)
 
-    ax2.set_title("Number of Pixels per Connected Component")
-    # ax2.legend(title='Fruit color')
+    # Note the percentage at the top of each bar
+    if num_features < 25:
+        if num_features < 12:
+            shift_lt = 0.25
+            font_size = 8
+        else:
+            shift_lt = 0.4
+            font_size = 6
+
+        for i, val in enumerate(percentages):
+            ax2.text(
+                range(len(percentages))[i] - shift_lt,  # shift label left/right
+                val + 0.2,  # shift label up/down
+                f"{val:.1f}",  # actual label value
+                fontsize=font_size,
+            )
 
     # Append figure to the output PDF
     report_pdf.savefig(fig)
