@@ -2697,13 +2697,14 @@ def plot_connected_components_layer(
     # Step 1: Compute metrics on full raster:
     cc_full = cc_raster.data[()]
 
-    labels, percentages = nisarqa.get_unique_elements_and_percentages(cc_full)
-    num_features = len(labels)
-
     # Find the connected components in the mask using scipy.ndimage.label
     # Note: scipy.ndimage.label returns the image-processing-style
     # connected components, not the graph-theory connected components.
-    # labels, num_features = label(cc)
+    # from scipy.ndimage import label
+    # cc_full, num_features = label(cc_full)
+
+    labels, percentages = nisarqa.get_unique_elements_and_percentages(cc_full)
+    num_features = len(labels)
 
     # Create a color map with distinct color for each connected component
     # If there are more than 10 connected components, simply repeat the colors.
