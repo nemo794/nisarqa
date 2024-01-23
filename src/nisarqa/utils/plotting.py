@@ -2658,8 +2658,6 @@ def process_connected_components(
                     cc_raster=cc, report_pdf=report_pdf
                 )
 
-                # TODO - Process histograms
-
 
 def plot_connected_components_layer(
     cc_raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
@@ -2733,7 +2731,7 @@ def plot_connected_components_layer(
     cc_full = nisarqa.decimate_raster_array_to_square_pixels(cc_raster)
 
     # Plot connected components mask
-    im1 = ax1.imshow(cc_full, cmap=cmap, norm=norm)
+    im1 = ax1.imshow(cc_full, cmap=cmap, norm=norm, interpolation="none")
 
     cax1 = fig.colorbar(im1, cmap=cmap, norm=norm)
 
@@ -2788,7 +2786,7 @@ def plot_connected_components_layer(
             ax2.text(
                 range(len(percentages))[i] - shift_lt,  # shift label left/right
                 val + 0.2,  # shift label up/down
-                f"{val:.1f}",  # actual label value
+                f"{val:.1f}",
                 fontsize=font_size,
             )
 
