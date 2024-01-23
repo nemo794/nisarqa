@@ -217,7 +217,16 @@ def verify_valid_percentile(percentile):
     if percentile < 0.0 or percentile > 100.0:
         raise ValueError(
             f"The percentile provided is {percentile} but must be "
-            "in the range [0, 100]."
+            "in the range [0.0, 100.0]."
+        )
+
+
+def verify_valid_percentage(percentage):
+    """Verify that the input percentage is in range [0.0, 100.0]."""
+    if percentage < 0.0 or percentage > 100.0:
+        raise ValueError(
+            f"The percentage provided is {percentage} but must be "
+            "in the range [0.0, 100.0]."
         )
 
 
