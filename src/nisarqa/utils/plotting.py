@@ -2651,14 +2651,8 @@ def process_connected_components(
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
             with product.get_connected_components(freq=freq, pol=pol) as cc:
-                # Compute Statistics first, in case of malformed layers
+                # TODO - Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
-                nisarqa.compute_and_save_basic_statistics(
-                    raster=cc,
-                    stats_h5=stats_h5,
-                )
-
-                # TODO - compute CC-specific metrics
 
                 plot_connected_components_layer(
                     cc_raster=cc, report_pdf=report_pdf
