@@ -393,8 +393,8 @@ class _SummaryCSV:
         """Check: 'Number of valid connected components under threshold?'"""
         self.check(
             description="Number of valid connected components under threshold?",
-            threshold=threshold,
-            actual=actual,
+            threshold=str(threshold),
+            actual=str(actual),
             result=result,
             notes=notes,
         )

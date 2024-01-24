@@ -2911,17 +2911,28 @@ def process_connected_components(
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
             with product.get_connected_components(freq=freq, pol=pol) as cc:
-                # TODO - Compute Statistics first, in case of malformed layers
-                # (which could cause plotting to fail)
-                nisarqa.connected_components_metrics(
-                    cc_raster=cc,
+                # Compute % NaN, % Inf, % Fill, % near-zero, % invalid,
+                # metrics first in case of malformed layers (which could cause
+                # plotting to fail).
+                nisarqa.compute_percentage_metrics(
+                    raster=cc,
                     stats_h5=stats_h5,
                     threshold=params.threshold,
-                    max_num_cc=params.max_num_cc,
+                    epsilon=1e-6,  # Connected components have integer dtype
+                    treat_all_zeros_as_error=True,
                 )
 
                 plot_connected_components_layer(
                     cc_raster=cc, report_pdf=report_pdf
+                )
+
+                # Compute the Connected Components metrics last. None of these
+                # metrics should trigger the plotting to fail, so let's try to
+                # finish the plots beforehand.
+                nisarqa.connected_components_metrics(
+                    cc_raster=cc,
+                    stats_h5=stats_h5,
+                    max_num_cc=params.max_num_cc,
                 )
 
 

@@ -622,14 +622,9 @@ def compute_percentage_metrics(
     summary = nisarqa.get_summary()
 
     arr = raster.data
-    units = raster.units
     grp_path = raster.stats_h5_group_path
     fill_value = raster.fill_value
     arr_name = raster.name
-
-    arr_size = arr.size
-
-    # First, compute percentage of invalid (non-finite and/or "fill") pixels.
 
     # Compute NaN value metrics
     num_nan, percent_nan = nisarqa.compute_num_nan(arr)
@@ -712,6 +707,7 @@ def compute_percentage_metrics(
     )
 
     # Compute overall invalid pixels
+    arr_size = arr.size
     assert total_num_invalid <= arr_size
     percent_invalid = 100 * (total_num_invalid / arr_size)
     msg_for_total_invalid_pixels = (
@@ -788,10 +784,9 @@ def connected_components_metrics(
     cc_raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
     stats_h5: PdfPages,
     max_num_cc: int | None = None,
-    threshold: float = nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
 ) -> None:
     """
-    Compute and save % nan, % zero, % fill, % inf, and CC metrics to HDF5.
+    Compute metrics specific to Connected Components; save to HDF5 and CSV.
 
     Warning: Entire input array will be read into memory and processed.
     Only use this function for small datasets.
@@ -809,23 +804,8 @@ def connected_components_metrics(
         it will be recorded in the summary file and an exception will be raised.
         If None, the check will not be performed.
         Defaults to None.
-    threshold : float, optional
-        The threshold value for alerting users to possible malformed datasets.
-        If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
-        is above `threshold`, it will be logged as an error.
-        Defaults to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
     """
-    # Step 1: Compute % NaN, % Inf, % Fill, % near-zero, % invalid,
-    # and populate them into the STATS.h5
-    compute_percentage_metrics(
-        raster=cc_raster,
-        stats_h5=stats_h5,
-        threshold=threshold,
-        epsilon=1e-6,  # Connected components have integer dtype
-        treat_all_zeros_as_error=True,
-    )
 
-    # Step 2: Compute CC-specific metrics
     log = nisarqa.get_logger()
     grp_path = cc_raster.stats_h5_group_path
     name = cc_raster.name
