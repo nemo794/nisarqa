@@ -787,6 +787,7 @@ def get_unique_elements_and_percentages(
 def connected_components_metrics(
     cc_raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
     stats_h5: PdfPages,
+    max_num_cc: int | None = None,
     threshold: float = nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
 ) -> None:
     """
@@ -801,13 +802,21 @@ def connected_components_metrics(
         Input Raster.
     stats_h5 : h5py.File
         The output file to save QA metrics to.
+    max_num_cc : int or None, optional
+        Maximum number of valid connected components allowed.
+        If the number of valid connected components (not including
+        zero nor the fill value) is greater than this value,
+        it will be logged and an exception will be raised.
+        If None, no exception will be raised.
+        Defaults to None.
     threshold : float, optional
         The threshold value for alerting users to possible malformed datasets.
         If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
         is above `threshold`, it will be logged as an error.
         Defaults to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
     """
-    # Step 1: Compute % NaN, % Inf, % Fill, % near-zero, % invalid
+    # Step 1: Compute % NaN, % Inf, % Fill, % near-zero, % invalid,
+    # and populate them into the STATS.h5
     compute_percentage_metrics(
         raster=cc_raster,
         stats_h5=stats_h5,
@@ -817,7 +826,9 @@ def connected_components_metrics(
     )
 
     # Step 2: Compute CC-specific metrics
+    log = nisarqa.get_logger()
     grp_path = cc_raster.stats_h5_group_path
+    name = cc_raster.name
 
     # Number of valid CC
     # (exclude 0, exclude 255 when computing this metric)
@@ -828,22 +839,8 @@ def connected_components_metrics(
         arr=cc_raster.data[()]
     )
 
-    assert cc_raster.fill_value == 255, (
-        "Fill Value for connected components layer was 255 but has changed; it"
-        f" is now `{cc_raster.fill_value}`. Please updated QA code to reflect"
-        " this."
-    )
-
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="numValidConnectedComponents",
-        ds_data=len(set(labels) - {0, 255}),
-        ds_units="1",
-        ds_description=(
-            "Number of valid connected components, excluding 0 and 255. (255 is"
-            " fill value)"
-        ),
+    log.info(
+        f"Raster {cc_raster.name} contains Connected Component labels: {labels}"
     )
 
     # "The Breakdown"
@@ -855,25 +852,102 @@ def connected_components_metrics(
             ds_data=percent,
             ds_units="1",
             ds_description=(
-                f"Percentage of raster covered by connected component {label}."
+                "Percentage of raster covered by connected component labeled"
+                f" {label}."
             ),
         )
 
-    # Percentage of pixels in largest connected component
-    zero_idx = 
-    fill_idx = 
+        log.info(
+            f"Connected Component {label} covers {percent} percent of the"
+            f" {name} raster."
+        )
 
+    # Exclude 0 and the fill value for the remaining metrics.
+    # For ease, let's simply remove them from the lists.
+    labels_list = list(labels)
+    percentages_list = list(percentages)
+
+    if 0 in labels_list:
+        zero_idx = labels_list.index(0)
+        del labels_list[zero_idx]
+        del percentages_list[zero_idx]
+
+    fill_value = cc_raster.fill_value
+    if fill_value in labels_list:
+        fill_idx = labels_list.index(fill_value)
+        del labels_list[fill_idx]
+        del percentages_list[fill_idx]
+
+    num_valid_cc = len(labels_list)
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
-        ds_name="percentPixelsInLargestConnectedComponents",
-        ds_data=len(set(labels) - {0, 255}),
+        ds_name="numValidConnectedComponents",
+        ds_data=num_valid_cc,
         ds_units="1",
         ds_description=(
-            "Number of valid connected components, excluding 0 and 255. (255 is"
-            " fill value)"
+            "Number of valid connected components, excluding 0 and"
+            f" {fill_value}. ({fill_value} is fill value)"
         ),
     )
+    log.info(
+        f"Raster {name} contains {num_valid_cc} valid connected components"
+        f" (excluding 0 and fill value of {fill_value})."
+    )
+
+    # Percentage of pixels in largest connected component
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="percentPixelsInLargestCC",
+        ds_data=max(percentages_list),
+        ds_units="1",
+        ds_description=(
+            "Percentage of pixels in the largest valid connected component. (0"
+            f" and fill value ({fill_value}) are not valid connected"
+            " components, but their pixels are included when computing the"
+            " percentage."
+        ),
+    )
+
+    # Percentage of pixels with non-zero, non-fill connected components
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="percentPixelsWithNonZeroCC",
+        ds_data=sum(percentages_list),
+        ds_units="1",
+        ds_description=(
+            "Percentage of pixels with non-zero, non-fill connected components."
+            f" (0 and fill value ({fill_value}) are not valid connected"
+            " components, but their pixels are included when computing the"
+            " percentage."
+        ),
+    )
+
+    # If there are too many connected components, raise an exception.
+    if max_num_cc is not None:
+        summary = nisarqa.get_summary()
+        summary_kwargs = {
+            "threshold": max_num_cc,
+            "actual": num_valid_cc,
+            "notes": name,
+        }
+        if num_valid_cc > max_num_cc:
+            summary.check_connected_components_within_threshold(
+                result="FAIL", **summary_kwargs
+            )
+            msg = (
+                f"Raster {name} contains {num_valid_cc} valid connected"
+                f" components (excluding 0 and fill value of {fill_value}). It"
+                f" is only permitted to contain a max of {max_num_cc} valid"
+                " connected components."
+            )
+            raise ValueError(msg)
+        else:
+            summary.check_connected_components_within_threshold(
+                result="PASS", **summary_kwargs
+            )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

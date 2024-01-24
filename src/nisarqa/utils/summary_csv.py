@@ -387,5 +387,17 @@ class _SummaryCSV:
             result=result,
         )
 
+    def check_connected_components_within_threshold(
+        self, result: str, threshold: str, actual: str, notes: str = ""
+    ) -> None:
+        """Check: 'Number of valid connected components under threshold?'"""
+        self.check(
+            description="Number of valid connected components under threshold?",
+            threshold=threshold,
+            actual=actual,
+            result=result,
+            notes=notes,
+        )
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -975,6 +975,98 @@ class GOFFCrossOffsetVarianceLayerParamGroup(
         ]
 
 
+@dataclass(frozen=True)
+class ConnectedComponentsParamGroup(YamlParamGroup):
+    """
+    Parameters to run QA on Connected Components Layers for RUNW and GUNW.
+
+    Parameters
+    ----------
+    threshold : float, optional
+        The threshold percentage value for alerting users to possible malformed
+        datasets. If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
+        is above `threshold`, it will be logged as an error and an exception
+        will be raised.
+        Defaults to 95.0.
+    max_num_cc : int, optional
+        Maximum number of valid connected components allowed.
+        If the number of valid connected components (not including
+        zero nor the fill value) is greater than this value,
+        it will be logged and an exception will be raised.
+        Defaults to 40.
+    """
+
+    threshold: Optional[float] = field(
+        default=95.0,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="threshold",
+                descr="""The threshold percentage value for alerting users to
+                         possible malformed datasets. If the percentage of NaN-,
+                         zero-, fill-, or Inf-valued pixels is above `threshold`,
+                         it will be logged and an exception will be raised.""",
+            )
+        },
+    )
+
+    max_num_cc: Optional[int] = field(
+        default=40,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="max_num_cc",
+                descr="""Maximum number of valid connected components allowed.
+                        If the number of valid connected components (not including
+                        zero nor the fill value) is greater than this value,
+                        it will be logged and an exception will be raised.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        nisarqa.verify_valid_percentage(self.threshold)
+
+        if not isinstance(self.max_num_cc, int):
+            raise TypeError(
+                f"`max_num_cc` is {self.max_num_cc} and has type"
+                f" {type(self.max_num_cc)}, but must be an integer."
+            )
+
+        if self.max_num_cc < 1:
+            raise ValueError(
+                f"`max_num_cc` is {self.max_num_cc}, must be greater than 0."
+            )
+
+
+@dataclass(frozen=True)
+class RUNWConnectedComponentsParamGroup(ConnectedComponentsParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "runw",
+            "qa_reports",
+            "connected_components",
+        ]
+
+
+@dataclass(frozen=True)
+class GUNWConnectedComponentsParamGroup(ConnectedComponentsParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "gunw",
+            "qa_reports",
+            "connected_components",
+        ]
+
+
 @dataclass
 class RIFGRootParamGroup(RootParamGroup):
     """
@@ -1071,6 +1163,8 @@ class RUNWRootParamGroup(RootParamGroup):
         Browse Image Group parameters.
     unw_phs_img : RUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
+    connected_components : RUNWConnectedComponentsParamGroup or None, optional
+        Connected Components Group parameters.
     """
 
     # Shared parameters
@@ -1078,8 +1172,9 @@ class RUNWRootParamGroup(RootParamGroup):
     input_f: Optional[RUNWInputFileGroupParamGroup] = None
     prodpath: Optional[RUNWProductPathGroupParamGroup] = None
 
-    browse: Optional[RUNWIgramBrowseParamGroup] = None
     unw_phs_img: Optional[RUNWPhaseImageParamGroup] = None
+    connected_components: Optional[RUNWConnectedComponentsParamGroup] = None
+    browse: Optional[RUNWIgramBrowseParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1107,6 +1202,11 @@ class RUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="connected_components",
+                param_grp_cls_obj=RUNWConnectedComponentsParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RUNWIgramBrowseParamGroup,
             ),
@@ -1123,6 +1223,7 @@ class RUNWRootParamGroup(RootParamGroup):
             RUNWProductPathGroupParamGroup,
             RUNWWorkflowsParamGroup,
             RUNWPhaseImageParamGroup,
+            RUNWConnectedComponentsParamGroup,
             RUNWIgramBrowseParamGroup,
         )
 
@@ -1151,6 +1252,8 @@ class GUNWRootParamGroup(RootParamGroup):
         Browse Image Group parameters.
     unw_phs_img : GUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
+    connected_components : GUNWConnectedComponentsParamGroup or None, optional
+        Connected Components Group parameters.
     """
 
     workflows: GUNWWorkflowsParamGroup
@@ -1161,6 +1264,7 @@ class GUNWRootParamGroup(RootParamGroup):
 
     browse: Optional[GUNWIgramBrowseParamGroup] = None
     unw_phs_img: Optional[GUNWPhaseImageParamGroup] = None
+    connected_components: Optional[GUNWConnectedComponentsParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1188,6 +1292,11 @@ class GUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="connected_components",
+                param_grp_cls_obj=GUNWConnectedComponentsParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=GUNWIgramBrowseParamGroup,
             ),
@@ -1204,6 +1313,7 @@ class GUNWRootParamGroup(RootParamGroup):
             GUNWProductPathGroupParamGroup,
             GUNWWorkflowsParamGroup,
             GUNWPhaseImageParamGroup,
+            GUNWConnectedComponentsParamGroup,
             GUNWIgramBrowseParamGroup,
         )
 

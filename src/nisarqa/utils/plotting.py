@@ -2889,6 +2889,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
 
 def process_connected_components(
     product: nisarqa.UnwrappedGroup,
+    params: nisarqa.ConnectedComponentsParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -2899,7 +2900,10 @@ def process_connected_components(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
-    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+    params : nisarqa.ConnectedComponentsParamGroup
+        A structure containing processing parameters to generate the
+        connected components layer plots and metrics.
+    report_pdf : PdfPages
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -2909,6 +2913,12 @@ def process_connected_components(
             with product.get_connected_components(freq=freq, pol=pol) as cc:
                 # TODO - Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
+                nisarqa.connected_components_metrics(
+                    cc_raster=cc,
+                    stats_h5=stats_h5,
+                    threshold=params.threshold,
+                    max_num_cc=params.max_num_cc,
+                )
 
                 plot_connected_components_layer(
                     cc_raster=cc, report_pdf=report_pdf
