@@ -2743,8 +2743,9 @@ def plot_connected_components_layer(
 
     # Step 3: Decimate Connected Components array to square pixels and plot
     # Note: We do not need to decimate again to a smaller size to fit nicely
-    # on the axes. Even at full res, this plot does not have significant impact
-    # on the PDF file size.
+    # on the axes in order to reduce PDF file size. PdfPages defaults to
+    # using Flate compression, a lossless compression method that works well
+    # on images with large areas of single colors or repeating patterns.
     cc_decimated = nisarqa.decimate_raster_array_to_square_pixels(cc_raster)
 
     # Plot connected components mask
