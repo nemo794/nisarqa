@@ -642,7 +642,7 @@ def compute_and_save_basic_statistics(
 
 def get_unique_elements_and_percentages(
     arr: ArrayLike,
-) -> tuple[np.ndarray, np.ndarray[float]]:
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Return the sorted unique elements of an array and the percentage they occur.
 
