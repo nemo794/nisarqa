@@ -2701,12 +2701,16 @@ def plot_connected_components_layer(
     # If there are more than 10 connected components, simply repeat the colors.
     # (Per the product lead, it will likely be an edge case if more than
     # 10 connected components.)
+    # Kludge: We need to ensure that the "fill value" color is white.
+    # colors.ListedColormap is able to do the repeating automatically using
+    # the `N` parameter, however, I don't know a clever way to then make
+    # only fill value white. For now, simply constuct the full list manually.
     quot, rem = divmod(num_features, len(nisarqa.SEABORN_COLORBLIND))
     colors_list = nisarqa.SEABORN_COLORBLIND * quot
     colors_list += nisarqa.SEABORN_COLORBLIND[:rem]
 
     # If the raster contains any fill value pixels, set them to white
-    # so they appear transparent in the PDF
+    # so they look "transparent" in the PDF
     fill_idx = np.where(labels == cc_raster.fill_value)[0]
     if fill_idx.size > 0:
         colors_list[fill_idx[0]] = (1.0, 1.0, 1.0)  # white
@@ -2794,21 +2798,19 @@ def plot_connected_components_layer(
     rotation = 45 if len(labels) > 10 else 0
     ax2.xaxis.set_ticklabels(labels, rotation=rotation)
 
-    # Note the percentage at the top of each bar
     if num_features < 25:
-        if num_features < 12:
-            shift_lt = 0.25
-            font_size = 8
-        else:
-            shift_lt = 0.4
-            font_size = 6
+        # Note the percentage at the top of each bar. (Cap this at 25. If there
+        # are too many bars, it will be too cluttered to read the percentages.)
+        font_size = 8 if num_features < 12 else 6
 
         for i, val in enumerate(percentages):
             ax2.text(
-                x_locations_of_bars[i] - shift_lt,  # shift label left/right
-                val + 0.2,  # shift label up/down
+                x_locations_of_bars[i],  # location on x-axis
+                val,  # location on y-axis
                 f"{val:.1f}",
                 fontsize=font_size,
+                horizontalalignment="center",
+                verticalalignment="bottom",
             )
 
     # Append figure to the output PDF
