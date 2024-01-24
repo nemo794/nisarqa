@@ -256,7 +256,7 @@ def process_hsi(product, params, browse_png, report_pdf, wrapped_hsi):
         A structure containing the parameters for creating the HSI image.
     browse_png : path-like
         Filename (with path) for the browse image PNG.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the HSI image plot to.
     wrapped_hsi : bool
         True to produce a plot of the wrapped interferogram in the product,

@@ -32,7 +32,7 @@ def process_ionosphere_phase_screen(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -100,7 +100,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_uncertainty_raster : nisarqa.RadarRaster or nisarqa.GeoRaster
         Ionosphere Phase Screen Uncertainty layer to be processed. Must
         correspond to `iono_raster`.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
 
     Notes
@@ -231,7 +231,7 @@ def process_phase_image_unwrapped(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -273,7 +273,7 @@ def plot_unwrapped_phase_image_to_pdf(
     ----------
     phs_raster : nisarqa.GeoRaster | nisarqa.RadarRaster
         *Raster of unwrapped phase data (float-valued).
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the unwrapped phase image plot(s) to.
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
@@ -401,7 +401,7 @@ def process_phase_image_wrapped(
     ----------
     product : nisarqa.WrappedGroup
         Input NISAR product.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         Output PDF file to append the phase and coherence magnitude plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -473,7 +473,7 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     coh_raster : nisarqa.GeoRaster or nisarqa.RadarRaster
         *Raster for the coherence magnitude raster. This should correspond to
         `complex_raster`.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         Output PDF file to append the phase and coherence magnitude plots to.
     """
 
@@ -654,7 +654,7 @@ def hsi_images_to_pdf_wrapped(
     ----------
     product : nisarqa.WrappedGroup
         Input NISAR product.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the HSI image plot to.
     """
     for freq in product.freqs:
@@ -699,7 +699,7 @@ def hsi_images_to_pdf_unwrapped(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the HSI image plot to.
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
@@ -752,7 +752,7 @@ def save_hsi_img_to_pdf(
     img : *Raster
         Image in RGB color space to be saved. All image correction,
         multilooking, etc. needs to have previously been applied.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the HSI image plot to.
     cbar_min_max : pair of float or None, optional
         The range for the Hue axis of the HSI colorbar for the image raster.
@@ -1166,7 +1166,7 @@ def img2pdf_hsi(
         Image to plot; image should represent an HSI (Hue,
         Saturation, Intensity) image that has been already converted to
         RGB colorspace (such as via matplotlib.colors.hsv_to_rgb()).
-    plots_pdf : PdfPages
+    plots_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the HSI image plot to.
     cbar_min_max : pair of float or None, optional
         The range for the Hue axis of the HSI colorbar for the image raster.
@@ -1472,7 +1472,7 @@ def process_az_and_slant_rg_offsets_from_igram_product(
     ----------
     product : nisarqa.OffsetProduct
         Input NISAR product.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -1526,7 +1526,7 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
     rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
         Slant range offset layer to be processed. Must correspond to
         `az_offset`.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -1582,7 +1582,7 @@ def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
     rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
         Slant range offset layer to be processed. Must correspond to
         `az_offset`.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
     """
     # Validate that the pertinent metadata in the rasters is equal.
@@ -1702,7 +1702,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         Input NISAR product.
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output pdf file to append the quiver plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -1818,7 +1818,7 @@ def plot_offsets_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
         `az_offset`.
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the quiver plot to.
 
     Returns
@@ -2206,7 +2206,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
     params : nisarqa.VarianceLayersParamGroup
         A structure containing processing parameters to generate the plots
         for the *Variance layers.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output pdf file to append the plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -2277,7 +2277,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     rg_offset_variance : nisarqa.RadarRaster or nisarqa.GeoRaster
         Slant range offset variance layer to be plotted. Must correspond to
         `az_offset_variance `.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the plots to.
     cbar_min_max : pair of float or None, optional
         The range for the colorbar for the plotted images. After taking the
@@ -2410,7 +2410,7 @@ def process_cross_variance_and_surface_peak(
     params : nisarqa.CrossOffsetVarianceLayerParamGroup
         A structure containing processing parameters to generate the
         cross offset variance layer plots.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output pdf file to append the plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -2487,7 +2487,7 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     corr_surf_peak : nisarqa.RadarRaster or nisarqa.GeoRaster
         Correlation Surface Peak layer to be processed. Should correspond to
         `cross_offset_variance`.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
     offset_cbar_min_max : pair of float or None, optional
         The range for the colorbar for the cross offset variance raster.
@@ -2643,7 +2643,7 @@ def process_connected_components(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -2670,7 +2670,7 @@ def plot_connected_components_layer(
     ----------
     cc_raster : nisarqa.RadarRaster or nisarqa.GeoRaster
         *Raster of connected components data.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         Output PDF file to append the generated plots to.
     """
 

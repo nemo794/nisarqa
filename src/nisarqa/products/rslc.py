@@ -404,7 +404,7 @@ def process_backscatter_imgs_and_browse(
         and outputting backscatter image(s) and browse image.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
     browse_filename : str
         Filename (with path) for the browse image PNG.
@@ -952,7 +952,7 @@ def img2pdf_grayscale(
     ----------
     img_arr : array_like
         Image to plot in grayscale
-    plots_pdf : PdfPages
+    plots_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
     title : str or None, optional
         The full title for the plot
@@ -1158,7 +1158,7 @@ def process_backscatter_and_phase_histograms(
         and outputting the backscatter and phase histograms.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
     plot_title_prefix : str, optional
         Prefix for the title of the backscatter plots.
@@ -1227,7 +1227,7 @@ def generate_backscatter_image_histogram_single_freq(
         and outputting the histograms.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
     plot_title_prefix : str
         Prefix for the title of the backscatter plots.
@@ -1374,7 +1374,7 @@ def generate_phase_histogram_single_freq(
         and outputting the backscatter and phase histograms.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
     """
     log = nisarqa.get_logger()
@@ -1529,7 +1529,7 @@ def process_range_spectra(
         and outputting the range spectra.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the range spectra plots plot to.
     """
 
@@ -1569,7 +1569,7 @@ def generate_range_spectra_single_freq(
         and outputting the spectra.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the range spectra plots plot to.
     """
     log = nisarqa.get_logger()
