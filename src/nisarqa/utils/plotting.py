@@ -2725,12 +2725,12 @@ def plot_connected_components_layer(
     cmap = colors.ListedColormap(colors=colors_list)
 
     # Create a list of the boundaries (aka the halfway points) between
-    # each integer label; also include the very top and bottom values
+    # each integer label; also include the very max and min values
     # of the interval for the colorbar.
     # Hint: Visually, the "boundary" between two integer labels is where the
     # colorbar changes from one color to the next color.
 
-    # `labels` is sorted unique values, so the bottom value is labels[0], etc.
+    # This assumes that `labels` is in sorted, ascending order.
     boundaries = np.concatenate(
         (
             [labels[0] - 1],

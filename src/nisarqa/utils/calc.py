@@ -653,19 +653,20 @@ def get_unique_elements_and_percentages(
 
     Returns
     -------
-    unique_labels : numpy.ndarray
+    unique_values : numpy.ndarray
         1D array of the sorted unique values in `arr`.
     percentages : numpy.ndarray
-        1D array of the percentage that each of the unique values in
-        `unique_labels` occurs in `arr`. Elements in `percentages`
-        correspond to the elements in `unique_labels`.
+        1D array of the relative frequency that each of the unique values in
+        `unique_values` occurs in `arr`, as a percentage of the total array
+        size. Elements in `percentages` correspond to the elements in
+        `unique_values`.
     """
 
-    unique_labels, counts = np.unique(arr, return_counts=True)
+    unique_values, counts = np.unique(arr, return_counts=True)
 
     percentages = (counts / np.size(arr)) * 100.0
 
-    return unique_labels, percentages
+    return unique_values, percentages
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
