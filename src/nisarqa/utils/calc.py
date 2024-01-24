@@ -806,8 +806,8 @@ def connected_components_metrics(
         Maximum number of valid connected components allowed.
         If the number of valid connected components (not including
         zero nor the fill value) is greater than this value,
-        it will be logged and an exception will be raised.
-        If None, no exception will be raised.
+        it will be recorded in the summary file and an exception will be raised.
+        If None, the check will not be performed.
         Defaults to None.
     threshold : float, optional
         The threshold value for alerting users to possible malformed datasets.
