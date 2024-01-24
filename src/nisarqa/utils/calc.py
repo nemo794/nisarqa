@@ -448,7 +448,7 @@ def compute_and_save_basic_statistics(
     )
 
 
-def compute_num_nan(arr: np.ndarray) -> tuple[int, float]:
+def compute_nan_metrics(arr: np.ndarray) -> tuple[int, float]:
     """
     Get the number of NaN elements and percentage of the array that is Nan.
 
@@ -475,7 +475,7 @@ def compute_num_nan(arr: np.ndarray) -> tuple[int, float]:
     return count, percentage
 
 
-def compute_num_inf(arr: np.ndarray) -> tuple[int, float]:
+def compute_inf_metrics(arr: np.ndarray) -> tuple[int, float]:
     """
     Get the number of +/- Inf elements and their percentage of the array.
 
@@ -502,7 +502,9 @@ def compute_num_inf(arr: np.ndarray) -> tuple[int, float]:
     return count, percentage
 
 
-def compute_num_fill(arr: np.ndarray, fill_value: float) -> tuple[int, float]:
+def compute_fill_metrics(
+    arr: np.ndarray, fill_value: float
+) -> tuple[int, float]:
     """
     Get the number of +/- Inf elements and their percentage of the array.
 
@@ -522,7 +524,7 @@ def compute_num_fill(arr: np.ndarray, fill_value: float) -> tuple[int, float]:
     """
     if np.isnan(fill_value):
         # `np.nan == np.nan` evaluates to False, so handle this case here
-        return compute_num_nan(arr=arr)
+        return compute_nan_metrics(arr=arr)
 
     count = np.sum(arr == fill_value)
 
@@ -531,7 +533,7 @@ def compute_num_fill(arr: np.ndarray, fill_value: float) -> tuple[int, float]:
     return count, percentage
 
 
-def compute_num_near_zero(
+def compute_near_zero_metrics(
     arr: np.ndarray, epsilon: float = 1e-6
 ) -> tuple[int, float]:
     """
@@ -627,7 +629,7 @@ def compute_percentage_metrics(
     arr_name = raster.name
 
     # Compute NaN value metrics
-    num_nan, percent_nan = nisarqa.compute_num_nan(arr)
+    num_nan, percent_nan = nisarqa.compute_nan_metrics(arr)
     total_num_invalid += num_nan
 
     nisarqa.save_percent_nan_to_stats_h5(
@@ -643,7 +645,7 @@ def compute_percentage_metrics(
     )
 
     # Compute +/- inf metrics.
-    num_inf, percent_inf = nisarqa.compute_num_inf(arr)
+    num_inf, percent_inf = nisarqa.compute_inf_metrics(arr)
     total_num_invalid += num_inf
 
     nisarqa.save_percent_inf_to_stats_h5(
@@ -665,7 +667,7 @@ def compute_percentage_metrics(
             # We already accumulated the number of NaN to `total_num_invalid`,
             # skip doing that here so that we do not double-count the NaN
         else:
-            num_fill, percent_fill = nisarqa.compute_num_fill(
+            num_fill, percent_fill = nisarqa.compute_fill_metrics(
                 arr, fill_value=fill_value
             )
             # the fill value is different than NaN, so accumulate it.
@@ -688,7 +690,9 @@ def compute_percentage_metrics(
         num_fill = 0
 
     # Compute number of zeros metrics.
-    num_zero, percent_zero = nisarqa.compute_num_near_zero(arr, epsilon=epsilon)
+    num_zero, percent_zero = nisarqa.compute_near_zero_metrics(
+        arr, epsilon=epsilon
+    )
 
     # Zeros are often a valid value; do not include them in `total_num_invalid`.
 
@@ -802,7 +806,7 @@ def connected_components_metrics(
         If the number of valid connected components (not including
         zero nor the fill value) is greater than this value,
         it will be recorded in the summary file and an exception will be raised.
-        If None, the check will not be performed.
+        If None, this error check will be skipped.
         Defaults to None.
     """
 

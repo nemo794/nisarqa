@@ -988,11 +988,12 @@ class ConnectedComponentsParamGroup(YamlParamGroup):
         is above `threshold`, it will be logged as an error and an exception
         will be raised.
         Defaults to 95.0.
-    max_num_cc : int, optional
+    max_num_cc : int or None, optional
         Maximum number of valid connected components allowed.
         If the number of valid connected components (not including
         zero nor the fill value) is greater than this value,
         it will be logged and an exception will be raised.
+        If None, this error check will be skipped.
         Defaults to 40.
     """
 
@@ -1017,7 +1018,8 @@ class ConnectedComponentsParamGroup(YamlParamGroup):
                 descr="""Maximum number of valid connected components allowed.
                         If the number of valid connected components (not including
                         zero nor the fill value) is greater than this value,
-                        it will be logged and an exception will be raised.""",
+                        it will be logged and an exception will be raised.
+                        If None, this error check will be skipped.""",
             )
         },
     )
@@ -1027,13 +1029,14 @@ class ConnectedComponentsParamGroup(YamlParamGroup):
 
         nisarqa.verify_valid_percentage(self.threshold)
 
-        if not isinstance(self.max_num_cc, int):
+        if self.max_num_cc is None:
+            pass
+        elif not isinstance(self.max_num_cc, int):
             raise TypeError(
                 f"`max_num_cc` is {self.max_num_cc} and has type"
                 f" {type(self.max_num_cc)}, but must be an integer."
             )
-
-        if self.max_num_cc < 1:
+        elif self.max_num_cc < 1:
             raise ValueError(
                 f"`max_num_cc` is {self.max_num_cc}, must be greater than 0."
             )

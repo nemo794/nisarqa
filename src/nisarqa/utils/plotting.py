@@ -2903,7 +2903,7 @@ def process_connected_components(
     params : nisarqa.ConnectedComponentsParamGroup
         A structure containing processing parameters to generate the
         connected components layer plots and metrics.
-    report_pdf : PdfPages
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
