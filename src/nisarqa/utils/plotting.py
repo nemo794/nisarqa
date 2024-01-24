@@ -2686,17 +2686,16 @@ def plot_connected_components_layer(
     title = f"Connected Components Mask\n{cc_raster.name}"
     fig.suptitle(title)
 
-    # Step 1: Compute metrics on full raster:
+    # Step 1: Compute metrics on full raster (We should not skip any CC!):
     cc_full = cc_raster.data[()]
-
-    # Find the connected components in the mask using scipy.ndimage.label
-    # Note: scipy.ndimage.label returns the image-processing-style
-    # connected components, not the graph-theory connected components.
-    # from scipy.ndimage import label
-    # cc_full, num_features = label(cc_full)
 
     labels, percentages = nisarqa.get_unique_elements_and_percentages(cc_full)
     num_features = len(labels)
+
+    # Step 2: Setup colormap and boundaries between integer values.
+    # Note: `labels` is guaranteed to be sorted and unique values, but
+    # depending on how the CC layer was created, there might be skipped values
+    # in the labels, e.g. the CC layer only contains labels [0, 1, 3, 4].
 
     # Create a color map with distinct color for each connected component
     # If there are more than 10 connected components, simply repeat the colors.
@@ -2712,55 +2711,77 @@ def plot_connected_components_layer(
     if fill_idx.size > 0:
         colors_list[fill_idx[0]] = (1.0, 1.0, 1.0)  # white
 
+    # To create the colorbar for the CC image raster, we'll use a
+    # a ListedColormap for the discrete colors, and use a BoundaryNorm for
+    # to create a colormap based on discrete intervals. (BoundaryNorm maps
+    # values to integers, instead of to e.g. the interval [0, 1].)
+    # Reference:
+    # https://www.geeksforgeeks.org/matplotlib-colors-listedcolormap-class-in-python/
+
     cmap = colors.ListedColormap(colors=colors_list)
 
-    bounds = np.concatenate(
+    # Create a list of the boundaries (aka the halfway points) between
+    # each integer label; also include the very top and bottom values
+    # of the interval for the colorbar.
+    # Hint: Visually, the "boundary" between two integer labels is where the
+    # colorbar changes from one color to the next color.
+
+    # `labels` is sorted unique values, so the bottom value is labels[0], etc.
+    boundaries = np.concatenate(
         (
-            [labels.min() - 1],
+            [labels[0] - 1],
             labels[:-1] + np.diff(labels) / 2.0,
-            [labels.max() + 1],
+            [labels[-1] + 1],
         )
     )
 
-    norm = colors.BoundaryNorm(bounds, len(bounds) - 1)
+    norm = colors.BoundaryNorm(boundaries, len(boundaries) - 1)
 
-    # Step 3: Decimate Connected Components array to square pixels
+    # Step 3: Decimate Connected Components array to square pixels and plot
     # Note: We do not need to decimate again to a smaller size to fit nicely
     # on the axes. Even at full res, this plot does not have significant impact
     # on the PDF file size.
-    cc_full = nisarqa.decimate_raster_array_to_square_pixels(cc_raster)
+    cc_decimated = nisarqa.decimate_raster_array_to_square_pixels(cc_raster)
 
     # Plot connected components mask
-    im1 = ax1.imshow(cc_full, cmap=cmap, norm=norm, interpolation="none")
+    im1 = ax1.imshow(cc_decimated, cmap=cmap, norm=norm, interpolation="none")
 
     cax1 = fig.colorbar(im1, cmap=cmap, norm=norm)
 
-    cax1.set_ticks(bounds[:-1] + np.diff(bounds) / 2.0)
+    # The CC image plot visualizes discrete data; the colorbar ticks are
+    # for the integer CC labels.
+    # Set colorbar ticks to appear at the midpoint between each `boundaries`
+    # transition:
+    cax1.set_ticks(boundaries[:-1] + np.diff(boundaries) / 2.0)
+    # Labels the tick marks with the `labels`
     cax1.ax.set_yticklabels(labels)
+    # Hide the ticks at the boundaries
     cax1.ax.minorticks_off()
 
     nisarqa.rslc.format_axes_ticks_and_labels(
         ax=ax1,
         xlim=cc_raster.x_axis_limits,
         ylim=cc_raster.y_axis_limits,
-        img_arr_shape=np.shape(cc_full),
+        img_arr_shape=np.shape(cc_decimated),
         xlabel=cc_raster.x_axis_label,
         ylabel=cc_raster.y_axis_label,
         title=f"{(cc_raster.name.split('_')[-1])} Layer",
     )
 
-    # Create a bar chart of the connected components
+    # Step 4: Create a bar chart of the connected components on ax2
     ax2.set_title("Percentage of Pixels per Connected Component")
 
+    x_locations_of_bars = range(len(percentages))
+
     ax2.bar(
-        range(len(percentages)),
+        x_locations_of_bars,
         percentages,
         color=cmap.colors,
         edgecolor="black",
         linewidth=0.5,
     )
     ax2.set_ylabel("Percentage of Pixels")
-    ax2.xaxis.set_ticks(range(len(percentages)))
+    ax2.xaxis.set_ticks(x_locations_of_bars)
     xlabel = (
         "Connected Component Label\n(0 denotes pixels with invalid unwrapping"
     )
@@ -2784,7 +2805,7 @@ def plot_connected_components_layer(
 
         for i, val in enumerate(percentages):
             ax2.text(
-                range(len(percentages))[i] - shift_lt,  # shift label left/right
+                x_locations_of_bars[i] - shift_lt,  # shift label left/right
                 val + 0.2,  # shift label up/down
                 f"{val:.1f}",
                 fontsize=font_size,
