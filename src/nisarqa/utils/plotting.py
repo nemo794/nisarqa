@@ -2713,7 +2713,7 @@ def plot_connected_components_layer(
     # so they look "transparent" in the PDF
     fill_idx = np.where(labels == cc_raster.fill_value)[0]
     if fill_idx.size > 0:
-        colors_list[fill_idx[0]] = (1.0, 1.0, 1.0)  # white
+        colors_list[fill_idx[0]] = (1.0, 1.0, 1.0, 0.0)  # transparent white
 
     # To create the colorbar for the CC image raster, we'll use a
     # a ListedColormap for the discrete colors, and use a BoundaryNorm for
