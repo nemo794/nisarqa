@@ -641,16 +641,31 @@ def compute_and_save_basic_statistics(
 
 
 def get_unique_elements_and_percentages(
-    cc_arr: ArrayLike,
+    arr: ArrayLike,
 ) -> tuple[np.ndarray, np.ndarray[float]]:
-    """Wrapper around `numpy.unique()` that returns the unique elements and
-    corresponding percentage of the array of those elements."""
+    """
+    Return the sorted unique elements of an array and the percentage they occur.
 
-    labels, counts = np.unique(cc_arr, return_counts=True)
+    Parameters
+    ----------
+    arr : array_like
+        Input array.
 
-    percentages = (counts / cc_arr.size) * 100.0
+    Returns
+    -------
+    unique_labels : numpy.ndarray
+        1D array of the sorted unique values in `arr`.
+    percentages : numpy.ndarray
+        1D array of the percentage that each of the unique values in
+        `unique_labels` occurs in `arr`. Elements in `percentages`
+        correspond to the elements in `unique_labels`.
+    """
 
-    return labels, percentages
+    unique_labels, counts = np.unique(arr, return_counts=True)
+
+    percentages = (counts / np.size(arr)) * 100.0
+
+    return unique_labels, percentages
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
