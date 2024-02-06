@@ -5,6 +5,7 @@ from dataclasses import dataclass, field, fields, replace
 from typing import ClassVar, Optional, Type, Union
 
 import numpy as np
+from matplotlib.colors import to_rgb
 from numpy.typing import ArrayLike
 
 import nisarqa
@@ -172,6 +173,13 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         image values prior to normalization and gamma correction.
         If None, then no normalization, no gamma correction will be applied.
         Default: 0.5
+    nan_color : str or list of float or None, optional
+        Color to plot NaN pixels for the PDF report.
+        For transparent, set to None.
+        The color should given in a format recognized by matplotlib:
+        https://matplotlib.org/stable/users/explain/colors/colors.html
+        (Note: Browse image PNG will always plot NaN as transparent.)
+        Defaults to "blue".
     tile_shape : iterable of int, optional
         User-preferred tile shape for processing images by batches.
         Actual tile shape may be modified by QA to be an integer
@@ -288,6 +296,20 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
+    nan_color: str | list[float] | None = field(
+        default="blue",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="nan_color_in_pdf",
+                descr="""Color to plot NaN pixels for the PDF report.
+                For transparent, set to None.
+                The color should given in a format recognized by matplotlib:
+                https://matplotlib.org/stable/users/explain/colors/colors.html
+                (Note: Browse image PNG will always plot NaN as transparent.)""",
+            )
+        },
+    )
+
     tile_shape: Iterable[int] = field(
         default=(1024, 1024),
         metadata={
@@ -375,6 +397,17 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 "`gamma` must be a float or None. "
                 f"Value: {self.gamma}, Type: {type(self.gamma)}"
             )
+
+        # validate nan_color
+        if self.nan_color is not None:
+            try:
+                to_rgb(c=self.nan_color)
+            except ValueError:
+                raise ValueError(
+                    f"`nan_color_in_pdf` is `{self.nan_color}`, which is not"
+                    " recognizable by Matplotlib. For acceptable options, see:"
+                    " https://matplotlib.org/stable/users/explain/colors/colors.html"
+                )
 
         # validate tile_shape
         val = self.tile_shape

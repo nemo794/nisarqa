@@ -1335,7 +1335,9 @@ def format_cbar_ticks_for_multiples_of_pi(
         )
 
 
-def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
+def decimate_img_to_size_of_axes(
+    ax: mpl.Axes, arr: np.ndarray, mode: str = "pure"
+) -> np.ndarray:
     """
     Decimate array to size of axes for use with `interpolation='none'`.
 
@@ -1355,6 +1357,16 @@ def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
         will be used to compute the decimation factor for the image array.
     arr : numpy.ndarray
         The (image) array to be decimated.
+    mode : str, optional
+        Decimation algorithm. One of:
+            "pure" : (default) Pure decimation. For example, if the decimation
+                stride is determined to be `3`, then every 3rd row and 3rd
+                column will be extracted to form the decimated image.
+            "multilook" : Naive multilooking. For example, if the decimation
+                stride is determined to be `3`, then every 3-by-3 window
+                (9 pixels total) will be averaged to form the output pixel.
+                Note that if any of those 9 input pixels is NaN, then the
+                output pixel will be NaN.
 
     Returns
     -------
@@ -1404,7 +1416,12 @@ def decimate_img_to_size_of_axes(ax: mpl.Axes, arr: np.ndarray) -> np.ndarray:
         stride = int(src_arr_width / desired_longest)
 
     # Decimate to the correct size along the X and Y directions.
-    return arr[::stride, ::stride]
+    if mode == "pure":
+        return arr[::stride, ::stride]
+    elif mode == "multilook":
+        return nisarqa.multilook(arr=arr, nlooks=(stride, stride))
+    else:
+        raise ValueError(f"`{mode=}`, only 'pure' and 'multilook' supported.")
 
 
 def image_histogram_equalization(

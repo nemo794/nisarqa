@@ -489,6 +489,7 @@ def process_backscatter_imgs_and_browse(
                         ylabel=img.y_axis_label,
                         xlabel=img.x_axis_label,
                         plots_pdf=report_pdf,
+                        nan_color=params.nan_color,
                     )
 
                 # If this backscatter image is needed to construct the browse image...
@@ -944,6 +945,7 @@ def img2pdf_grayscale(
     colorbar_formatter: Optional[FuncFormatter] = None,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
+    nan_color: str | list[float] | None = "blue",
 ) -> None:
     """
     Plot the image array in grayscale, add a colorbar, and append to the PDF.
@@ -972,6 +974,12 @@ def img2pdf_grayscale(
         (Wrapping the function with FuncFormatter is optional.)
     xlabel, ylabel : str or None, optional
         Axes labels for the x-axis and y-axis (respectively)
+    nan_color : str or list of float or None, optional
+        Color to plot NaN pixels for the PDF report.
+        For transparent, set to None.
+        The color should given in a format recognized by matplotlib:
+        https://matplotlib.org/stable/users/explain/colors/colors.html
+        Defaults to "blue".
     """
 
     # Instantiate the figure object
@@ -982,10 +990,16 @@ def img2pdf_grayscale(
 
     # Decimate image to a size that fits on the axes without interpolation
     # and without making the size (in MB) of the PDF explode.
-    img_arr = nisarqa.decimate_img_to_size_of_axes(ax=ax, arr=img_arr)
+    img_arr = nisarqa.decimate_img_to_size_of_axes(
+        ax=ax, arr=img_arr, mode="multilook"
+    )
 
     # grayscale
     cmap = plt.cm.gray
+
+    if nan_color is not None:
+        # set color of NaN pixels
+        cmap.set_bad(nan_color)
 
     # Plot the img_arr image.
     ax_img = ax.imshow(X=img_arr, cmap=cmap, interpolation="none")
