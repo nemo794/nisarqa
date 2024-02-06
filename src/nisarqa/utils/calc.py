@@ -9,6 +9,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 from numpy.typing import ArrayLike
 
 import nisarqa
+from nisarqa import ThresholdParamGroup
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -241,11 +242,7 @@ def hz2mhz(arr: np.ndarray) -> np.ndarray:
 
 
 def compute_and_save_basic_statistics(
-    raster: nisarqa.Raster,
-    stats_h5: h5py.File,
-    threshold: float = nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
-    epsilon: float = 1e-6,
-    treat_all_zeros_as_error: bool = False,
+    raster: nisarqa.Raster, stats_h5: h5py.File, params: ThresholdParamGroup
 ) -> None:
     """
     Compute and save min, max, mean, std, % nan, % zero, % fill, % inf to HDF5.
@@ -259,30 +256,9 @@ def compute_and_save_basic_statistics(
         Input Raster.
     stats_h5 : h5py.File
         The output file to save QA metrics to.
-    threshold : float, optional
-        The threshold value for alerting users to possible malformed datasets.
-        If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
-        is above `threshold`, it will be logged as an error.
-        Defaults to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-    epsilon : float or int, optional
-        The tolerance used for computing if raster pixels are "almost zero".
-        This will be used during the check for percentage of near-zero pixels.
-        Defaults to 1e-6.
-    treat_all_zeros_as_error : bool, optional
-        True to have this function issue an error if the raster contains
-        more than `threshold` percentage of near-zero pixels.
-        False to have this function suppress that same error. The percentage
-        will still be computed, logged, and saved to the STATS.h5 file, but
-        it will not be considered an error.
-
-        For some rasters, if there are greater than `threshold` percent
-        near-zero pixels, then this should be an error and an indication of
-        a faulty NISAR input product. In this case, set
-        `treat_all_zeros_as_error` to True.
-        However, some raster layers (e.g. GUNW's `ionospherePhaseScreen`)
-        are known to be populated with all zero values if the ionosphere phase
-        module was disabled for GUNW ISCE3 processing. In this case, set
-        `treat_all_zeros_as_error` to False.
+    params : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in a raster.
 
     Notes
     -----
@@ -442,19 +418,17 @@ def compute_and_save_basic_statistics(
     compute_percentage_metrics(
         raster=raster,
         stats_h5=stats_h5,
-        threshold=threshold,
-        epsilon=epsilon,
-        treat_all_zeros_as_error=treat_all_zeros_as_error,
+        params=params,
     )
 
 
-def compute_nan_metrics(arr: np.ndarray) -> tuple[int, float]:
+def compute_nan_count(arr: ArrayLike) -> int:
     """
-    Get the number of NaN elements and percentage of the array that is NaN.
+    Get the number of NaN elements in the input array.
 
     Parameters
     ----------
-    arr : numpy.ndarray
+    arr : ArrayLike
         Input array; can have a real or complex dtype.
         (For complex data, if either the real or imag part is NaN,
         then the element is considered NaN.)
@@ -463,21 +437,15 @@ def compute_nan_metrics(arr: np.ndarray) -> tuple[int, float]:
     -------
     count : int
         Number of NaN elements in `arr`.
-    percentage : float
-        The percentage of `arr` that is NaN.
     """
     # np.isnan works for both real and complex data. For complex data, if
     # either the real or imag part is NaN, then the pixel is considered NaN.
-    count = np.sum(np.isnan(arr))
-
-    percentage = 100 * count / arr.size
-
-    return count, percentage
+    return np.sum(np.isnan(arr))
 
 
-def compute_inf_metrics(arr: np.ndarray) -> tuple[int, float]:
+def compute_inf_count(arr: np.ndarray) -> int:
     """
-    Get the number of +/- Inf elements and their percentage of the array.
+    Get the number of +/- Inf elements in the input array.
 
     Parameters
     ----------
@@ -490,54 +458,42 @@ def compute_inf_metrics(arr: np.ndarray) -> tuple[int, float]:
     -------
     count : int
         Number of +/- Inf elements in `arr`.
-    percentage : float
-        The percentage of `arr` that is +/- Inf.
     """
     # (np.isinf works for both real and complex data. For complex data, if
     # either real or imag part is +/- inf, then the pixel is considered inf.)
-    count = np.sum(np.isinf(arr))
-
-    percentage = 100 * count / arr.size
-
-    return count, percentage
+    return np.sum(np.isinf(arr))
 
 
-def compute_fill_metrics(
+def compute_fill_count(
     arr: np.ndarray, fill_value: int | float | complex
-) -> tuple[int, float]:
+) -> int:
     """
-    Get the number of +/- Inf elements and their percentage of the array.
+    Get the number of fill value elements in the input array.
 
     Parameters
     ----------
     arr : numpy.ndarray
         Input array.
     fill_value : int or float or complex
-        The fill value for `arr`. The type should correspond to the dtype of `arr`.
+        The fill value for `arr`. The type should correspond to dtype of `arr`.
 
     Returns
     -------
     count : int
         Number of elements in `arr` that are `fill_value`.
-    percentage : float
-        The percentage of `arr` that is `fill_value`.
     """
     if np.isnan(fill_value):
         # `np.nan == np.nan` evaluates to False, so handle this case here
-        return compute_nan_metrics(arr=arr)
+        return compute_nan_count(arr=arr)
 
-    count = np.sum(arr == fill_value)
-
-    percentage = 100 * count / arr.size
-
-    return count, percentage
+    return np.sum(arr == fill_value)
 
 
-def compute_near_zero_metrics(
+def compute_near_zero_count(
     arr: np.ndarray, epsilon: float = 1e-6
 ) -> tuple[int, float]:
     """
-    Get the number of near-zero elements and their percentage of the array.
+    Get the number of near-zero elements in the input array.
 
     Parameters
     ----------
@@ -553,26 +509,18 @@ def compute_near_zero_metrics(
     -------
     count : int
         Number of near-zero elements in `arr`.
-    percentage : float
-        The percentage of `arr` that is near-zero.
     """
     # By using np.abs(), for complex values this will compute the magnitude.
-    count = np.sum(np.abs(arr) < epsilon)
-
-    percentage = 100 * count / arr.size
-
-    return count, percentage
+    return np.sum(np.abs(arr) < epsilon)
 
 
 def compute_percentage_metrics(
     raster: nisarqa.Raster,
+    params: ThresholdParamGroup,
     stats_h5: h5py.File,
-    threshold: float = nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
-    epsilon: float = 1e-6,
-    treat_all_zeros_as_error: bool = False,
 ) -> None:
     """
-    Compute and save % nan, % zero, % fill, % inf to HDF5 and summary CSV.
+    Check % nan, % zero, % fill, % inf, % total invalid; save to HDF5 and CSV.
 
     Warning: Entire input array will be read into memory and processed.
     Only use this function for small datasets.
@@ -583,30 +531,9 @@ def compute_percentage_metrics(
         Input Raster.
     stats_h5 : h5py.File
         The output file to save QA metrics to.
-    threshold : float, optional
-        The threshold value for alerting users to possible malformed datasets.
-        If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
-        is above `threshold`, it will be logged as an error.
-        Defaults to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-    epsilon : float, optional
-        The tolerance used for computing if raster pixels are "almost zero".
-        This will be used during the check for percentage of near-zero pixels.
-        Defaults to 1e-6.
-    treat_all_zeros_as_error : bool, optional
-        True to have this function issue an error if the raster contains
-        more than `threshold` percentage of near-zero pixels.
-        False to have this function suppress that same error. The percentage
-        will still be computed, logged, and saved to the STATS.h5 file, but
-        it will not be considered an error.
-
-        For some rasters, if there are greater than `threshold` percent
-        near-zero pixels, then this should be an error and an indication of
-        a faulty NISAR input product. In this case, set
-        `treat_all_zeros_as_error` to True.
-        However, some raster layers (e.g. GUNW's `ionospherePhaseScreen`)
-        are known to be populated with all zero values if the ionosphere phase
-        module was disabled for GUNW ISCE3 processing. In this case, set
-        `treat_all_zeros_as_error` to False.
+    params : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in a raster.
 
     Notes
     -----
@@ -616,7 +543,7 @@ def compute_percentage_metrics(
     # Create flags, to be used for the PASS/FAIL Summary CSV
     all_metrics_pass = True
 
-    # Total number of pixels that were NaN, +/-Inf or fill
+    # Total number of pixels that were NaN, +/-Inf, fill, or near-zero
     total_num_invalid = 0
 
     log = nisarqa.get_logger()
@@ -626,10 +553,22 @@ def compute_percentage_metrics(
     grp_path = raster.stats_h5_group_path
     fill_value = raster.fill_value
     arr_name = raster.name
+    arr_size = np.size(arr)
+
+    nan_threshold = params.nan_threshold
+    inf_threshold = params.inf_threshold
+    fill_threshold = params.fill_threshold
+    near_zero_threshold = params.near_zero_threshold
+    epsilon = params.epsilon
+    invalid_threshold = params.total_invalid_threshold
+
+    def _percent_of_arr(count: int) -> float:
+        return count / arr_size * 100
 
     # Compute NaN value metrics
-    num_nan, percent_nan = nisarqa.compute_nan_metrics(arr)
+    num_nan = compute_nan_count(arr)
     total_num_invalid += num_nan
+    percent_nan = _percent_of_arr(count=num_nan)
 
     nisarqa.save_percent_nan_to_stats_h5(
         percentage=percent_nan, stats_h5=stats_h5, grp_path=grp_path
@@ -637,15 +576,14 @@ def compute_percentage_metrics(
 
     all_metrics_pass &= nisarqa.percent_nan_is_within_threshold(
         percentage=percent_nan,
-        threshold_percentage=threshold,
+        threshold_percentage=nan_threshold,
         arr_name=arr_name,
-        nan_is_valid_value=np.isnan(fill_value),
-        number_of_nan=num_nan,
     )
 
     # Compute +/- inf metrics.
-    num_inf, percent_inf = nisarqa.compute_inf_metrics(arr)
+    num_inf = compute_inf_count(arr)
     total_num_invalid += num_inf
+    percent_inf = _percent_of_arr(count=num_inf)
 
     nisarqa.save_percent_inf_to_stats_h5(
         percentage=percent_inf, stats_h5=stats_h5, grp_path=grp_path
@@ -653,7 +591,7 @@ def compute_percentage_metrics(
 
     all_metrics_pass &= nisarqa.percent_inf_is_within_threshold(
         percentage=percent_inf,
-        threshold_percentage=threshold,
+        threshold_percentage=inf_threshold,
         arr_name=arr_name,
     )
 
@@ -666,11 +604,10 @@ def compute_percentage_metrics(
             # We already accumulated the number of NaN to `total_num_invalid`,
             # skip doing that here so that we do not double-count the NaN
         else:
-            num_fill, percent_fill = nisarqa.compute_fill_metrics(
-                arr, fill_value=fill_value
-            )
+            num_fill = compute_fill_count(arr, fill_value=fill_value)
             # the fill value is different than NaN, so accumulate it.
             total_num_invalid += num_fill
+            percent_fill = _percent_of_arr(count=num_fill)
 
         nisarqa.save_percent_fill_to_stats_h5(
             percentage=percent_fill,
@@ -681,7 +618,7 @@ def compute_percentage_metrics(
 
         all_metrics_pass &= nisarqa.percent_fill_is_within_threshold(
             percentage=percent_fill,
-            threshold_percentage=threshold,
+            threshold_percentage=fill_threshold,
             fill_value=fill_value,
             arr_name=arr_name,
         )
@@ -689,11 +626,17 @@ def compute_percentage_metrics(
         num_fill = 0
 
     # Compute number of zeros metrics.
-    num_zero, percent_zero = nisarqa.compute_near_zero_metrics(
-        arr, epsilon=epsilon
-    )
+    num_zero = compute_near_zero_count(arr, epsilon=epsilon)
 
     # Zeros are often a valid value; do not include them in `total_num_invalid`.
+    if (near_zero_threshold != -1) and not np.isclose(
+        fill_value, 0.0, atol=epsilon, rtol=0.0
+    ):
+        # zeros are considered "bad" pixels and are not the fill value,
+        # so they should be added to the total
+        total_num_invalid += num_zero
+
+    percent_zero = _percent_of_arr(count=num_zero)
 
     nisarqa.save_percent_near_zero_to_stats_h5(
         percentage=percent_zero,
@@ -704,52 +647,35 @@ def compute_percentage_metrics(
 
     all_metrics_pass &= nisarqa.percent_near_zero_is_within_threshold(
         percentage=percent_zero,
-        threshold_percentage=threshold,
-        treat_all_zeros_as_error=treat_all_zeros_as_error,
+        threshold_percentage=near_zero_threshold,
         arr_name=arr_name,
     )
 
-    # Compute overall invalid pixels
-    arr_size = arr.size
+    # Compute cumulative total invalid pixels
     assert total_num_invalid <= arr_size
-    percent_invalid = 100 * (total_num_invalid / arr_size)
-    msg_for_total_invalid_pixels = (
-        f"Array {arr_name} is {percent_invalid} percent non-finite and/or"
-        f" 'fill' pixels. (Acceptable threshold is {threshold} percent.)"
-    )
-    if percent_invalid >= threshold:
-        log.error(msg_for_total_invalid_pixels)
-        all_metrics_pass = False
-    else:
-        log.info(msg_for_total_invalid_pixels)
 
-    # Note the metrics in the SUMMARY CSV
-    invalid_pass = "FAIL" if (percent_invalid >= threshold) else "PASS"
-    summary.check_invalid_pixels_within_threshold(
-        result=invalid_pass,
-        threshold=str(threshold),
-        actual=f"{percent_invalid:.2f}",
-        notes=arr_name,
+    percent_invalid = _percent_of_arr(count=total_num_invalid)
+
+    nisarqa.save_percent_total_invalid_to_stats_h5(
+        percentage=percent_invalid, stats_h5=stats_h5, grp_path=grp_path
+    )
+
+    all_metrics_pass &= nisarqa.percent_total_invalid_is_within_threshold(
+        percentage=percent_invalid,
+        threshold_percentage=invalid_threshold,
+        arr_name=arr_name,
     )
 
     # Now, all metrics have been computed and logged. Raise exception
     # if an issue was identified.
     if not all_metrics_pass:
-        if treat_all_zeros_as_error and not np.isclose(
-            fill_value, 0.0, atol=epsilon, rtol=0.0
-        ):
-            total_num_invalid += num_zero
-            assert total_num_invalid <= arr_size
-
-        percent_bad = 100 * total_num_invalid / arr_size
 
         msg = (
-            f"Array {arr_name} is {percent_bad} percent of non-finite, zero,"
-            " and/or 'fill' pixels. (Acceptable threshold is"
-            f" {threshold} percent.)"
+            f"Array {arr_name} did not pass at least one of the percentage"
+            " threshold metrics; either the % Nan, % Inf, % near-zero, % 'fill'"
+            " and/or % total invalid pixels was greater than its requested"
+            " threshold. See the log for exact details."
         )
-        if not treat_all_zeros_as_error:
-            msg = msg.replace(", zero,", "")
 
         raise nisarqa.InvalidRasterError(msg)
 

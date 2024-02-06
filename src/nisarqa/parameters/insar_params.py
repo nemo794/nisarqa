@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import types
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
 from typing import ClassVar, Optional
@@ -13,6 +12,7 @@ from nisarqa import (
     InputFileGroupParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
+    ThresholdParamGroup,
     WorkflowsParamGroup,
     YamlAttrs,
     YamlParamGroup,
@@ -513,12 +513,17 @@ class GUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
 
 
 @dataclass(frozen=True)
-class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
+class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
     """
     Parameters to plot unwrapped phase image in the report PDF.
 
     Parameters
     ----------
+    nan_threshold, near_zero_threshold, fill_threshold, inf_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Defaults to 95.0 for all thresholds.
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image in the report
         PDF. Will be used for both the unwrapped phase image plot(s) and
@@ -976,18 +981,17 @@ class GOFFCrossOffsetVarianceLayerParamGroup(
 
 
 @dataclass(frozen=True)
-class ConnectedComponentsParamGroup(YamlParamGroup):
+class ConnectedComponentsParamGroup(ThresholdParamGroup):
     """
     Parameters to run QA on Connected Components Layers for RUNW and GUNW.
 
     Parameters
     ----------
-    threshold : float, optional
-        The threshold percentage value for alerting users to possible malformed
-        datasets. If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
-        is above `threshold`, it will be logged as an error and an exception
-        will be raised.
-        Defaults to 95.0.
+    nan_threshold, near_zero_threshold, fill_threshold, inf_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Defaults to 0, 95.0, 95.0, 0, and 95.0, respectively.
     max_num_cc : int or None, optional
         Maximum number of valid connected components allowed.
         If the number of valid connected components (not including
@@ -997,17 +1001,16 @@ class ConnectedComponentsParamGroup(YamlParamGroup):
         Defaults to 40.
     """
 
-    threshold: Optional[float] = field(
-        default=95.0,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="threshold",
-                descr="""The threshold percentage value for alerting users to
-                         possible malformed datasets. If the percentage of NaN-,
-                         zero-, fill-, or Inf-valued pixels is above `threshold`,
-                         it will be logged and an exception will be raised.""",
-            )
-        },
+    nan_threshold: Optional[float] = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="nan_threshold", default=0
+        )
+    )
+
+    inf_threshold: Optional[float] = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="inf_threshold", default=0
+        )
     )
 
     max_num_cc: Optional[int] = field(
@@ -1027,7 +1030,8 @@ class ConnectedComponentsParamGroup(YamlParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
-        nisarqa.verify_valid_percentage(self.threshold)
+        # validate the thresholds
+        super().__post_init__()
 
         if self.max_num_cc is None:
             pass

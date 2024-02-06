@@ -24,7 +24,10 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 
 def process_ionosphere_phase_screen(
-    product: nisarqa.UnwrappedGroup, report_pdf: PdfPages, stats_h5: h5py.File
+    product: nisarqa.UnwrappedGroup,
+    params: nisarqa.ThresholdParamGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
 ) -> None:
     """
     Process all ionosphere phase screen and uncertainty layers, and plot to PDF.
@@ -33,6 +36,9 @@ def process_ionosphere_phase_screen(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
+    params : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in a raster.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
@@ -48,12 +54,10 @@ def process_ionosphere_phase_screen(
                 # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
-                    raster=iono_phs,
-                    stats_h5=stats_h5,
+                    raster=iono_phs, stats_h5=stats_h5, params=params
                 )
                 nisarqa.compute_and_save_basic_statistics(
-                    raster=iono_uncertainty,
-                    stats_h5=stats_h5,
+                    raster=iono_uncertainty, stats_h5=stats_h5, params=params
                 )
 
                 plot_ionosphere_phase_screen_to_pdf(
@@ -250,7 +254,7 @@ def process_phase_image_unwrapped(
                 # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
-                    raster=img, stats_h5=stats_h5, treat_all_zeros_as_error=True
+                    raster=img, stats_h5=stats_h5, params=params
                 )
 
                 # Plot phase image
@@ -396,6 +400,7 @@ def plot_unwrapped_phase_image_to_pdf(
 
 def process_phase_image_wrapped(
     product: nisarqa.WrappedGroup,
+    params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -408,6 +413,9 @@ def process_phase_image_wrapped(
     ----------
     product : nisarqa.WrappedGroup
         Input NISAR product.
+    params : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in a raster.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         Output PDF file to append the phase and coherence magnitude plots to.
     stats_h5 : h5py.File
@@ -2917,9 +2925,7 @@ def process_connected_components(
                 nisarqa.compute_percentage_metrics(
                     raster=cc,
                     stats_h5=stats_h5,
-                    threshold=params.threshold,
-                    epsilon=1e-6,  # Connected components have integer dtype
-                    treat_all_zeros_as_error=True,
+                    params=params,
                 )
 
                 plot_connected_components_layer(

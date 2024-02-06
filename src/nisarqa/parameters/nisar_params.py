@@ -469,6 +469,152 @@ class HDF5ParamGroup:
 
 
 @dataclass(frozen=True)
+class ThresholdParamGroup(YamlParamGroup):
+    """
+    Abstract Base Class for creating *Params dataclasses with thresholds.
+
+    Parameters
+    ----------
+    nan_threshold, near_zero_threshold, fill_threshold, inf_threshold,
+        total_invalid_threshold : float, optional
+        Threshold value for alerting users to possible malformed datasets.
+        If the percentage of NaN-, near-zero-, fill-, Inf-, or total
+        invalid-valued pixels is above the respective threshold, it will be
+        logged as an error and an exception raised.
+        "Total invalid pixels" is the sum of NaN, near-zero, fill, & Inf pixels.
+        Each threshold should be between 0 and 100.
+        Setting a threshold to -1 causes that threshold to be effectively
+        ignored (e.g. any percent of NaN values is fine; it will be noted as
+        info, and will not trigger a QA failure).
+        Setting a threshold to 0 triggers a QA failure if the dataset
+        contains any pixels with that value.
+        All default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Use `get_field_with_updated_default()` to update the default value
+        for a particular threshold.
+    """
+
+    _threshold_descr_template: ClassVar[
+        str
+    ] = """Threshold value for alerting users to possible malformed datasets.
+        If the percentage of %s-valued pixels is above the threshold, it will be
+        logged as an error and an exception raised.
+        Setting the threshold to -1 causes that threshold to be effectively
+        ignored (e.g. any percent of NaN values is fine; it will be noted as
+        info, and will not trigger a QA failure)."""
+
+    nan_threshold: Optional[float] = field(
+        default=95.0,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="nan_threshold",
+                descr=_threshold_descr_template % "NaN",
+            )
+        },
+    )
+
+    near_zero_threshold: Optional[float] = field(
+        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="near_zero_threshold",
+                descr=_threshold_descr_template % "near-zero",
+            )
+        },
+    )
+
+    epsilon: Optional[float] = field(
+        default=1e-6,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="fill_threshold",
+                descr="""Tolerance used during the check for percentage of near-zero pixels
+                for computing if raster pixels are "almost zero".""",
+            )
+        },
+    )
+
+    fill_threshold: Optional[float] = field(
+        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="fill_threshold",
+                descr=_threshold_descr_template % "fill",
+            )
+        },
+    )
+
+    inf_threshold: Optional[float] = field(
+        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="inf_threshold",
+                descr=_threshold_descr_template % "+/- Inf",
+            )
+        },
+    )
+
+    total_invalid_threshold: Optional[float] = field(
+        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="total_invalid_threshold",
+                descr=(
+                    f"{_threshold_descr_template % 'total invalid'}\n"
+                    "'Total invalid pixels' is the sum of NaN, near-zero, fill, & Inf pixels."
+                ),
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        for name, thresh in zip(
+            (
+                "nan_threshold",
+                "near_zero_threshold",
+                "fill_threshold",
+                "inf_threshold",
+                "total_invalid_threshold",
+            ),
+            (
+                self.nan_threshold,
+                self.near_zero_threshold,
+                self.fill_threshold,
+                self.inf_threshold,
+                self.total_invalid_threshold,
+            ),
+        ):
+            if thresh != -1:
+                try:
+                    nisarqa.verify_valid_percentage(thresh)
+                except ValueError:
+                    raise ValueError(
+                        f"`{name}` is {thresh}, must be in range [0.0, 100.0]"
+                        " or -1."
+                    )
+
+        if self.epsilon < 0:
+            raise ValueError(f"`{self.epsilon=}`, must be >= 0.")
+
+    @classmethod
+    def get_field_with_updated_default(
+        self, param_name: str, default: float
+    ) -> dict:
+
+        for f in fields(self):
+            if f.name == param_name:
+                metadata = f.metadata
+                break
+        else:
+            raise ValueError(
+                f"`{param_name=}`, must be a parameter in `ThresholdParamGroup`"
+            )
+
+        return field(default=default, metadata=metadata)
+
+
+@dataclass(frozen=True)
 class WorkflowsParamGroup(YamlParamGroup):
     """
     The parameters specifying which QA workflows should be run.
@@ -494,8 +640,7 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="validate",
-                descr=_descr
-                % "`validate` workflow to validate the\n"
+                descr=_descr % "`validate` workflow to validate the\n"
                 " input file against its product spec",
             )
         },
@@ -506,8 +651,7 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="qa_reports",
-                descr=_descr
-                % "`qa_reports` workflow to generate a\n"
+                descr=_descr % "`qa_reports` workflow to generate a\n"
                 "PDF report, geolocated browse image, compute statistics\n"
                 "on the input file, etc.",
             )

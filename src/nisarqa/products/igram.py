@@ -195,6 +195,7 @@ def verify_igram(
             if isinstance(product, nisarqa.UnwrappedGroup):
                 nisarqa.process_ionosphere_phase_screen(
                     product=product,
+                    params=root_params.iono_phase_screen,
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
                 )
