@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, fields, replace
 from typing import ClassVar, Optional, Type, Union
 
@@ -173,7 +173,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         image values prior to normalization and gamma correction.
         If None, then no normalization, no gamma correction will be applied.
         Default: 0.5
-    nan_color : str or list of float or None, optional
+    nan_color : str or Sequence of float or None, optional
         Color to plot NaN pixels for the PDF report.
         For transparent, set to None.
         The color should given in a format recognized by matplotlib:
@@ -296,7 +296,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
-    nan_color: str | list[float] | None = field(
+    nan_color: str | Sequence[float] | None = field(
         default="blue",
         metadata={
             "yaml_attrs": YamlAttrs(

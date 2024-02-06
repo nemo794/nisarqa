@@ -945,7 +945,7 @@ def img2pdf_grayscale(
     colorbar_formatter: Optional[FuncFormatter] = None,
     xlabel: Optional[str] = None,
     ylabel: Optional[str] = None,
-    nan_color: str | list[float] | None = "blue",
+    nan_color: str | Sequence[float] | None = "blue",
 ) -> None:
     """
     Plot the image array in grayscale, add a colorbar, and append to the PDF.
@@ -974,7 +974,7 @@ def img2pdf_grayscale(
         (Wrapping the function with FuncFormatter is optional.)
     xlabel, ylabel : str or None, optional
         Axes labels for the x-axis and y-axis (respectively)
-    nan_color : str or list of float or None, optional
+    nan_color : str or Sequence of float or None, optional
         Color to plot NaN pixels for the PDF report.
         For transparent, set to None.
         The color should given in a format recognized by matplotlib:
