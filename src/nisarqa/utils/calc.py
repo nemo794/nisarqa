@@ -450,7 +450,7 @@ def compute_and_save_basic_statistics(
 
 def compute_nan_metrics(arr: np.ndarray) -> tuple[int, float]:
     """
-    Get the number of NaN elements and percentage of the array that is Nan.
+    Get the number of NaN elements and percentage of the array that is NaN.
 
     Parameters
     ----------
@@ -464,7 +464,7 @@ def compute_nan_metrics(arr: np.ndarray) -> tuple[int, float]:
     count : int
         Number of NaN elements in `arr`.
     percentage : float
-        The percentage of `arr` that is Nan.
+        The percentage of `arr` that is NaN.
     """
     # np.isnan works for both real and complex data. For complex data, if
     # either the real or imag part is NaN, then the pixel is considered NaN.
@@ -503,7 +503,7 @@ def compute_inf_metrics(arr: np.ndarray) -> tuple[int, float]:
 
 
 def compute_fill_metrics(
-    arr: np.ndarray, fill_value: float
+    arr: np.ndarray, fill_value: int | float | complex
 ) -> tuple[int, float]:
     """
     Get the number of +/- Inf elements and their percentage of the array.
@@ -512,8 +512,8 @@ def compute_fill_metrics(
     ----------
     arr : numpy.ndarray
         Input array.
-    fill_value : float
-        The fill value for `arr`.
+    fill_value : int or float or complex
+        The fill value for `arr`. The type should correspond to the dtype of `arr`.
 
     Returns
     -------
@@ -543,8 +543,8 @@ def compute_near_zero_metrics(
     ----------
     arr : numpy.ndarray
         Input array; can have a real or complex dtype.
-        (For complex data, both real and imaj part must be ~0.0.)
-    epsilon : float or int, optional
+        (For complex data, the magnitude must be ~0.0.)
+    epsilon : float, optional
         The tolerance used for computing if raster pixels are "almost zero".
         This will be used during the check for percentage of near-zero pixels.
         Defaults to 1e-6.
@@ -557,7 +557,6 @@ def compute_near_zero_metrics(
         The percentage of `arr` that is near-zero.
     """
     # By using np.abs(), for complex values this will compute the magnitude.
-    # The magnitude will only be ~0.0 if both real and imaj are ~0.0.
     count = np.sum(np.abs(arr) < epsilon)
 
     percentage = 100 * count / arr.size
@@ -589,7 +588,7 @@ def compute_percentage_metrics(
         If the percentage of NaN-, zero-, fill-, or Inf-valued pixels
         is above `threshold`, it will be logged as an error.
         Defaults to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-    epsilon : float or int, optional
+    epsilon : float, optional
         The tolerance used for computing if raster pixels are "almost zero".
         This will be used during the check for percentage of near-zero pixels.
         Defaults to 1e-6.
