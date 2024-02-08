@@ -5,7 +5,7 @@ from dataclasses import dataclass, field, fields, replace
 from typing import ClassVar, Optional, Type, Union
 
 import numpy as np
-from matplotlib.colors import to_rgb
+from matplotlib.colors import to_rgba
 from numpy.typing import ArrayLike
 
 import nisarqa
@@ -401,7 +401,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         # validate nan_color
         if self.nan_color is not None:
             try:
-                to_rgb(c=self.nan_color)
+                to_rgba(c=self.nan_color)
             except ValueError:
                 raise ValueError(
                     f"`nan_color_in_pdf` is `{self.nan_color}`, which is not"
