@@ -402,12 +402,12 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         if self.nan_color is not None:
             try:
                 to_rgba(c=self.nan_color)
-            except ValueError:
+            except ValueError as e:
                 raise ValueError(
                     f"`nan_color_in_pdf` is `{self.nan_color}`, which is not"
                     " recognizable by Matplotlib. For acceptable options, see:"
                     " https://matplotlib.org/stable/users/explain/colors/colors.html"
-                )
+                ) from e
 
         # validate tile_shape
         val = self.tile_shape
