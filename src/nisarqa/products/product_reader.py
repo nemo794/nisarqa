@@ -1005,7 +1005,7 @@ class NisarRadarProduct(NisarProduct):
         Generate a RadarRaster for the raster at `raster_path`.
 
         NISAR product type must be one of: 'RSLC', 'SLC', 'RIFG', 'RUNW', 'ROFF'
-        If the product type is 'RSLC' or 'SLC', then the image dataset
+        If the raster dtype is complex float 16, then the image dataset
         will be stored as a ComplexFloat16Decoder instance; this will allow
         significantly faster access to the data.
 
@@ -1624,6 +1624,36 @@ class NonInsarProduct(NisarProduct):
 
 @dataclass
 class SLC(NonInsarProduct):
+
+    def _get_dataset_handle(
+        self, h5_file: h5py.File, raster_path: str
+    ) -> h5py.Dataset:
+        # As of R4.0.2, the baseline is that both RSLC and GSLC produce
+        # their imagery layers in complex64 (float32+float32) format
+        # with some bits masked out to improve compression.
+        # However, older test datasets were produced with imagery layers in
+        # complex32 format, and ISCE3 can still be configured to generate the
+        # layers in that format.
+        log = nisarqa.get_logger()
+        msg = (
+            f"(%s) PASS/FAIL Check: Product raster dtype conforms to"
+            f" {self.product_type} Product Spec dtype of complex64. Dataset: %s"
+        )
+        if nisarqa.is_complex32(h5_file[raster_path]):
+            # As of h5py 3.8.0, h5py gained the ability to read complex32
+            # datasets, however numpy and other downstream packages do not
+            # necessarily have that flexibility.
+            # If the input product has dtype complex32, then we'll need to use
+            # ComplexFloat16Decoder so that numpy et al can read the datasets.
+            dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
+            log.error(msg % ("FAIL", raster_path))
+        else:
+            # Use h5py's standard reader
+            dataset = h5_file[raster_path]
+            log.info(msg % ("PASS", raster_path))
+
+        return dataset
+
     def get_pols(self, freq: str) -> tuple[str, ...]:
         pols = super().get_pols(freq)
 
@@ -2012,32 +2042,6 @@ class RSLC(SLC, NisarRadarProduct):
                     " this is not a valid path in the input file."
                 )
 
-    def _get_dataset_handle(
-        self, h5_file: h5py.File, raster_path: str
-    ) -> h5py.Dataset:
-        log = nisarqa.get_logger()
-        msg = (
-            f"(%s) PASS/FAIL Check: Product raster dtype conforms"
-            f" to RSLC Product Spec dtype of complex32. Dataset: %s"
-        )
-
-        # RSLC Product Spec says that NISAR RSLC rasters should be complex32,
-        # which requires special handling to read and access.
-        # As of h5py 3.8.0, h5py gained the ability to read complex32
-        # datasets, however numpy and other downstream packages do not
-        # necessarily have that flexibility.
-        if nisarqa.is_complex32(h5_file[raster_path]):
-            # The RSLC dataset is complex32, as desired. Use the
-            # ComplexFloat16Decoder so that numpy et al can read the datasets.
-            dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
-            log.info(msg % ("PASS", raster_path))
-        else:
-            # Use h5py's standard reader
-            dataset = h5_file[raster_path]
-            log.error(msg % ("FAIL", raster_path))
-
-        return dataset
-
     def get_scene_center_along_track_spacing(self, freq: str) -> float:
         """
         Get along-track spacing at mid-swath.
@@ -2176,31 +2180,6 @@ class GSLC(SLC, NonInsarGeoProduct):
     @property
     def product_type(self) -> str:
         return "GSLC"
-
-    def _get_dataset_handle(
-        self, h5_file: h5py.File, raster_path: str
-    ) -> nisarqa.GeoRaster:
-        # As of R3.3 the GSLC workflow recently gained the ability
-        # to generate products in complex32 format as well as complex64
-        # with some bits masked out to improve compression.
-        # If the input GSLC product has dtype complex32, then we'll need
-        # to use ComplexFloat16Decoder.
-        log = nisarqa.get_logger()
-        msg = (
-            f"(%s) PASS/FAIL Check: Product raster dtype conforms"
-            f" to GSLC Product Spec dtype of complex64. Dataset: %s "
-        )
-        if nisarqa.is_complex32(h5_file[raster_path]):
-            # The GSLC dataset is complex32. Use the
-            # ComplexFloat16Decoder so that numpy et al can read the datasets.
-            dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
-            log.error(msg % ("FAIL", raster_path))
-        else:
-            # Use h5py's standard reader
-            dataset = h5_file[raster_path]
-            log.info(msg % ("PASS", raster_path))
-
-        return dataset
 
 
 @dataclass
