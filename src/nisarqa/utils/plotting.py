@@ -148,7 +148,9 @@ def plot_ionosphere_phase_screen_to_pdf(
     assert np.nanmax(iono_arr) <= (np.pi + epsilon)
 
     # Decimate to fit nicely on the figure.
-    iono_arr = decimate_img_to_size_of_axes(ax=ax1, arr=iono_arr)
+    iono_arr = downsample_img_to_size_of_axes(
+        ax=ax1, arr=iono_arr, mode="decimate"
+    )
 
     # Add the wrapped phase image plot
     im = ax1.imshow(
@@ -183,7 +185,9 @@ def plot_ionosphere_phase_screen_to_pdf(
         iono_uncertainty_raster
     )
 
-    uncertainty_arr = decimate_img_to_size_of_axes(ax=ax2, arr=uncertainty_arr)
+    uncertainty_arr = downsample_img_to_size_of_axes(
+        ax=ax2, arr=uncertainty_arr, mode="decimate"
+    )
 
     im2 = ax2.imshow(
         uncertainty_arr,
@@ -312,7 +316,9 @@ def plot_unwrapped_phase_image_to_pdf(
     )
 
     # Decimate to fit nicely on the figure.
-    phs_img_unw = decimate_img_to_size_of_axes(ax=ax1, arr=phs_img_unw)
+    phs_img_unw = downsample_img_to_size_of_axes(
+        ax=ax1, arr=phs_img_unw, mode="decimate"
+    )
 
     im1 = ax1.imshow(
         phs_img_unw, aspect="equal", cmap="plasma", interpolation="none"
@@ -346,8 +352,8 @@ def plot_unwrapped_phase_image_to_pdf(
             rewrap=rewrap,
         )
 
-        phs_img_rewrapped = decimate_img_to_size_of_axes(
-            ax=ax2, arr=phs_img_rewrapped
+        phs_img_rewrapped = downsample_img_to_size_of_axes(
+            ax=ax2, arr=phs_img_rewrapped, mode="decimate"
         )
 
         im2 = ax2.imshow(
@@ -499,8 +505,12 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     )
 
     # Decimate to fit nicely on the figure.
-    phs_img = decimate_img_to_size_of_axes(ax=ax1, arr=phs_img)
-    coh_img = decimate_img_to_size_of_axes(ax=ax2, arr=coh_img)
+    phs_img = downsample_img_to_size_of_axes(
+        ax=ax1, arr=phs_img, mode="decimate"
+    )
+    coh_img = downsample_img_to_size_of_axes(
+        ax=ax2, arr=coh_img, mode="decimate"
+    )
 
     # Construct title for the overall PDF page. (`*raster.name` has a format
     # like "RIFG_L_A_interferogram_HH_wrappedInterferogram". We need to
@@ -1204,7 +1214,9 @@ def img2pdf_hsi(
 
     # Decimate image to a size that fits on the axes without interpolation
     # and without making the size (in MB) of the PDF explode.
-    img_to_plot = decimate_img_to_size_of_axes(ax=ax1, arr=img_to_plot)
+    img_to_plot = downsample_img_to_size_of_axes(
+        ax=ax1, arr=img_to_plot, mode="decimate"
+    )
 
     # Plot the raster image and label it
     ax1.imshow(img_to_plot, aspect="equal", cmap="hsv", interpolation="none")
@@ -1335,18 +1347,18 @@ def format_cbar_ticks_for_multiples_of_pi(
         )
 
 
-def decimate_img_to_size_of_axes(
-    ax: mpl.Axes, arr: np.ndarray, mode: str = "pure"
+def downsample_img_to_size_of_axes(
+    ax: mpl.Axes, arr: np.ndarray, mode: str = "decimate"
 ) -> np.ndarray:
     """
-    Decimate array to size of axes for use with `interpolation='none'`.
+    Downsample array to size of axes for use with `interpolation='none'`.
 
     In Matplotlib, setting `interpolation='none'` is useful for creating crisp
     images in e.g. output PDFs. However, when an image array is very large,
     this setting causes the generated plots (and the PDFs they're saved to)
     to be very large in size (potentially several hundred MB).
 
-    This function is designed to decimate a large image array to have X and Y
+    This function is designed to downsample a large image array to have X and Y
     dimensions appropriate for the size of the given axes object.
     It maintains the same aspect ratio as the source image array.
 
@@ -1354,15 +1366,15 @@ def decimate_img_to_size_of_axes(
     ----------
     ax : matplotlib.Axes
         Axes object. The window extent and other properties of this axes
-        will be used to compute the decimation factor for the image array.
+        will be used to compute the downsampling factor for the image array.
     arr : numpy.ndarray
-        The (image) array to be decimated.
+        The (image) array to be downsampled.
     mode : str, optional
-        Decimation algorithm. One of:
-            "pure" : (default) Pure decimation. For example, if the decimation
-                stride is determined to be `3`, then every 3rd row and 3rd
-                column will be extracted to form the decimated image.
-            "multilook" : Naive multilooking. For example, if the decimation
+        Downsampling algorithm. One of:
+            "decimate" : (default) Pure decimation. For example, if the
+                downsampling stride is determined to be `3`, then every 3rd row
+                and 3rd column will be extracted to form the downsampled image.
+            "multilook" : Naive multilooking. For example, if the downsampling
                 stride is determined to be `3`, then every 3-by-3 window
                 (9 pixels total) will be averaged to form the output pixel.
                 Note that if any of those 9 input pixels is NaN, then the
@@ -1371,14 +1383,14 @@ def decimate_img_to_size_of_axes(
     Returns
     -------
     out_arr : numpy.ndarry
-        Copy of `arr` that has been decimated along the first two dimensions
+        Copy of `arr` that has been downsampled along the first two dimensions
         so that the number of pixels in the X and Y dimensions
         approximately fits "nicely" in the window extent of the given axes.
-        If the image is smaller than the axes, no decimation will occur.
+        If the image is smaller than the axes, no downsampling will occur.
 
     See Also
     --------
-    nisarqa.compute_square_pixel_nlooks : Function to compute the decimation
+    nisarqa.compute_square_pixel_nlooks : Function to compute the downsampling
         strides for an image array;
         this function also accounts for making the pixels "square".
     """
@@ -1395,7 +1407,7 @@ def decimate_img_to_size_of_axes(
         desired_longest = bbox.height * fig.dpi
 
         if src_arr_height <= desired_longest:
-            # input array is smaller than window extent. No decimation needed.
+            # input array is smaller than window extent. No downsampling needed.
             return arr
 
         # Use floor division. (Better to have resolution that is *slightly*
@@ -1409,19 +1421,21 @@ def decimate_img_to_size_of_axes(
         desired_longest = bbox.width * fig.dpi
 
         if src_arr_width <= desired_longest:
-            # input array is smaller than window extent. No decimation needed.
+            # input array is smaller than window extent. No downsampling needed.
             return arr
 
         # Use floor division. See explanation above.)
         stride = int(src_arr_width / desired_longest)
 
-    # Decimate to the correct size along the X and Y directions.
-    if mode == "pure":
+    # Downsample to the correct size along the X and Y directions.
+    if mode == "decimate":
         return arr[::stride, ::stride]
     elif mode == "multilook":
         return nisarqa.multilook(arr=arr, nlooks=(stride, stride))
     else:
-        raise ValueError(f"`{mode=}`, only 'pure' and 'multilook' supported.")
+        raise ValueError(
+            f"`{mode=}`, only 'decimate' and 'multilook' supported."
+        )
 
 
 def image_histogram_equalization(
@@ -1629,7 +1643,7 @@ def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
     fig.suptitle("Along Track Offsets and Slant Range Offsets (meters)")
 
     # Decimate Along Track Offset raster and plot on left (ax1)
-    az_img = decimate_img_to_size_of_axes(ax=ax1, arr=az_img)
+    az_img = downsample_img_to_size_of_axes(ax=ax1, arr=az_img, mode="decimate")
     ax1.imshow(
         az_img,
         aspect="equal",
@@ -1655,7 +1669,7 @@ def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
     )
 
     # Decimate slant range Offset raster and plot on right (ax2)
-    rg_img = decimate_img_to_size_of_axes(ax=ax2, arr=rg_img)
+    rg_img = downsample_img_to_size_of_axes(ax=ax2, arr=rg_img, mode="decimate")
     im2 = ax2.imshow(
         rg_img,
         aspect="equal",
@@ -1873,8 +1887,8 @@ def plot_offsets_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
     )
     fig.suptitle(title)
 
-    az_off = decimate_img_to_size_of_axes(ax=ax, arr=az_off)
-    rg_off = decimate_img_to_size_of_axes(ax=ax, arr=rg_off)
+    az_off = downsample_img_to_size_of_axes(ax=ax, arr=az_off, mode="decimate")
+    rg_off = downsample_img_to_size_of_axes(ax=ax, arr=rg_off, mode="decimate")
 
     im, cbar_min, cbar_max = add_magnitude_image_and_quiver_plot_to_axes(
         ax=ax, az_off=az_off, rg_off=rg_off, params=params
@@ -2345,8 +2359,8 @@ def plot_range_and_az_offsets_variances_to_pdf(
         cbar_min, cbar_max = cbar_min_max
 
     # Decimate to fit nicely on the figure.
-    az_std = decimate_img_to_size_of_axes(ax=ax1, arr=az_std)
-    rg_std = decimate_img_to_size_of_axes(ax=ax2, arr=rg_std)
+    az_std = downsample_img_to_size_of_axes(ax=ax1, arr=az_std, mode="decimate")
+    rg_std = downsample_img_to_size_of_axes(ax=ax2, arr=rg_std, mode="decimate")
 
     # Add the azimuth offsets variance plot (left plot)
     im1 = ax1.imshow(
@@ -2565,7 +2579,9 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         offset_cbar_min, offset_cbar_max = offset_cbar_min_max
 
     # Decimate to fit nicely on the figure.
-    cross_off = decimate_img_to_size_of_axes(ax=ax1, arr=cross_off)
+    cross_off = downsample_img_to_size_of_axes(
+        ax=ax1, arr=cross_off, mode="decimate"
+    )
 
     # Add the cross offsets variance plot (left plot)
     im1 = ax1.imshow(
@@ -2605,7 +2621,9 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     surf_peak = nisarqa.decimate_raster_array_to_square_pixels(corr_surf_peak)
 
     # Decimate to fit nicely on the figure.
-    surf_peak = decimate_img_to_size_of_axes(ax=ax2, arr=surf_peak)
+    surf_peak = downsample_img_to_size_of_axes(
+        ax=ax2, arr=surf_peak, mode="decimate"
+    )
 
     # Correlation surface peak should always be in range [0, 1]
     if np.any(surf_peak < 0.0) or np.any(surf_peak > 1.0):

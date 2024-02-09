@@ -990,7 +990,7 @@ def img2pdf_grayscale(
 
     # Decimate image to a size that fits on the axes without interpolation
     # and without making the size (in MB) of the PDF explode.
-    img_arr = nisarqa.decimate_img_to_size_of_axes(
+    img_arr = nisarqa.downsample_img_to_size_of_axes(
         ax=ax, arr=img_arr, mode="multilook"
     )
 
