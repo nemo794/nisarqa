@@ -1374,9 +1374,10 @@ def downsample_img_to_size_of_axes(
             "decimate" : (default) Pure decimation. For example, if the
                 downsampling stride is determined to be `3`, then every 3rd row
                 and 3rd column will be extracted to form the downsampled image.
-            "multilook" : Naive multilooking. For example, if the downsampling
-                stride is determined to be `3`, then every 3-by-3 window
-                (9 pixels total) will be averaged to form the output pixel.
+            "multilook" : Naive, unweighted multilooking. For example,
+                if the downsampling stride is determined to be `3`,
+                then every 3-by-3 window (9 pixels total) will be averaged
+                to form the output pixel.
                 Note that if any of those 9 input pixels is NaN, then the
                 output pixel will be NaN.
 
