@@ -2767,13 +2767,11 @@ def plot_connected_components_layer(
     # colorbar changes from one color to the next color.
 
     # This assumes that `labels` is in sorted, ascending order.
-    boundaries = np.concatenate(
-        (
-            [labels[0] - 1],
-            labels[:-1] + np.diff(labels) / 2.0,
-            [labels[-1] + 1],
-        )
-    )
+    boundaries = np.concatenate((
+        [labels[0] - 1],
+        labels[:-1] + np.diff(labels) / 2.0,
+        [labels[-1] + 1],
+    ))
 
     norm = colors.BoundaryNorm(boundaries, len(boundaries) - 1)
 
@@ -2854,6 +2852,104 @@ def plot_connected_components_layer(
     report_pdf.savefig(fig)
 
     # Close the plot
+    plt.close(fig)
+
+
+def process_unw_coh_mag(
+    product: nisarqa.UnwrappedGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None:
+    """
+    Process unwrapped coherence magnitude layer: metrics to STATS h5, plots to PDF.
+
+    Parameters
+    ----------
+    product : nisarqa.UnwrappedGroup
+        Input NISAR product.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the unwrapped phase image plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    """
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_unwrapped_coh_mag(freq=freq, pol=pol) as coh_mag:
+                # TODO - Compute Statistics first, in case of malformed layers
+                # (which could cause plotting to fail)
+                nisarqa.compute_and_save_basic_statistics(
+                    raster=coh_mag,
+                    stats_h5=stats_h5,
+                    threshold=0.95,
+                    epsilon=1e-6,
+                    treat_all_zeros_as_error=True,
+                )
+
+                plot_unwrapped_coh_mag_to_pdf(
+                    coh_raster=coh_mag, report_pdf=report_pdf
+                )
+
+
+def plot_unwrapped_coh_mag_to_pdf(
+    coh_raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Plot unwrapped coherence magnitude layer to PDF.
+
+    Parameters
+    ----------
+    coh_raster : nisarqa.GeoRaster or nisarqa.RadarRaster
+        *Raster for the unwrapped coherence magnitude raster.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        Output PDF file to append the phase and coherence magnitude plots to.
+    """
+    fig, ax = plt.subplots(
+        ncols=1,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
+    )
+
+    # Construct title for the overall PDF page.
+    title = f"Unwrapped Coherence Magnitude\n{coh_raster.name}"
+    fig.suptitle(title)
+
+    coh_img = nisarqa.decimate_raster_array_to_square_pixels(coh_raster)
+
+    # Decimate to fit nicely on the figure.
+    coh_img = downsample_img_to_size_of_axes(
+        ax=ax, arr=coh_img, mode="decimate"
+    )
+
+    # Add the coh mag layer corresponding to the wrapped phase image plot
+    im2 = ax.imshow(
+        coh_img,
+        aspect="equal",
+        cmap="gray",
+        interpolation="none",
+        vmin=0.0,
+        vmax=1.0,
+    )
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax,
+        xlim=coh_raster.x_axis_limits,
+        ylim=coh_raster.y_axis_limits,
+        img_arr_shape=np.shape(coh_img),
+        xlabel=coh_raster.x_axis_label,
+        ylabel=coh_raster.y_axis_label,
+    )
+
+    # Add a colorbar to the figure
+    cax2 = fig.colorbar(im2)
+    cax2.ax.set_ylabel(
+        ylabel="Coherence Magnitude", rotation=270, labelpad=10.0
+    )
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
     plt.close(fig)
 
 
