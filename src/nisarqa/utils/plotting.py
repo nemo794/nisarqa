@@ -2880,7 +2880,7 @@ def process_unw_coh_mag(
                 nisarqa.compute_and_save_basic_statistics(
                     raster=coh_mag,
                     stats_h5=stats_h5,
-                    threshold=0.95,
+                    threshold=95.0,
                     epsilon=1e-6,
                     treat_all_zeros_as_error=True,
                 )
@@ -2922,8 +2922,8 @@ def plot_unwrapped_coh_mag_to_pdf(
         ax=ax, arr=coh_img, mode="decimate"
     )
 
-    # Add the coh mag layer corresponding to the wrapped phase image plot
-    im2 = ax.imshow(
+    # Add the coh mag layer
+    im = ax.imshow(
         coh_img,
         aspect="equal",
         cmap="gray",
@@ -2942,10 +2942,8 @@ def plot_unwrapped_coh_mag_to_pdf(
     )
 
     # Add a colorbar to the figure
-    cax2 = fig.colorbar(im2)
-    cax2.ax.set_ylabel(
-        ylabel="Coherence Magnitude", rotation=270, labelpad=10.0
-    )
+    cax = fig.colorbar(im)
+    cax.ax.set_ylabel(ylabel="Coherence Magnitude", rotation=270, labelpad=10.0)
 
     # Append figure to the output PDF
     report_pdf.savefig(fig)
