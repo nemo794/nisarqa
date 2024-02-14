@@ -2868,14 +2868,14 @@ def process_unw_coh_mag(
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
-        The output PDF file to append the unwrapped phase image plots to.
+        The output PDF file to append the coherence magnitude image plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
             with product.get_unwrapped_coh_mag(freq=freq, pol=pol) as coh_mag:
-                # TODO - Compute Statistics first, in case of malformed layers
+                # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
                     raster=coh_mag,
@@ -2902,7 +2902,7 @@ def plot_unwrapped_coh_mag_to_pdf(
     coh_raster : nisarqa.GeoRaster or nisarqa.RadarRaster
         *Raster for the unwrapped coherence magnitude raster.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
-        Output PDF file to append the phase and coherence magnitude plots to.
+        Output PDF file to append the plot to.
     """
     fig, ax = plt.subplots(
         ncols=1,
@@ -2912,7 +2912,7 @@ def plot_unwrapped_coh_mag_to_pdf(
     )
 
     # Construct title for the overall PDF page.
-    title = f"Unwrapped Coherence Magnitude\n{coh_raster.name}"
+    title = f"Coherence Magnitude (Unwrapped Group)\n{coh_raster.name}"
     fig.suptitle(title)
 
     coh_img = nisarqa.decimate_raster_array_to_square_pixels(coh_raster)
