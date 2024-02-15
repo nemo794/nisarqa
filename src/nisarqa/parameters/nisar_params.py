@@ -503,7 +503,7 @@ class ThresholdParamGroup(YamlParamGroup):
         info, and will not trigger a QA failure)."""
 
     nan_threshold: Optional[float] = field(
-        default=95.0,
+        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="nan_threshold",
@@ -526,7 +526,7 @@ class ThresholdParamGroup(YamlParamGroup):
         default=1e-6,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="fill_threshold",
+                name="epsilon",
                 descr="""Tolerance used during the check for percentage of near-zero pixels
                 for computing if raster pixels are "almost zero".""",
             )
@@ -600,18 +600,16 @@ class ThresholdParamGroup(YamlParamGroup):
     @classmethod
     def get_field_with_updated_default(
         self, param_name: str, default: float
-    ) -> dict:
+    ) -> dataclasses.Field:
 
         for f in fields(self):
             if f.name == param_name:
                 metadata = f.metadata
-                break
+                return field(default=default, metadata=metadata)
         else:
             raise ValueError(
                 f"`{param_name=}`, must be a parameter in `ThresholdParamGroup`"
             )
-
-        return field(default=default, metadata=metadata)
 
 
 @dataclass(frozen=True)

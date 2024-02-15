@@ -221,7 +221,7 @@ def verify_valid_percentile(percentile):
         )
 
 
-def verify_valid_percentage(percentage):
+def verify_valid_percentage(percentage: float) -> None:
     """Verify that the input percentage is in range [0.0, 100.0]."""
     if percentage < 0.0 or percentage > 100.0:
         raise ValueError(

@@ -443,13 +443,13 @@ def compute_nan_count(arr: ArrayLike) -> int:
     return np.sum(np.isnan(arr))
 
 
-def compute_inf_count(arr: np.ndarray) -> int:
+def compute_inf_count(arr: ArrayLike) -> int:
     """
     Get the number of +/- Inf elements in the input array.
 
     Parameters
     ----------
-    arr : numpy.ndarray
+    arr : array_like
         Input array; can have a real or complex dtype.
         (For complex data, if either the real or imag part is +/- Inf,
         then the element is considered +/- Inf.)
@@ -465,14 +465,14 @@ def compute_inf_count(arr: np.ndarray) -> int:
 
 
 def compute_fill_count(
-    arr: np.ndarray, fill_value: int | float | complex
+    arr: ArrayLike, fill_value: int | float | complex
 ) -> int:
     """
     Get the number of fill value elements in the input array.
 
     Parameters
     ----------
-    arr : numpy.ndarray
+    arr : array_like
         Input array.
     fill_value : int or float or complex
         The fill value for `arr`. The type should correspond to dtype of `arr`.
@@ -486,18 +486,18 @@ def compute_fill_count(
         # `np.nan == np.nan` evaluates to False, so handle this case here
         return compute_nan_count(arr=arr)
 
-    return np.sum(arr == fill_value)
+    return np.sum(np.equal(arr, fill_value))
 
 
 def compute_near_zero_count(
-    arr: np.ndarray, epsilon: float = 1e-6
-) -> tuple[int, float]:
+    arr: ArrayLike, epsilon: float = 1e-6
+) -> int:
     """
     Get the number of near-zero elements in the input array.
 
     Parameters
     ----------
-    arr : numpy.ndarray
+    arr : array_like
         Input array; can have a real or complex dtype.
         (For complex data, the magnitude must be ~0.0.)
     epsilon : float, optional
