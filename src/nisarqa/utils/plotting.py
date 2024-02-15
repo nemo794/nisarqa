@@ -3129,7 +3129,7 @@ def process_unw_coh_mag(
                 nisarqa.compute_and_save_basic_statistics(
                     raster=coh_mag,
                     stats_h5=stats_h5,
-                    threshold=95.0,
+                    threshold=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
                     epsilon=1e-6,
                     treat_all_zeros_as_error=True,
                 )

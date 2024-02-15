@@ -9,7 +9,6 @@ from matplotlib.backends.backend_pdf import PdfPages
 from numpy.typing import ArrayLike
 
 import nisarqa
-from nisarqa import ThresholdParamGroup
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -128,7 +127,7 @@ def normalize(
 
     Parameters
     ----------
-    arr : Arraylike
+    arr : array_like
         Input array to be normalized
     min_max : pair of numeric or None, optional
         Defaults to None, which means that `arr`'s min and max will be
@@ -242,13 +241,12 @@ def hz2mhz(arr: np.ndarray) -> np.ndarray:
 
 
 def compute_and_save_basic_statistics(
-    raster: nisarqa.Raster, stats_h5: h5py.File, params: ThresholdParamGroup
+    raster: nisarqa.Raster,
+    stats_h5: h5py.File,
+    params: nisarqa.ThresholdParamGroup,
 ) -> None:
     """
     Compute and save min, max, mean, std, % nan, % zero, % fill, % inf to HDF5.
-
-    Warning: Entire input array will be read into memory and processed.
-    Only use this function for small datasets.
 
     Parameters
     ----------
@@ -259,6 +257,11 @@ def compute_and_save_basic_statistics(
     params : nisarqa.ThresholdParamGroup
         A structure containing the parameters for checking the percentage
         of invalid pixels in a raster.
+
+    Warnings
+    --------
+    The entire input array will be read into memory and processed.
+    Only use this function for small datasets.
 
     Notes
     -----
@@ -428,7 +431,7 @@ def compute_nan_count(arr: ArrayLike) -> int:
 
     Parameters
     ----------
-    arr : ArrayLike
+    arr : array_like
         Input array; can have a real or complex dtype.
         (For complex data, if either the real or imag part is NaN,
         then the element is considered NaN.)
@@ -489,9 +492,7 @@ def compute_fill_count(
     return np.sum(np.equal(arr, fill_value))
 
 
-def compute_near_zero_count(
-    arr: ArrayLike, epsilon: float = 1e-6
-) -> int:
+def compute_near_zero_count(arr: ArrayLike, epsilon: float = 1e-6) -> int:
     """
     Get the number of near-zero elements in the input array.
 
@@ -501,8 +502,7 @@ def compute_near_zero_count(
         Input array; can have a real or complex dtype.
         (For complex data, the magnitude must be ~0.0.)
     epsilon : float, optional
-        The tolerance used for computing if raster pixels are "almost zero".
-        This will be used during the check for percentage of near-zero pixels.
+        Absolute tolerance for determining if a raster pixel is 'near zero'.
         Defaults to 1e-6.
 
     Returns
@@ -516,14 +516,11 @@ def compute_near_zero_count(
 
 def compute_percentage_metrics(
     raster: nisarqa.Raster,
-    params: ThresholdParamGroup,
+    params: nisarqa.ThresholdParamGroup,
     stats_h5: h5py.File,
 ) -> None:
     """
     Check % nan, % zero, % fill, % inf, % total invalid; save to HDF5 and CSV.
-
-    Warning: Entire input array will be read into memory and processed.
-    Only use this function for small datasets.
 
     Parameters
     ----------
@@ -534,6 +531,11 @@ def compute_percentage_metrics(
     params : nisarqa.ThresholdParamGroup
         A structure containing the parameters for checking the percentage
         of invalid pixels in a raster.
+
+    Warnings
+    --------
+    The entire input array will be read into memory and processed.
+    Only use this function for small datasets.
 
     Notes
     -----
@@ -599,7 +601,6 @@ def compute_percentage_metrics(
         # Compute fill value metrics. (If the fill value is NaN, it's ok that
         # this is redundant to the NaN value metrics.)
         if np.isnan(fill_value):
-            num_fill = num_nan
             percent_fill = percent_nan
             # We already accumulated the number of NaN to `total_num_invalid`,
             # skip doing that here so that we do not double-count the NaN
@@ -622,8 +623,6 @@ def compute_percentage_metrics(
             fill_value=fill_value,
             arr_name=arr_name,
         )
-    else:
-        num_fill = 0
 
     # Compute number of zeros metrics.
     num_zero = compute_near_zero_count(arr, epsilon=epsilon)
@@ -672,7 +671,7 @@ def compute_percentage_metrics(
 
         msg = (
             f"Array {arr_name} did not pass at least one of the percentage"
-            " threshold metrics; either the % Nan, % Inf, % near-zero, % 'fill'"
+            " threshold metrics; either the % Nan, % Inf, % 'fill', % near-zero"
             " and/or % total invalid pixels was greater than its requested"
             " threshold. See the log for exact details."
         )
@@ -717,9 +716,6 @@ def connected_components_metrics(
     """
     Compute metrics specific to Connected Components; save to HDF5 and CSV.
 
-    Warning: Entire input array will be read into memory and processed.
-    Only use this function for small datasets.
-
     Parameters
     ----------
     raster : nisarqa.Raster
@@ -733,6 +729,11 @@ def connected_components_metrics(
         it will be recorded in the summary file and an exception will be raised.
         If None, this error check will be skipped.
         Defaults to None.
+
+    Warnings
+    --------
+    The entire input array will be read into memory and processed.
+    Only use this function for small datasets.
     """
 
     log = nisarqa.get_logger()

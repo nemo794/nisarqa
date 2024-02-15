@@ -695,7 +695,7 @@ def clip_array(arr, percentile_range=(0.0, 100.0)):
         range defined by `percentile_range` clipped.
     """
     for p in percentile_range:
-        nisarqa.verify_valid_percentile(p)
+        nisarqa.verify_valid_percent(p)
     if len(percentile_range) != 2:
         raise ValueError(f"{percentile_range=} must have length of 2")
 

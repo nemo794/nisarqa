@@ -22,7 +22,7 @@ def save_percent_nan_to_stats_h5(
     grp_path : str
         Path to h5py Group to add the dataset and attributes to.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -60,14 +60,14 @@ def percent_nan_is_within_threshold(
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     log = nisarqa.get_logger()
 
     msg = f"Array {arr_name} is {percentage} percent NaN pixels."
 
     if threshold_percentage != -1:
-        nisarqa.verify_valid_percentage(threshold_percentage)
+        nisarqa.verify_valid_percent(threshold_percentage)
         msg += f" Acceptable threshold is {threshold_percentage} percent NaN."
         summary_threshold = threshold_percentage
     else:
@@ -111,7 +111,7 @@ def save_percent_inf_to_stats_h5(
     grp_path : str
         Path to h5py Group to add the dataset and attributes to.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -149,14 +149,14 @@ def percent_inf_is_within_threshold(
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     log = nisarqa.get_logger()
 
     msg = f"Array {arr_name} is {percentage} percent +/- Inf pixels."
 
     if threshold_percentage != -1:
-        nisarqa.verify_valid_percentage(threshold_percentage)
+        nisarqa.verify_valid_percent(threshold_percentage)
         msg += (
             f" Acceptable threshold is {threshold_percentage} percent +/- Inf."
         )
@@ -191,7 +191,7 @@ def save_percent_fill_to_stats_h5(
     grp_path : str
         Path to h5py Group to add the dataset and attributes to.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -235,7 +235,7 @@ def percent_fill_is_within_threshold(
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     log = nisarqa.get_logger()
 
@@ -244,7 +244,7 @@ def percent_fill_is_within_threshold(
         f" (Fill value is {fill_value}."
     )
     if threshold_percentage != -1:
-        nisarqa.verify_valid_percentage(threshold_percentage)
+        nisarqa.verify_valid_percent(threshold_percentage)
         msg += (
             f" Acceptable threshold is {threshold_percentage} percent fill"
             " value.)"
@@ -270,13 +270,14 @@ def save_percent_near_zero_to_stats_h5(
     percentage : float
         Percentage of a raster that is fill value.
     epsilon : float or int
-        The tolerance used for computing if raster pixels are "almost zero".
+        Absolute tolerance that was used for determining if a raster pixel
+        was 'almost zero'.
     h5_file : h5py.File
         HDF5 File handle to save this dataset to.
     grp_path : str
         Path to h5py Group to add the dataset and attributes to.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -316,13 +317,13 @@ def percent_near_zero_is_within_threshold(
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     log = nisarqa.get_logger()
 
     msg = f"Array {arr_name} is {percentage} percent near-zero value pixels."
     if threshold_percentage != -1:
-        nisarqa.verify_valid_percentage(threshold_percentage)
+        nisarqa.verify_valid_percent(threshold_percentage)
         msg += (
             f" Acceptable threshold is {threshold_percentage} percent near-zero"
             " pixels.)"
@@ -343,7 +344,7 @@ def save_percent_total_invalid_to_stats_h5(
     """
     Save the final percentage of total invalid pixels to the stats H5 file.
 
-    Invalid pixels include NaN, Inf, near-zero, or fill valued pixels.
+    Invalid pixels include NaN, Inf, fill, or near-zero valued pixels.
 
     Parameters
     ----------
@@ -354,7 +355,7 @@ def save_percent_total_invalid_to_stats_h5(
     grp_path : str
         Path to h5py Group to add the dataset and attributes to.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
@@ -363,8 +364,8 @@ def save_percent_total_invalid_to_stats_h5(
         ds_data=percentage,
         ds_units="1",
         ds_description=(
-            f"Percent of dataset elements that are either NaN, Inf, near-zero,"
-            " or fill valued pixels."
+            f"Percent of dataset elements that are either NaN, Inf, fill,"
+            " or near-zero valued pixels."
         ),
     )
 
@@ -377,7 +378,7 @@ def percent_total_invalid_is_within_threshold(
     """
     Check if % of total invalid values is within threshold; note in log.
 
-    Invalid pixels include NaN, Inf, near-zero, or fill valued pixels.
+    Invalid pixels include NaN, Inf, fill, or near-zero valued pixels.
 
     Parameters
     ----------
@@ -397,16 +398,16 @@ def percent_total_invalid_is_within_threshold(
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
     """
-    nisarqa.verify_valid_percentage(percentage)
+    nisarqa.verify_valid_percent(percentage)
 
     log = nisarqa.get_logger()
 
     msg = (
         f"Array {arr_name} is {percentage} percent invalid pixels"
-        " (NaN, Inf, near-zero, or fill)."
+        " (NaN, Inf, fill, or near-zero)."
     )
     if threshold_percentage != -1:
-        nisarqa.verify_valid_percentage(threshold_percentage)
+        nisarqa.verify_valid_percent(threshold_percentage)
         msg += (
             f" Acceptable threshold is {threshold_percentage} percent invalid"
             " pixels.)"

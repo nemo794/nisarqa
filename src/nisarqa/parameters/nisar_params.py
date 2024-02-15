@@ -475,10 +475,10 @@ class ThresholdParamGroup(YamlParamGroup):
 
     Parameters
     ----------
-    nan_threshold, near_zero_threshold, fill_threshold, inf_threshold,
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
         total_invalid_threshold : float, optional
         Threshold value for alerting users to possible malformed datasets.
-        If the percentage of NaN-, near-zero-, fill-, Inf-, or total
+        If the percentage of NaN-, Inf-, fill-, near-zero-, or total
         invalid-valued pixels is above the respective threshold, it will be
         logged as an error and an exception raised.
         "Total invalid pixels" is the sum of NaN, near-zero, fill, & Inf pixels.
@@ -489,8 +489,14 @@ class ThresholdParamGroup(YamlParamGroup):
         Setting a threshold to 0 triggers a QA failure if the dataset
         contains any pixels with that value.
         All default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-        Use `get_field_with_updated_default()` to update the default value
-        for a particular threshold.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+
+    Notes
+    -----
+    When subclassing, to update the default for a particular threshold value,
+    suggest using the class method `get_field_with_updated_default()`.
     """
 
     _threshold_descr_template: ClassVar[
@@ -502,7 +508,7 @@ class ThresholdParamGroup(YamlParamGroup):
         ignored (e.g. any percent of NaN values is fine; it will be noted as
         info, and will not trigger a QA failure)."""
 
-    nan_threshold: Optional[float] = field(
+    nan_threshold: float = field(
         default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -512,38 +518,7 @@ class ThresholdParamGroup(YamlParamGroup):
         },
     )
 
-    near_zero_threshold: Optional[float] = field(
-        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="near_zero_threshold",
-                descr=_threshold_descr_template % "near-zero",
-            )
-        },
-    )
-
-    epsilon: Optional[float] = field(
-        default=1e-6,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="epsilon",
-                descr="""Tolerance used during the check for percentage of near-zero pixels
-                for computing if raster pixels are "almost zero".""",
-            )
-        },
-    )
-
-    fill_threshold: Optional[float] = field(
-        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="fill_threshold",
-                descr=_threshold_descr_template % "fill",
-            )
-        },
-    )
-
-    inf_threshold: Optional[float] = field(
+    inf_threshold: float = field(
         default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -553,14 +528,47 @@ class ThresholdParamGroup(YamlParamGroup):
         },
     )
 
-    total_invalid_threshold: Optional[float] = field(
+    fill_threshold: float = field(
+        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="fill_threshold",
+                descr=_threshold_descr_template % "fill",
+            )
+        },
+    )
+
+    near_zero_threshold: float = field(
+        default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="near_zero_threshold",
+                descr=_threshold_descr_template % "near-zero",
+            )
+        },
+    )
+
+    total_invalid_threshold: float = field(
         default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="total_invalid_threshold",
                 descr=(
                     f"{_threshold_descr_template % 'total invalid'}\n"
-                    "'Total invalid pixels' is the sum of NaN, near-zero, fill, & Inf pixels."
+                    "'Total invalid pixels' is the sum of NaN, Inf, fill, & near-zero pixels."
+                ),
+            )
+        },
+    )
+
+    epsilon: float = field(
+        default=1e-6,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="epsilon",
+                descr=(
+                    "Absolute tolerance for determining if a raster pixel"
+                    " is 'almost zero'."
                 ),
             )
         },
@@ -587,7 +595,7 @@ class ThresholdParamGroup(YamlParamGroup):
         ):
             if thresh != -1:
                 try:
-                    nisarqa.verify_valid_percentage(thresh)
+                    nisarqa.verify_valid_percent(thresh)
                 except ValueError:
                     raise ValueError(
                         f"`{name}` is {thresh}, must be in range [0.0, 100.0]"
@@ -601,6 +609,38 @@ class ThresholdParamGroup(YamlParamGroup):
     def get_field_with_updated_default(
         self, param_name: str, default: float
     ) -> dataclasses.Field:
+        """
+        Return the Field object for a class parameter with an updated default.
+
+        Parameters
+        ----------
+        param_name : str
+            One of the class parameters of `ThresholdParamGroup`.
+            Must be one of: "nan_threshold", "near_zero_threshold",
+                "fill_threshold", "inf_threshold", "total_invalid_threshold",
+                "epsilon".
+        default : float
+            The desired default value for the parameter.
+
+        Returns
+        -------
+        updated_field : dataclasses.Field
+            A Field object with the updated default value. All other
+            aspects of `ThresholdParamGroup` class' version of the Field
+            object remain unchanged (for example, the `metadata` which contains
+            the description is unchanged).
+
+        Examples
+        --------
+        When subclassing, override the parameter like this:
+        ```
+        nan_threshold: float = (
+            nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+                param_name="nan_threshold", default=0
+            )
+        )
+        ```
+        """
 
         for f in fields(self):
             if f.name == param_name:

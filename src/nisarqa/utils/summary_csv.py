@@ -359,10 +359,10 @@ class _SummaryCSV:
     def check_invalid_pixels_within_threshold(
         self, result: str, threshold: str, actual: str, notes: str = ""
     ) -> None:
-        """Check: '% Cumulative NaN, Inf, near-zero, and fill pixels under threshold?'"""
+        """Check: '% Cumulative NaN, Inf, fill, and near-zero pixels under threshold?'"""
         self.check(
             description=(
-                "% Cumulative NaN and Inf and near-zero and fill pixels under threshold?"
+                "% Cumulative NaN and Inf and fill and near-zero pixels under threshold?"
             ),
             threshold=threshold,
             actual=actual,

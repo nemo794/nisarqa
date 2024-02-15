@@ -212,22 +212,10 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
         log.error(errmsg)
 
 
-def verify_valid_percentile(percentile):
-    """Verify that the input percentile is in range [0.0, 100.0]."""
-    if percentile < 0.0 or percentile > 100.0:
-        raise ValueError(
-            f"The percentile provided is {percentile} but must be "
-            "in the range [0.0, 100.0]."
-        )
-
-
-def verify_valid_percentage(percentage: float) -> None:
-    """Verify that the input percentage is in range [0.0, 100.0]."""
-    if percentage < 0.0 or percentage > 100.0:
-        raise ValueError(
-            f"The percentage provided is {percentage} but must be "
-            "in the range [0.0, 100.0]."
-        )
+def verify_valid_percent(percent: float) -> None:
+    """Verify that the input percent is in range [0.0, 100.0]."""
+    if percent < 0.0 or percent > 100.0:
+        raise ValueError(f"`{percent=}`, must be in the range [0.0, 100.0].")
 
 
 def verify_complex_dtype(arr):

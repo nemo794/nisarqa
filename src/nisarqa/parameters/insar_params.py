@@ -519,11 +519,14 @@ class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
 
     Parameters
     ----------
-    nan_threshold, near_zero_threshold, fill_threshold, inf_threshold,
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
         total_invalid_threshold : float, optional
         Threshold values for alerting users to possible malformed datasets.
         See `ThresholdParamGroup` docstring for complete description.
-        Defaults to 95.0 for all thresholds.
+        All thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image in the report
         PDF. Will be used for both the unwrapped phase image plot(s) and
@@ -987,11 +990,17 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
 
     Parameters
     ----------
-    nan_threshold, near_zero_threshold, fill_threshold, inf_threshold,
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
         total_invalid_threshold : float, optional
         Threshold values for alerting users to possible malformed datasets.
         See `ThresholdParamGroup` docstring for complete description.
-        Defaults to 0, 95.0, 95.0, 0, and 95.0, respectively.
+        Default for Inf, fill, and total thresholds:
+            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Default for NaN and Inf thresholds: 0. (Connected components layer
+        has an integer dtype, so there should never be NaN nor Inf.)
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
     max_num_cc : int or None, optional
         Maximum number of valid connected components allowed.
         If the number of valid connected components (not including
@@ -1001,13 +1010,13 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
         Defaults to 40.
     """
 
-    nan_threshold: Optional[float] = (
+    nan_threshold: float = (
         nisarqa.ThresholdParamGroup.get_field_with_updated_default(
             param_name="nan_threshold", default=0
         )
     )
 
-    inf_threshold: Optional[float] = (
+    inf_threshold: float = (
         nisarqa.ThresholdParamGroup.get_field_with_updated_default(
             param_name="inf_threshold", default=0
         )
