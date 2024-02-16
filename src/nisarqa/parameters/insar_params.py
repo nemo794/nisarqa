@@ -527,6 +527,13 @@ class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
     epsilon : float, optional
         Absolute tolerance for determining if a raster pixel is 'almost zero'.
         Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: fill values are always considered invalid, so if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image in the report
         PDF. Will be used for both the unwrapped phase image plot(s) and
@@ -1001,6 +1008,13 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
     epsilon : float, optional
         Absolute tolerance for determining if a raster pixel is 'almost zero'.
         Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: fill values are always considered invalid, so if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
     max_num_cc : int or None, optional
         Maximum number of valid connected components allowed.
         If the number of valid connected components (not including

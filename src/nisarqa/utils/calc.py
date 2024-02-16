@@ -562,6 +562,7 @@ def compute_percentage_metrics(
     fill_threshold = params.fill_threshold
     near_zero_threshold = params.near_zero_threshold
     epsilon = params.epsilon
+    zero_is_invalid = params.zero_is_invalid
     invalid_threshold = params.total_invalid_threshold
 
     def _percent_of_arr(count: int) -> float:
@@ -597,42 +598,10 @@ def compute_percentage_metrics(
         arr_name=arr_name,
     )
 
-    if fill_value is not None:
-        # Compute fill value metrics. (If the fill value is NaN, it's ok that
-        # this is redundant to the NaN value metrics.)
-        if np.isnan(fill_value):
-            percent_fill = percent_nan
-            # We already accumulated the number of NaN to `total_num_invalid`,
-            # skip doing that here so that we do not double-count the NaN
-        else:
-            num_fill = compute_fill_count(arr, fill_value=fill_value)
-            # the fill value is different than NaN, so accumulate it.
-            total_num_invalid += num_fill
-            percent_fill = _percent_of_arr(count=num_fill)
-
-        nisarqa.save_percent_fill_to_stats_h5(
-            percentage=percent_fill,
-            fill_value=fill_value,
-            stats_h5=stats_h5,
-            grp_path=grp_path,
-        )
-
-        all_metrics_pass &= nisarqa.percent_fill_is_within_threshold(
-            percentage=percent_fill,
-            threshold_percentage=fill_threshold,
-            fill_value=fill_value,
-            arr_name=arr_name,
-        )
-
     # Compute number of zeros metrics.
     num_zero = compute_near_zero_count(arr, epsilon=epsilon)
 
-    # Zeros are often a valid value; do not include them in `total_num_invalid`.
-    if (near_zero_threshold != -1) and not np.isclose(
-        fill_value, 0.0, atol=epsilon, rtol=0.0
-    ):
-        # zeros are considered "bad" pixels and are not the fill value,
-        # so they should be added to the total
+    if zero_is_invalid:
         total_num_invalid += num_zero
 
     percent_zero = _percent_of_arr(count=num_zero)
@@ -649,6 +618,38 @@ def compute_percentage_metrics(
         threshold_percentage=near_zero_threshold,
         arr_name=arr_name,
     )
+
+    # Compute fill value metrics. Do not double-count NaNs nor zeros.
+    if fill_value is not None:
+        fill_is_zero = np.isclose(fill_value, 0.0, atol=epsilon, rtol=0.0)
+
+        if np.isnan(fill_value):
+            percent_fill = percent_nan
+            # We already accumulated the number of NaN to `total_num_invalid`,
+            # skip doing that here so that we do not double-count the NaN
+        elif fill_is_zero:
+            percent_fill = percent_zero
+            if not zero_is_invalid:
+                # Fill values should always be included as invalid pixels.
+                total_num_invalid += num_zero
+        else:
+            num_fill = compute_fill_count(arr, fill_value=fill_value)
+            total_num_invalid += num_fill
+            percent_fill = _percent_of_arr(count=num_fill)
+
+        nisarqa.save_percent_fill_to_stats_h5(
+            percentage=percent_fill,
+            fill_value=fill_value,
+            stats_h5=stats_h5,
+            grp_path=grp_path,
+        )
+
+        all_metrics_pass &= nisarqa.percent_fill_is_within_threshold(
+            percentage=percent_fill,
+            threshold_percentage=fill_threshold,
+            fill_value=fill_value,
+            arr_name=arr_name,
+        )
 
     # Compute cumulative total invalid pixels
     assert total_num_invalid <= arr_size

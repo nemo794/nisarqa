@@ -492,6 +492,13 @@ class ThresholdParamGroup(YamlParamGroup):
     epsilon : float, optional
         Absolute tolerance for determining if a raster pixel is 'almost zero'.
         Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: fill values are always considered invalid, so if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
 
     Notes
     -----
@@ -571,6 +578,20 @@ class ThresholdParamGroup(YamlParamGroup):
                     " is 'almost zero'."
                 ),
             )
+        },
+    )
+
+    zero_is_invalid: bool = field(
+        default=True,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="zero_is_invalid",
+                descr="""True if near-zero pixels should be counted towards the
+                    total number of invalid pixels. False to exclude them.
+                    If False, consider setting `near_zero_threshold` to -1.
+                    Note: fill values are always considered invalid, so if a raster's
+                    fill value is zero, then zeros will still be included in the total.""",
+            ),
         },
     )
 
