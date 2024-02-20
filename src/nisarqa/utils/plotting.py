@@ -25,7 +25,8 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 def process_ionosphere_phase_screen(
     product: nisarqa.UnwrappedGroup,
-    params: nisarqa.ThresholdParamGroup,
+    params_iono_phs_screen: nisarqa.ThresholdParamGroup,
+    params_iono_phs_uncert: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -36,9 +37,12 @@ def process_ionosphere_phase_screen(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
-    params : nisarqa.ThresholdParamGroup
+    params_iono_phs_screen : nisarqa.ThresholdParamGroup
         A structure containing the parameters for checking the percentage
-        of invalid pixels in a raster.
+        of invalid pixels in the ionosphere phase screen layer.
+    params_iono_phs_uncert : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in the ionosphere phase screen uncertainty layer.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
@@ -54,10 +58,14 @@ def process_ionosphere_phase_screen(
                 # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
-                    raster=iono_phs, stats_h5=stats_h5, params=params
+                    raster=iono_phs,
+                    stats_h5=stats_h5,
+                    params=params_iono_phs_screen,
                 )
                 nisarqa.compute_and_save_basic_statistics(
-                    raster=iono_uncertainty, stats_h5=stats_h5, params=params
+                    raster=iono_uncertainty,
+                    stats_h5=stats_h5,
+                    params=params_iono_phs_uncert,
                 )
 
                 plot_ionosphere_phase_screen_to_pdf(
@@ -400,7 +408,8 @@ def plot_unwrapped_phase_image_to_pdf(
 
 def process_phase_image_wrapped(
     product: nisarqa.WrappedGroup,
-    params: nisarqa.ThresholdParamGroup,
+    params_wrapped_igram: nisarqa.ThresholdParamGroup,
+    params_coh_mag: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -413,9 +422,12 @@ def process_phase_image_wrapped(
     ----------
     product : nisarqa.WrappedGroup
         Input NISAR product.
-    params : nisarqa.ThresholdParamGroup
+    params_wrapped_igram : nisarqa.ThresholdParamGroup
         A structure containing the parameters for checking the percentage
-        of invalid pixels in a raster.
+        of invalid pixels in the wrapped interferogram layer.
+    params_coh_mag : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in the coherence magnitude layer.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         Output PDF file to append the phase and coherence magnitude plots to.
     stats_h5 : h5py.File
@@ -438,13 +450,13 @@ def process_phase_image_wrapped(
                 # addressed.
                 nisarqa.compute_and_save_basic_statistics(
                     raster=complex_img,
+                    params=params_wrapped_igram,
                     stats_h5=stats_h5,
-                    treat_all_zeros_as_error=False,
                 )
                 nisarqa.compute_and_save_basic_statistics(
                     raster=coh_img,
+                    params=params_coh_mag,
                     stats_h5=stats_h5,
-                    treat_all_zeros_as_error=True,
                 )
 
                 plot_wrapped_phase_image_and_coh_mag_to_pdf(
@@ -1661,6 +1673,7 @@ def image_histogram_equalization(
 
 def process_az_and_slant_rg_offsets_from_igram_product(
     product: nisarqa.IgramOffsetsGroup,
+    params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -1675,6 +1688,9 @@ def process_az_and_slant_rg_offsets_from_igram_product(
     ----------
     product : nisarqa.OffsetProduct
         Input NISAR product.
+    params : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in the azimuth and slant range offsets layers.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
     stats_h5 : h5py.File
@@ -1690,6 +1706,7 @@ def process_az_and_slant_rg_offsets_from_igram_product(
                 process_range_and_az_offsets(
                     az_offset=az_raster,
                     rg_offset=rg_raster,
+                    params=params,
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
                 )
@@ -1699,6 +1716,7 @@ def process_az_and_slant_rg_offsets_from_igram_product(
 def process_range_and_az_offsets(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
+    params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None: ...
@@ -1708,12 +1726,15 @@ def process_range_and_az_offsets(
 def process_range_and_az_offsets(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
+    params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None: ...
 
 
-def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
+def process_range_and_az_offsets(
+    az_offset, rg_offset, params, report_pdf, stats_h5
+):
     """
     Plot azimuth and range offsets to PDF, and compute statistics on them.
 
@@ -1729,6 +1750,9 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
     rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
         Slant range offset layer to be processed. Must correspond to
         `az_offset`.
+    params : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in the input *Rasters.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
     stats_h5 : h5py.File
@@ -1737,12 +1761,11 @@ def process_range_and_az_offsets(az_offset, rg_offset, report_pdf, stats_h5):
     # Compute Statistics first, in case of malformed layers
     # (which could cause plotting to fail)
     nisarqa.compute_and_save_basic_statistics(
-        raster=az_offset,
-        stats_h5=stats_h5,
+        raster=az_offset, stats_h5=stats_h5, params=params
     )
 
     nisarqa.compute_and_save_basic_statistics(
-        raster=rg_offset, stats_h5=stats_h5
+        raster=rg_offset, stats_h5=stats_h5, params=params
     )
 
     # Plot offset layers to PDF
@@ -1878,7 +1901,8 @@ def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
 
 def process_az_and_slant_rg_offsets_from_offset_product(
     product: nisarqa.OffsetProduct,
-    params: nisarqa.QuiverParamGroup,
+    params_quiver: nisarqa.QuiverParamGroup,
+    params_offsets: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
     browse_png: str | os.PathLike,
@@ -1903,8 +1927,11 @@ def process_az_and_slant_rg_offsets_from_offset_product(
     ----------
     product : nisarqa.OffsetProduct
         Input NISAR product.
-    params : nisarqa.QuiverParamGroup
+    params_quiver : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
+    params_offsets : nisarqa.ThresholdParamGroup
+        A structure containing the parameters for checking the percentage
+        of invalid pixels in the azimuth and slant range offsets layers.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output pdf file to append the quiver plot to.
     stats_h5 : h5py.File
@@ -1923,7 +1950,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         y_dec, x_dec = plot_single_quiver_plot_to_png(
             az_offset=az_off,
             rg_offset=rg_off,
-            params=params,
+            params=params_quiver,
             browse_png=browse_png,
         )
 
@@ -1953,6 +1980,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                     process_range_and_az_offsets(
                         az_offset=az_off,
                         rg_offset=rg_off,
+                        params=params_offsets,
                         report_pdf=report_pdf,
                         stats_h5=stats_h5,
                     )
@@ -1961,7 +1989,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                     cbar_min, cbar_max = plot_offsets_quiver_plot_to_pdf(
                         az_offset=az_off,
                         rg_offset=rg_off,
-                        params=params,
+                        params=params_quiver,
                         report_pdf=report_pdf,
                     )
 
@@ -2483,10 +2511,12 @@ def process_az_and_slant_rg_variances_from_offset_product(
                     # (which could cause plotting to fail)
                     nisarqa.compute_and_save_basic_statistics(
                         raster=az_off_var,
+                        params=params,
                         stats_h5=stats_h5,
                     )
                     nisarqa.compute_and_save_basic_statistics(
                         raster=rg_off_var,
+                        params=params,
                         stats_h5=stats_h5,
                     )
 
@@ -2647,7 +2677,8 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
 def process_cross_variance_and_surface_peak(
     product: nisarqa.OffsetProduct,
-    params: nisarqa.CrossOffsetVarianceLayerParamGroup,
+    params_cross_offset: nisarqa.CrossOffsetVarianceLayerParamGroup,
+    params_surface_peak: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -2667,9 +2698,12 @@ def process_cross_variance_and_surface_peak(
     ----------
     product : nisarqa.OffsetProduct
         Input NISAR product.
-    params : nisarqa.CrossOffsetVarianceLayerParamGroup
+    params_cross_offset : nisarqa.CrossOffsetVarianceLayerParamGroup
         A structure containing processing parameters to generate the
         cross offset variance layer plots.
+    params_surface_peak : nisarqa.ThresholdParamGroup
+        A structure containing processing parameters to generate the
+        correlation surface peak layer plots.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output pdf file to append the plot to.
     stats_h5 : h5py.File
@@ -2687,20 +2721,21 @@ def process_cross_variance_and_surface_peak(
                     # Compute Statistics first, in case of malformed layers
                     nisarqa.compute_and_save_basic_statistics(
                         raster=cross_off_var,
+                        params=params_cross_offset,
                         stats_h5=stats_h5,
                     )
                     nisarqa.compute_and_save_basic_statistics(
                         raster=surface_peak,
+                        params=params_surface_peak,
                         stats_h5=stats_h5,
-                        treat_all_zeros_as_error=True,
                     )
 
                     plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
                         cross_offset_variance=cross_off_var,
                         corr_surf_peak=surface_peak,
                         report_pdf=report_pdf,
-                        offset_cbar_min_max=params.cbar_min_max,
-                        percentile_for_clipping=params.percentile_for_clipping,
+                        offset_cbar_min_max=params_cross_offset.cbar_min_max,
+                        percentile_for_clipping=params_cross_offset.percentile_for_clipping,
                     )
 
                     # TODO Compute histograms
@@ -3106,6 +3141,7 @@ def plot_connected_components_layer(
 
 def process_unw_coh_mag(
     product: nisarqa.UnwrappedGroup,
+    params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
 ) -> None:
@@ -3116,6 +3152,9 @@ def process_unw_coh_mag(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
+    params : nisarqa.ThresholdParamGroup
+        A structure containing processing parameters to generate the
+        coherence magnitude layer plots.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the coherence magnitude image plot to.
     stats_h5 : h5py.File
@@ -3128,10 +3167,8 @@ def process_unw_coh_mag(
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
                     raster=coh_mag,
+                    params=params,
                     stats_h5=stats_h5,
-                    threshold=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
-                    epsilon=1e-6,
-                    treat_all_zeros_as_error=True,
                 )
 
                 plot_unwrapped_coh_mag_to_pdf(

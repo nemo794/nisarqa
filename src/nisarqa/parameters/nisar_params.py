@@ -577,7 +577,7 @@ class ThresholdParamGroup(YamlParamGroup):
                     "Absolute tolerance for determining if a raster pixel"
                     " is 'almost zero'."
                 ),
-            )
+            ),
         },
     )
 

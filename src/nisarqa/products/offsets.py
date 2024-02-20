@@ -160,7 +160,8 @@ def verify_offset(
             # and side-by-side plots for PDF
             nisarqa.process_az_and_slant_rg_offsets_from_offset_product(
                 product=product,
-                params=root_params.quiver,
+                params_quiver=root_params.quiver,
+                params_offsets=root_params.az_rng_offsets,
                 report_pdf=report_pdf,
                 stats_h5=stats_h5,
                 browse_png=browse_file_png,
@@ -175,7 +176,8 @@ def verify_offset(
 
             nisarqa.process_cross_variance_and_surface_peak(
                 product=product,
-                params=root_params.cross_variance,
+                params_cross_offset=root_params.cross_variance,
+                params_surface_peak=root_params.corr_surface_peak,
                 report_pdf=report_pdf,
                 stats_h5=stats_h5,
             )

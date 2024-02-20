@@ -531,7 +531,7 @@ class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
         True if near-zero pixels should be counted towards the
         total number of invalid pixels. False to exclude them.
         If False, consider setting `near_zero_threshold` to -1.
-        Note: fill values are always considered invalid, so if a raster's
+        Note: Fill values are always considered invalid. So, if a raster's
         fill value is zero, then zeros will still be included in the total.
         Defaults to True.
     rewrap : float or None, optional
@@ -568,6 +568,8 @@ class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
 
     def __post_init__(self):
         # VALIDATE INPUTS
+        print("LALA check MRO; ThresholdParamGroup __post_init__ must trigger!")
+        super().__post_init__()
 
         # validate rewrap
         if not isinstance(self.rewrap, (float, int)) and (
@@ -594,6 +596,220 @@ class GUNWPhaseImageParamGroup(UNWPhaseImageParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "phase_img"]
+
+
+@dataclass(frozen=True)
+class ConnectedComponentsParamGroup(ThresholdParamGroup):
+    """
+    Parameters to run QA on Wrapped Interferogram Layers for RIFG and GUNW.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Default for NaN, Inf, fill, and total thresholds:
+            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Default for near-zero threshold: -1.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
+    """
+
+    near_zero_threshold: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="near_zero_threshold", default=-1
+        )
+    )
+
+    zero_is_invalid: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="zero_is_invalid", default=False
+        )
+    )
+
+
+@dataclass(frozen=True)
+class RIFGWrappedIgramParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "rifg",
+            "qa_reports",
+            "wrapped_igram",
+        ]
+
+
+@dataclass(frozen=True)
+class GUNWWrappedIgramParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "gunw",
+            "qa_reports",
+            "wrapped_igram",
+        ]
+
+
+@dataclass(frozen=True)
+class RIFGCohMagLayerParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "rifg", "qa_reports", "coh_mag"]
+
+
+@dataclass(frozen=True)
+class RUNWCohMagLayerParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "runw", "qa_reports", "coh_mag"]
+
+
+@dataclass(frozen=True)
+class GUNWCohMagLayerParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "gunw", "qa_reports", "coh_mag"]
+
+
+@dataclass(frozen=True)
+class RUNWIonoPhaseScreenParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "runw",
+            "qa_reports",
+            "ionosphere_phase_screen",
+        ]
+
+
+@dataclass(frozen=True)
+class GUNWIonoPhaseScreenParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "gunw",
+            "qa_reports",
+            "ionosphere_phase_screen",
+        ]
+
+
+@dataclass(frozen=True)
+class RUNWIonoPhaseUncertaintyParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "runw",
+            "qa_reports",
+            "ionosphere_phase_screen_uncertainty",
+        ]
+
+
+@dataclass(frozen=True)
+class GUNWIonoPhaseUncertaintyParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "gunw",
+            "qa_reports",
+            "ionosphere_phase_screen_uncertainty",
+        ]
+
+
+@dataclass(frozen=True)
+class RIFGAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "rifg",
+            "qa_reports",
+            "az_and_range_offsets",
+        ]
+
+
+@dataclass(frozen=True)
+class RUNWAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "runw",
+            "qa_reports",
+            "az_and_range_offsets",
+        ]
+
+
+@dataclass(frozen=True)
+class GUNWAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "gunw",
+            "qa_reports",
+            "az_and_range_offsets",
+        ]
+
+
+@dataclass(frozen=True)
+class ROFFAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "roff",
+            "qa_reports",
+            "az_and_range_offsets",
+        ]
+
+
+@dataclass(frozen=True)
+class GOFFAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "goff",
+            "qa_reports",
+            "az_and_range_offsets",
+        ]
 
 
 @dataclass(frozen=True)
@@ -815,12 +1031,27 @@ class GOFFQuiverParamGroup(QuiverParamGroup):
 
 
 @dataclass(frozen=True)
-class VarianceLayersParamGroup(YamlParamGroup):
+class VarianceLayersParamGroup(ThresholdParamGroup):
     """
     Parameters to generate Variance Layer Plots for ROFF and GOFF.
 
     Parameters
     ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        All thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
         for the az and slant range variance layers for ROFF and GOFF.
@@ -890,12 +1121,28 @@ class GOFFVarianceLayersParamGroup(VarianceLayersParamGroup):
 
 
 @dataclass(frozen=True)
-class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
+class CrossOffsetVarianceLayerParamGroup(ThresholdParamGroup):
     """
     Parameters to generate cross offset variance layer plots for ROFF and GOFF.
 
     Parameters
     ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        `near_zero_threshold` defaults to -1.
+        Other thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
         for the cross offset variance layer for ROFF and GOFF.
@@ -907,6 +1154,18 @@ class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
         and that the colormap covers. Must be in the range [0.0, 100.0].
         Superseded by `cbar_min_max` parameter. Defaults to [1.0, 99.0].
     """
+
+    near_zero_threshold: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="near_zero_threshold", default=-1
+        )
+    )
+
+    zero_is_invalid: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="zero_is_invalid", default=False
+        )
+    )
 
     cbar_min_max: Optional[Sequence[float]] = field(
         default=None,
@@ -991,6 +1250,34 @@ class GOFFCrossOffsetVarianceLayerParamGroup(
 
 
 @dataclass(frozen=True)
+class ROFFCorrSurfacePeakLayerParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "roff",
+            "qa_reports",
+            "correlation_surface_peak",
+        ]
+
+
+@dataclass(frozen=True)
+class GOFFCorrSurfacePeakLayerParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "goff",
+            "qa_reports",
+            "correlation_surface_peak",
+        ]
+
+
+@dataclass(frozen=True)
 class ConnectedComponentsParamGroup(ThresholdParamGroup):
     """
     Parameters to run QA on Connected Components Layers for RUNW and GUNW.
@@ -1012,7 +1299,7 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
         True if near-zero pixels should be counted towards the
         total number of invalid pixels. False to exclude them.
         If False, consider setting `near_zero_threshold` to -1.
-        Note: fill values are always considered invalid, so if a raster's
+        Note: Fill values are always considered invalid. So, if a raster's
         fill value is zero, then zeros will still be included in the total.
         Defaults to True.
     max_num_cc : int or None, optional
@@ -1117,6 +1404,12 @@ class RIFGRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : RIFGProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
+    wrapped_igram : RIFGWrappedIgramParamGroup or None, optional
+        Wrapped Interferogram Layer Group parameters.
+    coh_mag : RIFGCohMagLayerParamGroup or None, optional
+        Coherence Magnitude Layer Group parameters.
+    az_rng_offsets : RIFGAzAndRangeOffsetsParamGroup or None, optional
+        Along track and slant range offsets layers Groups parameters.
     browse : RIFGIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
     """
@@ -1127,6 +1420,9 @@ class RIFGRootParamGroup(RootParamGroup):
     input_f: Optional[RIFGInputFileGroupParamGroup] = None
     prodpath: Optional[RIFGProductPathGroupParamGroup] = None
 
+    wrapped_igram: Optional[RIFGWrappedIgramParamGroup] = None
+    coh_mag: Optional[RIFGCohMagLayerParamGroup] = None
+    az_rng_offsets: Optional[RIFGAzAndRangeOffsetsParamGroup] = None
     browse: Optional[RIFGIgramBrowseParamGroup] = None
 
     @staticmethod
@@ -1150,6 +1446,21 @@ class RIFGRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="wrapped_igram",
+                param_grp_cls_obj=RIFGWrappedIgramParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="coh_mag",
+                param_grp_cls_obj=RIFGCohMagLayerParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="az_rng_offsets",
+                param_grp_cls_obj=RIFGAzAndRangeOffsetsParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RIFGIgramBrowseParamGroup,
             ),
@@ -1165,6 +1476,9 @@ class RIFGRootParamGroup(RootParamGroup):
             RIFGInputFileGroupParamGroup,
             RIFGProductPathGroupParamGroup,
             RIFGWorkflowsParamGroup,
+            RIFGWrappedIgramParamGroup,
+            RIFGCohMagLayerParamGroup,
+            RIFGAzAndRangeOffsetsParamGroup,
             RIFGIgramBrowseParamGroup,
         )
 
@@ -1189,12 +1503,20 @@ class RUNWRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : RUNWProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    browse : RUNWIgramBrowseParamGroup or None, optional
-        Browse Image Group parameters.
     unw_phs_img : RUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
+    coh_mag : RUNWCohMagLayerParamGroup or None, optional
+        Coherence Magnitude Layer Group parameters.
     connected_components : RUNWConnectedComponentsParamGroup or None, optional
         Connected Components Group parameters.
+    iono_phs_screen : RUNWIonoPhaseScreenParamGroup or None, optional
+        Ionosphere Phase Screen Layer Group parameters.
+    iono_phs_uncert : RUNWIonoPhaseUncertaintyParamGroup or None, optional
+        Ionosphere Phase Screen Uncertainty Layer Group parameters.
+    az_rng_offsets : RUNWAzAndRangeOffsetsParamGroup or None, optional
+        Along track and slant range offsets layers Groups parameters.
+    browse : RUNWIgramBrowseParamGroup or None, optional
+        Browse Image Group parameters.
     """
 
     # Shared parameters
@@ -1203,7 +1525,11 @@ class RUNWRootParamGroup(RootParamGroup):
     prodpath: Optional[RUNWProductPathGroupParamGroup] = None
 
     unw_phs_img: Optional[RUNWPhaseImageParamGroup] = None
+    coh_mag: Optional[RUNWCohMagLayerParamGroup] = None
     connected_components: Optional[RUNWConnectedComponentsParamGroup] = None
+    iono_phs_screen: Optional[RUNWIonoPhaseScreenParamGroup] = None
+    iono_phs_uncert: Optional[RUNWIonoPhaseUncertaintyParamGroup] = None
+    az_rng_offsets: Optional[RUNWAzAndRangeOffsetsParamGroup] = None
     browse: Optional[RUNWIgramBrowseParamGroup] = None
 
     @staticmethod
@@ -1232,8 +1558,28 @@ class RUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="coh_mag",
+                param_grp_cls_obj=RUNWCohMagLayerParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="connected_components",
                 param_grp_cls_obj=RUNWConnectedComponentsParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="iono_phs_screen",
+                param_grp_cls_obj=RUNWIonoPhaseScreenParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="iono_phs_uncert",
+                param_grp_cls_obj=RUNWIonoPhaseUncertaintyParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="az_rng_offsets",
+                param_grp_cls_obj=RUNWAzAndRangeOffsetsParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
@@ -1253,7 +1599,11 @@ class RUNWRootParamGroup(RootParamGroup):
             RUNWProductPathGroupParamGroup,
             RUNWWorkflowsParamGroup,
             RUNWPhaseImageParamGroup,
+            RUNWCohMagLayerParamGroup,
             RUNWConnectedComponentsParamGroup,
+            RUNWIonoPhaseScreenParamGroup,
+            RUNWIonoPhaseUncertaintyParamGroup,
+            RUNWAzAndRangeOffsetsParamGroup,
             RUNWIgramBrowseParamGroup,
         )
 
@@ -1278,12 +1628,24 @@ class GUNWRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : GUNWProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    browse : GUNWIgramBrowseParamGroup or None, optional
-        Browse Image Group parameters.
     unw_phs_img : GUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
+    wrapped_igram : GUNWWrappedIgramParamGroup or None, optional
+        Wrapped Interferogram Layer Group parameters.
+    coh_mag : GUNWCohMagLayerParamGroup or None, optional
+        Coherence Magnitude Layers Group parameters.
+        (Used for the coh mag layers corresponding to both the unwrapped
+        and wrapped layer groups.)
     connected_components : GUNWConnectedComponentsParamGroup or None, optional
         Connected Components Group parameters.
+    iono_phs_screen : GUNWIonoPhaseScreenParamGroup or None, optional
+        Ionosphere Phase Screen Layer Group parameters.
+    iono_phs_uncert : GUNWIonoPhaseUncertaintyParamGroup or None, optional
+        Ionosphere Phase Screen Uncertainty Layer Group parameters.
+    az_rng_offsets : GUNWAzAndRangeOffsetsParamGroup or None, optional
+        Along track and slant range offsets layers Groups parameters.
+    browse : GUNWIgramBrowseParamGroup or None, optional
+        Browse Image Group parameters.
     """
 
     workflows: GUNWWorkflowsParamGroup
@@ -1292,9 +1654,14 @@ class GUNWRootParamGroup(RootParamGroup):
     input_f: Optional[GUNWInputFileGroupParamGroup] = None
     prodpath: Optional[GUNWProductPathGroupParamGroup] = None
 
-    browse: Optional[GUNWIgramBrowseParamGroup] = None
     unw_phs_img: Optional[GUNWPhaseImageParamGroup] = None
+    wrapped_igram: Optional[GUNWWrappedIgramParamGroup] = None
+    coh_mag: Optional[GUNWCohMagLayerParamGroup] = None
     connected_components: Optional[GUNWConnectedComponentsParamGroup] = None
+    iono_phs_screen: Optional[GUNWIonoPhaseScreenParamGroup] = None
+    iono_phs_uncert: Optional[GUNWIonoPhaseUncertaintyParamGroup] = None
+    az_rng_offsets: Optional[GUNWAzAndRangeOffsetsParamGroup] = None
+    browse: Optional[GUNWIgramBrowseParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1322,8 +1689,33 @@ class GUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="wrapped_igram",
+                param_grp_cls_obj=GUNWWrappedIgramParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="coh_mag",
+                param_grp_cls_obj=GUNWCohMagLayerParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="connected_components",
                 param_grp_cls_obj=GUNWConnectedComponentsParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="iono_phs_screen",
+                param_grp_cls_obj=GUNWIonoPhaseScreenParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="iono_phs_uncert",
+                param_grp_cls_obj=GUNWIonoPhaseUncertaintyParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="az_rng_offsets",
+                param_grp_cls_obj=GUNWAzAndRangeOffsetsParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
@@ -1343,7 +1735,12 @@ class GUNWRootParamGroup(RootParamGroup):
             GUNWProductPathGroupParamGroup,
             GUNWWorkflowsParamGroup,
             GUNWPhaseImageParamGroup,
+            GUNWWrappedIgramParamGroup,
+            GUNWCohMagLayerParamGroup,
             GUNWConnectedComponentsParamGroup,
+            GUNWIonoPhaseScreenParamGroup,
+            GUNWIonoPhaseUncertaintyParamGroup,
+            GUNWAzAndRangeOffsetsParamGroup,
             GUNWIgramBrowseParamGroup,
         )
 
@@ -1368,12 +1765,16 @@ class ROFFRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : ROFFProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
+    az_rng_offsets : ROFFAzAndRangeOffsetsParamGroup or None, optional
+        Along track and slant range offsets layers Groups parameters.
     quiver : ROFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
     variances : ROFFVarianceLayersParamGroup or None, optional
         Parameters for azimuth and slant range variance layers' plots.
     cross_variance : ROFFCrossOffsetVarianceLayerParamGroup
         Parameters for cross offset variance layer plots.
+    corr_surface_peak : ROFFCorrSurfacePeakLayerParamGroup or None, optional
+        Parameters for correlation surface peak layer plots.
     """
 
     workflows: ROFFWorkflowsParamGroup
@@ -1382,9 +1783,11 @@ class ROFFRootParamGroup(RootParamGroup):
     input_f: Optional[ROFFInputFileGroupParamGroup] = None
     prodpath: Optional[ROFFProductPathGroupParamGroup] = None
 
+    az_rng_offsets: Optional[ROFFAzAndRangeOffsetsParamGroup] = None
     quiver: Optional[ROFFQuiverParamGroup] = None
     variances: Optional[ROFFVarianceLayersParamGroup] = None
     cross_variance: Optional[ROFFCrossOffsetVarianceLayerParamGroup] = None
+    corr_surface_peak: Optional[ROFFCorrSurfacePeakLayerParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1407,6 +1810,11 @@ class ROFFRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="az_rng_offsets",
+                param_grp_cls_obj=ROFFAzAndRangeOffsetsParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="quiver",
                 param_grp_cls_obj=ROFFQuiverParamGroup,
             ),
@@ -1420,6 +1828,11 @@ class ROFFRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="cross_variance",
                 param_grp_cls_obj=ROFFCrossOffsetVarianceLayerParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="corr_surface_peak",
+                param_grp_cls_obj=ROFFCorrSurfacePeakLayerParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1432,9 +1845,11 @@ class ROFFRootParamGroup(RootParamGroup):
             ROFFInputFileGroupParamGroup,
             ROFFProductPathGroupParamGroup,
             ROFFWorkflowsParamGroup,
+            ROFFAzAndRangeOffsetsParamGroup,
             ROFFQuiverParamGroup,
             ROFFVarianceLayersParamGroup,
             ROFFCrossOffsetVarianceLayerParamGroup,
+            ROFFCorrSurfacePeakLayerParamGroup,
         )
 
 
@@ -1458,12 +1873,16 @@ class GOFFRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : GOFFProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
+    az_rng_offsets : GOFFAzAndRangeOffsetsParamGroup or None, optional
+        Along track and slant range offsets layers Groups parameters.
     quiver : GOFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
     variances : GOFFVarianceLayersParamGroup or None, optional
         Parameters for *Variance layers' plots.
     cross_variance : GOFFCrossOffsetVarianceLayerParamGroup
         Parameters for cross offset variance layer plots.
+    corr_surface_peak : GOFFCorrSurfacePeakLayerParamGroup or None, optional
+        Parameters for correlation surface peak layer plots.
     """
 
     workflows: GOFFWorkflowsParamGroup
@@ -1472,9 +1891,11 @@ class GOFFRootParamGroup(RootParamGroup):
     input_f: Optional[GOFFInputFileGroupParamGroup] = None
     prodpath: Optional[GOFFProductPathGroupParamGroup] = None
 
+    az_rng_offsets: Optional[GOFFAzAndRangeOffsetsParamGroup] = None
     quiver: Optional[GOFFQuiverParamGroup] = None
     variances: Optional[GOFFVarianceLayersParamGroup] = None
     cross_variance: Optional[GOFFCrossOffsetVarianceLayerParamGroup] = None
+    corr_surface_peak: Optional[GOFFCorrSurfacePeakLayerParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1497,6 +1918,11 @@ class GOFFRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="az_rng_offsets",
+                param_grp_cls_obj=GOFFAzAndRangeOffsetsParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="quiver",
                 param_grp_cls_obj=GOFFQuiverParamGroup,
             ),
@@ -1510,6 +1936,11 @@ class GOFFRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="cross_variance",
                 param_grp_cls_obj=GOFFCrossOffsetVarianceLayerParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="corr_surface_peak",
+                param_grp_cls_obj=GOFFCorrSurfacePeakLayerParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1522,9 +1953,11 @@ class GOFFRootParamGroup(RootParamGroup):
             GOFFInputFileGroupParamGroup,
             GOFFProductPathGroupParamGroup,
             GOFFWorkflowsParamGroup,
+            GOFFAzAndRangeOffsetsParamGroup,
             GOFFQuiverParamGroup,
             GOFFVarianceLayersParamGroup,
             GOFFCrossOffsetVarianceLayerParamGroup,
+            GOFFCorrSurfacePeakLayerParamGroup,
         )
 
 

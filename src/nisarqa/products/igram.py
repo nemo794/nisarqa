@@ -182,12 +182,17 @@ def verify_igram(
                 )
 
                 nisarqa.process_unw_coh_mag(
-                    product=product, report_pdf=report_pdf, stats_h5=stats_h5
+                    product=product,
+                    params=root_params.coh_mag,
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
                 )
 
             if isinstance(product, nisarqa.WrappedGroup):
                 nisarqa.process_phase_image_wrapped(
                     product=product,
+                    params_wrapped_igram=root_params.wrapped_igram,
+                    params_coh_mag=root_params.coh_mag,
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
                 )
@@ -195,7 +200,8 @@ def verify_igram(
             if isinstance(product, nisarqa.UnwrappedGroup):
                 nisarqa.process_ionosphere_phase_screen(
                     product=product,
-                    params=root_params.iono_phase_screen,
+                    params_iono_phs_screen=root_params.iono_phs_screen,
+                    params_iono_phs_uncert=root_params.iono_phs_uncert,
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
                 )
@@ -203,6 +209,7 @@ def verify_igram(
             # Plot azimuth offsets and slant range offsets (RIFG, RUNW, & GUNW)
             nisarqa.process_az_and_slant_rg_offsets_from_igram_product(
                 product=product,
+                params=root_params.az_rng_offsets,
                 report_pdf=report_pdf,
                 stats_h5=stats_h5,
             )
