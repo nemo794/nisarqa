@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
-from typing import overload
+from typing import Optional, overload
 
 import h5py
 from matplotlib.backends.backend_pdf import PdfPages
@@ -160,6 +160,12 @@ def verify_igram(
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
+            save_igram_product_browse_png(
+                product=product,
+                params=root_params.browse,
+                browse_png=browse_file_png,
+            )
+
             if isinstance(product, nisarqa.UnwrappedGroup):
                 nisarqa.process_phase_image_unwrapped(
                     product=product,
@@ -199,14 +205,18 @@ def verify_igram(
                 stats_h5=stats_h5,
             )
 
-            # Save Browse Image and HSI Plots
-            process_hsi(
-                product=product,
-                params=root_params.hsi,
-                browse_png=browse_file_png,
-                report_pdf=report_pdf,
-                wrapped_hsi=True if product_type == "rifg" else False,
-            )
+            # Save HSI Plots to PDF
+            if product_type == "rifg":
+                nisarqa.hsi_images_to_pdf_wrapped(
+                    product=product, report_pdf=report_pdf
+                )
+            else:
+                # RUNW or GUNW
+                nisarqa.hsi_images_to_pdf_unwrapped(
+                    product=product,
+                    report_pdf=report_pdf,
+                    rewrap=root_params.unw_phs_img.rewrap,
+                )
 
         log.info(f"PDF reports saved to {report_file}")
         log.info(f"HDF5 statistics saved to {stats_file}")
@@ -226,94 +236,62 @@ def verify_igram(
 
 
 @overload
-def process_hsi(
+def save_igram_product_browse_png(
     product: nisarqa.WrappedGroup,
-    params: nisarqa.HSIImageParamGroup,
+    params: nisarqa.IgramBrowseParamGroup,
     browse_png: str | os.PathLike,
-    report_pdf: PdfPages,
-    wrapped_hsi: bool,
 ) -> None: ...
 
 
 @overload
-def process_hsi(
+def save_igram_product_browse_png(
     product: nisarqa.UnwrappedGroup,
-    params: nisarqa.UNWHSIImageParamGroup,
+    params: nisarqa.UNWIgramBrowseParamGroup,
     browse_png: str | os.PathLike,
-    report_pdf: PdfPages,
-    wrapped_hsi: bool,
 ) -> None: ...
 
 
-def process_hsi(product, params, browse_png, report_pdf, wrapped_hsi):
+def save_igram_product_browse_png(product, params, browse_png):
     """
-    Thin wrapper to make HSI browse PNGs and PDFs for interferogram products.
-
-    Based on the input parameters, this function calls
-    `make_hsi_browse_[un]wrapped()` and `hsi_images_to_pdf_[un]wrapped().
+    Save the browse PNG for interferogram products (RIFG, RUNW, GUNW).
 
     Parameters
     ----------
     product : nisarqa.WrappedGroup or nisarqa.UnwrappedGroup
-        Input NISAR product.
-    params : nisarqa.HSIImageParamGroup or nisarqa.UNWHSIImageParamGroup
-        A structure containing the parameters for creating the HSI image.
+        Input NISAR product. Must be either a RIFG, RUNW, or GUNW product.
+    params : nisarqa.IgramBrowseParamGroup or nisarqa.UNWIgramBrowseParamGroup
+        A structure containing the processing parameters for the browse PNG.
     browse_png : path-like
         Filename (with path) for the browse image PNG.
-    report_pdf : matplotlib.backends.backend_pdf.PdfPages
-        The output PDF file to append the HSI image plot to.
-    wrapped_hsi : bool
-        True to produce a plot of the wrapped interferogram in the product,
-        False to produce a plot of the unwrapped interferogram in the product.
-        As of R3.4, RIFG only contains the wrapped interferogram group,
-        RUNW only contains the unwrapped interferogram group,
-        and GUNW contains both.
-        If `wrapped_hsi` conflicts with the type of input product, a
-        TypeError will be raised.
     """
-    if wrapped_hsi:
-        if not isinstance(product, nisarqa.WrappedGroup):
-            raise TypeError(
-                f"`product` type is {type(product)}, must be WrappedGroup"
-                " because `wrapped_hsi` is set to True."
+
+    if params.browse_image == "phase":
+        if product.product_type == "RIFG":
+            nisarqa.make_wrapped_phase_png(
+                product=product, params=params, browse_png=browse_png
             )
-        if not isinstance(params, nisarqa.HSIImageParamGroup):
-            raise TypeError(
-                f"`params` type is {type(params)}, must be HSIImageParamGroup"
-                " because `wrapped_hsi` is set to True."
-            )
-    else:
-        if not isinstance(product, nisarqa.UnwrappedGroup):
-            raise TypeError(
-                f"`product` type is {type(product)}, must be"
-                " UnwrappedGroup because `wrapped_hsi` is set to False."
-            )
-        if not isinstance(params, nisarqa.UNWHSIImageParamGroup):
-            raise TypeError(
-                f"`params` type is {type(params)}, must be"
-                " UNWHSIImageParamGroup because `wrapped_hsi` is set to False."
+        else:
+            nisarqa.make_unwrapped_phase_png(
+                product=product, params=params, browse_png=browse_png
             )
 
-    if wrapped_hsi:
-        nisarqa.make_hsi_browse_wrapped(
-            product=product,
-            params=params,
-            browse_png=browse_png,
-        )
+    elif params.browse_image == "hsi":
+        if product.product_type == "RIFG":
+            nisarqa.make_hsi_browse_png_wrapped(
+                product=product,
+                params=params,
+                browse_png=browse_png,
+            )
 
-        nisarqa.hsi_images_to_pdf_wrapped(
-            product=product, report_pdf=report_pdf
-        )
+        else:
+            nisarqa.make_hsi_browse_png_unwrapped(
+                product=product,
+                params=params,
+                browse_png=browse_png,
+            )
     else:
-        nisarqa.make_hsi_browse_unwrapped(
-            product=product,
-            params=params,
-            browse_png=browse_png,
-        )
-        nisarqa.hsi_images_to_pdf_unwrapped(
-            product=product,
-            report_pdf=report_pdf,
-            rewrap=params.rewrap,
+        raise ValueError(
+            f"`{params.browse_image=}`, only 'phase' or 'hsi' supported."
         )
 
 

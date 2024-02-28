@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import os
 from collections.abc import Sequence
 from dataclasses import replace
@@ -578,9 +579,109 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     plt.close(fig)
 
 
-def make_hsi_browse_wrapped(
+def make_wrapped_phase_png(
     product: nisarqa.WrappedGroup,
-    params: nisarqa.HSIImageParamGroup,
+    params: nisarqa.IgramBrowseParamGroup,
+    browse_png: str | os.PathLike,
+) -> None:
+    """
+    Create and save the wrapped interferogram as a browse PNG.
+
+    Parameters
+    ----------
+    product : nisarqa.WrappedGroup
+        Input NISAR product.
+    params : nisarqa.IgramBrowseParamGroup
+        A structure containing the parameters for creating the HSI image.
+    browse_png : path-like
+        Filename (with path) for the browse image PNG.
+    """
+    freq, pol = product.get_browse_freq_pol()
+
+    with product.get_wrapped_igram(freq=freq, pol=pol) as igram_r:
+
+        phase, _ = get_phase_array(
+            phs_or_complex_raster=igram_r,
+            make_square_pixels=False,  # we'll do this while downsampling
+            rewrap=None,
+        )
+
+        # decimate to square pixels
+        ky, kx = nisarqa.compute_square_pixel_nlooks(
+            img_shape=np.shape(phase),
+            sample_spacing=[igram_r.y_axis_spacing, igram_r.x_axis_spacing],
+            longest_side_max=params.longest_side_max,
+        )
+        phase = phase[::ky, ::kx]
+
+    def plot_image(ax: mpl.axes.Axes) -> None:
+        ax.imshow(
+            phase,
+            aspect="equal",
+            cmap="twilight_shifted",
+            interpolation="none",
+        )
+
+    save_mpl_plot_to_png(
+        axes_partial_func=plot_image,
+        raster_shape=np.shape(phase),
+        browse_png=browse_png,
+    )
+
+
+def make_unwrapped_phase_png(
+    product: nisarqa.UnwrappedGroup,
+    params: nisarqa.UNWIgramBrowseParamGroup,
+    browse_png: str | os.PathLike,
+) -> None:
+    """
+    Create and save the unwrapped interferogram as a browse PNG.
+
+    Parameters
+    ----------
+    product : nisarqa.UnwrappedGroup
+        Input NISAR product.
+    params : nisarqa.UNWIgramBrowseParamGroup
+        A structure containing the parameters for creating the HSI image.
+    browse_png : path-like
+        Filename (with path) for the browse image PNG.
+    """
+    freq, pol = product.get_browse_freq_pol()
+
+    with product.get_unwrapped_phase(freq=freq, pol=pol) as igram_r:
+
+        phase, _ = get_phase_array(
+            phs_or_complex_raster=igram_r,
+            make_square_pixels=False,  # we'll do this while downsampling
+            rewrap=params.rewrap,
+        )
+
+        # decimate to square pixels
+        ky, kx = nisarqa.compute_square_pixel_nlooks(
+            img_shape=np.shape(phase),
+            sample_spacing=[igram_r.y_axis_spacing, igram_r.x_axis_spacing],
+            longest_side_max=params.longest_side_max,
+        )
+        phase = phase[::ky, ::kx]
+
+    def plot_image(ax: mpl.axes.Axes) -> None:
+        ax.imshow(
+            phase,
+            aspect="equal",
+            cmap="twilight_shifted",
+            interpolation="none",
+        )
+
+    save_mpl_plot_to_png(
+        axes_partial_func=plot_image,
+        raster_shape=np.shape(phase),
+        browse_png=browse_png,
+    )
+
+
+def make_hsi_browse_png_wrapped(
+    product: nisarqa.WrappedGroup,
+    params: nisarqa.IgramBrowseParamGroup,
     browse_png: str | os.PathLike,
 ) -> None:
     """
@@ -590,7 +691,7 @@ def make_hsi_browse_wrapped(
     ----------
     product : nisarqa.WrappedGroup
         Input NISAR product.
-    params : nisarqa.HSIImageParamGroup
+    params : nisarqa.IgramBrowseParamGroup
         A structure containing the parameters for creating the HSI image.
     browse_png : path-like
         Filename (with path) for the browse image PNG.
@@ -616,9 +717,9 @@ def make_hsi_browse_wrapped(
     )
 
 
-def make_hsi_browse_unwrapped(
+def make_hsi_browse_png_unwrapped(
     product: nisarqa.UnwrappedGroup,
-    params: nisarqa.UNWHSIImageParamGroup,
+    params: nisarqa.UNWIgramBrowseParamGroup,
     browse_png: str | os.PathLike,
 ) -> None:
     """
@@ -628,7 +729,7 @@ def make_hsi_browse_unwrapped(
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
-    params : nisarqa.UNWHSIImageParamGroup
+    params : nisarqa.UNWIgramBrowseParamGroup
         A structure containing the parameters for creating the HSI image.
     browse_png : path-like
         Filename (with path) for the browse image PNG.
@@ -943,6 +1044,7 @@ def get_phase_array(
         If None, no rewrapping will occur.
         If `phs_or_complex_raster` is complex valued, this will be ignored.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+        Defaults to None.
 
     Returns
     -------
@@ -1996,52 +2098,18 @@ def plot_single_quiver_plot_to_png(
     # Next, we need to add the background image + quiver plot arrows onto
     # an Axes, and then save this to a PNG with exact pixel dimensions as
     # `az_off` and `rg_off`.
-    # We can set the exact size of a Figure window, but not the exact
-    # size of an Axes object that sits within that Figure.
-    # Since matplotilb defaults to adding extra "stuff" (white space,
-    # labels, tick marks, title, etc.) in the border around the Axes, this
-    # forces the Axes size to be smaller than the Figure size.
-    # This means that using the typical process to create and saving the image
-    # plot out to PNG results in a PNG whose pixel dimensions are
-    # significantly smaller than the dimensions of the source np.array.
-    # Not ideal in for our browse.
-
-    # Strategy to get around this: Create a Figure with our desired dimensions,
-    # and then add an Axes object whose extents are set to ENTIRE Figure.
-    # We'll need to take care that there is no added space around the border for
-    # labels, tick marks, title, etc. which could cause Matplotlib to
-    # automagically downscale (and mess up) the dimensions of the Axes.
-
-    # Step 1: Create a figure with the exact shape in pixels as our array
-    # (Matplotlib's Figure uses units of inches, but the image array
-    # and our browse image PNG requirements are in units of pixels.)
-    dpi = 72
-    figure_shape_in_inches = (az_off.shape[1] / dpi, az_off.shape[0] / dpi)
-    fig = plt.figure(figsize=figure_shape_in_inches, dpi=dpi)
-
-    # Step 2: Use tight layout with 0 padding so that Matplotlib does not
-    # attempt to add padding around the axes.
-    fig.tight_layout(pad=0)
-
-    # Step 3: add a new Axes object; set `rect` to be the ENTIRE Figure shape
-    # Order of arguments for rect: left, bottom, right, top
-    ax = fig.add_axes(rect=[0, 0, 1, 1])
-
-    # Since we set `rect`, the axes labels, titles, etc. should all be
-    # outside of `rect` and thus hidden from the final PNG.
-    # But for good measure, let's go ahead and hide them anyways.
-    ax.set_axis_off()
-
-    # Build the quiver plot on the Axes
-    add_magnitude_image_and_quiver_plot_to_axes(
-        ax=ax, az_off=az_off, rg_off=rg_off, params=params
+    quiver_func = functools.partial(
+        add_magnitude_image_and_quiver_plot_to_axes,
+        az_off=az_off,
+        rg_off=rg_off,
+        params=params,
     )
 
-    # Plot to PNG - Make sure to keep the same DPI!
-    fig.savefig(browse_png, transparent=True, dpi=dpi)
-
-    # Close the plot
-    plt.close(fig)
+    save_mpl_plot_to_png(
+        axes_partial_func=quiver_func,
+        raster_shape=az_off.shape,
+        browse_png=browse_png,
+    )
 
     return y_decimation, x_decimation
 
@@ -2211,6 +2279,96 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     )
 
     return im, vmin, vmax
+
+
+def save_mpl_plot_to_png(
+    axes_partial_func: function | functools.partial,
+    raster_shape: tuple[int, int],
+    browse_png: str | os.PathLike,
+) -> None:
+    """
+    Save a Matplotlib plot to PNG with exact pixel dimensions.
+
+    Matplotlib's figsave() and related functions are useful for saving plots
+    to PNG, etc. files. However, these built-in methods do not preserve
+    the exact 2D pixel dimensions of the source array in the PNG, which is
+    necessary when generating the browse images. This function works
+    around this issue, and saves the plot with the exact pixel dimensions.
+
+    Parameters
+    ----------
+    axes_partial_func : function or partial function
+        Function with a single positional argument of type matplotlib.axes.Axes.
+        Internally, this function should take the input Axes object and
+        modify that Axes with the correct raster plot, colormap, etc.
+        (See example below.)
+    raster_shape : pair of int
+        2D shape of the raster plotted by `axes_partial_func`. The output
+        PNG will have these pixel dimensions.
+    browse_png : path-like
+        Filename (with path) for the browse image PNG.
+
+    Examples
+    --------
+    >>> import nisarqa
+    >>> import numpy as np
+    >>> arr = np.random.rand(30,50)
+    >>> def my_partial(ax):
+    ...     ax.imshow(arr, cmap="magma", interpolation="none")
+    ...
+    >>> nisarqa.save_mpl_plot_to_png(
+                axes_partial_func=my_partial,
+                raster_shape=np.shape(arr),
+                browse_png="browse.png")
+
+    The array is now plotted with the magma colormap and saved as a PNG to the
+    file browse.png, and the PNG has exact dimensions of 30 pixels x 50 pixels.
+    """
+
+    # We can set the exact size of a Figure window, but not the exact
+    # size of an Axes object that sits within that Figure.
+    # Since matplotilb defaults to adding extra "stuff" (white space,
+    # labels, tick marks, title, etc.) in the border around the Axes, this
+    # forces the Axes size to be smaller than the Figure size.
+    # This means that using the typical process to create and saving the image
+    # plot out to PNG results in a PNG whose pixel dimensions are
+    # significantly smaller than the dimensions of the source np.array.
+    # Not ideal in for our browse.
+
+    # Strategy to get around this: Create a Figure with our desired dimensions,
+    # and then add an Axes object whose extents are set to ENTIRE Figure.
+    # We'll need to take care that there is no added space around the border for
+    # labels, tick marks, title, etc. which could cause Matplotlib to
+    # automagically downscale (and mess up) the dimensions of the Axes.
+
+    # Step 1: Create a figure with the exact shape in pixels as our array
+    # (Matplotlib's Figure uses units of inches, but the image array
+    # and our browse image PNG requirements are in units of pixels.)
+    dpi = 72
+    figure_shape_in_inches = (raster_shape[1] / dpi, raster_shape[0] / dpi)
+    fig = plt.figure(figsize=figure_shape_in_inches, dpi=dpi)
+
+    # Step 2: Use tight layout with 0 padding so that Matplotlib does not
+    # attempt to add padding around the axes.
+    fig.tight_layout(pad=0)
+
+    # Step 3: add a new Axes object; set `rect` to be the ENTIRE Figure shape
+    # Order of arguments for rect: left, bottom, right, top
+    ax = fig.add_axes(rect=[0, 0, 1, 1])
+
+    # Since we set `rect`, the axes labels, titles, etc. should all be
+    # outside of `rect` and thus hidden from the final PNG.
+    # But for good measure, let's go ahead and hide them anyways.
+    ax.set_axis_off()
+
+    # Use this Axes for plotting
+    axes_partial_func(ax)
+
+    # Save to PNG - Make sure to keep the same DPI!
+    fig.savefig(browse_png, transparent=True, dpi=dpi)
+
+    # Close the plot
+    plt.close(fig)
 
 
 def process_az_and_slant_rg_variances_from_offset_product(
@@ -2767,11 +2925,13 @@ def plot_connected_components_layer(
     # colorbar changes from one color to the next color.
 
     # This assumes that `labels` is in sorted, ascending order.
-    boundaries = np.concatenate((
-        [labels[0] - 1],
-        labels[:-1] + np.diff(labels) / 2.0,
-        [labels[-1] + 1],
-    ))
+    boundaries = np.concatenate(
+        (
+            [labels[0] - 1],
+            labels[:-1] + np.diff(labels) / 2.0,
+            [labels[-1] + 1],
+        )
+    )
 
     norm = colors.BoundaryNorm(boundaries, len(boundaries) - 1)
 

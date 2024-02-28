@@ -285,40 +285,94 @@ class GOFFWorkflowsParamGroup(WorkflowsParamGroup):
 
 
 @dataclass(frozen=True)
-class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
+class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to generate HSI Browse Image.
+    Parameters to generate the Browse Image for RIFG, RUNW, and GUNW.
 
     Parameters
     ----------
-    equalize_browse : bool, optional
-        True to perform histogram equalization on the Intensity channel
-        (the coherence magnitude layer) in the browse image PNG.
-        (Browse image is in HSI color space.) PDF report will not be affected.
-        See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
+    browse_image_content : string, optional
+
         Default is True.
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image. Defaults to 2048 pixels.
     """
 
+
+@dataclass(frozen=True)
+class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
+    """
+    Parameters to generate the browse image PNG for RIFG, RUNW, and GUNW.
+
+    Parameters
+    ----------
+    browse_image : string, optional
+        The image to use as the basis for the browse image PNG. Options:
+            "phase" : Input product's primary interferogram
+            "hsi" : Input product's primary interferogram and coherence
+                    magnitude layers will combined into an image in the
+                    HSI color space.
+        For RIFG, the primary interferogram is the unwrapped interferogram.
+        For RUNW and GUNW, the primary interferogram is the wrapped phase image.
+        Defaults to "phase".
+    equalize_browse : bool, optional
+        Only used if `browse_image` is set to "hsi".
+        True to perform histogram equalization on the Intensity channel
+        (the coherence magnitude layer) in the browse image PNG.
+        False to not apply the equalization.
+        See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
+        Default is False.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image. Defaults to 2048 pixels.
+    """
+
+    browse_image: bool = field(
+        default="phase",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="browse_image",
+                descr="""The image to use as the basis for the browse image PNG. Options:
+            "phase" : Input product's primary interferogram
+            "hsi" : Input product's primary interferogram and coherence magnitude
+                    layers will combined into an image in the HSI color space.
+        For RIFG, the primary interferogram is the unwrapped interferogram.
+        For RUNW and GUNW, the primary interferogram is the wrapped phase image.""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="browseImage",
+                units="1",
+                descr=(
+                    "Basis image for the browse PNG. 'phase' if only the"
+                    " primary interferogram was used, 'hsi' if that was"
+                    " combined with the coherence magnitude layer into"
+                    " an image in the HSI color space."
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
+
     equalize_browse: bool = field(
-        default=True,
+        default=False,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="equalize_browse",
-                descr="""True to perform histogram equalization on the Intensity channel
+                descr="""Only used if `browse_image` is set to "hsi".
+        True to perform histogram equalization on the Intensity channel
         (the coherence magnitude layer) in the browse image PNG.
-        (Browse image is in HSI color space.) PDF report will not be affected.
+        False to not apply the equalization. 
         See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html""",
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="equalizeBrowse",
                 units="1",
                 descr=(
-                    "If True, histogram equalization was applied to the"
-                    " intensity channel (coherence magnitude layer) in the"
-                    " HSI browse image. (PDF report is not affected.)"
+                    "If True and if `browseImage` is 'hsi', histogram"
+                    " equalization was applied to the intensity channel"
+                    " (coherence magnitude layer) in the HSI browse image PNG."
+                    " Otherwise, not used while processing the browse PNG."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -339,6 +393,13 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
+        # validate browse_image
+        browse_options = ("hsi", "phase")
+        if self.browse_image not in browse_options:
+            raise ValueError(
+                f"`{self.browse_image=}`, must be one of {browse_options}."
+            )
+
         # validate equalize_browse
         if not isinstance(self.equalize_browse, bool):
             raise TypeError(
@@ -357,24 +418,34 @@ class HSIImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class UNWHSIImageParamGroup(HSIImageParamGroup):
+class UNWIgramBrowseParamGroup(IgramBrowseParamGroup):
     """
-    Parameters to generate HSI Browse Image for unwrapped phase image.
+    Parameters to generate the Browse Image PNG for RUNW or GUNW.
 
     Parameters
     ----------
+    browse_image : string, optional
+        The image to use as the basis for the browse image PNG. Options:
+            "phase" : Input product's primary interferogram
+            "hsi" : Input product's primary interferogram and coherence
+                    magnitude layers will combined into an image in the
+                    HSI color space.
+        For RIFG, the primary interferogram is the unwrapped interferogram.
+        For RUNW and GUNW, the primary interferogram is the wrapped phase image.
+        Defaults to "phase".
     equalize_browse : bool, optional
+        Only used if `browse_image` is set to "hsi".
         True to perform histogram equalization on the Intensity channel
         (the coherence magnitude layer) in the browse image PNG.
-        (Browse image is in HSI color space.) PDF report will not be affected.
+        False to not apply the equalization.
         See: https://scikit-image.org/docs/stable/auto_examples/color_exposure/plot_equalize.html
-        Default is True.
+        Default is False.
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked browse image. Defaults to 2048 pixels.
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image when generating
-        the HSI image(s). If None, no rewrapping will occur.
+        the browse PNG. If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
 
@@ -384,18 +455,18 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="rewrap",
                 descr="""The multiple of pi to rewrap the unwrapped phase image
-                    when generating the HSI image(s). If None, no rewrapping will occur.
+                    when generating the browse PNG. If None, no rewrapping will occur.
                     Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
                     """,
             ),
             "hdf5_attrs": HDF5Attrs(
-                name="HSIImageRewrap",
+                name="BrowseImageRewrap",
                 units="1",
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
-                    " image in the HSI image(s). 'None' if no rewrapping"
-                    " occurred. Example: If rewrap=3, the image was rewrapped"
-                    " to the interval [0, 3pi)."
+                    " layer for the browse PNG. 'None' if no rewrapping"
+                    " occurred. Example: If `BrowseImageRewrap` is 3, the"
+                    " unwrapped phase was rewrapped to the interval [0, 3pi)."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -421,36 +492,37 @@ class UNWHSIImageParamGroup(HSIImageParamGroup):
 
 
 @dataclass(frozen=True)
-class RIFGHSIImageParamGroup(HSIImageParamGroup):
+class RIFGIgramBrowseParamGroup(IgramBrowseParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "rifg", "qa_reports", "hsi_img"]
+        return ["runconfig", "groups", "qa", "rifg", "qa_reports", "browse_png"]
 
 
 @dataclass(frozen=True)
-class RUNWHSIImageParamGroup(UNWHSIImageParamGroup):
+class RUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "runw", "qa_reports", "hsi_img"]
+        return ["runconfig", "groups", "qa", "runw", "qa_reports", "browse_png"]
 
 
 @dataclass(frozen=True)
-class GUNWHSIImageParamGroup(UNWHSIImageParamGroup):
+class GUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "gunw", "qa_reports", "hsi_img"]
+        return ["runconfig", "groups", "qa", "gunw", "qa_reports", "browse_png"]
 
 
 @dataclass(frozen=True)
 class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to plot unwrapped phase image.
+    Parameters to plot unwrapped phase image in the report PDF.
 
     Parameters
     ----------
     rewrap : float or None, optional
-        The multiple of pi to rewrap the unwrapped phase image.
-        If None, no rewrapping will occur.
+        The multiple of pi to rewrap the unwrapped phase image in the report
+        PDF. Will be used for both the unwrapped phase image plot(s) and
+        the HSI image plot(s). If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
 
@@ -459,8 +531,9 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="rewrap",
-                descr="""The multiple of pi to rewrap the unwrapped phase image.
-                    If None, no rewrapping will occur.
+                descr="""The multiple of pi to rewrap the unwrapped phase image in the report
+                    PDF. Will be used for both the unwrapped phase image plot(s) and
+                    the HSI image plot(s). If None, no rewrapping will occur.
                     Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).""",
             ),
             "hdf5_attrs": HDF5Attrs(
@@ -468,8 +541,9 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 units="1",
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
-                    " image. 'None' if no rewrapping"
-                    " occurred. Example: If rewrap=3, the image was rewrapped"
+                    " image in the report PDF; applied to both unwrapped"
+                    " phase image plot(s) and HSI plot(s). 'None' if no rewrapping"
+                    " occurred. Example: If `phaseImageRewrap`=3, the image was rewrapped"
                     " to the interval [0, 3pi)."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
@@ -921,7 +995,7 @@ class RIFGRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : RIFGProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    hsi : RIFGHSIImageParamGroup or None, optional
+    hsi : RIFGIgramBrowseParamGroup or None, optional
         HSI Image Group parameters.
     """
 
@@ -931,7 +1005,7 @@ class RIFGRootParamGroup(RootParamGroup):
     input_f: Optional[RIFGInputFileGroupParamGroup] = None
     prodpath: Optional[RIFGProductPathGroupParamGroup] = None
 
-    hsi: Optional[RIFGHSIImageParamGroup] = None
+    browse: Optional[RIFGIgramBrowseParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -954,8 +1028,8 @@ class RIFGRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="hsi",
-                param_grp_cls_obj=RIFGHSIImageParamGroup,
+                root_param_grp_attr_name="browse",
+                param_grp_cls_obj=RIFGIgramBrowseParamGroup,
             ),
         )
 
@@ -969,7 +1043,7 @@ class RIFGRootParamGroup(RootParamGroup):
             RIFGInputFileGroupParamGroup,
             RIFGProductPathGroupParamGroup,
             RIFGWorkflowsParamGroup,
-            RIFGHSIImageParamGroup,
+            RIFGIgramBrowseParamGroup,
         )
 
 
@@ -993,7 +1067,7 @@ class RUNWRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : RUNWProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    hsi : RUNWHSIImageParamGroup or None, optional
+    hsi : RUNWIgramBrowseParamGroup or None, optional
         HSI Image Group parameters.
     unw_phs_img : RUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
@@ -1004,7 +1078,7 @@ class RUNWRootParamGroup(RootParamGroup):
     input_f: Optional[RUNWInputFileGroupParamGroup] = None
     prodpath: Optional[RUNWProductPathGroupParamGroup] = None
 
-    hsi: Optional[RUNWHSIImageParamGroup] = None
+    browse: Optional[RUNWIgramBrowseParamGroup] = None
     unw_phs_img: Optional[RUNWPhaseImageParamGroup] = None
 
     @staticmethod
@@ -1033,8 +1107,8 @@ class RUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="hsi",
-                param_grp_cls_obj=RUNWHSIImageParamGroup,
+                root_param_grp_attr_name="browse",
+                param_grp_cls_obj=RUNWIgramBrowseParamGroup,
             ),
         )
 
@@ -1049,7 +1123,7 @@ class RUNWRootParamGroup(RootParamGroup):
             RUNWProductPathGroupParamGroup,
             RUNWWorkflowsParamGroup,
             RUNWPhaseImageParamGroup,
-            RUNWHSIImageParamGroup,
+            RUNWIgramBrowseParamGroup,
         )
 
 
@@ -1073,7 +1147,7 @@ class GUNWRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : GUNWProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    hsi : GUNWHSIImageParamGroup or None, optional
+    hsi : GUNWIgramBrowseParamGroup or None, optional
         HSI Image Group parameters.
     unw_phs_img : GUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
@@ -1085,7 +1159,7 @@ class GUNWRootParamGroup(RootParamGroup):
     input_f: Optional[GUNWInputFileGroupParamGroup] = None
     prodpath: Optional[GUNWProductPathGroupParamGroup] = None
 
-    hsi: Optional[GUNWHSIImageParamGroup] = None
+    browse: Optional[GUNWIgramBrowseParamGroup] = None
     unw_phs_img: Optional[GUNWPhaseImageParamGroup] = None
 
     @staticmethod
@@ -1114,8 +1188,8 @@ class GUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="hsi",
-                param_grp_cls_obj=GUNWHSIImageParamGroup,
+                root_param_grp_attr_name="browse",
+                param_grp_cls_obj=GUNWIgramBrowseParamGroup,
             ),
         )
 
@@ -1130,7 +1204,7 @@ class GUNWRootParamGroup(RootParamGroup):
             GUNWProductPathGroupParamGroup,
             GUNWWorkflowsParamGroup,
             GUNWPhaseImageParamGroup,
-            GUNWHSIImageParamGroup,
+            GUNWIgramBrowseParamGroup,
         )
 
 
