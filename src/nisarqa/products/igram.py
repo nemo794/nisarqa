@@ -265,29 +265,49 @@ def save_igram_product_browse_png(product, params, browse_png):
         Filename (with path) for the browse image PNG.
     """
 
+    product_type = product.product_type
+    if product_type not in ("RIFG", "RUNW", "GUNW"):
+        raise ValueError(
+            f"{product.product_type=}, must be one of ('RIFG', 'RUNW', 'GUNW')."
+        )
+
+    freq, pol = product.get_browse_freq_pol()
+
     if params.browse_image == "phase":
-        if product.product_type == "RIFG":
+        if product_type == "RIFG":
             nisarqa.make_wrapped_phase_png(
-                product=product, params=params, browse_png=browse_png
+                product=product,
+                freq=freq,
+                pol=pol,
+                params=params,
+                png_filepath=browse_png,
             )
         else:
             nisarqa.make_unwrapped_phase_png(
-                product=product, params=params, browse_png=browse_png
+                product=product,
+                freq=freq,
+                pol=pol,
+                params=params,
+                png_filepath=browse_png,
             )
 
     elif params.browse_image == "hsi":
-        if product.product_type == "RIFG":
-            nisarqa.make_hsi_browse_png_wrapped(
+        if product_type == "RIFG":
+            nisarqa.make_hsi_png_with_wrapped_phase(
                 product=product,
+                freq=freq,
+                pol=pol,
                 params=params,
-                browse_png=browse_png,
+                png_filepath=browse_png,
             )
 
         else:
-            nisarqa.make_hsi_browse_png_unwrapped(
+            nisarqa.make_hsi_png_with_unwrapped_phase(
                 product=product,
+                freq=freq,
+                pol=pol,
                 params=params,
-                browse_png=browse_png,
+                png_filepath=browse_png,
             )
     else:
         raise ValueError(

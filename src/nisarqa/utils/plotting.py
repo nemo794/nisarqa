@@ -581,22 +581,27 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
 
 def make_wrapped_phase_png(
     product: nisarqa.WrappedGroup,
+    freq: str,
+    pol: str,
     params: nisarqa.IgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    png_filepath: str | os.PathLike,
 ) -> None:
     """
-    Create and save the wrapped interferogram as a browse PNG.
+    Create and save the wrapped interferogram as a PNG.
 
     Parameters
     ----------
     product : nisarqa.WrappedGroup
         Input NISAR product.
-    params : nisarqa.IgramBrowseParamGroup
-        A structure containing the parameters for creating the HSI image.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    freq, pol : str
+        The frequency and polarization (respectively) pair for the wrapped
+        interferogram to save as a PNG.
+    longest_side_max : int or None, optional
+        Decimate the generated HSI raster so that the max length of
+        axis 0 and axis 1 in `hsi_raster` is `longest_side_max`.
+    png_filepath : path-like
+        Filename (with path) for the image PNG.
     """
-    freq, pol = product.get_browse_freq_pol()
 
     with product.get_wrapped_igram(freq=freq, pol=pol) as igram_r:
 
@@ -606,47 +611,37 @@ def make_wrapped_phase_png(
             rewrap=None,
         )
 
-        # decimate to square pixels
-        ky, kx = nisarqa.compute_square_pixel_nlooks(
-            img_shape=np.shape(phase),
-            sample_spacing=[igram_r.y_axis_spacing, igram_r.x_axis_spacing],
-            longest_side_max=params.longest_side_max,
-        )
-        phase = phase[::ky, ::kx]
-
-    def plot_image(ax: mpl.axes.Axes) -> None:
-        ax.imshow(
-            phase,
-            aspect="equal",
-            cmap="twilight_shifted",
-            interpolation="none",
-        )
-
-    save_mpl_plot_to_png(
-        axes_partial_func=plot_image,
-        raster_shape=np.shape(phase),
-        browse_png=browse_png,
+    plot_2d_array_and_save_to_png(
+        arr=phase,
+        cmap="twilight_shifted",
+        sample_spacing=(igram_r.y_axis_spacing, igram_r.x_axis_spacing),
+        longest_side_max=params.longest_side_max,
+        png_filepath=png_filepath,
     )
 
 
 def make_unwrapped_phase_png(
     product: nisarqa.UnwrappedGroup,
+    freq: str,
+    pol: str,
     params: nisarqa.UNWIgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    png_filepath: str | os.PathLike,
 ) -> None:
     """
-    Create and save the unwrapped interferogram as a browse PNG.
+    Create and save the unwrapped interferogram as a PNG.
 
     Parameters
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
+    freq, pol : str
+        The frequency and polarization (respectively) pair for the unwrapped
+        interferogram to save as a PNG.
     params : nisarqa.UNWIgramBrowseParamGroup
         A structure containing the parameters for creating the HSI image.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    png_filepath : path-like
+        Filename (with path) for the image PNG.
     """
-    freq, pol = product.get_browse_freq_pol()
 
     with product.get_unwrapped_phase(freq=freq, pol=pol) as igram_r:
 
@@ -656,47 +651,102 @@ def make_unwrapped_phase_png(
             rewrap=params.rewrap,
         )
 
-        # decimate to square pixels
-        ky, kx = nisarqa.compute_square_pixel_nlooks(
-            img_shape=np.shape(phase),
-            sample_spacing=[igram_r.y_axis_spacing, igram_r.x_axis_spacing],
-            longest_side_max=params.longest_side_max,
-        )
-        phase = phase[::ky, ::kx]
+    plot_2d_array_and_save_to_png(
+        arr=phase,
+        cmap="twilight_shifted",
+        sample_spacing=(igram_r.y_axis_spacing, igram_r.x_axis_spacing),
+        longest_side_max=params.longest_side_max,
+        png_filepath=png_filepath,
+    )
 
+
+def plot_2d_array_and_save_to_png(
+    arr: npt.ArrayLike,
+    png_filepath: str | os.PathLike,
+    cmap: str | mpl.colors.Colormap = "twilight_shifted",
+    sample_spacing: Optional[tuple[float, float]] = None,
+    longest_side_max: Optional[int] = None,
+) -> None:
+    """
+    Plot a 2D raster to square pixels, and save to PNG.
+
+    Parameters
+    ----------
+    arr : npt.ArrayLike
+        Raster to be plotted and saved to as PNG.
+    png_filepath : path-like
+        Filename (with path) for the image PNG.
+    cmap : str or mpl.colors.Colormap, optional
+        Colormap to use while plotting the raster. Must be compliant with
+        `matplotlib.pyplot.imshow`'s `cmap` parameter.
+        Defaults to "twilight_shifted".
+    sample_spacing : pair of float or None, optional
+        The Y direction sample spacing and X direction sample spacing
+        of the source array. These values are used to decimate the raster
+        to have square pixels.
+        For radar-domain products, Y direction corresponds to azimuth,
+        and X direction corresponds to range.
+        Only the magnitude (absolute value) of the sample spacing is used.
+        Format: (dy, dx)
+        If None, the raster is assumed to have square pixels and so the aspect
+        ratio of `arr` will not change.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked image. If None, the longest edge of `arr` will be used.
+        Defaults to 2048.
+    """
+    if sample_spacing is None:
+        sample_spacing = (1, 1)
+
+    if longest_side_max is None:
+        longest_side_max = max(np.shape(arr))
+
+    # decimate to square pixels
+    ky, kx = nisarqa.compute_square_pixel_nlooks(
+        img_shape=np.shape(arr),
+        sample_spacing=sample_spacing,
+        longest_side_max=longest_side_max,
+    )
+    arr = arr[::ky, ::kx]
+
+    # partial function for use by save_mpl_plot_to_png()
     def plot_image(ax: mpl.axes.Axes) -> None:
         ax.imshow(
-            phase,
+            arr,
             aspect="equal",
-            cmap="twilight_shifted",
+            cmap=cmap,
             interpolation="none",
         )
 
     save_mpl_plot_to_png(
         axes_partial_func=plot_image,
-        raster_shape=np.shape(phase),
-        browse_png=browse_png,
+        raster_shape=np.shape(arr),
+        png_filepath=png_filepath,
     )
 
 
-def make_hsi_browse_png_wrapped(
+def make_hsi_png_with_wrapped_phase(
     product: nisarqa.WrappedGroup,
+    freq: str,
+    pol: str,
     params: nisarqa.IgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    png_filepath: str | os.PathLike,
 ) -> None:
     """
-    Create and save HSI wrapped interferogram browse PNG for input product.
+    Create and save HSI image of a wrapped interferogram with coh mag as a PNG.
 
     Parameters
     ----------
     product : nisarqa.WrappedGroup
         Input NISAR product.
+    freq, pol : str
+        The frequency and polarization (respectively) pair for the wrapped
+        interferogram and coh mag layer to use for generating the HSI image.
     params : nisarqa.IgramBrowseParamGroup
         A structure containing the parameters for creating the HSI image.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    png_filepath : path-like
+        Filename (with path) for the image PNG.
     """
-    freq, pol = product.get_browse_freq_pol()
 
     with product.get_wrapped_igram(
         freq=freq, pol=pol
@@ -713,28 +763,32 @@ def make_hsi_browse_png_wrapped(
         red=rgb_img.data[:, :, 0],
         green=rgb_img.data[:, :, 1],
         blue=rgb_img.data[:, :, 2],
-        filepath=browse_png,
+        filepath=png_filepath,
     )
 
 
-def make_hsi_browse_png_unwrapped(
+def make_hsi_png_with_unwrapped_phase(
     product: nisarqa.UnwrappedGroup,
+    freq: str,
+    pol: str,
     params: nisarqa.UNWIgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    png_filepath: str | os.PathLike,
 ) -> None:
     """
-    Create and save HSI unwrapped phase image browse png for input product.
+    Create and save HSI image of unwrapped interferogram with coh mag as a PNG.
 
     Parameters
     ----------
     product : nisarqa.UnwrappedGroup
         Input NISAR product.
+    freq, pol : str
+        The frequency and polarization (respectively) pair for the unwrapped
+        interferogram and coh mag layer to use for generating the HSI image.
     params : nisarqa.UNWIgramBrowseParamGroup
         A structure containing the parameters for creating the HSI image.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    png_filepath : path-like
+        Filename (with path) for the image PNG.
     """
-    freq, pol = product.get_browse_freq_pol()
 
     with product.get_unwrapped_phase(
         freq=freq, pol=pol
@@ -750,7 +804,7 @@ def make_hsi_browse_png_unwrapped(
         red=rgb_img.data[:, :, 0],
         green=rgb_img.data[:, :, 1],
         blue=rgb_img.data[:, :, 2],
-        filepath=browse_png,
+        filepath=png_filepath,
     )
 
 
@@ -2041,7 +2095,7 @@ def plot_single_quiver_plot_to_png(
     az_offset,
     rg_offset,
     params,
-    browse_png,
+    png_filepath,
 ):
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
@@ -2056,8 +2110,8 @@ def plot_single_quiver_plot_to_png(
         `az_offset`.
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    png_filepath : path-like
+        Filename (with path) for the image PNG.
 
     Returns
     -------
@@ -2108,7 +2162,7 @@ def plot_single_quiver_plot_to_png(
     save_mpl_plot_to_png(
         axes_partial_func=quiver_func,
         raster_shape=az_off.shape,
-        browse_png=browse_png,
+        png_filepath=png_filepath,
     )
 
     return y_decimation, x_decimation
@@ -2284,7 +2338,7 @@ def add_magnitude_image_and_quiver_plot_to_axes(
 def save_mpl_plot_to_png(
     axes_partial_func: function | functools.partial,
     raster_shape: tuple[int, int],
-    browse_png: str | os.PathLike,
+    png_filepath: str | os.PathLike,
 ) -> None:
     """
     Save a Matplotlib plot to PNG with exact pixel dimensions.
@@ -2305,8 +2359,8 @@ def save_mpl_plot_to_png(
     raster_shape : pair of int
         2D shape of the raster plotted by `axes_partial_func`. The output
         PNG will have these pixel dimensions.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    png_filepath : path-like
+        Filename (with path) for the image PNG.
 
     Examples
     --------
@@ -2319,7 +2373,7 @@ def save_mpl_plot_to_png(
     >>> nisarqa.save_mpl_plot_to_png(
                 axes_partial_func=my_partial,
                 raster_shape=np.shape(arr),
-                browse_png="browse.png")
+                png_filepath="browse.png")
 
     The array is now plotted with the magma colormap and saved as a PNG to the
     file browse.png, and the PNG has exact dimensions of 30 pixels x 50 pixels.
@@ -2365,7 +2419,7 @@ def save_mpl_plot_to_png(
     axes_partial_func(ax)
 
     # Save to PNG - Make sure to keep the same DPI!
-    fig.savefig(browse_png, transparent=True, dpi=dpi)
+    fig.savefig(png_filepath, transparent=True, dpi=dpi)
 
     # Close the plot
     plt.close(fig)

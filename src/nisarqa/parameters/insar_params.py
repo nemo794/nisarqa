@@ -287,22 +287,6 @@ class GOFFWorkflowsParamGroup(WorkflowsParamGroup):
 @dataclass(frozen=True)
 class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to generate the Browse Image for RIFG, RUNW, and GUNW.
-
-    Parameters
-    ----------
-    browse_image_content : string, optional
-
-        Default is True.
-    longest_side_max : int, optional
-        The maximum number of pixels allowed for the longest side of the final
-        2D multilooked browse image. Defaults to 2048 pixels.
-    """
-
-
-@dataclass(frozen=True)
-class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
-    """
     Parameters to generate the browse image PNG for RIFG, RUNW, and GUNW.
 
     Parameters
