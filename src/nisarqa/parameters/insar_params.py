@@ -568,7 +568,6 @@ class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
 
     def __post_init__(self):
         # VALIDATE INPUTS
-        print("LALA check MRO; ThresholdParamGroup __post_init__ must trigger!")
         super().__post_init__()
 
         # validate rewrap
@@ -599,7 +598,7 @@ class GUNWPhaseImageParamGroup(UNWPhaseImageParamGroup):
 
 
 @dataclass(frozen=True)
-class ConnectedComponentsParamGroup(ThresholdParamGroup):
+class WrappedIgramParamGroup(ThresholdParamGroup):
     """
     Parameters to run QA on Wrapped Interferogram Layers for RIFG and GUNW.
 
@@ -638,7 +637,7 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class RIFGWrappedIgramParamGroup(ThresholdParamGroup):
+class RIFGWrappedIgramParamGroup(WrappedIgramParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -652,7 +651,7 @@ class RIFGWrappedIgramParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWWrappedIgramParamGroup(ThresholdParamGroup):
+class GUNWWrappedIgramParamGroup(WrappedIgramParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -743,7 +742,53 @@ class GUNWIonoPhaseUncertaintyParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class RIFGAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+class AzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+    """
+    Parameters to run QA on along track and slant range offsets layers.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Default for NaN, Inf, fill, and total thresholds:
+            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Default for near-zero threshold: -1.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
+    max_num_cc : int or None, optional
+        Maximum number of valid connected components allowed.
+        If the number of valid connected components (not including
+        zero nor the fill value) is greater than this value,
+        it will be logged and an exception will be raised.
+        If None, this error check will be skipped.
+        Defaults to 40.
+    """
+
+    near_zero_threshold: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="near_zero_threshold", default=-1
+        )
+    )
+
+    zero_is_invalid: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="zero_is_invalid", default=False
+        )
+    )
+
+
+@dataclass(frozen=True)
+class RIFGAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -757,7 +802,7 @@ class RIFGAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class RUNWAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+class RUNWAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -771,7 +816,7 @@ class RUNWAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+class GUNWAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -785,7 +830,7 @@ class GUNWAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class ROFFAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+class ROFFAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -799,7 +844,7 @@ class ROFFAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GOFFAzAndRangeOffsetsParamGroup(ThresholdParamGroup):
+class GOFFAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [

@@ -481,7 +481,9 @@ class ThresholdParamGroup(YamlParamGroup):
         If the percentage of NaN-, Inf-, fill-, near-zero-, or total
         invalid-valued pixels is above the respective threshold, it will be
         logged as an error and an exception raised.
-        "Total invalid pixels" is the sum of NaN, near-zero, fill, & Inf pixels.
+        "Total invalid pixels" is the sum of NaN, Inf, & fill pixels.
+        If `zero_is_invalid` is True, near-zero-valued pixels are also
+        included in the total count of invalid pixels.
         Each threshold should be between 0 and 100.
         Setting a threshold to -1 causes that threshold to be effectively
         ignored (e.g. any percent of NaN values is fine; it will be noted as
@@ -562,7 +564,8 @@ class ThresholdParamGroup(YamlParamGroup):
                 name="total_invalid_threshold",
                 descr=(
                     f"{_threshold_descr_template % 'total invalid'}\n"
-                    "'Total invalid pixels' is the sum of NaN, Inf, fill, & near-zero pixels."
+                    "'Total invalid pixels' is the sum of NaN, Inf, fill,"
+                    " & (if `zero_is_invalid` is True) near-zero pixels."
                 ),
             )
         },
