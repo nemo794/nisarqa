@@ -388,7 +388,7 @@ def compute_and_save_basic_statistics(
         except KeyError:
             raise ValueError(f"{data_type=}, must be one of {my_dict.keys()}.")
 
-        # Fill all invalid pixels in the array with NaN, to easily compute metrics
+        # Fill all invalid pixels in array with NaN, to easily compute metrics
         arr_copy = np.where(
             (np.isfinite(arr) & (arr != fill_value)), arr, np.nan
         )
@@ -548,16 +548,12 @@ def compute_percentage_metrics(
     # Total number of pixels that were NaN, +/-Inf, fill, or near-zero
     total_num_invalid = 0
 
-    log = nisarqa.get_logger()
-    summary = nisarqa.get_summary()
-
     arr = raster.data
     grp_path = raster.stats_h5_group_path
     fill_value = raster.fill_value
     arr_name = raster.name
     arr_size = np.size(arr)
 
-    nan_threshold = params.nan_threshold
     inf_threshold = params.inf_threshold
     fill_threshold = params.fill_threshold
     near_zero_threshold = params.near_zero_threshold
@@ -565,47 +561,49 @@ def compute_percentage_metrics(
     zero_is_invalid = params.zero_is_invalid
     invalid_threshold = params.total_invalid_threshold
 
-    def _percent_of_arr(count: int) -> float:
-        return count / arr_size * 100
-
     # Compute NaN value metrics
     num_nan = compute_nan_count(arr)
     total_num_invalid += num_nan
-    percent_nan = _percent_of_arr(count=num_nan)
 
+    passes_metric, percent_nan = nisarqa.percent_nan_is_within_threshold(
+        count=num_nan,
+        arr_size=arr_size,
+        threshold_percentage=params.nan_threshold,
+        arr_name=arr_name,
+    )
+    all_metrics_pass &= passes_metric
     nisarqa.save_percent_nan_to_stats_h5(
         percentage=percent_nan, stats_h5=stats_h5, grp_path=grp_path
-    )
-
-    all_metrics_pass &= nisarqa.percent_nan_is_within_threshold(
-        percentage=percent_nan,
-        threshold_percentage=nan_threshold,
-        arr_name=arr_name,
     )
 
     # Compute +/- inf metrics.
     num_inf = compute_inf_count(arr)
     total_num_invalid += num_inf
-    percent_inf = _percent_of_arr(count=num_inf)
 
+    passes_metric, percent_inf = nisarqa.percent_inf_is_within_threshold(
+        count=num_inf,
+        arr_size=arr_size,
+        threshold_percentage=inf_threshold,
+        arr_name=arr_name,
+    )
+    all_metrics_pass &= passes_metric
     nisarqa.save_percent_inf_to_stats_h5(
         percentage=percent_inf, stats_h5=stats_h5, grp_path=grp_path
     )
 
-    all_metrics_pass &= nisarqa.percent_inf_is_within_threshold(
-        percentage=percent_inf,
-        threshold_percentage=inf_threshold,
-        arr_name=arr_name,
-    )
-
-    # Compute number of zeros metrics.
+    # Compute near-zeros metrics.
     num_zero = compute_near_zero_count(arr, epsilon=epsilon)
-
     if zero_is_invalid:
         total_num_invalid += num_zero
 
-    percent_zero = _percent_of_arr(count=num_zero)
+    passes_metric, percent_zero = nisarqa.percent_near_zero_is_within_threshold(
+        count=num_zero,
+        arr_size=arr_size,
+        threshold_percentage=near_zero_threshold,
+        arr_name=arr_name,
+    )
 
+    all_metrics_pass &= passes_metric
     nisarqa.save_percent_near_zero_to_stats_h5(
         percentage=percent_zero,
         epsilon=epsilon,
@@ -613,30 +611,32 @@ def compute_percentage_metrics(
         grp_path=grp_path,
     )
 
-    all_metrics_pass &= nisarqa.percent_near_zero_is_within_threshold(
-        percentage=percent_zero,
-        threshold_percentage=near_zero_threshold,
-        arr_name=arr_name,
-    )
-
     # Compute fill value metrics. Do not double-count NaNs nor zeros.
     if fill_value is not None:
         fill_is_zero = np.isclose(fill_value, 0.0, atol=epsilon, rtol=0.0)
 
         if np.isnan(fill_value):
-            percent_fill = percent_nan
+            num_fill = num_nan
             # We already accumulated the number of NaN to `total_num_invalid`,
             # skip doing that here so that we do not double-count the NaN
         elif fill_is_zero:
-            percent_fill = percent_zero
+            num_fill = num_zero
             if not zero_is_invalid:
                 # Fill values should always be included as invalid pixels.
                 total_num_invalid += num_zero
         else:
             num_fill = compute_fill_count(arr, fill_value=fill_value)
             total_num_invalid += num_fill
-            percent_fill = _percent_of_arr(count=num_fill)
 
+        passes_metric, percent_fill = nisarqa.percent_fill_is_within_threshold(
+            count=num_fill,
+            arr_size=arr_size,
+            threshold_percentage=fill_threshold,
+            fill_value=fill_value,
+            arr_name=arr_name,
+        )
+
+        all_metrics_pass &= passes_metric
         nisarqa.save_percent_fill_to_stats_h5(
             percentage=percent_fill,
             fill_value=fill_value,
@@ -644,29 +644,24 @@ def compute_percentage_metrics(
             grp_path=grp_path,
         )
 
-        all_metrics_pass &= nisarqa.percent_fill_is_within_threshold(
-            percentage=percent_fill,
-            threshold_percentage=fill_threshold,
-            fill_value=fill_value,
-            arr_name=arr_name,
-        )
-
     # Compute cumulative total invalid pixels
     assert total_num_invalid <= arr_size
 
-    percent_invalid = _percent_of_arr(count=total_num_invalid)
+    passes_metric, percent_invalid = (
+        nisarqa.percent_total_invalid_is_within_threshold(
+            count=total_num_invalid,
+            arr_size=arr_size,
+            threshold_percentage=invalid_threshold,
+            arr_name=arr_name,
+            zero_is_invalid=zero_is_invalid,
+        )
+    )
 
+    all_metrics_pass &= passes_metric
     nisarqa.save_percent_total_invalid_to_stats_h5(
         percentage=percent_invalid,
         stats_h5=stats_h5,
         grp_path=grp_path,
-        zero_is_invalid=zero_is_invalid,
-    )
-
-    all_metrics_pass &= nisarqa.percent_total_invalid_is_within_threshold(
-        percentage=percent_invalid,
-        threshold_percentage=invalid_threshold,
-        arr_name=arr_name,
         zero_is_invalid=zero_is_invalid,
     )
 

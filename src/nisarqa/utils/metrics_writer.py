@@ -179,20 +179,26 @@ def save_percent_total_invalid_to_stats_h5(
 
 def _percent_value_is_within_threshold(
     name_of_value: str,
-    percentage: float,
+    count: int,
+    arr_size: int,
     threshold_percentage: float,
     arr_name: str,
-) -> bool:
+) -> tuple[bool, float]:
     """
     Private function: Check if a percentage is within threshold; note in log.
+
+    The percentage of the array that is considered to be `name_of_value`
+    is computed by `count / arr_size`.
 
     Parameters
     ----------
     name_of_value : str
         Name of the metric being checked, e.g. "NaN" or "+/- Inf". This will
         be used for the log messages.
-    percentage : float
-        Percentage of a raster that is `name_of_value`.
+    count : int
+        Number of pixels that are `name_of_value`.
+    arr_size : int
+        Total size of array.
     threshold_percentage : float
         Percentage of a raster that is okay to be `name_of_value`.
         If `percentage` is greater than `threshold_percentage`,
@@ -206,12 +212,16 @@ def _percent_value_is_within_threshold(
     -------
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
+    percentage : float
+        Percentage of a raster that is `name_of_value`.
     """
-    nisarqa.verify_valid_percent(percentage)
-
     log = nisarqa.get_logger()
 
-    msg = f"Array {arr_name} is {percentage} percent {name_of_value} pixels."
+    percentage = count / arr_size * 100
+
+    nisarqa.verify_valid_percent(percentage)
+
+    msg = f"Array {arr_name} contains {count}/{arr_size} ({percentage}%) {name_of_value} pixels."
 
     if threshold_percentage != -1:
         nisarqa.verify_valid_percent(threshold_percentage)
@@ -224,21 +234,24 @@ def _percent_value_is_within_threshold(
         log.info(msg)
         passes_metric = True
 
-    return passes_metric
+    return passes_metric, percentage
 
 
 def percent_nan_is_within_threshold(
-    percentage: float,
+    count: int,
+    arr_size: int,
     threshold_percentage: float,
     arr_name: str,
-) -> bool:
+) -> tuple[bool, float]:
     """
     Check if % of NaN values is within threshold; note in log and summary csv.
 
     Parameters
     ----------
-    percentage : float
-        Percentage of a raster that is NaN.
+    count : int
+        Number of pixels that are `name_of_value`.
+    arr_size : int
+        Total size of array.
     threshold_percentage : float
         Percentage of a raster that is okay to be NaN.
         If `percentage` is greater than `threshold_percentage`,
@@ -252,10 +265,13 @@ def percent_nan_is_within_threshold(
     -------
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
+    percentage : float
+        Percentage of a raster that is NaN.
     """
-    passes_metric = _percent_value_is_within_threshold(
+    passes_metric, percentage = _percent_value_is_within_threshold(
         name_of_value="NaN",
-        percentage=percentage,
+        count=count,
+        arr_size=arr_size,
         threshold_percentage=threshold_percentage,
         arr_name=arr_name,
     )
@@ -272,21 +288,24 @@ def percent_nan_is_within_threshold(
         notes=arr_name,
     )
 
-    return passes_metric
+    return passes_metric, percentage
 
 
 def percent_inf_is_within_threshold(
-    percentage: float,
+    count: int,
+    arr_size: int,
     threshold_percentage: float,
     arr_name: str,
-) -> bool:
+) -> tuple[bool, float]:
     """
     Check if % of +/- Inf values is within threshold; note in log.
 
     Parameters
     ----------
-    percentage : float
-        Percentage of a raster that is +/- Inf.
+    count : int
+        Number of pixels that are `name_of_value`.
+    arr_size : int
+        Total size of array.
     threshold_percentage : float
         Percentage of a raster that is okay to be +/- Inf.
         If `percentage` is greater than `threshold_percentage`,
@@ -300,30 +319,34 @@ def percent_inf_is_within_threshold(
     -------
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
+    percentage : float
+        Percentage of a raster that is +/- Inf.
     """
-    passes_metric = _percent_value_is_within_threshold(
+    return _percent_value_is_within_threshold(
         name_of_value="+/- Inf",
-        percentage=percentage,
+        count=count,
+        arr_size=arr_size,
         threshold_percentage=threshold_percentage,
         arr_name=arr_name,
     )
 
-    return passes_metric
-
 
 def percent_fill_is_within_threshold(
-    percentage: float,
+    count: int,
+    arr_size: int,
     threshold_percentage: float,
     fill_value: float,
     arr_name: str,
-) -> bool:
+) -> tuple[bool, float]:
     """
     Check if % of fill values is within threshold; note in log.
 
     Parameters
     ----------
-    percentage : float
-        Percentage of a raster that is fill.
+    count : int
+        Number of pixels that are `name_of_value`.
+    arr_size : int
+        Total size of array.
     threshold_percentage : float
         Percentage of a raster that is okay to be fill.
         If `percentage` is greater than `threshold_percentage`,
@@ -339,30 +362,34 @@ def percent_fill_is_within_threshold(
     -------
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
+    percentage : float
+        Percentage of a raster that is fill.
     """
 
-    passes_metric = _percent_value_is_within_threshold(
+    return _percent_value_is_within_threshold(
         name_of_value=f"fill value (fill value is {fill_value})",
-        percentage=percentage,
+        count=count,
+        arr_size=arr_size,
         threshold_percentage=threshold_percentage,
         arr_name=arr_name,
     )
 
-    return passes_metric
-
 
 def percent_near_zero_is_within_threshold(
-    percentage: float,
+    count: int,
+    arr_size: int,
     threshold_percentage: float,
     arr_name: str,
-) -> bool:
+) -> tuple[bool, float]:
     """
     Check if % of near-zero values is within threshold; note in log.
 
     Parameters
     ----------
-    percentage : float
-        Percentage of a raster that is near-zero.
+    count : int
+        Number of pixels that are `name_of_value`.
+    arr_size : int
+        Total size of array.
     threshold_percentage : float
         Percentage of a raster that is okay to be near-zero.
         If `percentage` is greater than `threshold_percentage`,
@@ -376,24 +403,26 @@ def percent_near_zero_is_within_threshold(
     -------
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
+    percentage : float
+        Percentage of a raster that is near-zero.
     """
 
-    passes_metric = _percent_value_is_within_threshold(
+    return _percent_value_is_within_threshold(
         name_of_value="near-zero",
-        percentage=percentage,
+        count=count,
+        arr_size=arr_size,
         threshold_percentage=threshold_percentage,
         arr_name=arr_name,
     )
 
-    return passes_metric
-
 
 def percent_total_invalid_is_within_threshold(
-    percentage: float,
+    count: int,
+    arr_size: int,
     threshold_percentage: float,
     arr_name: str,
     zero_is_invalid: bool,
-) -> bool:
+) -> tuple[bool, float]:
     """
     Check if % of total invalid values is within threshold; note in log.
 
@@ -402,8 +431,10 @@ def percent_total_invalid_is_within_threshold(
 
     Parameters
     ----------
-    percentage : float
-        Percentage of a raster that is invalid.
+    count : int
+        Number of pixels that are `name_of_value`.
+    arr_size : int
+        Total size of array.
     threshold_percentage : float
         Percentage of a raster that is okay to be invalid.
         If `percentage` is greater than `threshold_percentage`,
@@ -421,6 +452,8 @@ def percent_total_invalid_is_within_threshold(
     -------
     passes_metric : bool
         True if the percentage is within acceptable limits. False if not.
+    percentage : float
+        Percentage of a raster that is invalid.
     """
 
     if zero_is_invalid:
@@ -428,9 +461,10 @@ def percent_total_invalid_is_within_threshold(
     else:
         msg = "NaN, Inf, or fill-valued"
 
-    passes_metric = _percent_value_is_within_threshold(
+    passes_metric, percentage = _percent_value_is_within_threshold(
         name_of_value=f"invalid ({msg})",
-        percentage=percentage,
+        count=count,
+        arr_size=arr_size,
         threshold_percentage=threshold_percentage,
         arr_name=arr_name,
     )
@@ -448,7 +482,7 @@ def percent_total_invalid_is_within_threshold(
         notes=arr_name,
     )
 
-    return passes_metric
+    return passes_metric, percentage
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
