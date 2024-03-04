@@ -767,20 +767,19 @@ def connected_components_metrics(
         ),
     )
 
-    # "The Breakdown"
-    for label, percent in zip(labels, percentages):
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name=f"connectedComponent{label}",
-            ds_data=percent,
-            ds_units="1",
-            ds_description=(
-                "Percentage of raster covered by connected component with label"
-                f" `{label}`."
-            ),
-        )
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name=f"listOfConnectedComponentPercentages",
+        ds_data=percentages,
+        ds_units="1",
+        ds_description=(
+            "List of percentages of raster with each connected component label."
+            " Indices correspond to `listOfConnectedComponentLabels`"
+        ),
+    )
 
+    for label, percent in zip(labels, percentages):
         log.info(
             f"Connected Component `{label}` covers {percent} percent of the"
             f" {name} raster."
