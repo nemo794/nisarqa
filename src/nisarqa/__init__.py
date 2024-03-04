@@ -144,6 +144,6 @@ from .utils.raster_classes import *
 from .utils.tiling import *
 from .utils.utils import *
 from .utils.summary_csv import *
-from .utils.stats_writer import *
+from .utils.metrics_writer import *
 
 # isort: on

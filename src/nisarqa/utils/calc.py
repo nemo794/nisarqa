@@ -657,13 +657,17 @@ def compute_percentage_metrics(
     percent_invalid = _percent_of_arr(count=total_num_invalid)
 
     nisarqa.save_percent_total_invalid_to_stats_h5(
-        percentage=percent_invalid, stats_h5=stats_h5, grp_path=grp_path
+        percentage=percent_invalid,
+        stats_h5=stats_h5,
+        grp_path=grp_path,
+        zero_is_invalid=zero_is_invalid,
     )
 
     all_metrics_pass &= nisarqa.percent_total_invalid_is_within_threshold(
         percentage=percent_invalid,
         threshold_percentage=invalid_threshold,
         arr_name=arr_name,
+        zero_is_invalid=zero_is_invalid,
     )
 
     # Now, all metrics have been computed and logged. Raise exception
@@ -674,7 +678,7 @@ def compute_percentage_metrics(
             f"Array {arr_name} did not pass at least one of the percentage"
             " threshold metrics; either the % Nan, % Inf, % 'fill', % near-zero"
             " and/or % total invalid pixels was greater than its requested"
-            " threshold. See the log for exact details."
+            " threshold. See the log for details."
         )
 
         raise nisarqa.InvalidRasterError(msg)
