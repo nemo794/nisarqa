@@ -703,15 +703,13 @@ class ZeroIsValidThresholdParamGroup(ThresholdParamGroup):
     """
 
     near_zero_threshold: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+        ThresholdParamGroup.get_field_with_updated_default(
             param_name="near_zero_threshold", default=-1
         )
     )
 
-    zero_is_invalid: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-            param_name="zero_is_invalid", default=False
-        )
+    zero_is_invalid: float = ThresholdParamGroup.get_field_with_updated_default(
+        param_name="zero_is_invalid", default=False
     )
 
 
