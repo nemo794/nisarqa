@@ -312,7 +312,7 @@ class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
         2D multilooked browse image. Defaults to 2048 pixels.
     """
 
-    browse_image: bool = field(
+    browse_image: str = field(
         default="phase",
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -378,7 +378,7 @@ class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
         # VALIDATE INPUTS
 
         # validate browse_image
-        browse_options = ("hsi", "phase")
+        browse_options = {"hsi", "phase"}
         if self.browse_image not in browse_options:
             raise ValueError(
                 f"`{self.browse_image=}`, must be one of {browse_options}."
@@ -444,12 +444,12 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup):
                     """,
             ),
             "hdf5_attrs": HDF5Attrs(
-                name="BrowseImageRewrap",
+                name="browseImageRewrap",
                 units="1",
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
                     " layer for the browse PNG. 'None' if no rewrapping"
-                    " occurred. Example: If `BrowseImageRewrap` is 3, the"
+                    " occurred. Example: If `browseImageRewrap` is 3, the"
                     " unwrapped phase was rewrapped to the interval [0, 3pi)."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,

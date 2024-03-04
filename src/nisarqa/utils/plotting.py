@@ -638,7 +638,7 @@ def make_unwrapped_phase_png(
         The frequency and polarization (respectively) pair for the unwrapped
         interferogram to save as a PNG.
     params : nisarqa.UNWIgramBrowseParamGroup
-        A structure containing the parameters for creating the HSI image.
+        A structure containing the parameters for creating the browse image.
     png_filepath : path-like
         Filename (with path) for the image PNG.
     """
@@ -663,7 +663,7 @@ def make_unwrapped_phase_png(
 def plot_2d_array_and_save_to_png(
     arr: npt.ArrayLike,
     png_filepath: str | os.PathLike,
-    cmap: str | mpl.colors.Colormap = "twilight_shifted",
+    cmap: str | mpl.colors.Colormap = "viridis",
     sample_spacing: Optional[tuple[float, float]] = None,
     longest_side_max: Optional[int] = None,
 ) -> None:
@@ -679,7 +679,7 @@ def plot_2d_array_and_save_to_png(
     cmap : str or mpl.colors.Colormap, optional
         Colormap to use while plotting the raster. Must be compliant with
         `matplotlib.pyplot.imshow`'s `cmap` parameter.
-        Defaults to "twilight_shifted".
+        Defaults to "viridis".
     sample_spacing : pair of float or None, optional
         The Y direction sample spacing and X direction sample spacing
         of the source array. These values are used to decimate the raster
@@ -693,7 +693,7 @@ def plot_2d_array_and_save_to_png(
     longest_side_max : int, optional
         The maximum number of pixels allowed for the longest side of the final
         2D multilooked image. If None, the longest edge of `arr` will be used.
-        Defaults to 2048.
+        Defaults to None.
     """
     if sample_spacing is None:
         sample_spacing = (1, 1)
