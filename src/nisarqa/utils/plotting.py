@@ -442,12 +442,6 @@ def process_phase_image_wrapped(
             ) as coh_img:
                 # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
-
-                # XXX Currently, if the magnitude of (almost) all interferogram
-                # pixels is zero or nearly zero, don't treat this as an error.
-                # When this occurs, it is likely due to known issues with RSLC
-                # calibration. TODO Revisit this when calibration issues are
-                # addressed.
                 nisarqa.compute_and_save_basic_statistics(
                     raster=complex_img,
                     params=params_wrapped_igram,

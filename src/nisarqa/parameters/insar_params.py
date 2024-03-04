@@ -16,6 +16,7 @@ from nisarqa import (
     WorkflowsParamGroup,
     YamlAttrs,
     YamlParamGroup,
+    ZeroIsValidThresholdParamGroup,
 )
 
 objects_to_skip = nisarqa.get_all(__name__)
@@ -598,46 +599,12 @@ class GUNWPhaseImageParamGroup(UNWPhaseImageParamGroup):
 
 
 @dataclass(frozen=True)
-class WrappedIgramParamGroup(ThresholdParamGroup):
-    """
-    Parameters to run QA on Wrapped Interferogram Layers for RIFG and GUNW.
-
-    Parameters
-    ----------
-    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
-        total_invalid_threshold : float, optional
-        Threshold values for alerting users to possible malformed datasets.
-        See `ThresholdParamGroup` docstring for complete description.
-        Default for NaN, Inf, fill, and total thresholds:
-            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-        Default for near-zero threshold: -1.
-    epsilon : float, optional
-        Absolute tolerance for determining if a raster pixel is 'almost zero'.
-        Defaults to 1e-6.
-    zero_is_invalid: bool, optional
-        True if near-zero pixels should be counted towards the
-        total number of invalid pixels. False to exclude them.
-        If False, consider setting `near_zero_threshold` to -1.
-        Note: Fill values are always considered invalid. So, if a raster's
-        fill value is zero, then zeros will still be included in the total.
-        Defaults to False.
-    """
-
-    near_zero_threshold: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-            param_name="near_zero_threshold", default=-1
-        )
-    )
-
-    zero_is_invalid: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-            param_name="zero_is_invalid", default=False
-        )
-    )
-
-
-@dataclass(frozen=True)
-class RIFGWrappedIgramParamGroup(WrappedIgramParamGroup):
+class RIFGWrappedIgramParamGroup(ZeroIsValidThresholdParamGroup):
+    # XXX In R3.4, if the magnitude of (almost) all interferogram
+    # pixels is zero or nearly zero, don't treat this as an error.
+    # When this occurs, it is likely due to known issues with RSLC
+    # calibration. TODO Revisit this when calibration issues are
+    # addressed.
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -651,7 +618,12 @@ class RIFGWrappedIgramParamGroup(WrappedIgramParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWWrappedIgramParamGroup(WrappedIgramParamGroup):
+class GUNWWrappedIgramParamGroup(ZeroIsValidThresholdParamGroup):
+    # XXX In R3.4, if the magnitude of (almost) all interferogram
+    # pixels is zero or nearly zero, don't treat this as an error.
+    # When this occurs, it is likely due to known issues with RSLC
+    # calibration. TODO Revisit this when calibration issues are
+    # addressed.
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -686,7 +658,7 @@ class GUNWCohMagLayerParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class RUNWIonoPhaseScreenParamGroup(ThresholdParamGroup):
+class RUNWIonoPhaseScreenParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -700,7 +672,7 @@ class RUNWIonoPhaseScreenParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWIonoPhaseScreenParamGroup(ThresholdParamGroup):
+class GUNWIonoPhaseScreenParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -714,7 +686,7 @@ class GUNWIonoPhaseScreenParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class RUNWIonoPhaseUncertaintyParamGroup(ThresholdParamGroup):
+class RUNWIonoPhaseUncertaintyParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -728,7 +700,7 @@ class RUNWIonoPhaseUncertaintyParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWIonoPhaseUncertaintyParamGroup(ThresholdParamGroup):
+class GUNWIonoPhaseUncertaintyParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -742,53 +714,7 @@ class GUNWIonoPhaseUncertaintyParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class AzAndRangeOffsetsParamGroup(ThresholdParamGroup):
-    """
-    Parameters to run QA on along track and slant range offsets layers.
-
-    Parameters
-    ----------
-    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
-        total_invalid_threshold : float, optional
-        Threshold values for alerting users to possible malformed datasets.
-        See `ThresholdParamGroup` docstring for complete description.
-        Default for NaN, Inf, fill, and total thresholds:
-            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-        Default for near-zero threshold: -1.
-    epsilon : float, optional
-        Absolute tolerance for determining if a raster pixel is 'almost zero'.
-        Defaults to 1e-6.
-    zero_is_invalid: bool, optional
-        True if near-zero pixels should be counted towards the
-        total number of invalid pixels. False to exclude them.
-        If False, consider setting `near_zero_threshold` to -1.
-        Note: Fill values are always considered invalid. So, if a raster's
-        fill value is zero, then zeros will still be included in the total.
-        Defaults to False.
-    max_num_cc : int or None, optional
-        Maximum number of valid connected components allowed.
-        If the number of valid connected components (not including
-        zero nor the fill value) is greater than this value,
-        it will be logged and an exception will be raised.
-        If None, this error check will be skipped.
-        Defaults to 40.
-    """
-
-    near_zero_threshold: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-            param_name="near_zero_threshold", default=-1
-        )
-    )
-
-    zero_is_invalid: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-            param_name="zero_is_invalid", default=False
-        )
-    )
-
-
-@dataclass(frozen=True)
-class RIFGAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
+class RIFGAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -802,7 +728,7 @@ class RIFGAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
 
 
 @dataclass(frozen=True)
-class RUNWAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
+class RUNWAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -816,7 +742,7 @@ class RUNWAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
+class GUNWAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -830,7 +756,7 @@ class GUNWAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
 
 
 @dataclass(frozen=True)
-class ROFFAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
+class ROFFAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -844,7 +770,7 @@ class ROFFAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
 
 
 @dataclass(frozen=True)
-class GOFFAzAndRangeOffsetsParamGroup(AzAndRangeOffsetsParamGroup):
+class GOFFAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -1076,7 +1002,7 @@ class GOFFQuiverParamGroup(QuiverParamGroup):
 
 
 @dataclass(frozen=True)
-class VarianceLayersParamGroup(ThresholdParamGroup):
+class VarianceLayersParamGroup(ZeroIsValidThresholdParamGroup):
     """
     Parameters to generate Variance Layer Plots for ROFF and GOFF.
 
@@ -1086,7 +1012,9 @@ class VarianceLayersParamGroup(ThresholdParamGroup):
         total_invalid_threshold : float, optional
         Threshold values for alerting users to possible malformed datasets.
         See `ThresholdParamGroup` docstring for complete description.
-        All thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Default for NaN, Inf, fill, and total thresholds:
+            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Default for near-zero threshold: -1.
     epsilon : float, optional
         Absolute tolerance for determining if a raster pixel is 'almost zero'.
         Defaults to 1e-6.
@@ -1096,7 +1024,7 @@ class VarianceLayersParamGroup(ThresholdParamGroup):
         If False, consider setting `near_zero_threshold` to -1.
         Note: Fill values are always considered invalid. So, if a raster's
         fill value is zero, then zeros will still be included in the total.
-        Defaults to True.
+        Defaults to False.
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
         for the az and slant range variance layers for ROFF and GOFF.
@@ -1166,7 +1094,7 @@ class GOFFVarianceLayersParamGroup(VarianceLayersParamGroup):
 
 
 @dataclass(frozen=True)
-class CrossOffsetVarianceLayerParamGroup(ThresholdParamGroup):
+class CrossOffsetVarianceLayerParamGroup(ZeroIsValidThresholdParamGroup):
     """
     Parameters to generate cross offset variance layer plots for ROFF and GOFF.
 
@@ -1199,18 +1127,6 @@ class CrossOffsetVarianceLayerParamGroup(ThresholdParamGroup):
         and that the colormap covers. Must be in the range [0.0, 100.0].
         Superseded by `cbar_min_max` parameter. Defaults to [1.0, 99.0].
     """
-
-    near_zero_threshold: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-            param_name="near_zero_threshold", default=-1
-        )
-    )
-
-    zero_is_invalid: float = (
-        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-            param_name="zero_is_invalid", default=False
-        )
-    )
 
     cbar_min_max: Optional[Sequence[float]] = field(
         default=None,
