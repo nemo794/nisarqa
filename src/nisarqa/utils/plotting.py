@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import functools
 import os
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from fractions import Fraction
 from typing import Optional, overload
@@ -735,6 +735,9 @@ def make_hsi_png_with_wrapped_phase(
     """
     Create and save HSI image of a wrapped interferogram with coh mag as a PNG.
 
+    Phase values are encoded as Hue and coherence magnitude values are
+    encoded as Intensity in the resulting PNG.
+
     Parameters
     ----------
     product : nisarqa.WrappedGroup
@@ -776,6 +779,10 @@ def make_hsi_png_with_unwrapped_phase(
 ) -> None:
     """
     Create and save HSI image of unwrapped interferogram with coh mag as a PNG.
+
+    Phase values are encoded as Hue and coherence magnitude values are
+    encoded as Intensity in the resulting PNG.
+
 
     Parameters
     ----------
@@ -2336,22 +2343,22 @@ def add_magnitude_image_and_quiver_plot_to_axes(
 
 
 def save_mpl_plot_to_png(
-    axes_partial_func: function | functools.partial,
+    axes_partial_func: Callable[[mpl.axes.Axes], None],
     raster_shape: tuple[int, int],
     png_filepath: str | os.PathLike,
 ) -> None:
     """
     Save a Matplotlib plot to PNG with exact pixel dimensions.
 
-    Matplotlib's figsave() and related functions are useful for saving plots
-    to PNG, etc. files. However, these built-in methods do not preserve
+    Matplotlib's `figsave` and related functions are useful for saving plots
+    to PNG, etc. files. However, these built-in functions do not preserve
     the exact 2D pixel dimensions of the source array in the PNG, which is
     necessary when generating the browse images. This function works
     around this issue, and saves the plot with the exact pixel dimensions.
 
     Parameters
     ----------
-    axes_partial_func : function or partial function
+    axes_partial_func : callable
         Function with a single positional argument of type matplotlib.axes.Axes.
         Internally, this function should take the input Axes object and
         modify that Axes with the correct raster plot, colormap, etc.

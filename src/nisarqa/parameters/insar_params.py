@@ -979,8 +979,8 @@ class RIFGRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : RIFGProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    hsi : RIFGIgramBrowseParamGroup or None, optional
-        HSI Image Group parameters.
+    browse : RIFGIgramBrowseParamGroup or None, optional
+        Browse Image Group parameters.
     """
 
     workflows: RIFGWorkflowsParamGroup
@@ -1051,8 +1051,8 @@ class RUNWRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : RUNWProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    hsi : RUNWIgramBrowseParamGroup or None, optional
-        HSI Image Group parameters.
+    browse : RUNWIgramBrowseParamGroup or None, optional
+        Browse Image Group parameters.
     unw_phs_img : RUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
     """
@@ -1131,8 +1131,8 @@ class GUNWRootParamGroup(RootParamGroup):
         Input File Group parameters.
     prodpath : GUNWProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
-    hsi : GUNWIgramBrowseParamGroup or None, optional
-        HSI Image Group parameters.
+    browse : GUNWIgramBrowseParamGroup or None, optional
+        Browse Image Group parameters.
     unw_phs_img : GUNWPhaseImageParamGroup or None, optional
         Unwrapped Phase Image Group parameters.
     """
