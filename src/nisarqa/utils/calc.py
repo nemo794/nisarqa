@@ -754,8 +754,22 @@ def connected_components_metrics(
         arr=cc_raster.data[()]
     )
 
+    # Note the CC labels in the log and STATS h5
     log.info(
         f"Raster {cc_raster.name} contains Connected Component labels: {labels}"
+    )
+
+    num_valid_cc = len(labels_list)
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=grp_path,
+        ds_name="listOfConnectedComponentLabels",
+        ds_data=labels,
+        ds_units="1",
+        ds_description=(
+            "List of all connected component labels, including 0 and"
+            f" the fill value `{fill_value}`"
+        ),
     )
 
     # "The Breakdown"
@@ -767,17 +781,17 @@ def connected_components_metrics(
             ds_data=percent,
             ds_units="1",
             ds_description=(
-                "Percentage of raster covered by connected component labeled"
-                f" {label}."
+                "Percentage of raster covered by connected component with label"
+                f" `{label}`."
             ),
         )
 
         log.info(
-            f"Connected Component {label} covers {percent} percent of the"
+            f"Connected Component `{label}` covers {percent} percent of the"
             f" {name} raster."
         )
 
-    # Exclude 0 and the fill value for the remaining metrics.
+    # Exclude 0 and the fill value when saving the remaining metrics.
     # For ease, let's simply remove them from the lists.
     labels_list = list(labels)
     percentages_list = list(percentages)
