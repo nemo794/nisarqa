@@ -279,8 +279,8 @@ def save_igram_product_browse_png(product, params, browse_png):
                 product=product,
                 freq=freq,
                 pol=pol,
-                params=params,
                 png_filepath=browse_png,
+                longest_side_max=params.longest_side_max,
             )
         else:
             nisarqa.make_unwrapped_phase_png(

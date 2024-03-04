@@ -293,13 +293,10 @@ class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
     ----------
     browse_image : string, optional
         The image to use as the basis for the browse image PNG. Options:
-            "phase" : Input product's primary interferogram
-            "hsi" : Input product's primary interferogram and coherence
-                    magnitude layers will combined into an image in the
-                    HSI color space.
-        For RIFG, the primary interferogram is the unwrapped interferogram.
-        For RUNW and GUNW, the primary interferogram is the wrapped phase image.
-        Defaults to "phase".
+            "phase" : Wrapped phase.
+            "hsi" : An HSI image with phase information encoded as Hue and
+                coherence encoded as Intensity.
+            Defaults to "phase".
     equalize_browse : bool, optional
         Only used if `browse_image` is set to "hsi".
         True to perform histogram equalization on the Intensity channel
@@ -318,20 +315,17 @@ class IgramBrowseParamGroup(YamlParamGroup, HDF5ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="browse_image",
                 descr="""The image to use as the basis for the browse image PNG. Options:
-            "phase" : Input product's primary interferogram
-            "hsi" : Input product's primary interferogram and coherence magnitude
-                    layers will combined into an image in the HSI color space.
-        For RIFG, the primary interferogram is the unwrapped interferogram.
-        For RUNW and GUNW, the primary interferogram is the wrapped phase image.""",
+            "phase" : Wrapped phase.
+            "hsi" : An HSI image with phase information encoded as Hue and 
+            coherence encoded as Intensity.""",
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="browseImage",
                 units="1",
                 descr=(
-                    "Basis image for the browse PNG. 'phase' if only the"
-                    " primary interferogram was used, 'hsi' if that was"
-                    " combined with the coherence magnitude layer into"
-                    " an image in the HSI color space."
+                    "Basis image for the browse PNG. 'phase' if wrapped phase,"
+                    " 'hsi' if HSI image with phase information encoded as"
+                    " Hue and coherence encoded as Intensity."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -410,13 +404,10 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup):
     ----------
     browse_image : string, optional
         The image to use as the basis for the browse image PNG. Options:
-            "phase" : Input product's primary interferogram
-            "hsi" : Input product's primary interferogram and coherence
-                    magnitude layers will combined into an image in the
-                    HSI color space.
-        For RIFG, the primary interferogram is the unwrapped interferogram.
-        For RUNW and GUNW, the primary interferogram is the wrapped phase image.
-        Defaults to "phase".
+            "phase" : (optionally re-wrapped) unwrapped phase.
+            "hsi" : An HSI image with (optionally re-wrapped) phase information
+                encoded as Hue and coherence encoded as Intensity.
+            Defaults to "phase".
     equalize_browse : bool, optional
         Only used if `browse_image` is set to "hsi".
         True to perform histogram equalization on the Intensity channel
@@ -432,6 +423,27 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup):
         the browse PNG. If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
+
+    browse_image: str = field(
+        default="phase",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="browse_image",
+                descr="""The image to use as the basis for the browse image PNG. Options:
+            "phase" : (Optionally re-wrapped) unwrapped phase.
+            "hsi" : An HSI image with phase information encoded as Hue and 
+            coherence encoded as Intensity.""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="browseImage",
+                units="1",
+                descr=(
+                    "Basis image for the browse PNG. 'phase' if (optionally re-wrapped) unwrapped phase, 'hsi' if an HSI image with phase information encoded as Hue and coherence encoded as Intensity."
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
 
     rewrap: Optional[float | int] = field(
         default=7,

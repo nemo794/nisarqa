@@ -583,8 +583,8 @@ def make_wrapped_phase_png(
     product: nisarqa.WrappedGroup,
     freq: str,
     pol: str,
-    params: nisarqa.IgramBrowseParamGroup,
     png_filepath: str | os.PathLike,
+    longest_side_max: Optional[int] = None,
 ) -> None:
     """
     Create and save the wrapped interferogram as a PNG.
@@ -596,11 +596,12 @@ def make_wrapped_phase_png(
     freq, pol : str
         The frequency and polarization (respectively) pair for the wrapped
         interferogram to save as a PNG.
-    longest_side_max : int or None, optional
-        Decimate the generated HSI raster so that the max length of
-        axis 0 and axis 1 in `hsi_raster` is `longest_side_max`.
     png_filepath : path-like
         Filename (with path) for the image PNG.
+    longest_side_max : int or None, optional
+        Decimate the wrapped interferogram raster in `product` so that the
+        longest edge has a the max length of`longest_side_max` for the PNG.
+        Defaults to None.
     """
 
     with product.get_wrapped_igram(freq=freq, pol=pol) as igram_r:
@@ -615,7 +616,7 @@ def make_wrapped_phase_png(
         arr=phase,
         cmap="twilight_shifted",
         sample_spacing=(igram_r.y_axis_spacing, igram_r.x_axis_spacing),
-        longest_side_max=params.longest_side_max,
+        longest_side_max=longest_side_max,
         png_filepath=png_filepath,
     )
 
@@ -2085,7 +2086,7 @@ def plot_single_quiver_plot_to_png(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
-    browse_png: str | os.PathLike,
+    png_filepath: str | os.PathLike,
 ) -> tuple[int, int]: ...
 
 
@@ -2094,7 +2095,7 @@ def plot_single_quiver_plot_to_png(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
-    browse_png: str | os.PathLike,
+    png_filepath: str | os.PathLike,
 ) -> tuple[int, int]: ...
 
 
