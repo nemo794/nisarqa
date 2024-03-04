@@ -367,7 +367,7 @@ def percent_fill_is_within_threshold(
     """
 
     return _percent_value_is_within_threshold(
-        name_of_value=f"fill value (fill value is {fill_value})",
+        name_of_value=f"fill value (fill value is `{fill_value}`)",
         count=count,
         arr_size=arr_size,
         threshold_percentage=threshold_percentage,
