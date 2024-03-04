@@ -739,6 +739,7 @@ def connected_components_metrics(
     log = nisarqa.get_logger()
     grp_path = cc_raster.stats_h5_group_path
     name = cc_raster.name
+    fill_value = cc_raster.fill_value
 
     # Number of valid CC
     # (exclude 0, exclude 255 when computing this metric)
@@ -754,7 +755,6 @@ def connected_components_metrics(
         f"Raster {cc_raster.name} contains Connected Component labels: {labels}"
     )
 
-    num_valid_cc = len(labels_list)
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
@@ -796,7 +796,6 @@ def connected_components_metrics(
         del labels_list[zero_idx]
         del percentages_list[zero_idx]
 
-    fill_value = cc_raster.fill_value
     if fill_value in labels_list:
         fill_idx = labels_list.index(fill_value)
         del labels_list[fill_idx]
@@ -811,7 +810,7 @@ def connected_components_metrics(
         ds_units="1",
         ds_description=(
             "Number of valid connected components, excluding 0 and"
-            f" {fill_value}. ({fill_value} is fill value)"
+            f" the fill value `{fill_value}`"
         ),
     )
     log.info(
