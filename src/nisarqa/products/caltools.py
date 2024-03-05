@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import itertools
 import json
 import os
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from tempfile import NamedTemporaryFile
 from typing import Any
@@ -11,6 +12,8 @@ import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.colors import to_rgba
+from matplotlib.figure import Figure
 from nisar.workflows import estimate_abscal_factor, point_target_analysis
 from numpy.typing import DTypeLike
 
@@ -1057,7 +1060,7 @@ def plot_ipr_cuts(
     pol: str,
     *,
     xlim: tuple[float, float] | None = (-15.0, 15.0),
-) -> None:
+) -> Figure:
     """
     Plot corner reflector impulse response cuts.
 
@@ -1157,6 +1160,8 @@ def plot_ipr_cuts(
     labels = [line.get_label() for line in lines]
     axes[0].legend(lines, labels, loc="upper left")
 
+    return fig
+
 
 def add_pta_plots_to_report(stats_h5: h5py.File, report_pdf: PdfPages) -> None:
     """
@@ -1217,6 +1222,185 @@ def add_pta_plots_to_report(stats_h5: h5py.File, report_pdf: PdfPages) -> None:
 
                 # Close the plot.
                 plt.close(fig)
+
+
+def make_cr_offsets_plot(
+    xy_offsets: Iterable[tuple[float, float]],
+    *,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+) -> Figure:
+    """
+    Make a plot of corner reflector position errors.
+
+    Parameters
+    ----------
+    xy_offsets : iterable of (float, float)
+        Iterable of x & y (or range & azimuth) position offsets for each corner
+        reflector w.r.t. the expected corner locations.
+    title : str
+        The figure title.
+    xlabel, ylabel : str
+        The x-axis and y-axis labels.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The created figure.
+    """
+    # Make a figure with a single sub-plot.
+    fig, ax = plt.subplots(
+        ncols=1,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
+    )
+
+    # Plot x & y (range & azimuth) offsets.
+    colors = itertools.cycle(nisarqa.SEABORN_COLORBLIND)
+    for x_offset, y_offset in xy_offsets:
+        ax.scatter(
+            x=x_offset,
+            y=y_offset,
+            marker="x",
+            s=100.0,
+            color=next(colors),
+        )
+
+    # We want to center the subplot axes (like crosshairs). Move the left and bottom
+    # spines to x=0 and y=0, respectively. Hide the top and right spines.
+    ax.spines["left"].set_position(("data", 0.0))
+    ax.spines["bottom"].set_position(("data", 0.0))
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Draw arrows as black triangles at the end of each axis spine. Disable
+    # clipping (clip_on=False) as the marker actually spills out of the axes.
+    ax.plot(0.0, 0.0, "<k", transform=ax.get_yaxis_transform(), clip_on=False)
+    ax.plot(1.0, 0.0, ">k", transform=ax.get_yaxis_transform(), clip_on=False)
+    ax.plot(0.0, 0.0, "vk", transform=ax.get_xaxis_transform(), clip_on=False)
+    ax.plot(0.0, 1.0, "^k", transform=ax.get_xaxis_transform(), clip_on=False)
+
+    # Update axis limits as follows:
+    #  - Center the axis limits at the origin (0, 0)
+    #  - Use the same axis limits for both x & y
+    #  - Pad the axis limits by 25% (to make more room for axis labels)
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    xymax = 1.25 * np.max(np.abs([xmin, xmax, ymin, ymax]))
+    ax.set_xlim([-xymax, xymax])
+    ax.set_ylim([-xymax, xymax])
+
+    # Force the aspect ratio to be 1:1.
+    ax.set_aspect("equal")
+
+    # Plot concentric circles with radii equal to each positive tick position
+    # (except the outermost ticks, which are at or beyond the axis limits).
+    inner_ticks = ax.get_xticks()[1:-1]
+    for tick in filter(lambda x: x > 0.0, inner_ticks):
+        circle = plt.Circle(
+            xy=(0.0, 0.0),
+            radius=tick,
+            edgecolor=to_rgba("black", alpha=0.2),
+            fill=False,
+        )
+        ax.add_patch(circle)
+
+    # Add title and axis labels.
+    fig.suptitle(title)
+    ax.set_xlabel(xlabel, loc="right")
+    ax.set_ylabel(ylabel, loc="top", rotation=0.0, verticalalignment="top")
+
+    return fig
+
+
+def plot_rslc_cr_offsets_to_pdf(
+    stats_h5: h5py.File, report_pdf: PdfPages
+) -> None:
+    """
+    Plot corner reflector azimuth/range position errors to PDF.
+
+    Extract the Point Target Analysis (PTA) results from `stats_h5`, use them to
+    generate plots of azimuth & range peak offsets for each corner reflector
+    in the scene and add them to QA PDF report. A single figure is generate for each
+    available frequency/polarization pair.
+
+    This function has no effect if the input STATS.h5 file did not contain a PTA
+    data group (for example, in the case where the RSLC product did not contain
+    any corner reflectors).
+
+    Parameters
+    ----------
+    stats_h5 : h5py.File
+        The input RSLC QA STATS.h5 file.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF report.
+    """
+    # Get the group in the HDF5 file containing the output from the PTA tool. If
+    # the group does not exist, we assume that the RSLC product did not contain
+    # any valid corner reflectors, so there is nothing to do here.
+    try:
+        pta_data_group = get_pta_data_group(stats_h5)
+    except nisarqa.DatasetNotFoundError:
+        return
+
+    # Get valid frequency groups within `.../data/`. If the data group exists,
+    # it must contain at least one frequency sub-group.
+    freqs = get_valid_freqs(pta_data_group)
+    if not freqs:
+        raise RuntimeError(
+            f"No frequency groups found in {pta_data_group.name}. The STATS.h5"
+            " file is ill-formed."
+        )
+
+    for freq in freqs:
+        freq_group = pta_data_group[f"frequency{freq}"]
+
+        # Get polarization sub-groups. Each frequency group must contain at
+        # least one polarization sub-group.
+        pols = get_valid_pols(freq_group)
+        if not pols:
+            raise RuntimeError(
+                f"No polarization groups found in {freq_group.name}. The"
+                " STATS.h5 file is ill-formed."
+            )
+
+        for pol in pols:
+            pol_group = freq_group[pol]
+
+            # Extract azimuth & range peak offsets data from STATS.h5.
+            az_offsets = pol_group["azimuthIRF/peakOffset"]
+            rg_offsets = pol_group["rangeIRF/peakOffset"]
+
+            # Check that both datasets contain 1-D arrays with the same shape.
+            for dataset in [az_offsets, rg_offsets]:
+                if dataset.ndim != 1:
+                    raise ValueError(
+                        f"Expected dataset {dataset.name} to contain a 1-D"
+                        f" array, instead got ndim={dataset.ndim}"
+                    )
+            if az_offsets.shape != rg_offsets.shape:
+                raise ValueError(
+                    "Azimuth & range peak offsets must have the same shape,"
+                    f" instead got {az_offsets.shape=} and {rg_offsets.shape=}"
+                )
+
+            # Make a plot of corner reflector position offsets for the current
+            # freq/pol and append it to the PDF report.
+            fig = make_cr_offsets_plot(
+                xy_offsets=zip(rg_offsets, az_offsets),
+                title=(
+                    "Corner Reflector Azimuth/Range Position Error (pixels)"
+                    f"\nfreq={freq!r}, pol={pol!r}"
+                ),
+                xlabel="Range Offset\n(pixels)",
+                ylabel="Azimuth Offset\n(pixels)",
+            )
+            report_pdf.savefig(fig)
+
+            # Close the figure.
+            plt.close(fig)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
