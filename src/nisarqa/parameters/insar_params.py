@@ -424,6 +424,7 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup):
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
 
+    # Overrides the base class member.
     browse_image: str = field(
         default="phase",
         metadata={
@@ -436,9 +437,9 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="browseImage",
-                units="1",
+                units=None,
                 descr=(
-                    "Basis image for the browse PNG. 'phase' if (optionally re-wrapped) unwrapped phase, 'hsi' if an HSI image with phase information encoded as Hue and coherence encoded as Intensity."
+                    "Basis image for the browse PNG. 'phase' if (optionally re-wrapped) unwrapped phase, 'hsi' if an HSI image with that phase information encoded as Hue and coherence encoded as Intensity."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),

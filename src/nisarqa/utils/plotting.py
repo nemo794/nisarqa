@@ -781,7 +781,7 @@ def make_hsi_png_with_unwrapped_phase(
     """
     Create and save HSI image of unwrapped interferogram with coh mag as a PNG.
 
-    Phase values are encoded as Hue and coherence magnitude values are
+    (Possibly re-wrapped) unwrapped phase values are encoded as Hue and coherence magnitude values are
     encoded as Intensity in the resulting PNG.
 
 
