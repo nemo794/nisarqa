@@ -554,13 +554,6 @@ def compute_percentage_metrics(
     arr_name = raster.name
     arr_size = np.size(arr)
 
-    inf_threshold = params.inf_threshold
-    fill_threshold = params.fill_threshold
-    near_zero_threshold = params.near_zero_threshold
-    epsilon = params.epsilon
-    zero_is_invalid = params.zero_is_invalid
-    invalid_threshold = params.total_invalid_threshold
-
     # Compute NaN value metrics
     num_nan = compute_nan_count(arr)
     total_num_invalid += num_nan
@@ -583,7 +576,7 @@ def compute_percentage_metrics(
     passes_metric, percent_inf = nisarqa.percent_inf_is_within_threshold(
         count=num_inf,
         arr_size=arr_size,
-        threshold_percentage=inf_threshold,
+        threshold_percentage=params.inf_threshold,
         arr_name=arr_name,
     )
     all_metrics_pass &= passes_metric
@@ -592,28 +585,30 @@ def compute_percentage_metrics(
     )
 
     # Compute near-zeros metrics.
-    num_zero = compute_near_zero_count(arr, epsilon=epsilon)
-    if zero_is_invalid:
+    num_zero = compute_near_zero_count(arr, epsilon=params.epsilon)
+    if params.zero_is_invalid:
         total_num_invalid += num_zero
 
     passes_metric, percent_zero = nisarqa.percent_near_zero_is_within_threshold(
         count=num_zero,
         arr_size=arr_size,
-        threshold_percentage=near_zero_threshold,
+        threshold_percentage=params.near_zero_threshold,
         arr_name=arr_name,
     )
 
     all_metrics_pass &= passes_metric
     nisarqa.save_percent_near_zero_to_stats_h5(
         percentage=percent_zero,
-        epsilon=epsilon,
+        epsilon=params.epsilon,
         stats_h5=stats_h5,
         grp_path=grp_path,
     )
 
     # Compute fill value metrics. Do not double-count NaNs nor zeros.
     if fill_value is not None:
-        fill_is_zero = np.isclose(fill_value, 0.0, atol=epsilon, rtol=0.0)
+        fill_is_zero = np.isclose(
+            fill_value, 0.0, atol=params.epsilon, rtol=0.0
+        )
 
         if np.isnan(fill_value):
             num_fill = num_nan
@@ -625,7 +620,7 @@ def compute_percentage_metrics(
             # skip doing that here so that we do not double-count them
         elif fill_is_zero:
             num_fill = num_zero
-            if not zero_is_invalid:
+            if not params.zero_is_invalid:
                 # Fill values should always be included as invalid pixels.
                 total_num_invalid += num_zero
         else:
@@ -635,7 +630,7 @@ def compute_percentage_metrics(
         passes_metric, percent_fill = nisarqa.percent_fill_is_within_threshold(
             count=num_fill,
             arr_size=arr_size,
-            threshold_percentage=fill_threshold,
+            threshold_percentage=params.fill_threshold,
             fill_value=fill_value,
             arr_name=arr_name,
         )
@@ -655,9 +650,9 @@ def compute_percentage_metrics(
         nisarqa.percent_total_invalid_is_within_threshold(
             count=total_num_invalid,
             arr_size=arr_size,
-            threshold_percentage=invalid_threshold,
+            threshold_percentage=params.invalid_threshold,
             arr_name=arr_name,
-            zero_is_invalid=zero_is_invalid,
+            zero_is_invalid=params.zero_is_invalid,
         )
     )
 
@@ -666,7 +661,7 @@ def compute_percentage_metrics(
         percentage=percent_invalid,
         stats_h5=stats_h5,
         grp_path=grp_path,
-        zero_is_invalid=zero_is_invalid,
+        zero_is_invalid=params.zero_is_invalid,
     )
 
     # Now, all metrics have been computed and logged. Raise exception
