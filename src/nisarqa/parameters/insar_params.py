@@ -1249,7 +1249,7 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
         total_invalid_threshold : float, optional
         Threshold values for alerting users to possible malformed datasets.
         See `ThresholdParamGroup` docstring for complete description.
-        Default for Inf, fill, and total thresholds:
+        Default for near-zero, fill, and total thresholds:
             `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
         Default for NaN and Inf thresholds: 0. (Connected components layer
         has an integer dtype, so there should never be NaN nor Inf.)

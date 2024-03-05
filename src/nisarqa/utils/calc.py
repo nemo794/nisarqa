@@ -548,7 +548,7 @@ def compute_percentage_metrics(
     # Total number of pixels that were NaN, +/-Inf, fill, or near-zero
     total_num_invalid = 0
 
-    arr = raster.data
+    arr = np.asanyarray(raster.data)
     grp_path = raster.stats_h5_group_path
     fill_value = raster.fill_value
     arr_name = raster.name
@@ -619,6 +619,10 @@ def compute_percentage_metrics(
             num_fill = num_nan
             # We already accumulated the number of NaN to `total_num_invalid`,
             # skip doing that here so that we do not double-count the NaN
+        elif np.isinf(fill_value):
+            num_fill = compute_fill_count(arr, fill_value=fill_value)
+            # We already accumulated the number of +/- Inf to `total_num_invalid`,
+            # skip doing that here so that we do not double-count them
         elif fill_is_zero:
             num_fill = num_zero
             if not zero_is_invalid:
@@ -741,11 +745,7 @@ def connected_components_metrics(
     name = cc_raster.name
     fill_value = cc_raster.fill_value
 
-    # Number of valid CC
-    # (exclude 0, exclude 255 when computing this metric)
-    # FYI - in vast majority of cases (~95% of cases?), only 1 CC is expected.
-    # If 2 or more CC are found, then we want to know the % of area
-    # labeled with each connected component.
+    # Get unique CC labels and the % of area labeled with each.
     labels, percentages = get_unique_elements_and_percentages(
         arr=cc_raster.data[()]
     )
@@ -758,9 +758,9 @@ def connected_components_metrics(
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
-        ds_name="listOfConnectedComponentLabels",
+        ds_name="connectedComponentLabels",
         ds_data=labels,
-        ds_units="1",
+        ds_units=None,
         ds_description=(
             "List of all connected component labels, including 0 and"
             f" the fill value `{fill_value}`"
@@ -770,12 +770,12 @@ def connected_components_metrics(
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
-        ds_name=f"listOfConnectedComponentPercentages",
+        ds_name=f"connectedComponentPercentages",
         ds_data=percentages,
         ds_units="1",
         ds_description=(
-            "List of percentages of raster with each connected component label."
-            " Indices correspond to `listOfConnectedComponentLabels`"
+            "Percentages of total raster area with each connected component label."
+            " Indices correspond to `connectedComponentLabels`"
         ),
     )
 
@@ -790,15 +790,11 @@ def connected_components_metrics(
     labels_list = list(labels)
     percentages_list = list(percentages)
 
-    if 0 in labels_list:
-        zero_idx = labels_list.index(0)
-        del labels_list[zero_idx]
-        del percentages_list[zero_idx]
-
-    if fill_value in labels_list:
-        fill_idx = labels_list.index(fill_value)
-        del labels_list[fill_idx]
-        del percentages_list[fill_idx]
+    for label in [0, fill_value]:
+        if label in labels_list:
+            idx = labels_list.index(label)
+            del labels_list[idx]
+            del percentages_list[idx]
 
     num_valid_cc = len(labels_list)
     nisarqa.create_dataset_in_h5group(
