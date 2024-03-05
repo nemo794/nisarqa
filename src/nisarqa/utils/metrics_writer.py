@@ -249,7 +249,7 @@ def percent_nan_is_within_threshold(
     Parameters
     ----------
     count : int
-        Number of pixels that are `name_of_value`.
+        Number of pixels that are NaN-valued.
     arr_size : int
         Total size of array.
     threshold_percentage : float
@@ -303,7 +303,7 @@ def percent_inf_is_within_threshold(
     Parameters
     ----------
     count : int
-        Number of pixels that are `name_of_value`.
+        Number of pixels that are +/- Inf.
     arr_size : int
         Total size of array.
     threshold_percentage : float
@@ -344,7 +344,7 @@ def percent_fill_is_within_threshold(
     Parameters
     ----------
     count : int
-        Number of pixels that are `name_of_value`.
+        Number of pixels that are fill-valued.
     arr_size : int
         Total size of array.
     threshold_percentage : float
@@ -387,7 +387,7 @@ def percent_near_zero_is_within_threshold(
     Parameters
     ----------
     count : int
-        Number of pixels that are `name_of_value`.
+        Number of pixels that are near-zero valued.
     arr_size : int
         Total size of array.
     threshold_percentage : float
@@ -432,7 +432,7 @@ def percent_total_invalid_is_within_threshold(
     Parameters
     ----------
     count : int
-        Number of pixels that are `name_of_value`.
+        Number of pixels that are invalid.
     arr_size : int
         Total size of array.
     threshold_percentage : float

@@ -646,9 +646,6 @@ class ThresholdParamGroup(YamlParamGroup):
         ----------
         param_name : str
             One of the class parameters of `ThresholdParamGroup`.
-            Must be one of: "nan_threshold", "near_zero_threshold",
-                "fill_threshold", "inf_threshold", "total_invalid_threshold",
-                "epsilon".
         default : float
             The desired default value for the parameter.
 

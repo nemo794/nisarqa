@@ -526,11 +526,11 @@ def compute_percentage_metrics(
     ----------
     raster : nisarqa.Raster
         Input Raster.
-    stats_h5 : h5py.File
-        The output file to save QA metrics to.
     params : nisarqa.ThresholdParamGroup
         A structure containing the parameters for checking the percentage
         of invalid pixels in a raster.
+    stats_h5 : h5py.File
+        The output file to save QA metrics to.
 
     Warnings
     --------
@@ -821,7 +821,8 @@ def connected_components_metrics(
         ds_data=max(percentages_list),
         ds_units="1",
         ds_description=(
-            "Percentage of pixels in the largest valid connected component. (0"
+            "Percentage of pixels in the largest valid connected component"
+            " relative to the total image size. (0"
             f" and fill value ({fill_value}) are not valid connected"
             " components, but their pixels are included when computing the"
             " percentage."
@@ -836,7 +837,8 @@ def connected_components_metrics(
         ds_data=sum(percentages_list),
         ds_units="1",
         ds_description=(
-            "Percentage of pixels with non-zero, non-fill connected components."
+            "Percentage of pixels with non-zero, non-fill connected components"
+            " relative to the total image size."
             f" (0 and fill value ({fill_value}) are not valid connected"
             " components, but their pixels are included when computing the"
             " percentage."
