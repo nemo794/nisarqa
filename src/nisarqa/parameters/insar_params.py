@@ -439,7 +439,10 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup):
                 name="browseImage",
                 units=None,
                 descr=(
-                    "Basis image for the browse PNG. 'phase' if (optionally re-wrapped) unwrapped phase, 'hsi' if an HSI image with that phase information encoded as Hue and coherence encoded as Intensity."
+                    "Basis image for the browse PNG. 'phase' if (optionally"
+                    " re-wrapped) unwrapped phase, 'hsi' if an HSI image with"
+                    " that phase information encoded as Hue and coherence"
+                    " encoded as Intensity."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -539,9 +542,9 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
                     " image in the report PDF; applied to both unwrapped"
-                    " phase image plot(s) and HSI plot(s). 'None' if no rewrapping"
-                    " occurred. Example: If `phaseImageRewrap`=3, the image was rewrapped"
-                    " to the interval [0, 3pi)."
+                    " phase image plot(s) and HSI plot(s). 'None' if no"
+                    " rewrapping occurred. Example: If `phaseImageRewrap`=3,"
+                    " the image was rewrapped to the interval [0, 3pi)."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),

@@ -599,8 +599,8 @@ def make_wrapped_phase_png(
     png_filepath : path-like
         Filename (with path) for the image PNG.
     longest_side_max : int or None, optional
-        Decimate the wrapped interferogram raster in `product` so that the
-        longest edge has a the max length of`longest_side_max` for the PNG.
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked image. If None, the longest edge of `arr` will be used.
         Defaults to None.
     """
 
@@ -781,9 +781,8 @@ def make_hsi_png_with_unwrapped_phase(
     """
     Create and save HSI image of unwrapped interferogram with coh mag as a PNG.
 
-    (Possibly re-wrapped) unwrapped phase values are encoded as Hue and coherence magnitude values are
-    encoded as Intensity in the resulting PNG.
-
+    (Possibly re-wrapped) unwrapped phase values are encoded as Hue and
+    coherence magnitude values are encoded as Intensity in the resulting PNG.
 
     Parameters
     ----------
@@ -2562,7 +2561,8 @@ def plot_range_and_az_offsets_variances_to_pdf(
     title = f"Azimuth and Slant Range Offsets StdDev. (pixels)\n{name}"
     fig.suptitle(title)
 
-    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the fill value) with NaNs.
+    # Replace non-finite and/or masked-out pixels (i.e. pixels set to the
+    # fill value) with NaNs.
     az_fill = az_offset_variance.fill_value
     az_var[~np.isfinite(az_var) | (az_var == az_fill)] = np.nan
     rg_fill = rg_offset_variance.fill_value
