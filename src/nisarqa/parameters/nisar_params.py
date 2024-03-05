@@ -508,21 +508,27 @@ class ThresholdParamGroup(YamlParamGroup):
     suggest using the class method `get_field_with_updated_default()`.
     """
 
-    _threshold_descr_template: ClassVar[
-        str
-    ] = """Threshold value for alerting users to possible malformed datasets.
-        If the percentage of %s-valued pixels is above the threshold, it will be
-        logged as an error and an exception raised.
-        Setting the threshold to -1 causes that threshold to be effectively
-        ignored (e.g. any percent of NaN values is fine; it will be noted as
-        info, and will not trigger a QA failure)."""
+    _threshold_descr_template: ClassVar[str] = (
+        "Percent of %s pixels per total raster area allowed"
+    )
 
     nan_threshold: float = field(
         default=nisarqa.STATISTICS_THRESHOLD_PERCENTAGE,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="nan_threshold",
-                descr=_threshold_descr_template % "NaN",
+                # This description will be printed first in the runconfig,
+                # so have it describe all of the threshold parameters.
+                # For subsequent parameters, use a short version.
+                # (This helps keep the runconfig shorter and easier to read.)
+                descr=f"""*** Threshold Percentage Parameters ***
+        Check for malformed datasets using these threshold percentages.
+        An exception is raised if the percent of pixels with the corresponding value
+        per the total raster area exceeds the threshold percentage provided.
+        Thresholds must be in the interval [0, 100], or -1 to be ignored.
+        (-1 logs the percentages as INFO, but will not trigger a QA failure.)
+
+        {_threshold_descr_template % 'NaN'}""",
             )
         },
     )
@@ -542,7 +548,7 @@ class ThresholdParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="fill_threshold",
-                descr=_threshold_descr_template % "fill",
+                descr=_threshold_descr_template % "Fill-valued",
             )
         },
     )
@@ -552,7 +558,7 @@ class ThresholdParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="near_zero_threshold",
-                descr=_threshold_descr_template % "near-zero",
+                descr=_threshold_descr_template % "Near-zero",
             )
         },
     )
@@ -578,7 +584,7 @@ class ThresholdParamGroup(YamlParamGroup):
                 name="epsilon",
                 descr=(
                     "Absolute tolerance for determining if a raster pixel"
-                    " is 'almost zero'."
+                    " is 'near zero'."
                 ),
             ),
         },
