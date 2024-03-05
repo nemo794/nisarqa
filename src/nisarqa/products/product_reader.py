@@ -1639,17 +1639,17 @@ class SLC(NonInsarProduct):
             f"(%s) PASS/FAIL Check: Product raster dtype conforms to"
             f" {self.product_type} Product Spec dtype of complex64. Dataset: %s"
         )
-        if nisarqa.is_complex32(h5_file[raster_path]):
+        dataset = h5_file[raster_path]
+        if nisarqa.is_complex32(dataset):
             # As of h5py 3.8.0, h5py gained the ability to read complex32
             # datasets, however numpy and other downstream packages do not
             # necessarily have that flexibility.
             # If the input product has dtype complex32, then we'll need to use
             # ComplexFloat16Decoder so that numpy et al can read the datasets.
-            dataset = nisarqa.ComplexFloat16Decoder(h5_file[raster_path])
+            dataset = nisarqa.ComplexFloat16Decoder(dataset)
             log.error(msg % ("FAIL", raster_path))
         else:
             # Use h5py's standard reader
-            dataset = h5_file[raster_path]
             log.info(msg % ("PASS", raster_path))
 
         return dataset
