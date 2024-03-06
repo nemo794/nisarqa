@@ -49,8 +49,7 @@ def is_complex32(dataset: h5py.Dataset) -> bool:
             raise
     else:
         # h5py >= v3.8 recognizes the new complex32 datatype
-        complex32 = np.dtype([("r", np.float16), ("i", np.float16)])
-        return dataset.dtype == complex32
+        return dataset.dtype == nisarqa.complex32
 
 
 class ComplexFloat16Decoder(object):
@@ -94,8 +93,7 @@ class ComplexFloat16Decoder(object):
         # Also note this syntax changed in h5py 3.0 and was deprecated in 3.6,
         # see: https://docs.h5py.org/en/stable/whatsnew/3.6.html
 
-        complex32 = np.dtype([("r", np.float16), ("i", np.float16)])
-        z = ds.astype(complex32)[key]
+        z = ds.astype(nisarqa.complex32)[key]
 
         # Define a similar datatype for complex64 to be sure we cast safely.
         complex64 = np.dtype([("r", np.float32), ("i", np.float32)])

@@ -47,7 +47,7 @@ class HDF5Dataset(DatasetDesc):
     @property
     def dtype(self) -> np.dtype | None:
         if nisarqa.is_complex32(self.dataset):
-            return isce3.core.types.complex32
+            return nisarqa.complex32
         return self.dataset.dtype
 
 
@@ -218,7 +218,7 @@ class XMLDataset(DatasetDesc):
         log = nisarqa.get_logger()
         if is_complex:
             if width == 16:
-                return isce3.core.types.complex32
+                return nisarqa.complex32
             if width == 32:
                 return np.complex64
             if width == 64:
