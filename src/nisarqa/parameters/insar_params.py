@@ -1249,8 +1249,9 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
         total_invalid_threshold : float, optional
         Threshold values for alerting users to possible malformed datasets.
         See `ThresholdParamGroup` docstring for complete description.
-        Default for near-zero, fill, and total thresholds:
+        Default for fill threshold:
             `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Default for near-zero and total thresholds: 99.9
         Default for NaN and Inf thresholds: 0. (Connected components layer
         has an integer dtype, so there should never be NaN nor Inf.)
     epsilon : float, optional
@@ -1269,7 +1270,7 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
         zero nor the fill value) is greater than this value,
         it will be logged and an exception will be raised.
         If None, this error check will be skipped.
-        Defaults to 40.
+        Defaults to None.
     """
 
     nan_threshold: float = (
@@ -1284,8 +1285,20 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
         )
     )
 
+    near_zero_threshold: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="near_zero_threshold", default=99.9
+        )
+    )
+
+    total_invalid_threshold: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="total_invalid_threshold", default=99.9
+        )
+    )
+
     max_num_cc: Optional[int] = field(
-        default=40,
+        default=None,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="max_num_cc",
