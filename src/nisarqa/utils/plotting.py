@@ -1945,7 +1945,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
             az_offset=az_off,
             rg_offset=rg_off,
             params=params_quiver,
-            browse_png=browse_png,
+            png_filepath=browse_png,
         )
 
         nisarqa.create_dataset_in_h5group(
