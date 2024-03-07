@@ -819,8 +819,7 @@ def connected_components_metrics(
             "Percentage of pixels in the largest valid connected component"
             " relative to the total image size. (0"
             f" and fill value ({fill_value}) are not valid connected"
-            " components, but their pixels are included when computing the"
-            " percentage."
+            " components."
         ),
     )
 
@@ -835,8 +834,7 @@ def connected_components_metrics(
             "Percentage of pixels with non-zero, non-fill connected components"
             " relative to the total image size."
             f" (0 and fill value ({fill_value}) are not valid connected"
-            " components, but their pixels are included when computing the"
-            " percentage."
+            " components."
         ),
     )
 

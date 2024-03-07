@@ -11,7 +11,7 @@ def save_percent_nan_to_stats_h5(
     percentage: float, stats_h5: h5py.File, grp_path: str
 ) -> None:
     """
-    Save the final percentage of NaN pixels to the stats H5 file.
+    Save the percent of NaN pixels to a Dataset named "percentNan".
 
     Parameters
     ----------
@@ -38,11 +38,7 @@ def save_percent_inf_to_stats_h5(
     percentage: float, stats_h5: h5py.File, grp_path: str
 ) -> None:
     """
-    Save the final percentage of +/- Inf pixels to the stats H5 file.
-
-    Hint: When computing the percentage, np.isinf() works for both
-    real and complex data. For complex data, if either real or imag
-    part is +/- Inf, then the pixel is considered inf.
+    Save the percent of +/- Inf pixels to a Dataset named "percentInf".
 
     Parameters
     ----------
@@ -66,10 +62,13 @@ def save_percent_inf_to_stats_h5(
 
 
 def save_percent_fill_to_stats_h5(
-    percentage: float, fill_value: float, stats_h5: h5py.File, grp_path: str
+    percentage: float,
+    fill_value: int | float | complex,
+    stats_h5: h5py.File,
+    grp_path: str,
 ) -> None:
     """
-    Save the final percentage of fill pixels to the stats H5 file.
+    Save the percent of fill pixels to a Dataset named "percentFill".
 
     Note: By QA convention, if the fill value is NaN, it's ok that
     this check is redundant to the % NaN value metrics.
@@ -78,7 +77,7 @@ def save_percent_fill_to_stats_h5(
     ----------
     percentage : float
         Percentage of a raster that is fill value.
-    fill_value : float
+    fill_value : int, float, or complex
         The fill value for the raster. (Will be used for description.)
     h5_file : h5py.File
         HDF5 File handle to save this dataset to.
@@ -104,13 +103,13 @@ def save_percent_near_zero_to_stats_h5(
     percentage: float, epsilon: float, stats_h5: h5py.File, grp_path: str
 ) -> None:
     """
-    Save the final percentage of near-zero pixels to the stats H5 file.
+    Save the percent of near-zero pixels to a Dataset named "percentNearZero".
 
     Parameters
     ----------
     percentage : float
         Percentage of a raster that is fill value.
-    epsilon : float or int
+    epsilon : float
         Absolute tolerance that was used for determining if a raster pixel
         was 'almost zero'.
     h5_file : h5py.File
@@ -136,7 +135,7 @@ def save_percent_total_invalid_to_stats_h5(
     percentage: float, stats_h5: h5py.File, grp_path: str, zero_is_invalid: bool
 ) -> None:
     """
-    Save the final percentage of total invalid pixels to the stats H5 file.
+    Save the percent of total invalid pixels to a Dataset named "percentTotalInvalid".
 
     Invalid pixels include NaN, Inf, fill, or (optionally) near-zero valued
     pixels.
@@ -185,7 +184,7 @@ def _percent_value_is_within_threshold(
     arr_name: str,
 ) -> tuple[bool, float]:
     """
-    Private function: Check if a percentage is within threshold; note in log.
+    Check if a percentage is within threshold; note in log.
 
     The percentage of the array that is considered to be `name_of_value`
     is computed by `count / arr_size`.
@@ -221,7 +220,7 @@ def _percent_value_is_within_threshold(
 
     nisarqa.verify_valid_percent(percentage)
 
-    msg = f"Array {arr_name} contains {count}/{arr_size} ({percentage}%) {name_of_value} pixels."
+    msg = f"Array {arr_name} contains {count}/{arr_size} ({percentage:.2f}%) {name_of_value} pixels."
 
     if threshold_percentage != -1:
         nisarqa.verify_valid_percent(threshold_percentage)
@@ -244,7 +243,7 @@ def percent_nan_is_within_threshold(
     arr_name: str,
 ) -> tuple[bool, float]:
     """
-    Check if % of NaN values is within threshold; note in log and summary csv.
+    Check if % of NaN values is within threshold; note in log and summary CSV.
 
     Parameters
     ----------
@@ -335,7 +334,7 @@ def percent_fill_is_within_threshold(
     count: int,
     arr_size: int,
     threshold_percentage: float,
-    fill_value: float,
+    fill_value: int | float | complex,
     arr_name: str,
 ) -> tuple[bool, float]:
     """
@@ -353,7 +352,7 @@ def percent_fill_is_within_threshold(
         it will be logged as an error. A threshold value of -1 indicates
         to always log as info (not as an error), and `passes_metric` will
         always return `True`.
-    fill_value : float
+    fill_value : int or float or complex
         The fill value for the raster. (Will be used for description.)
     arr_name : str
         Name of the array; will be used in log messages and similar.
@@ -470,7 +469,7 @@ def percent_total_invalid_is_within_threshold(
     )
 
     # Note the metrics in the SUMMARY CSV
-    if threshold_percentage is -1:
+    if threshold_percentage == -1:
         summary_threshold = ""
     else:
         summary_threshold = str(threshold_percentage)

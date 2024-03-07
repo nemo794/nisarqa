@@ -1491,7 +1491,7 @@ class RUNWConnectedComponentsParamGroup(ConnectedComponentsParamGroup):
 @dataclass(frozen=True)
 class GUNWConnectedComponentsParamGroup(ConnectedComponentsParamGroup):
     """
-    Parameters to run QA on Connected Components Layers for RUNW and GUNW.
+    Parameters to run QA on Connected Components Layers for GUNW.
 
     Parameters
     ----------
