@@ -12,10 +12,12 @@ from nisarqa import (
     InputFileGroupParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
+    Threshold99ParamGroup,
     ThresholdParamGroup,
     WorkflowsParamGroup,
     YamlAttrs,
     YamlParamGroup,
+    ZeroIsValidThreshold99ParamGroup,
     ZeroIsValidThresholdParamGroup,
 )
 
@@ -514,27 +516,12 @@ class GUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
 
 
 @dataclass(frozen=True)
-class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
+class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters to plot unwrapped phase image in the report PDF.
 
     Parameters
     ----------
-    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
-        total_invalid_threshold : float, optional
-        Threshold values for alerting users to possible malformed datasets.
-        See `ThresholdParamGroup` docstring for complete description.
-        All thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-    epsilon : float, optional
-        Absolute tolerance for determining if a raster pixel is 'almost zero'.
-        Defaults to 1e-6.
-    zero_is_invalid: bool, optional
-        True if near-zero pixels should be counted towards the
-        total number of invalid pixels. False to exclude them.
-        If False, consider setting `near_zero_threshold` to -1.
-        Note: Fill values are always considered invalid. So, if a raster's
-        fill value is zero, then zeros will still be included in the total.
-        Defaults to True.
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image in the report
         PDF. Will be used for both the unwrapped phase image plot(s) and
@@ -585,14 +572,66 @@ class UNWPhaseImageParamGroup(ThresholdParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class RUNWPhaseImageParamGroup(UNWPhaseImageParamGroup):
+class RUNWPhaseImageParamGroup(ThresholdParamGroup, UNWPhaseImageParamGroup):
+    """
+    Parameters to plot unwrapped phase image.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        All thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
+    rewrap : float or None, optional
+        The multiple of pi to rewrap the unwrapped phase image.
+        If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+    """
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "runw", "qa_reports", "phase_img"]
 
 
 @dataclass(frozen=True)
-class GUNWPhaseImageParamGroup(UNWPhaseImageParamGroup):
+class GUNWPhaseImageParamGroup(Threshold99ParamGroup, UNWPhaseImageParamGroup):
+    """
+    Parameters to plot unwrapped phase image.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        All thresholds default to 99.0%.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
+    rewrap : float or None, optional
+        The multiple of pi to rewrap the unwrapped phase image.
+        If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+    """
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "phase_img"]
@@ -618,7 +657,7 @@ class RIFGWrappedIgramParamGroup(ZeroIsValidThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWWrappedIgramParamGroup(ZeroIsValidThresholdParamGroup):
+class GUNWWrappedIgramParamGroup(ZeroIsValidThreshold99ParamGroup):
     # XXX In R3.4, if the magnitude of (almost) all interferogram
     # pixels is zero or nearly zero, don't treat this as an error.
     # When this occurs, it is likely due to known issues with RSLC
@@ -651,7 +690,7 @@ class RUNWCohMagLayerParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWCohMagLayerParamGroup(ThresholdParamGroup):
+class GUNWCohMagLayerParamGroup(Threshold99ParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "coh_mag"]
@@ -672,7 +711,7 @@ class RUNWIonoPhaseScreenParamGroup(ZeroIsValidThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWIonoPhaseScreenParamGroup(ZeroIsValidThresholdParamGroup):
+class GUNWIonoPhaseScreenParamGroup(ZeroIsValidThreshold99ParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -700,7 +739,7 @@ class RUNWIonoPhaseUncertaintyParamGroup(ZeroIsValidThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWIonoPhaseUncertaintyParamGroup(ZeroIsValidThresholdParamGroup):
+class GUNWIonoPhaseUncertaintyParamGroup(ZeroIsValidThreshold99ParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -742,7 +781,7 @@ class RUNWAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GUNWAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
+class GUNWAzAndRangeOffsetsParamGroup(ZeroIsValidThreshold99ParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -770,7 +809,7 @@ class ROFFAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GOFFAzAndRangeOffsetsParamGroup(ZeroIsValidThresholdParamGroup):
+class GOFFAzAndRangeOffsetsParamGroup(ZeroIsValidThreshold99ParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -1002,29 +1041,12 @@ class GOFFQuiverParamGroup(QuiverParamGroup):
 
 
 @dataclass(frozen=True)
-class VarianceLayersParamGroup(ZeroIsValidThresholdParamGroup):
+class VarianceLayersParamGroup(YamlParamGroup):
     """
     Parameters to generate Variance Layer Plots for ROFF and GOFF.
 
     Parameters
     ----------
-    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
-        total_invalid_threshold : float, optional
-        Threshold values for alerting users to possible malformed datasets.
-        See `ThresholdParamGroup` docstring for complete description.
-        Default for NaN, Inf, fill, and total thresholds:
-            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-        Default for near-zero threshold: -1.
-    epsilon : float, optional
-        Absolute tolerance for determining if a raster pixel is 'almost zero'.
-        Defaults to 1e-6.
-    zero_is_invalid: bool, optional
-        True if near-zero pixels should be counted towards the
-        total number of invalid pixels. False to exclude them.
-        If False, consider setting `near_zero_threshold` to -1.
-        Note: Fill values are always considered invalid. So, if a raster's
-        fill value is zero, then zeros will still be included in the total.
-        Defaults to False.
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
         for the az and slant range variance layers for ROFF and GOFF.
@@ -1066,7 +1088,42 @@ class VarianceLayersParamGroup(ZeroIsValidThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class ROFFVarianceLayersParamGroup(VarianceLayersParamGroup):
+class ROFFVarianceLayersParamGroup(
+    ZeroIsValidThresholdParamGroup, VarianceLayersParamGroup
+):
+    """
+    Parameters to generate Variance Layer Plots for ROFF.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Default for NaN, Inf, fill, and total thresholds:
+            `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+        Default for near-zero threshold: -1.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
+    cbar_min_max : None or pair of float or int, optional
+        The vmin and vmax values to generate the plots
+        for the az and slant range variance layers for ROFF and GOFF.
+        The square root of these layers (i.e. the standard deviation
+        of the offsets) is clipped to this interval,
+        which (in turn) is used for the interval of the colorbar.
+        If None, the interval is computed using the min and max
+        of the square root of these layers.
+        Defaults to [0.0, 0.1].
+    """
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -1080,7 +1137,41 @@ class ROFFVarianceLayersParamGroup(VarianceLayersParamGroup):
 
 
 @dataclass(frozen=True)
-class GOFFVarianceLayersParamGroup(VarianceLayersParamGroup):
+class GOFFVarianceLayersParamGroup(
+    ZeroIsValidThreshold99ParamGroup, VarianceLayersParamGroup
+):
+    """
+    Parameters to generate Variance Layer Plots for GOFF.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Default for NaN, Inf, fill, and total thresholds: 99.0%
+        Default for near-zero threshold: -1.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
+    cbar_min_max : None or pair of float or int, optional
+        The vmin and vmax values to generate the plots
+        for the az and slant range variance layers for ROFF and GOFF.
+        The square root of these layers (i.e. the standard deviation
+        of the offsets) is clipped to this interval,
+        which (in turn) is used for the interval of the colorbar.
+        If None, the interval is computed using the min and max
+        of the square root of these layers.
+        Defaults to [0.0, 0.1].
+    """
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -1094,28 +1185,12 @@ class GOFFVarianceLayersParamGroup(VarianceLayersParamGroup):
 
 
 @dataclass(frozen=True)
-class CrossOffsetVarianceLayerParamGroup(ZeroIsValidThresholdParamGroup):
+class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
     """
     Parameters to generate cross offset variance layer plots for ROFF and GOFF.
 
     Parameters
     ----------
-    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
-        total_invalid_threshold : float, optional
-        Threshold values for alerting users to possible malformed datasets.
-        See `ThresholdParamGroup` docstring for complete description.
-        `near_zero_threshold` defaults to -1.
-        Other thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
-    epsilon : float, optional
-        Absolute tolerance for determining if a raster pixel is 'almost zero'.
-        Defaults to 1e-6.
-    zero_is_invalid: bool, optional
-        True if near-zero pixels should be counted towards the
-        total number of invalid pixels. False to exclude them.
-        If False, consider setting `near_zero_threshold` to -1.
-        Note: Fill values are always considered invalid. So, if a raster's
-        fill value is zero, then zeros will still be included in the total.
-        Defaults to False.
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
         for the cross offset variance layer for ROFF and GOFF.
@@ -1157,6 +1232,9 @@ class CrossOffsetVarianceLayerParamGroup(ZeroIsValidThresholdParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
+        # validate the thresholds
+        super().__post_init__()
+
         self._validate_pair_of_numeric(
             param_value=self.cbar_min_max,
             param_name="colorbar_min_max",
@@ -1180,8 +1258,41 @@ class CrossOffsetVarianceLayerParamGroup(ZeroIsValidThresholdParamGroup):
 
 @dataclass(frozen=True)
 class ROFFCrossOffsetVarianceLayerParamGroup(
-    CrossOffsetVarianceLayerParamGroup
+    ZeroIsValidThresholdParamGroup, CrossOffsetVarianceLayerParamGroup
 ):
+    """
+    Parameters to generate cross offset variance layer plots for ROFF.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        `near_zero_threshold` defaults to -1.
+        Other thresholds default to `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
+    cbar_min_max : None or pair of float or int, optional
+        The vmin and vmax values to generate the plots
+        for the cross offset variance layer for ROFF and GOFF.
+        If None, then the colorbar range will be computed based
+        on `percentile_for_clipping`.
+        Defaults to None.
+    percentile_for_clipping : pair of float, optional
+        Defines the percentile range that the image array will be clipped to
+        and that the colormap covers. Must be in the range [0.0, 100.0].
+        Superseded by `cbar_min_max` parameter. Defaults to [1.0, 99.0].
+    """
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -1196,8 +1307,41 @@ class ROFFCrossOffsetVarianceLayerParamGroup(
 
 @dataclass(frozen=True)
 class GOFFCrossOffsetVarianceLayerParamGroup(
-    CrossOffsetVarianceLayerParamGroup
+    ZeroIsValidThreshold99ParamGroup, CrossOffsetVarianceLayerParamGroup
 ):
+    """
+    Parameters to generate cross offset variance layer plots for GOFF.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        `near_zero_threshold` defaults to -1.
+        Other thresholds default to 99.0%.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
+    cbar_min_max : None or pair of float or int, optional
+        The vmin and vmax values to generate the plots
+        for the cross offset variance layer for ROFF and GOFF.
+        If None, then the colorbar range will be computed based
+        on `percentile_for_clipping`.
+        Defaults to None.
+    percentile_for_clipping : pair of float, optional
+        Defines the percentile range that the image array will be clipped to
+        and that the colormap covers. Must be in the range [0.0, 100.0].
+        Superseded by `cbar_min_max` parameter. Defaults to [1.0, 99.0].
+    """
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -1225,7 +1369,7 @@ class ROFFCorrSurfacePeakLayerParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
-class GOFFCorrSurfacePeakLayerParamGroup(ThresholdParamGroup):
+class GOFFCorrSurfacePeakLayerParamGroup(Threshold99ParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [
@@ -1249,11 +1393,11 @@ class ConnectedComponentsParamGroup(ThresholdParamGroup):
         total_invalid_threshold : float, optional
         Threshold values for alerting users to possible malformed datasets.
         See `ThresholdParamGroup` docstring for complete description.
+        Default for NaN and Inf thresholds: 0. (Connected components layer
+        has an integer dtype, so there should never be NaN nor Inf.)
         Default for fill threshold:
             `nisarqa.STATISTICS_THRESHOLD_PERCENTAGE`.
         Default for near-zero and total thresholds: 99.9
-        Default for NaN and Inf thresholds: 0. (Connected components layer
-        has an integer dtype, so there should never be NaN nor Inf.)
     epsilon : float, optional
         Absolute tolerance for determining if a raster pixel is 'almost zero'.
         Defaults to 1e-6.
@@ -1346,6 +1490,44 @@ class RUNWConnectedComponentsParamGroup(ConnectedComponentsParamGroup):
 
 @dataclass(frozen=True)
 class GUNWConnectedComponentsParamGroup(ConnectedComponentsParamGroup):
+    """
+    Parameters to run QA on Connected Components Layers for RUNW and GUNW.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Default for NaN and Inf thresholds: 0. (Connected components layer
+        has an integer dtype, so there should never be NaN nor Inf.)
+        Default for fill threshold: 99.0%
+        Default for near-zero and total thresholds: 99.9
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
+    max_num_cc : int or None, optional
+        Maximum number of valid connected components allowed.
+        If the number of valid connected components (not including
+        zero nor the fill value) is greater than this value,
+        it will be logged and an exception will be raised.
+        If None, this error check will be skipped.
+        Defaults to None.
+    """
+
+    fill_threshold: float = (
+        nisarqa.ThresholdParamGroup.get_field_with_updated_default(
+            param_name="fill_threshold", default=99.0
+        )
+    )
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return [

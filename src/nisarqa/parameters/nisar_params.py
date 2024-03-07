@@ -717,6 +717,94 @@ class ZeroIsValidThresholdParamGroup(ThresholdParamGroup):
 
 
 @dataclass(frozen=True)
+class Threshold99ParamGroup(ThresholdParamGroup):
+    """
+    ABC for creating *Params dataclasses with default thresholds of 99%.
+
+    Typically, geocoded L2 products should use defaults of 99% for thresholds
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        All thresholds default to 99.0%.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: fill values are always considered invalid, so if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to True.
+
+    Notes
+    -----
+    When subclassing, to update the default for a particular threshold value,
+    suggest using the class method `get_field_with_updated_default()`.
+    """
+
+    nan_threshold: float = ThresholdParamGroup.get_field_with_updated_default(
+        param_name="nan_threshold", default=99.0
+    )
+    inf_threshold: float = ThresholdParamGroup.get_field_with_updated_default(
+        param_name="inf_threshold", default=99.0
+    )
+    fill_threshold: float = ThresholdParamGroup.get_field_with_updated_default(
+        param_name="fill_threshold", default=99.0
+    )
+    near_zero_threshold: float = (
+        ThresholdParamGroup.get_field_with_updated_default(
+            param_name="near_zero_threshold", default=99.0
+        )
+    )
+    total_invalid_threshold: float = (
+        ThresholdParamGroup.get_field_with_updated_default(
+            param_name="total_invalid_threshold", default=99.0
+        )
+    )
+
+
+@dataclass(frozen=True)
+class ZeroIsValidThreshold99ParamGroup(Threshold99ParamGroup):
+    """
+    `Threshold99ParamGroup` but w/ defaults of zeros as valid and all-zeros ok.
+
+    Parameters
+    ----------
+    nan_threshold, inf_threshold, fill_threshold, near_zero_threshold,
+        total_invalid_threshold : float, optional
+        Threshold values for alerting users to possible malformed datasets.
+        See `ThresholdParamGroup` docstring for complete description.
+        Default for NaN, Inf, fill, and total thresholds: 99.0%
+        Default for near-zero threshold: -1.
+    epsilon : float, optional
+        Absolute tolerance for determining if a raster pixel is 'almost zero'.
+        Defaults to 1e-6.
+    zero_is_invalid: bool, optional
+        True if near-zero pixels should be counted towards the
+        total number of invalid pixels. False to exclude them.
+        If False, consider setting `near_zero_threshold` to -1.
+        Note: Fill values are always considered invalid. So, if a raster's
+        fill value is zero, then zeros will still be included in the total.
+        Defaults to False.
+    """
+
+    near_zero_threshold: float = (
+        ThresholdParamGroup.get_field_with_updated_default(
+            param_name="near_zero_threshold", default=-1
+        )
+    )
+
+    zero_is_invalid: float = ThresholdParamGroup.get_field_with_updated_default(
+        param_name="zero_is_invalid", default=False
+    )
+
+
+@dataclass(frozen=True)
 class WorkflowsParamGroup(YamlParamGroup):
     """
     The parameters specifying which QA workflows should be run.
