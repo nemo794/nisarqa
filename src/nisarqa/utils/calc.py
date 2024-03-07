@@ -650,7 +650,7 @@ def compute_percentage_metrics(
         nisarqa.percent_total_invalid_is_within_threshold(
             count=total_num_invalid,
             arr_size=arr_size,
-            threshold_percentage=params.invalid_threshold,
+            threshold_percentage=params.total_invalid_threshold,
             arr_name=arr_name,
             zero_is_invalid=params.zero_is_invalid,
         )
