@@ -830,8 +830,7 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="validate",
-                descr=_descr
-                % "`validate` workflow to validate the\n"
+                descr=_descr % "`validate` workflow to validate the\n"
                 " input file against its product spec",
             )
         },
@@ -842,8 +841,7 @@ class WorkflowsParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="qa_reports",
-                descr=_descr
-                % "`qa_reports` workflow to generate a\n"
+                descr=_descr % "`qa_reports` workflow to generate a\n"
                 "PDF report, geolocated browse image, compute statistics\n"
                 "on the input file, etc.",
             )

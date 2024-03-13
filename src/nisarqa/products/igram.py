@@ -250,8 +250,7 @@ def save_igram_product_browse_png(
     product: nisarqa.WrappedGroup,
     params: nisarqa.IgramBrowseParamGroup,
     browse_png: str | os.PathLike,
-) -> None:
-    ...
+) -> None: ...
 
 
 @overload
@@ -259,8 +258,7 @@ def save_igram_product_browse_png(
     product: nisarqa.UnwrappedGroup,
     params: nisarqa.UNWIgramBrowseParamGroup,
     browse_png: str | os.PathLike,
-) -> None:
-    ...
+) -> None: ...
 
 
 def save_igram_product_browse_png(product, params, browse_png):

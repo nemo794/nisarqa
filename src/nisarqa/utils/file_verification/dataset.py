@@ -41,8 +41,7 @@ class HDF5Dataset(DatasetDesc):
     def value(self) -> Any:
         return self.dataset[:]
 
-    def check(self):
-        ...
+    def check(self): ...
 
     @property
     def dtype(self) -> np.dtype | None:

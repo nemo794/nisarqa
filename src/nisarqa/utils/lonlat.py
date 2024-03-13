@@ -96,7 +96,8 @@ def write_latlonquad_to_kml(
     # The coordinates are specified in counter-clockwise order with the first
     # point corresponding to the lower-left corner of the overlayed image.
     # (https://developers.google.com/kml/documentation/kmlreference#gx:latlonquad)
-    kml_file = textwrap.dedent(f"""
+    kml_file = textwrap.dedent(
+        f"""
         <?xml version="1.0" encoding="UTF-8"?>
         <kml xmlns:gx="http://www.google.com/kml/ext/2.2">
           <Document>
@@ -112,7 +113,8 @@ def write_latlonquad_to_kml(
             </GroundOverlay>
           </Document>
         </kml>
-        """).strip()
+        """
+    ).strip()
     with open(os.path.join(output_dir, kml_filename), "w") as f:
         f.write(kml_file)
 
