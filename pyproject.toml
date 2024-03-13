@@ -1,0 +1,74 @@
+# NISAR Project - Jet Propulsion Laboratory
+# Copyright 2024, by the California Institute of Technology.
+# ALL RIGHTS RESERVED. United States Government Sponsorship acknowledged.
+# This software may be subject to U.S. export control laws and regulations.
+
+[build-system]
+requires = [
+    "setuptools>=60",
+    "setuptools-scm>=8.0"  # required to install the package-data
+    ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nisarqa"
+requires-python = ">=3.9"
+
+description = "NISAR ADT Quality Assurance Software"
+
+# README format is auto-detected from the extension as GitHub-flavored Markdown
+readme = "README.md"
+
+authors = [
+  { name = "Sam Niemoeller", email = "samantha.c.niemoeller@jpl.nasa.gov" },
+  { name = "Geoffrey Gunter", email = "geoffrey.m.gunter@jpl.nasa.gov" },
+]
+maintainers = [
+  { name = "Sam Niemoeller", email = "samantha.c.niemoeller@jpl.nasa.gov" }
+]
+
+keywords = [
+  "nisar",
+  "radar",
+  "quality-assurance",
+  "qa",
+  "remote-sensing",
+  "sar",
+  "synthetic-aperture-radar",
+]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: Free for non-commercial use",
+  "License :: OSI Approved :: Apache Software License",
+  "License :: OSI Approved :: BSD License",
+  "License :: Other/Proprietary License",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Unix",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering",
+]
+
+dynamic = ["version", "dependencies"]
+
+[tool.setuptools.dynamic]
+version = {attr = "nisarqa.__version__"}
+dependencies = { file = ["requirements.txt"] }
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+nisarqa = ["*.xml"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.urls]
+Homepage = "http://nisar.jpl.nasa.gov"
+
+[project.scripts]
+nisarqa = "nisarqa.__main__:main"

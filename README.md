@@ -5,10 +5,10 @@ For the upcoming [NISAR mission](https://nisar.jpl.nasa.gov/),
 eight types of L1/L2 data products will be generated.
 This Quality Assurance (QA) software is designed to look at the data products
 produced one at a time. For each product, the QA code can:
-- Verify the metadata matches the product spec
-- Generate metrics, a PDF report, and a summary describing the quality of the product
+- Log if the HDF5's structure matches the product spec
+- Generate metrics, a PDF report, and a summary CSV describing the quality of the product
 - Run CalTools processes on RSLC products
-- Produce a browse image png for that product
+- Produce a browse image PNG with sidecar KML file for that product
 
 # Minimum PreRequisites:
 See `environment.yaml` for required packages.
@@ -56,10 +56,10 @@ nisarqa -h
 nisarqa dumpconfig -h
 ```
 
-Warning: Please install via `pip` and with the `--no-deps` flag. Installing
-via the traditional `python setup.py install` or without the `--no-deps` flag
-method fails due to the `isce3` dependency in `setup.py`.
-Otherwise, the `isce3` dependency would need to be removed from `setup.py`,
+Warning: Please install via `pip` and with the `--no-deps` flag. Installing 
+without the `--no-deps` flag fails due to the `isce3` dependency in 
+`requirements.txt`, which is used by `pyproject.toml` during installation.
+Otherwise, `isce3` would need to be removed from `requirements.txt`,
 causing that dependency to be undocumented there.
 
 ## Running the QA Code
@@ -106,8 +106,6 @@ nisarqa dumpconfig rslc > my_rslc_runconfig.yaml  # save runconfig to a file
 nisarqa dumpconfig gcov
 ```
 
-- NOTE: `dumpconfig` has only been implemented for RSLC and GSLC at this time.
-
 
 ## Expected Outputs
 
@@ -129,60 +127,7 @@ These file names are hardcoded; they are not configurable via the
 runconfig.
 
 
-## Test RSLC Data
-Here are paths on nisar-adt-dev-3 to various test data sets.
-These path will need to be copied into the `qa_input_file` parameter in
-the runconfig.
-
-TODO: Update this section (see original QA Code README), and remove the hardlinks.
-
-Multi-Freq, Multi-Pol.
-Data Size: Medium-Large
-`/home/niemoell/dat/fromJoanne_05022022/rslc_REE_testarea134/output_rslc/rslc.h5`
-
-Real Data that has been manipulated to be like NISAR data
-Data Size: Small
-`/home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP037370690/output_rslc/rslc.h5`
-
-Real Data that has been manipulated to be like NISAR data
-Data Size: Large, but could complete in original QA Code
-`/home/niemoell/dat/qa_test_data_04182022/rslc_ALPSRP271200680/output_rslc/rslc.h5`
-
-DIST1 - Simulated data to look like an actual image
-Data Size: Small
-`/home/niemoell/dat/qa_test_data_04182022/rslc_DIST1/output_rslc/rslc.h5`
-
-DIST2 - Simulated data to look like an actual image
-Data Size: Medium
-`/home/niemoell/dat/qa_test_data_04182022/rslc_DIST2/output_rslc/rslc.h5`
-
-REE1 - Simulated data to look like an actual image
-Data Size: Small
-`/home/niemoell/dat/qa_test_data_04182022/rslc_REE1/output_rslc/rslc.h5`
-
-REE2 - Simulated data to look like an actual image
-Data Size: Large, could not complete in original QA Code
-`/home/niemoell/dat/qa_test_data_04182022/rslc_REE2/output_rslc/rslc.h5`
-
-Rosamond - Multi-Freq, Multi-Pol. Modified UAVSAR data.
-Data Size: Small
-`/scratch/gunter/data/NISAR/QualityAssurance/Rosamd_35012_20001_001_200129_L090_CX_03/Rosamd_35012_20001_001_200129_L090_CX_129_03.h5`
-
-Hawaii (Big Island)
-`/home/niemoell/dat/UAVSAR_RSLC_testdata_09222022/BigIsl_32905_10003_012_100106_L090_CX_143_02.h5`
-
-## Test GCOV Data
-Here are paths on nisar-adt-dev-3 to various test data sets.
-These path will need to be copied into the `qa_input_file` parameter in
-the runconfig.
-
-Los Angeles
-`/home/niemoell/dat/gcov_test_data/may2023/L2_GCOV_LA.h5`
-
-Peru - Only On-Diagonal Terms
-`/home/niemoell/dat/gcov_test_data/may2023/L2_GCOV_s1_peru.h5`
-
-Full-Covariance Datasets (includes off-diagonal terms)
-The PDF output should include phase histograms for the off-diag terms only
-`/home/niemoell/dat/gcov_test_data/may2023/L2_GCOV_FULL_COV_s1_peru.h5`
-
+## Copyright
+Copyright (c) 2024 California Institute of Technology ("Caltech"). U.S. Government
+sponsorship acknowledged.
+All rights reserved.
