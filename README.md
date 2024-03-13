@@ -85,6 +85,31 @@ nisarqa gslc_qa <gslc_runconfig.yaml> -v
 nisarqa rslc_qa <rslc_runconfig.yaml> --verbose
 ```
 
+Step 5) Set up `pre-commit` (Optional for users) (Required for contributors)
+
+QA repo uses a `pre-commit` workflow to ensure consistent code style for
+developers. Configuration options are found in the `pyproject.toml` and
+`.pre-commit-config.yaml` files.
+
+Install pre-commit and check if it was correctly installed:
+```
+conda install -c conda-forge pre-commit
+pre-commit help
+```
+
+Install and set up the git hook scripts:
+```
+pre-commit install  # stdout: pre-commit installed at .git/hooks/pre-commit
+```
+
+Now `pre-commit` will run automatically on `git commit`.
+
+Some useful commands:
+```
+pre-commit run --all-files  # run on all files (not just files in commit)
+git commit --no-verify -m "message"  # skip pre-commit entirely
+SKIP=flake8,black git commit -m "foo"  # temporarily disable flake8 and black
+```
 
 ## Runconfig Template w/ default parameters
 Because the QA code is uniquely written for each product type, each product

@@ -62,3 +62,7 @@ Homepage = "http://nisar.jpl.nasa.gov"
 
 [project.scripts]
 nisarqa = "nisarqa.__main__:main"
+
+[tool.black]
+preview = true
+line-length = 80
