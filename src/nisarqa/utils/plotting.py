@@ -50,11 +50,14 @@ def process_ionosphere_phase_screen(
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            with product.get_ionosphere_phase_screen(
-                freq=freq, pol=pol
-            ) as iono_phs, product.get_ionosphere_phase_screen_uncertainty(
-                freq=freq, pol=pol
-            ) as iono_uncertainty:
+            with (
+                product.get_ionosphere_phase_screen(
+                    freq=freq, pol=pol
+                ) as iono_phs,
+                product.get_ionosphere_phase_screen_uncertainty(
+                    freq=freq, pol=pol
+                ) as iono_uncertainty,
+            ):
                 # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
@@ -82,7 +85,8 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.RadarRaster,
     iono_uncertainty_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -90,7 +94,8 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.GeoRaster,
     iono_uncertainty_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 def plot_ionosphere_phase_screen_to_pdf(
@@ -435,11 +440,10 @@ def process_phase_image_wrapped(
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            with product.get_wrapped_igram(
-                freq=freq, pol=pol
-            ) as complex_img, product.get_wrapped_coh_mag(
-                freq=freq, pol=pol
-            ) as coh_img:
+            with (
+                product.get_wrapped_igram(freq=freq, pol=pol) as complex_img,
+                product.get_wrapped_coh_mag(freq=freq, pol=pol) as coh_img,
+            ):
                 # Compute Statistics first, in case of malformed layers
                 # (which could cause plotting to fail)
                 nisarqa.compute_and_save_basic_statistics(
@@ -467,7 +471,8 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.RadarRaster,
     coh_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -475,7 +480,8 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster: nisarqa.GeoRaster,
     coh_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 def plot_wrapped_phase_image_and_coh_mag_to_pdf(
@@ -619,7 +625,6 @@ def make_wrapped_phase_png(
     """
 
     with product.get_wrapped_igram(freq=freq, pol=pol) as igram_r:
-
         phase, _ = get_phase_array(
             phs_or_complex_raster=igram_r,
             make_square_pixels=False,  # we'll do this while downsampling
@@ -659,7 +664,6 @@ def make_unwrapped_phase_png(
     """
 
     with product.get_unwrapped_phase(freq=freq, pol=pol) as igram_r:
-
         phase, _ = get_phase_array(
             phs_or_complex_raster=igram_r,
             make_square_pixels=False,  # we'll do this while downsampling
@@ -766,9 +770,10 @@ def make_hsi_png_with_wrapped_phase(
         Filename (with path) for the image PNG.
     """
 
-    with product.get_wrapped_igram(
-        freq=freq, pol=pol
-    ) as igram_r, product.get_wrapped_coh_mag(freq=freq, pol=pol) as coh_r:
+    with (
+        product.get_wrapped_igram(freq=freq, pol=pol) as igram_r,
+        product.get_wrapped_coh_mag(freq=freq, pol=pol) as coh_r,
+    ):
         rgb_img, _ = make_hsi_raster(
             phs_or_complex_raster=igram_r,
             coh_raster=coh_r,
@@ -811,9 +816,10 @@ def make_hsi_png_with_unwrapped_phase(
         Filename (with path) for the image PNG.
     """
 
-    with product.get_unwrapped_phase(
-        freq=freq, pol=pol
-    ) as phs_r, product.get_unwrapped_coh_mag(freq=freq, pol=pol) as coh_r:
+    with (
+        product.get_unwrapped_phase(freq=freq, pol=pol) as phs_r,
+        product.get_unwrapped_coh_mag(freq=freq, pol=pol) as coh_r,
+    ):
         rgb_img, _ = make_hsi_raster(
             phs_or_complex_raster=phs_r,
             coh_raster=coh_r,
@@ -845,11 +851,10 @@ def hsi_images_to_pdf_wrapped(
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            with product.get_wrapped_igram(
-                freq=freq, pol=pol
-            ) as igram_r, product.get_wrapped_coh_mag(
-                freq=freq, pol=pol
-            ) as coh_r:
+            with (
+                product.get_wrapped_igram(freq=freq, pol=pol) as igram_r,
+                product.get_wrapped_coh_mag(freq=freq, pol=pol) as coh_r,
+            ):
                 # Create a *Raster with the HSI image
 
                 # The HSI colorbar generated in the HSI PDF function (below)
@@ -894,11 +899,10 @@ def hsi_images_to_pdf_unwrapped(
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            with product.get_unwrapped_phase(
-                freq=freq, pol=pol
-            ) as phs_r, product.get_unwrapped_coh_mag(
-                freq=freq, pol=pol
-            ) as coh_r:
+            with (
+                product.get_unwrapped_phase(freq=freq, pol=pol) as phs_r,
+                product.get_unwrapped_coh_mag(freq=freq, pol=pol) as coh_r,
+            ):
                 # The HSI colorbar generated in the HSI PDF function (below)
                 # has a linear scale from [0, 1] for the intensity channel
                 # (coherence magnitude layer). If we equalize that channel,
@@ -1197,7 +1201,8 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.RadarRaster, list[float]]: ...
+) -> tuple[nisarqa.RadarRaster, list[float]]:
+    ...
 
 
 @overload
@@ -1207,7 +1212,8 @@ def make_hsi_raster(
     equalize: bool,
     rewrap: Optional[float] = None,
     longest_side_max: Optional[int] = None,
-) -> tuple[nisarqa.GeoRaster, list[float]]: ...
+) -> tuple[nisarqa.GeoRaster, list[float]]:
+    ...
 
 
 def make_hsi_raster(
@@ -1692,11 +1698,10 @@ def process_az_and_slant_rg_offsets_from_igram_product(
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            with product.get_along_track_offset(
-                freq=freq, pol=pol
-            ) as az_raster, product.get_slant_range_offset(
-                freq=freq, pol=pol
-            ) as rg_raster:
+            with (
+                product.get_along_track_offset(freq=freq, pol=pol) as az_raster,
+                product.get_slant_range_offset(freq=freq, pol=pol) as rg_raster,
+            ):
                 process_range_and_az_offsets(
                     az_offset=az_raster,
                     rg_offset=rg_raster,
@@ -1713,7 +1718,8 @@ def process_range_and_az_offsets(
     params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -1723,7 +1729,8 @@ def process_range_and_az_offsets(
     params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
-) -> None: ...
+) -> None:
+    ...
 
 
 def process_range_and_az_offsets(
@@ -1775,7 +1782,8 @@ def plot_range_and_az_offsets_to_pdf(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -1783,7 +1791,8 @@ def plot_range_and_az_offsets_to_pdf(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
     report_pdf: PdfPages,
-) -> None: ...
+) -> None:
+    ...
 
 
 def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
@@ -1936,11 +1945,14 @@ def process_az_and_slant_rg_offsets_from_offset_product(
     # Generate a browse PNG for one layer
     freq, pol, layer_num = product.get_browse_freq_pol_layer()
 
-    with product.get_along_track_offset(
-        freq=freq, pol=pol, layer_num=layer_num
-    ) as az_off, product.get_slant_range_offset(
-        freq=freq, pol=pol, layer_num=layer_num
-    ) as rg_off:
+    with (
+        product.get_along_track_offset(
+            freq=freq, pol=pol, layer_num=layer_num
+        ) as az_off,
+        product.get_slant_range_offset(
+            freq=freq, pol=pol, layer_num=layer_num
+        ) as rg_off,
+    ):
         y_dec, x_dec = plot_single_quiver_plot_to_png(
             az_offset=az_off,
             rg_offset=rg_off,
@@ -1964,11 +1976,14 @@ def process_az_and_slant_rg_offsets_from_offset_product(
     for freq in product.freqs:
         for pol in product.get_pols(freq):
             for layer_num in product.available_layer_numbers:
-                with product.get_along_track_offset(
-                    freq=freq, pol=pol, layer_num=layer_num
-                ) as az_off, product.get_slant_range_offset(
-                    freq=freq, pol=pol, layer_num=layer_num
-                ) as rg_off:
+                with (
+                    product.get_along_track_offset(
+                        freq=freq, pol=pol, layer_num=layer_num
+                    ) as az_off,
+                    product.get_slant_range_offset(
+                        freq=freq, pol=pol, layer_num=layer_num
+                    ) as rg_off,
+                ):
                     # First, create the canonical side-by-side plot of the
                     # along track offsets vs. the slant range offsets.
                     process_range_and_az_offsets(
@@ -2017,7 +2032,8 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-) -> tuple[float, float]: ...
+) -> tuple[float, float]:
+    ...
 
 
 @overload
@@ -2026,7 +2042,8 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-) -> tuple[float, float]: ...
+) -> tuple[float, float]:
+    ...
 
 
 def plot_offsets_quiver_plot_to_pdf(az_offset, rg_offset, params, report_pdf):
@@ -2116,7 +2133,8 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     png_filepath: str | os.PathLike,
-) -> tuple[int, int]: ...
+) -> tuple[int, int]:
+    ...
 
 
 @overload
@@ -2125,7 +2143,8 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     png_filepath: str | os.PathLike,
-) -> tuple[int, int]: ...
+) -> tuple[int, int]:
+    ...
 
 
 def plot_single_quiver_plot_to_png(
@@ -2495,12 +2514,14 @@ def process_az_and_slant_rg_variances_from_offset_product(
     for freq in product.freqs:
         for pol in product.get_pols(freq):
             for layer_num in product.available_layer_numbers:
-                with product.get_along_track_offset_variance(
-                    freq=freq, pol=pol, layer_num=layer_num
-                ) as az_off_var, product.get_slant_range_offset_variance(
-                    freq=freq, pol=pol, layer_num=layer_num
-                ) as rg_off_var:
-
+                with (
+                    product.get_along_track_offset_variance(
+                        freq=freq, pol=pol, layer_num=layer_num
+                    ) as az_off_var,
+                    product.get_slant_range_offset_variance(
+                        freq=freq, pol=pol, layer_num=layer_num
+                    ) as rg_off_var,
+                ):
                     # Compute Statistics first, in case of malformed layers
                     # (which could cause plotting to fail)
                     nisarqa.compute_and_save_basic_statistics(
@@ -2530,7 +2551,8 @@ def plot_range_and_az_offsets_variances_to_pdf(
     rg_offset_variance: nisarqa.RadarRaster,
     report_pdf: PdfPages,
     cbar_min_max: Optional[Sequence[float, float]],
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -2539,7 +2561,8 @@ def plot_range_and_az_offsets_variances_to_pdf(
     rg_offset_variance: nisarqa.GeoRaster,
     report_pdf: PdfPages,
     cbar_min_max: Optional[Sequence[float, float]],
-) -> None: ...
+) -> None:
+    ...
 
 
 def plot_range_and_az_offsets_variances_to_pdf(
@@ -2706,12 +2729,14 @@ def process_cross_variance_and_surface_peak(
     for freq in product.freqs:
         for pol in product.get_pols(freq):
             for layer_num in product.available_layer_numbers:
-                with product.get_cross_offset_variance(
-                    freq=freq, pol=pol, layer_num=layer_num
-                ) as cross_off_var, product.get_correlation_surface_peak(
-                    freq=freq, pol=pol, layer_num=layer_num
-                ) as surface_peak:
-
+                with (
+                    product.get_cross_offset_variance(
+                        freq=freq, pol=pol, layer_num=layer_num
+                    ) as cross_off_var,
+                    product.get_correlation_surface_peak(
+                        freq=freq, pol=pol, layer_num=layer_num
+                    ) as surface_peak,
+                ):
                     # Compute Statistics first, in case of malformed layers
                     nisarqa.compute_and_save_basic_statistics(
                         raster=cross_off_var,
@@ -2742,7 +2767,8 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     report_pdf: PdfPages,
     offset_cbar_min_max: Optional[Sequence[float]] = None,
     percentile_for_clipping: Sequence[float] = (1.0, 99.0),
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -2752,7 +2778,8 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
     report_pdf: PdfPages,
     offset_cbar_min_max: Optional[Sequence[float]] = None,
     percentile_for_clipping: Sequence[float] = (1.0, 99.0),
-) -> None: ...
+) -> None:
+    ...
 
 
 def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(

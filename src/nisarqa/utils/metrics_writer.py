@@ -158,12 +158,12 @@ def save_percent_total_invalid_to_stats_h5(
     if zero_is_invalid:
         msg = (
             f"Percent of dataset elements that are either NaN, Inf, fill,"
-            " or near-zero valued pixels."
+            f" or near-zero valued pixels."
         )
     else:
         msg = (
             f"Percent of dataset elements that are either NaN, Inf, or fill"
-            " valued pixels. (Near-zero valued pixels are not included.)"
+            f" valued pixels. (Near-zero valued pixels are not included.)"
         )
 
     nisarqa.create_dataset_in_h5group(
@@ -220,11 +220,17 @@ def _percent_value_is_within_threshold(
 
     nisarqa.verify_valid_percent(percentage)
 
-    msg = f"Array {arr_name} contains {count}/{arr_size} ({percentage:.2f}%) {name_of_value} pixels."
+    msg = (
+        f"Array {arr_name} contains {count}/{arr_size} ({percentage:.2f}%)"
+        f" {name_of_value} pixels."
+    )
 
     if threshold_percentage != -1:
         nisarqa.verify_valid_percent(threshold_percentage)
-        msg += f" Acceptable threshold is {threshold_percentage} percent {name_of_value}"
+        msg += (
+            f" Acceptable threshold is {threshold_percentage} percent"
+            f" {name_of_value}"
+        )
 
     if (percentage > threshold_percentage) and (threshold_percentage != -1):
         log.error(msg)

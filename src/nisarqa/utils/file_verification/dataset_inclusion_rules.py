@@ -183,7 +183,7 @@ def check_path(
     """
     if rule_exceptions is None:
         rule_exceptions = []
-    
+
     for exception_path in rule_exceptions:
         if re.match(exception_path, path):
             return True
@@ -276,17 +276,21 @@ def check_paths(
     rejected = set()
 
     for path in paths:
-        accepted.add(path) if check_path(
-            path=path,
-            all_freqs=all_freqs,
-            all_pols=all_pols,
-            all_layers=all_layers,
-            all_subswaths=all_subswaths,
-            valid_freq_pols=valid_freq_pols,
-            valid_layers=valid_layers,
-            valid_subswaths=valid_subswaths,
-            rule_exceptions=rule_exceptions,
-        ) else rejected.add(path)
+        (
+            accepted.add(path)
+            if check_path(
+                path=path,
+                all_freqs=all_freqs,
+                all_pols=all_pols,
+                all_layers=all_layers,
+                all_subswaths=all_subswaths,
+                valid_freq_pols=valid_freq_pols,
+                valid_layers=valid_layers,
+                valid_subswaths=valid_subswaths,
+                rule_exceptions=rule_exceptions,
+            )
+            else rejected.add(path)
+        )
 
     return accepted, rejected
 

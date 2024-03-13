@@ -174,7 +174,6 @@ def load_user_runconfig(runconfig_yaml):
 
 
 def run():
-
     # parse the args
     args = parse_cli_args()
 

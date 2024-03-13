@@ -143,9 +143,10 @@ def verify_gcov(
         )
         log.info(f"Browse image kml file saved to {browse_file_kml}")
 
-        with h5py.File(stats_file, mode="w") as stats_h5, PdfPages(
-            report_file
-        ) as report_pdf:
+        with (
+            h5py.File(stats_file, mode="w") as stats_h5,
+            PdfPages(report_file) as report_pdf,
+        ):
             # Save the processing parameters to the stats.h5 file
             root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band

@@ -264,7 +264,9 @@ def compare_dtypes_xml_hdf5(xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset):
     # Print this error and return.
     dtype_check = True
     if xml_dtype is None:
-        log.error(f"XML dataset dtype could not be determined: {xml_dataset.name}")
+        log.error(
+            f"XML dataset dtype could not be determined: {xml_dataset.name}"
+        )
         dtype_check = False
     if hdf5_dtype is None:
         log.error(
@@ -286,7 +288,7 @@ def compare_dtypes_xml_hdf5(xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset):
         # this is not the expected type.
         if hdf5_dtype.kind != "S":
             log.error(
-                f"XML expects string. HDF5 type is not numpy byte string, "
+                "XML expects string. HDF5 type is not numpy byte string, "
                 f"but instead {hdf5_dtype}: {hdf5_dataset.name}"
             )
             return
@@ -407,7 +409,9 @@ def attribute_unit_check(
         log.error(f'Empty "units" attribute on XML: Dataset {dataset_name}')
         proceed = False
     if hdf5_units == "":
-        log.error(f'Empty "units" attribute field on HDF5: Dataset {dataset_name}')
+        log.error(
+            f'Empty "units" attribute field on HDF5: Dataset {dataset_name}'
+        )
         proceed = False
 
     if not proceed:
@@ -526,7 +530,9 @@ def attribute_description_check(
         log.error(f"Empty description on XML: Dataset {dataset_name}")
         proceed = False
     if hdf5_desc == "":
-        log.error(f"Empty description attribute on HDF5: Dataset {dataset_name}")
+        log.error(
+            f"Empty description attribute on HDF5: Dataset {dataset_name}"
+        )
         proceed = False
 
     if not proceed:

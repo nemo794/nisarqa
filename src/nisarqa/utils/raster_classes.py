@@ -395,7 +395,8 @@ def compare_raster_metadata(
     raster1: nisarqa.RadarRaster,
     raster2: nisarqa.RadarRaster,
     almost_identical: bool,
-) -> None: ...
+) -> None:
+    ...
 
 
 @overload
@@ -403,7 +404,8 @@ def compare_raster_metadata(
     raster1: nisarqa.GeoRaster,
     raster2: nisarqa.GeoRaster,
     almost_identical: bool,
-) -> None: ...
+) -> None:
+    ...
 
 
 def compare_raster_metadata(raster1, raster2, almost_identical=True):

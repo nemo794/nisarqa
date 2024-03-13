@@ -122,7 +122,8 @@ class XMLDataset(DatasetDesc):
         if signedness_str.lower() == "false":
             return False
         log.error(
-            f"Unrecognized signedness: {signedness_str}: XML dataset {self.name}"
+            f"Unrecognized signedness: {signedness_str}: XML dataset"
+            f" {self.name}"
         )
         return None
 

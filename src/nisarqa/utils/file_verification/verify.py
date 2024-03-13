@@ -81,8 +81,9 @@ def verify_file_against_xml(
     }
     if product_type in ("roff", "goff"):
         log.info(
-            f"Verification of HDF5 against XML will check for these numbered "
-            f"layer groups: {layer_numbers}")
+            "Verification of HDF5 against XML will check for these numbered "
+            f"layer groups: {layer_numbers}"
+        )
 
     log.info(f"Checking product version against supported versions.")
     xml_version = nisarqa.get_xml_version_to_compare_against(

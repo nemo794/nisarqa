@@ -208,8 +208,9 @@ def element_to_xml_dataset(
     del attributes["shape"]
     if shape_name not in shapes:
         log.error(
-            f"XML is missing shape {shape_name} associated with this dataset. "
-            f"Could not associate this dataset with a shape - XML dataset {name}"
+            f"XML is missing shape {shape_name} associated with this dataset."
+            " Could not associate this dataset with a shape - XML dataset"
+            f" {name}"
         )
         shape = None
     else:

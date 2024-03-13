@@ -667,7 +667,6 @@ def compute_percentage_metrics(
     # Now, all metrics have been computed and logged. Raise exception
     # if an issue was identified.
     if not all_metrics_pass:
-
         msg = (
             f"Array {arr_name} did not pass at least one of the percentage"
             " threshold metrics; either the % Nan, % Inf, % 'fill', % near-zero"
@@ -769,8 +768,8 @@ def connected_components_metrics(
         ds_data=percentages,
         ds_units="1",
         ds_description=(
-            "Percentages of total raster area with each connected component label."
-            " Indices correspond to `connectedComponentLabels`"
+            "Percentages of total raster area with each connected component"
+            " label. Indices correspond to `connectedComponentLabels`"
         ),
     )
 

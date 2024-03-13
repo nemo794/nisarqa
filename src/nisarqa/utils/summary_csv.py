@@ -362,7 +362,8 @@ class _SummaryCSV:
         """Check: '% Cumulative NaN, Inf, fill, and near-zero pixels under threshold?'"""
         self.check(
             description=(
-                "% Cumulative NaN and Inf and fill and near-zero pixels under threshold?"
+                "% Cumulative NaN and Inf and fill and near-zero pixels under"
+                " threshold?"
             ),
             threshold=threshold,
             actual=actual,

@@ -171,7 +171,6 @@ def verify_rslc(
             log.info(f"Browse image kml file saved to {browse_file_kml}")
 
             with h5py.File(stats_file, mode="r+") as stats_h5:
-
                 # Save frequency/polarization info to stats file
                 save_nisar_freq_metadata_to_h5(
                     stats_h5=stats_h5, product=product

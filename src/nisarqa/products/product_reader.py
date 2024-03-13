@@ -1624,7 +1624,6 @@ class NonInsarProduct(NisarProduct):
 
 @dataclass
 class SLC(NonInsarProduct):
-
     def _get_dataset_handle(
         self, h5_file: h5py.File, raster_path: str
     ) -> h5py.Dataset:
@@ -1636,7 +1635,7 @@ class SLC(NonInsarProduct):
         # layers in that format.
         log = nisarqa.get_logger()
         msg = (
-            f"(%s) PASS/FAIL Check: Product raster dtype conforms to"
+            "(%s) PASS/FAIL Check: Product raster dtype conforms to"
             f" {self.product_type} Product Spec dtype of complex64. Dataset: %s"
         )
         dataset = h5_file[raster_path]
