@@ -224,6 +224,15 @@ def verify_rslc(
                 )
                 log.info("Processing of range power spectra complete.")
 
+                log.info("Beginning processing of azimuth power spectra...")
+                process_azimuth_spectra(
+                    product=product,
+                    params=root_params.azimuth_spectra,
+                    stats_h5=stats_h5,
+                    report_pdf=report_pdf,
+                )
+                log.info("Processing of azimuth power spectra complete.")
+
                 # Check for invalid values
 
                 # Compute metrics for stats.h5
@@ -1733,6 +1742,210 @@ def generate_range_spectra_single_freq(
     plt.close()
 
     log.debug(f"Range Power Spectra for Frequency {freq} complete.")
+
+
+def process_azimuth_spectra(
+    product: nisarqa.RSLC,
+    params: nisarqa.AzimuthSpectraParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Generate the RSLC Range Spectra plot(s) and save to PDF and stats.h5.
+
+    Generate the RSLC Range Spectra; save the plot
+    to the graphical summary .pdf file and the data to the
+    statistics .h5 file.
+
+    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
+    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
+
+    Parameters
+    ----------
+    product : nisarqa.RSLC
+        Input RSLC product.
+    params : nisarqa.AzimuthSpectraParamGroup
+        A structure containing the parameters for processing
+        and outputting the azimuth spectra.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the range spectra plots plot to.
+    """
+
+    # Generate and store the az spectra plots
+    for freq in product.freqs:
+        generate_az_spectra_single_freq(
+            product, freq, params, stats_h5, report_pdf
+        )
+
+
+def generate_az_spectra_single_freq(
+    product: nisarqa.RSLC,
+    freq: str,
+    params: nisarqa.AzimuthSpectraParamGroup,
+    stats_h5: h5py.File,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Generate the RSLC Azimuth Spectra for a single frequency.
+
+    Generate the RSLC Azimuth Spectra; save the plot
+    to the graphical summary .pdf file and the data to the
+    statistics .h5 file.
+
+    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
+    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
+
+    Parameters
+    ----------
+    product : nisarqa.RSLC
+        Input RSLC product.
+    freq : str
+        Frequency name for the azimuth power spectra to be processed,
+        e.g. 'A' or 'B'
+    params : AzimuthSpectraParamGroup
+        A structure containing the parameters for processing
+        and outputting the spectra.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the spectra plots plot to.
+    """
+    log = nisarqa.get_logger()
+    log.debug(f"Generating Azimuth Spectra for Frequency {freq}...")
+
+    # Plot the az spectra using strictly increasing sample frequencies
+    # (no discontinuity).
+    fft_shift = True
+
+    # Get the FFT spacing
+    # Because `freq` is fixed, and all polarizations within
+    # the same frequency will have the same `fft_freqs`.
+    # So, we only need to do this computation one time.
+    first_pol = product.get_pols(freq=freq)[0]
+    with product.get_raster(freq, first_pol) as img:
+        # Compute the sample rate
+        # zero doppler time is in seconds; units for `sample_rate` will be Hz
+        da = product.get_zero_doppler_time_spacing(freq)
+        sample_rate = 1 / da
+
+        fft_freqs = nisarqa.generate_fft_freqs(
+            num_samples=img.data.shape[1],
+            sampling_rate=sample_rate,
+            fft_shift=fft_shift,
+        )
+
+        if params.hz_to_mhz:
+            fft_freqs = nisarqa.hz2mhz(fft_freqs)
+            freq_units = "megahertz"
+        else:
+            freq_units = "hertz"
+
+    # Save x-axis values to stats.h5 file
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq),
+        ds_name="azimuthSpectraFrequencies",
+        ds_data=fft_freqs,
+        ds_units=freq_units,
+        ds_description=(
+            f"Frequency coordinates for Frequency {freq} azimuth power spectra."
+        ),
+    )
+
+    # Plot the Azimuth Power Spectra for each pol+subswath onto the same axes
+    fig, (ax_near, ax_mid, ax_far) = plt.subplots(
+        nrows=3, ncols=1, figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE
+    )
+
+    fig.suptitle(f"Azimuth Power Spectra for Frequency {freq}")
+
+    # Use custom cycler for accessibility
+    ax_near.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+    ax_mid.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+    ax_far.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+
+    # TODO - units for range spectra were "dB re 1/Hz". What is correct for az?
+    az_spec_units = "dB re 1/Hz"
+
+    for pol in product.get_pols(freq):
+        with product.get_raster(freq=freq, pol=pol) as img:
+
+            for subswath, ax in zip(
+                ("Near", "Mid", "Far"), (ax_near, ax_mid, ax_far)
+            ):
+                img_width = np.shape(img)[1]
+                num_col = params.num_columns
+
+                if num_col == -1 or num_col >= img_width:
+                    col_idx = (0, img_width)
+                else:
+                    if subswath == "Near":
+                        col_idx = (0, num_col)
+                    elif subswath == "Far":
+                        col_idx = (img_width - num_col, -1)
+                    else:
+                        assert subswath == "Mid"
+                        # TODO - confirm with Geoff the correct strategy for
+                        # the case of an even number of columns per subswath
+                        # but an odd image width, and vice versa
+                        mid_img = img_width // 2
+                        mid_num_col = num_col // 2
+                        start_idx = mid_img - mid_num_col
+                        col_idx = (start_idx, start_idx + num_col)
+
+                # Get the near-range spectra
+                # (The returned array is in dB re 1/Hz)
+                az_spectrum = nisarqa.compute_az_spectra_by_tiling(
+                    arr=img.data,
+                    sampling_rate=sample_rate,
+                    col_indices=col_idx,
+                    tile_width=params.tile_width,
+                    fft_shift=fft_shift,
+                )
+
+                # Save normalized range power spectra values to stats.h5 file
+                nisarqa.create_dataset_in_h5group(
+                    h5_file=stats_h5,
+                    grp_path=img.stats_h5_group_path,
+                    ds_name=f"alongTrack{subswath}RangePowerSpectralDensity",
+                    ds_data=az_spectrum,
+                    ds_units=az_spec_units,
+                    ds_description=(
+                        "Normalized azimuth power spectral density for"
+                        f" Frequency {freq}, Polarization {pol}"
+                        f" {subswath}-Range."
+                    ),
+                    ds_attrs={
+                        "subswathStartIndice": col_idx[0],
+                        "subswathEndIndice": col_idx[1],
+                    },
+                )
+
+                # Add this power spectrum to the figure
+                ax.plot(fft_freqs, az_spectrum, label=pol)
+                ax.grid()
+
+                # Label the Plot
+                ax.set_title(f"Azimuth Power Spectra")
+
+                # TODO - What should the x-axis labels be?
+                # For Range Spectra, title was:
+                # ax.set_xlabel(f"Frequency rel. {proc_center_freq} {freq_units}")
+                ax.set_xlabel(f"Frequency {freq_units}")
+
+                ax.set_ylabel(f"Power Spectral Density ({az_spec_units})")
+
+    ax_near.legend(loc="upper right")
+
+    # Save complete plots to graphical summary pdf file
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close()
+
+    log.debug(f"Azimuth Power Spectra for Frequency {freq} complete.")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

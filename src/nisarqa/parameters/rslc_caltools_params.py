@@ -808,6 +808,119 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         return ["runconfig", "groups", "qa", "qa_reports", "range_spectra"]
 
 
+@dataclass(frozen=True)
+class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
+    """
+    Parameters to generate the RSLC Azimuth Spectra plots;
+    this corresponds to the `qa_reports: azimuth_spectra` runconfig group.
+
+    Parameters
+    ----------
+    num_columns : int, optional
+        The azimuth spectra will be computed for three subswaths: near-range,
+        mid-range, and far-range. `num_columns` specifies the number of
+        contiguous, along-track columns to use for each subswath.
+        If `num_columns` is greater than the number of range samples, it will
+        be reduced to the number of range samples.
+        Hint: Smaller `num_columns` leads to in faster processing times.
+        Must be greater than zero. Defaults to 1024.
+    hz_to_mhz : bool, optional
+        True if the input frequencies are in Hz, but user wants outputs in MHz.
+        Defaults to True.
+    tile_width : int, optional
+        User-preferred tile width (number of along-track columns) for processing
+        each subswath by batches. Actual value may be modified by QA to be
+        an integer multiple of `num_columns` . -1 to set this to `num_columns`.
+        Note: full columns must be read in, so the number of rows for each tile
+        will be fixed to the height of the input raster.
+        Defaults to 256.
+    """
+
+    num_columns: int = field(
+        default=1024,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="az_decimation",
+                descr="""The azimuth spectra will be computed for three subswaths: near-range,
+        mid-range, and far-range. `num_columns` specifies the number of
+        contiguous, along-track columns to use for each subswath.
+        If `num_columns` is greater than the number of range samples, it will
+        be reduced to the number of range samples.
+        Hint: Smaller `num_columns` leads to in faster processing times.
+        Must be greater than zero.""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="azimuthSpectraColumnsPerSubswath",
+                units="1",
+                descr=(
+                    "Number of columns along the range axis used to"
+                    " compute the azimuth spectra for each subswath"
+                    " (near-range, mid-range, and far-range)."
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
+
+    hz_to_mhz: bool = field(
+        default=True,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="hz_to_mhz",
+                descr="""True if the input frequencies are in Hz, 
+                but output should be converted to MHz.""",
+            )
+        },
+    )
+
+    tile_width: int = field(
+        default=256,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="tile_width",
+                descr=""" User-preferred tile width (number of along-track columns) for processing
+        each subswath by batches. Actual value may be modified by QA to be
+        an integer multiple of `num_columns` . -1 to set this to `num_columns`.
+        Note: full columns must be read in, so the number of rows for each tile
+        will be fixed to the height of the input raster.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+
+        # validate num_columns
+        if not isinstance(self.num_columns, int):
+            raise TypeError(
+                f"`{self.num_columns=}` and has type"
+                f" {type(self.num_columns)}, but must be an int."
+            )
+        if self.num_columns <= 0:
+            raise ValueError(
+                f"`{self.num_columns=}`, must be a positive value."
+            )
+
+        # validate hz_to_mhz
+        if not isinstance(self.hz_to_mhz, bool):
+            raise TypeError(f"hz_to_mhz` must be bool: {type(self.hz_to_mhz)}")
+
+        # validate tile_width
+        if not isinstance(self.tile_width, int):
+            raise TypeError(
+                f"`{self.tile_width=}` and has type"
+                f" {type(self.tile_width)}, but must be an int."
+            )
+        if (self.tile_width < -1) or (self.tile_width == 0):
+            raise ValueError(
+                f"`{self.tile_width=}`, must be a positive value or -1."
+            )
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "qa_reports", "azimuth_spectra"]
+
+
 @dataclass
 class RSLCRootParamGroup(RootParamGroup):
     """
@@ -834,6 +947,8 @@ class RSLCRootParamGroup(RootParamGroup):
         Histogram Group parameters for RSLC or GSLC QA
     range_spectra : RangeSpectraParamGroup or None, optional
         Range Spectra Group parameters for RSLC QA
+    az_spectra : AzimuthSpectraParamGroup or None, optional
+        Azimuth Spectra Group parameters for RSLC QA
     anc_files : DynamicAncillaryFileParamGroup or None, optional
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
     abs_cal : AbsCalParamGroup or None, optional
@@ -851,6 +966,7 @@ class RSLCRootParamGroup(RootParamGroup):
     backscatter_img: Optional[BackscatterImageParamGroup] = None
     histogram: Optional[HistogramParamGroup] = None
     range_spectra: Optional[RangeSpectraParamGroup] = None
+    az_spectra: Optional[AzimuthSpectraParamGroup] = None
 
     # CalTools parameters
     anc_files: Optional[DynamicAncillaryFileParamGroup] = None
@@ -967,6 +1083,11 @@ class RSLCRootParamGroup(RootParamGroup):
                 param_grp_cls_obj=RangeSpectraParamGroup,
             ),
             Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="az_spectra",
+                param_grp_cls_obj=AzimuthSpectraParamGroup,
+            ),
+            Grp(
                 flag_param_grp_req=workflows.abs_cal,
                 root_param_grp_attr_name="abs_cal",
                 param_grp_cls_obj=AbsCalParamGroup,
@@ -997,6 +1118,7 @@ class RSLCRootParamGroup(RootParamGroup):
             BackscatterImageParamGroup,
             HistogramParamGroup,
             RangeSpectraParamGroup,
+            AzimuthSpectraParamGroup,
             AbsCalParamGroup,
             PointTargetAnalyzerParamGroup,
         )

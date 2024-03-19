@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from typing import Optional
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 import nisarqa
 
@@ -176,10 +177,16 @@ def compute_mask_ok(arr, epsilon=1.0e-05):
 
 
 def create_dataset_in_h5group(
-    h5_file, grp_path, ds_name, ds_data, ds_description, ds_units=None
-):
+    h5_file: h5py.File,
+    grp_path: str,
+    ds_name: str,
+    ds_data: ArrayLike | str,
+    ds_description: str,
+    ds_units: Optional[str] = None,
+    ds_attrs: Optional[dict[str, ArrayLike | str]] = None,
+) -> None:
     """
-    Add a dataset with attributes to the provided group.
+    Add a Dataset with attributes to the provided group.
 
     Parameters
     ----------
@@ -212,6 +219,14 @@ def create_dataset_in_h5group(
               then set `ds_units` to None so that no units attribute
               is created.
         Defaults to None (no units attribute will be created)
+    ds_attrs : dict[str, ArrayLike | str] or None, optional
+        Additional metadata to attach as h5py.Attributes to the new Dataset.
+        If None, no additional Attributes will be added.
+        Format:     { <Attribute name> : <Attribute value> }
+        Example:    { "subswathStartIndice" : 45,
+                      "subswathEndIndice" : 65,
+                      "freqBins" : "science/LSAR/QA/data/freqA/azSpectraFreq}
+        Defaults to None.
 
     Notes
     -----
@@ -233,28 +248,37 @@ def create_dataset_in_h5group(
     grp = h5_file.require_group(grp_path)
 
     # If a string or a list of strings, convert to fixed-length byte strings
-    if isinstance(ds_data, str):
-        ds_data = np.bytes_(ds_data)
-    elif isinstance(ds_data, Sequence) and all(
-        isinstance(s, str) for s in ds_data
-    ):
-        ds_data = np.bytes_(ds_data)
-    elif isinstance(ds_data, np.ndarray) and (
-        np.issubdtype(ds_data.dtype, np.object_)
-        or np.issubdtype(ds_data.dtype, np.unicode_)
-    ):
-        raise NotImplementedError(
-            f"`{ds_data=}` and has dtype `{ds_data.dtype}`, which is not"
-            " currently supported. Suggestion: Make `ds_data` a list or tuple"
-            " of Python strings, or an ndarray of fixed-length byte strings."
-        )
+    def _to_fixed_length_str(data):
+        # If `data` is an e.g. numpy array with a numeric dtype,
+        # do not alter it.
+        if isinstance(data, str):
+            data = np.bytes_(data)
+        elif isinstance(data, Sequence) and all(
+            isinstance(s, str) for s in data
+        ):
+            data = np.bytes_(data)
+        elif isinstance(data, np.ndarray) and (
+            np.issubdtype(data.dtype, np.object_)
+            or np.issubdtype(data.dtype, np.unicode_)
+        ):
+            raise NotImplementedError(
+                f"`{data=}` and has dtype `{data.dtype}`, which is not"
+                " currently supported. Suggestion: Make `ds_data` a list or tuple"
+                " of Python strings, or an ndarray of fixed-length byte strings."
+            )
+
+        return data
 
     # Create dataset and add attributes
-    ds = grp.create_dataset(ds_name, data=ds_data)
+    ds = grp.create_dataset(ds_name, data=_to_fixed_length_str(ds_data))
     if ds_units is not None:
         ds.attrs.create(name="units", data=np.bytes_(ds_units))
 
     ds.attrs.create(name="description", data=np.bytes_(ds_description))
+
+    if ds_attrs is not None:
+        for name, val in ds_attrs.items():
+            ds.attrs.create(name=name, data=_to_fixed_length_str(val))
 
 
 def multi_line_string_iter(multiline_str):

@@ -2133,6 +2133,45 @@ class RSLC(SLC, NisarRadarProduct):
 
         return _get_slant_range_spacing(freq)
 
+    def get_zero_doppler_time_spacing(self, freq: str) -> float:
+        """
+        Get zero doppler time spacing.
+
+        Get the zero doppler time spacing, in seconds, of the radar grid
+        corresponding to the specified frequency sub-band.
+
+        Parameters
+        ----------
+        freq : {'A', 'B'}
+            The frequency sub-band. Must be a valid sub-band in the product.
+
+        Returns
+        -------
+        zero_doppler_time_spacing : float
+            The zero_doppler_time sample spacing, in seconds.
+        """
+
+        # Future Alert!
+        # It makes sense for this dataset to be an attribute in RadarRaster.
+        # However, for now, only RSLC() products need access to this dataset,
+        # and we should not clutter RIFG/RUNW/ROFF RadarRasters.
+        # Additionally, like RSLC.get_slant_range_spacing(),
+        # it is not ideal to need to fully initialize an entire
+        # RadarRaster just to access a single dataset.
+        # For simplicity, let's use this design pattern for now,
+        # and update later if/when a better design pattern is needed.
+
+        @lru_cache
+        def _get_zero_doppler_time_spacing(freq: str) -> float:
+            path = f"{self.get_freq_path(freq)}/zeroDopplerTimeSpacing"
+            with h5py.File(self.filepath) as f:
+                try:
+                    return f[path][()]
+                except KeyError as e:
+                    raise nisarqa.DatasetNotFoundError from e
+
+        return _get_zero_doppler_time_spacing(freq)
+
     def get_processed_center_frequency(self, freq: str) -> float:
         """
         Get processed center frequency.

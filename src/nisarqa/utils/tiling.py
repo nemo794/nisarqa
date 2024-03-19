@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import Optional
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -18,88 +19,156 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 class TileIterator:
     def __init__(
         self,
-        arr_shape,
-        tile_ncols=-1,
-        tile_nrows=-1,
-        col_stride=1,
-        row_stride=1,
+        arr_shape: tuple[int] | tuple[int, int] | None = None,
+        axis_0_idx: tuple[int, int] | None = None,
+        axis_1_idx: tuple[int, int] | None = None,
+        axis_0_tile_length: int = -1,
+        axis_1_tile_width: int = -1,
+        axis_0_stride: int = 1,
+        axis_1_stride: int = 1,
     ):
         """
         Simple iterator class to iterate over a 1D or 2D array by tiles.
 
         Parameters
         ----------
-        arr_shape : tuple
+        arr_shape : tuple of int or None, optional
             The shape of the 1D or 2D array that this TileIterator is for.
-        tile_ncols : int
-            Number of columns for each tile
-            Defaults to -1, meaning entire rows will be processed.
-        tile_nrows : int, optional
-            Number of rows for each tile.
-            Defaults to -1, meaning entire columns will be processed.
-            To process entire columns in an array, set tile_nrows = arr_shape[0]
-            Will be ignored if arr_shape is for a 1D array.
-        col_stride : int, optional
-            Amount to decimate the input array along axis 1.
-            Ex: If `col_stride` is 5, then the slices returned during the
-            iteration process will have a column-wise step value of 5, i.e.
-            columns 0, 5, 10,... will be returned
-            Defaults to 1 (no decimation).
-        row_stride : int, optional
+            This is syntactic sugar to set:
+                axis_0_idx = (0, arr_shape[0])
+                axis_1_idx = (0, arr_shape[1])  # only for a 2D array
+            If None, then `axis_0_idx` (and `axis_1_idx` for 2D arrays)
+            must be provided.
+            Defaults to None.
+        axis_0_idx : tuple of int, optional
+            The indice interval along axis 0 of the array to iterate over;
+            used for selecting a subset of the array to iterate over.
+            Required if `arr_shape` is None.
+            If `arr_shape` is not None, this will be ignored.
+            Defaults to None.
+        axis_1_idx : tuple of int, optional
+            The indice interval along axis 1 of the array to iterate over;
+            used for selecting a subset of the array to iterate over.
+            If `arr_shape` is not None, this will be ignored.
+            For 1D arrays, set to None because axis 1 is out of bounds;
+            otherwise an iterator for a 2D array will be returned.
+            If the array is 2D and `arr_shape` is None, then TODO.
+            Defaults to None.
+        axis_0_tile_length : int, optional
+            Length of tile (i.e. number of elements) along axis 0.
+            Defaults to -1, meaning all elements along axis 0 will be processed.
+        axis_1_tile_width : int, optional
+            Width of tile (i.e. number of elements) along axis 1.
+            Only relevant for 2D arrays; will be ignored for 1D arrays.
+            Defaults to -1, meaning all elements along axis 1 will be processed.
+        axis_0_stride : int, optional
             Amount to decimate the input array along axis 0.
-            Ex: If `row_stride` is 5, then the slices returned during the
-            iteration process will have a row-wise step value of 5, i.e.
-            rows 0, 5, 10,... will be returned
+            Ex: If `axis_0_stride` is 5 and it is a 2D array, then the slices
+            returned during the iteration process will have an axis-0
+            step value of 5, i.e. rows 0, 5, 10,... will be returned.
+            Defaults to 1 (no decimation).
+        axis_1_stride : int, optional
+            Amount to decimate the input array along axis 1.
+            Ex: If `axis_1_stride` is 5 and it is a 2D array, then the slices
+            returned during the iteration process will have a column-wise
+            step value of 5, i.e. columns 0, 5, 10,... will be returned.
+            Only relevant for 2D arrays; will be ignored for 1D arrays.
             Defaults to 1 (no decimation).
         """
 
-        self.arr_shape = arr_shape
+        # Step 1: Determine the axis 0 and axis 1 indice intervals
+        if arr_shape is not None:
+            self.num_dim = len(arr_shape)
+            if self.num_dim not in (1, 2):
+                raise ValueError(
+                    f"{arr_shape=} has {self.num_dim} dimensions"
+                    " but only 1 or 2 dimensions are currently supported."
+                )
 
-        if tile_ncols == -1:
-            self.tile_ncols = arr_shape[1]
-        else:
-            self.tile_ncols = tile_ncols
+            self.axis_0_idx = (0, arr_shape[0])
 
-        self.col_stride = col_stride
-
-        self.num_dim = len(arr_shape)
-        if self.num_dim not in (1, 2):
-            raise ValueError(
-                f"Provided array shape has {self.num_dim} dimensions"
-                " but only 1 or 2 dimensions are currently supported."
-            )
-
-        # If the array is 2D, set tile_nrows and row_stride
-        if self.num_dim == 2:
-            if tile_nrows == -1:
-                self.tile_nrows = arr_shape[0]
+            if len(arr_shape) == 2:
+                self.axis_1_idx = (0, arr_shape[1])
             else:
-                self.tile_nrows = tile_nrows
+                self.axis_1_idx = None
 
-            self.row_stride = row_stride
+            print(f"{arr_shape=}")
+            print(f"{self.axis_0_idx=}")
+            print(f"{self.axis_1_idx=}")
+
+            # Helpful exception
+            if (axis_0_idx is not None) or (axis_1_idx is not None):
+                raise ValueError(
+                    f"`{arr_shape=}` which is not None, so it will take"
+                    f" precendence over `{axis_0_idx=}` and `{axis_1_idx=}`."
+                    "Please set either `arr_shape` to None, or both `axis_0_idx`"
+                    "and `axis_1_idx` to None."
+                )
         else:
-            # There is no tile_nrows nor row_stride for a 1D array
+            # `arr_shape` is None, so use `axis_0_idx` and `axis_0_idx` to
+            # determine the final array indices to use.
+            if axis_0_idx is None:
+                raise ValueError(
+                    f"`{arr_shape=}` and `{axis_0_idx=}`; one must be a"
+                    " tuple of int."
+                )
+            if axis_1_idx is not None:
+                self.num_dim = 2
+            else:
+                self.num_dim = 1
+
+        print(f"start: {axis_0_tile_length=}")
+        print(f"start: {axis_1_tile_width=}")
+
+        # Step 2: Determine the tile length and height
+        # 1D and 2D arrays always have axes 0:
+        if axis_0_tile_length == -1:
+            self.axis_0_tile_length = axis_0_idx[1] - axis_0_idx[0]
+        else:
+            self.axis_0_tile_length = axis_0_tile_length
+
+        self.axis_0_stride = axis_0_stride
+
+        # If the array is 2D, set axis_1_tile_length and axis_1_stride
+        if self.num_dim == 2:
+            if axis_1_tile_width == -1:
+                self.axis_1_tile_width = axis_1_idx[1] - axis_1_idx[0]
+            else:
+                self.axis_1_tile_width = axis_1_tile_width
+
+            self.axis_1_stride = axis_1_stride
+        else:
+            # 1D arrays do not have an axis 0.
             # Set to None so that errors are raised if these are called.
-            self.tile_nrows = None
-            self.row_stride = None
+            self.axis_1_tile_width = None
+            self.axis_1_stride = None
 
         msg = (
             "The %s stride length %d is not an integer"
             + "multiple of the %s decimation value %s."
             + "This will lead to incorrect decimation of the array."
         )
+        print(f"end: {self.axis_0_tile_length=}")
+        print(f"end: {self.axis_1_tile_width=}")
 
-        # Warn if the `tile_ncols` is not an integer multiple of `col_stride`
-        if self.tile_ncols % self.col_stride != 0:
+        # Warn if the `axis_1_tile_width` is not an integer multiple of `axis_1_stride`
+        if self.axis_1_tile_width % self.axis_1_stride != 0:
             warnings.warn(
-                msg % ("column", self.tile_ncols, "column", self.col_stride),
+                msg
+                % (
+                    "column",
+                    self.axis_1_tile_width,
+                    "column",
+                    self.axis_1_stride,
+                ),
                 RuntimeWarning,
             )
 
-        # Warn if the `tile_nrows` is not an integer multiple of `row_stride`
-        if self.tile_nrows % self.row_stride != 0:
+        # Warn if the `axis_0_tile_length` is not an integer multiple of `axis_0_stride`
+        if self.axis_0_tile_length % self.axis_0_stride != 0:
             warnings.warn(
-                msg % ("row", self.tile_nrows, "row", self.row_stride),
+                msg
+                % ("row", self.axis_0_tile_length, "row", self.axis_0_stride),
                 RuntimeWarning,
             )
 
@@ -113,20 +182,24 @@ class TileIterator:
             A tuple of slice objects that can be used for
             indexing into the next tile of an array_like object.
         """
-        for row_start in range(0, self.arr_shape[0], self.tile_nrows):
-            for col_start in range(0, self.arr_shape[1], self.tile_ncols):
+        for axes_0_start in range(
+            self.axis_0_idx[0], self.axis_0_idx[0], self.axis_0_tile_length
+        ):
+            for axes_1_start in range(
+                self.axis_1_idx[0], self.axis_1_idx[1], self.axis_1_tile_width
+            ):
                 if self.num_dim == 2:
                     yield np.s_[
-                        row_start : row_start
-                        + self.tile_nrows : self.row_stride,
-                        col_start : col_start
-                        + self.tile_ncols : self.col_stride,
+                        axes_0_start : axes_0_start
+                        + self.axis_0_tile_length : self.axis_0_stride,
+                        axes_1_start : axes_1_start
+                        + self.axis_1_tile_width : self.axis_1_stride,
                     ]
 
                 else:  # 1 dimension array
                     yield np.s_[
-                        col_start : col_start
-                        + self.tile_ncols : self.col_stride
+                        axes_1_start : axes_1_start
+                        + self.axis_1_tile_width : self.axis_1_stride
                     ]
 
 
@@ -276,14 +349,14 @@ def compute_multilooked_backscatter_by_tiling(
 
     # Create the Iterators
     input_iter = TileIterator(
-        in_arr_valid_shape,
-        tile_nrows=in_tiling_shape[0],
-        tile_ncols=in_tiling_shape[1],
+        arr_shape=in_arr_valid_shape,
+        axis_0_tile_length=in_tiling_shape[0],
+        axis_1_tile_width=in_tiling_shape[1],
     )
     out_iter = TileIterator(
-        final_out_arr_shape,
-        tile_nrows=out_tiling_shape[0],
-        tile_ncols=out_tiling_shape[1],
+        arr_shape=final_out_arr_shape,
+        axis_0_tile_length=out_tiling_shape[0],
+        axis_1_tile_width=out_tiling_shape[1],
     )
 
     # Create an inner function for this use case.
@@ -411,13 +484,17 @@ def compute_histogram_by_tiling(
         [m - (m % n) for m, n in zip(tile_shape, decimation_ratio)]
     )
 
+    print(f"{decimation_ratio}")
+    print(f"{tile_shape=}")
+    print(f"{in_tiling_shape=}")
+
     # Create the Iterator over the input array
     input_iter = TileIterator(
-        arr_shape,
-        tile_nrows=in_tiling_shape[0],
-        tile_ncols=in_tiling_shape[1],
-        row_stride=decimation_ratio[0],
-        col_stride=decimation_ratio[1],
+        arr_shape=arr_shape,
+        axis_0_tile_length=in_tiling_shape[0],
+        axis_1_tile_width=in_tiling_shape[1],
+        axis_0_stride=decimation_ratio[0],
+        axis_1_stride=decimation_ratio[1],
     )
 
     # Initialize accumulator arrays
@@ -563,7 +640,9 @@ def compute_range_spectra_by_tiling(
 
     # Create the Iterator over the input array
     input_iter = TileIterator(
-        np.shape(arr), tile_nrows=tile_height, row_stride=az_decimation
+        arr_shape=np.shape(arr),
+        axis_0_tile_length=tile_height,
+        axis_0_stride=az_decimation,
     )
 
     # Initialize the accumulator array
@@ -598,6 +677,179 @@ def compute_range_spectra_by_tiling(
     S_out = S_avg / sampling_rate
 
     # Convert to dB
+    with nisarqa.ignore_runtime_warnings():
+        # This line throws these warnings:
+        #   "RuntimeWarning: divide by zero encountered in log10"
+        # when there are zero values. Ignore those warnings.
+        S_out = nisarqa.pow2db(S_out)
+
+    if fft_shift:
+        # Shift S_out to be aligned with the
+        # shifted FFT frequencies.
+        S_out = np.fft.fftshift(S_out)
+
+    return S_out
+
+
+def compute_az_spectra_by_tiling(
+    arr: ArrayLike,
+    sampling_rate: float,
+    col_indices: Optional[tuple[int, int]] = None,
+    tile_width: int = 256,
+    fft_shift: bool = True,
+) -> np.ndarray:
+    """
+    Compute normalized azimuth power spectral density in dB re 1/Hz by tiling.
+
+    # TODO - confirm units are "dB re 1/H" ?
+
+    Parameters
+    ----------
+    arr : array_like
+        Input array, representing a two-dimensional discrete-time signal.
+    sampling_rate : numeric
+        Azimuth sample rate (inverse of the sample spacing) in Hz.
+    col_indices : tuple[int, int], optional
+        The start and ending range (column) indices that specify a subswath
+        of `arr`; the azimuth spectra will be computed for this subswath.
+            Format: (<starting index>, <end index>)
+            Example: (2, 5)
+                This means columns 2, 3, and 4 will be used to compute `S_out`.
+        If None, or if the number of columns in the subswath is greater than
+        the width of the input array, then the full input array will be used.
+        Defaults to None.
+    tile_width : int, optional
+        User-preferred tile width (number of columns) for processing
+        each subswath by batches. Actual value may be modified by QA to be
+        an integer multiple of the `col_indices` interval .
+        -1 to use the full width of the subswath.
+        Defaults to 256.
+    fft_shift : bool, optional
+        True to have the frequency bins should be continuous from
+        negative (min) -> positive (max) values.
+
+        False to leave the frequency bins as the output from
+        `numpy.fft.fftfreq()`, where this discrete FFT operation orders values
+        from 0 -> max positive -> min negative -> 0- . (This creates
+        a discontinuity in the interval's values.)
+
+        Defaults to True.
+
+    Returns
+    -------
+    S_out : numpy.ndarray
+        Normalized azimuth power spectral density in dB re 1/Hz of the
+        subswath of `arr` specified by `col_indices`.
+
+    Notes
+    -----
+    When computing the azimuth spectra, full columns must be read in to
+    perform the FFT; this means that the number of rows is always fixed to
+    the height of `arr`.
+
+    Unlike when computing the range spectra, using decimation to reduce the
+    number of lines processed via FFT is not correct. When computing the
+    azimuth spectra, we must use contiguous columns so that
+    TODO.
+    To reduce processing time, users can decrease the interval of `col_indices`.
+    """
+    arr_shape = np.shape(arr)
+    if len(arr_shape) != 2:
+        raise ValueError(
+            f"Input array has {len(arr_shape)} dimensions, but must be 2D."
+        )
+
+    nrows, arr_ncols = arr_shape
+
+    # Validate column indices
+    if col_indices is None:
+        col_indices = (0, arr_ncols)
+
+    if (
+        (not isinstance(col_indices, Sequence))
+        or (len(col_indices) != 2)
+        or (not all(isinstance(i, int) for i in col_indices))
+    ):
+        raise ValueError(
+            f"`{col_indices=}` must be a sequence of two ints or None."
+        )
+
+    subswath_width = col_indices[1] - col_indices[0] + 1
+    if subswath_width > arr_ncols:
+        nisarqa.get_logger().error(
+            f"`{col_indices=}` which is {subswath_width} columns,"
+            f" but input raster only has a width of {arr_ncols} columns."
+            f" Column indices will be reduced to (0, {arr_ncols})."
+        )
+        col_indices = (0, arr_ncols)
+
+    if (tile_width == -1) or (tile_width > arr_ncols):
+        tile_width = arr_ncols
+
+    # The TileIterator can only pull full tiles. In other functions, we simply
+    # truncate the full array to have each edge be an integer multiple of the
+    # tile shape. Here, the user specified an exact number of columns, so we
+    # should not truncate.
+    # To handle this, let's first iterate over the "truncated" array,
+    # and then add in the "leftover" columns.
+
+    # Truncate the column indices to be an integer multiple of `tile_width`.
+    # Otherwise, the decimation will get messy to book-keep.
+    if tile_width < subswath_width:
+        leftover_width = subswath_width % tile_width
+
+        trunc_col_indices = (col_indices[0], col_indices[1] - leftover_width)
+        leftover_col_indices = (col_indices[1] - leftover_width, col_indices[1])
+
+    # Create the Iterator over the truncated subswath array
+    input_iter = TileIterator(
+        axis_0_idx=-1,  # use all rows
+        axis_1_idx=trunc_col_indices,
+        axis_1_tile_width=tile_width,
+    )
+
+    # Initialize the accumulator array
+    S_avg = np.zeros(subswath_width)
+
+    # Compute FFT over the truncated portion of the subswath
+    for tile_slice in input_iter:
+        arr_slice = arr[tile_slice]
+
+        # Compute fft over along-track axis (axis 0)
+        # Note: Ensure no normalization occurs in this FFT! We'll handle that
+        # manually below.
+        # Units of `fft` are the same as the units of `arr_slice`: unitless
+        fft = nisarqa.compute_fft(arr_slice, axis=0)
+
+        # Compute the power
+        S = np.abs(fft) ** 2
+
+        # Normalize the transform
+        S /= nrows  # nrows is the number of fft bins
+
+        # Average over the range axis
+        # (We are processing the subswath by tiles, but the total summation of
+        # power for the entire subswath might cause float overflow.
+        # So, during the accumulation process, if we divide each tile's
+        # power density by the total number of range samples used, then the
+        # final accumulated array will be mathmatically equivalent to
+        # the average of the entire subswath.)
+        S_avg += np.sum(S, axis=1) / subswath_width
+
+    # Repeat process for the "leftover" portion of the subswath
+    if leftover_width > 0:
+        arr_slice = arr[:, leftover_col_indices[0] : leftover_col_indices[1]]
+        fft = nisarqa.compute_fft(arr_slice, axis=0)
+        S = np.abs(fft) ** 2
+        S /= nrows
+        S_avg += np.sum(S, axis=1) / subswath_width
+
+    # Normalize by the sampling rate
+    # This makes the units unitless/Hz
+    S_out = S_avg / sampling_rate
+
+    # Convert to dB
+    # TODO - Geoff, we converted to dB for range spectra. Same for az spectra?
     with nisarqa.ignore_runtime_warnings():
         # This line throws these warnings:
         #   "RuntimeWarning: divide by zero encountered in log10"
