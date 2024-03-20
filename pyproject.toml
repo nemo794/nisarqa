@@ -37,10 +37,6 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 
-dynamic = ["version", "dependencies"]
-
-[tool.setuptools.dynamic]
-version = {attr = "nisarqa.__version__"}
 dependencies = [
     cycler,
     h5py>=3,
@@ -53,6 +49,10 @@ dependencies = [
     shapely,
 ]
 
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "nisarqa.__version__"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
