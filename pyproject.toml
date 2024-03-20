@@ -1,8 +1,8 @@
 [build-system]
 requires = [
     "setuptools>=61",
-    "setuptools-scm>=8"  # required to install the package-data
-    ]
+    "setuptools-scm>=8",  # required to install the package-data
+]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -15,26 +15,26 @@ description = "NISAR ADT Quality Assurance Software"
 readme = "README.md"
 
 authors = [
-  { name = "Sam Niemoeller", email = "samantha.c.niemoeller@jpl.nasa.gov" },
+    { name = "Sam Niemoeller", email = "samantha.c.niemoeller@jpl.nasa.gov" },
 ]
 
 keywords = [
-  "nisar",
-  "radar",
-  "quality-assurance",
-  "qa",
-  "remote-sensing",
-  "sar",
-  "synthetic-aperture-radar",
+    "nisar",
+    "radar",
+    "quality-assurance",
+    "qa",
+    "remote-sensing",
+    "sar",
+    "synthetic-aperture-radar",
 ]
 
 classifiers = [
-  "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: Apache Software License",
-  "License :: OSI Approved :: BSD License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Topic :: Scientific/Engineering",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Topic :: Scientific/Engineering",
 ]
 
 dynamic = ["version", "dependencies"]
@@ -42,15 +42,15 @@ dynamic = ["version", "dependencies"]
 [tool.setuptools.dynamic]
 version = {attr = "nisarqa.__version__"}
 dependencies = [
-  cycler,
-  h5py>=3,
-  isce3>=0.16,
-  matplotlib,
-  numpy>=1.20,
-  pillow,
-  python>=3.9,
-  ruamel.yaml,
-  shapely,
+    cycler,
+    h5py>=3,
+    isce3>=0.16,
+    matplotlib,
+    numpy>=1.20,
+    pillow,
+    python>=3.9,
+    ruamel.yaml,
+    shapely,
 ]
 
 [tool.setuptools.packages.find]
