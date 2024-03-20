@@ -56,7 +56,7 @@ nisarqa -h
 nisarqa dumpconfig -h
 ```
 
-Warning: Please install via `pip` and with the `--no-deps` flag. Installing 
+Warning: Please install via `pip` and with the `--no-deps` flag. Installing
 without the `--no-deps` flag fails due to the `isce3` dependency in 
 `requirements.txt`, which is used by `pyproject.toml` during installation.
 Otherwise, `isce3` would need to be removed from `requirements.txt`,
