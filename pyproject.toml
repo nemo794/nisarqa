@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "setuptools>=61",
-    "setuptools-scm>=8",  # required to install the package-data
+    "setuptools-scm>=8",  # installs all package data, including XML product specs
 ]
 build-backend = "setuptools.build_meta"
 
@@ -38,26 +38,24 @@ classifiers = [
 ]
 
 dependencies = [
-    cycler,
-    h5py>=3,
-    isce3>=0.16,
-    matplotlib,
-    numpy>=1.20,
-    pillow,
-    python>=3.9,
-    ruamel.yaml,
-    shapely,
+    "cycler",
+    "h5py>=3",
+    "isce3>=0.16",
+    "matplotlib",
+    "numpy>=1.20",
+    "pillow",
+    "python>=3.9",
+    "ruamel.yaml",
+    "shapely",
 ]
 
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
 version = {attr = "nisarqa.__version__"}
+
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-nisarqa = ["*.xml"]
 
 [project.urls]
 Homepage = "http://nisar.jpl.nasa.gov"
