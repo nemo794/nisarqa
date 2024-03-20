@@ -41,7 +41,17 @@ dynamic = ["version", "dependencies"]
 
 [tool.setuptools.dynamic]
 version = {attr = "nisarqa.__version__"}
-dependencies = { file = ["requirements.txt"] }
+dependencies = [
+  cycler,
+  h5py>=3,
+  isce3>=0.16,
+  matplotlib,
+  numpy>=1.20,
+  pillow,
+  python>=3.9,
+  ruamel.yaml,
+  shapely,
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
