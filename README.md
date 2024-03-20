@@ -5,8 +5,9 @@ For the upcoming [NISAR mission](https://nisar.jpl.nasa.gov/),
 eight types of L1/L2 data products will be generated.
 This Quality Assurance (QA) software is designed to look at the data products
 produced one at a time. For each product, the QA code can:
-- Log if the HDF5's structure matches the product spec
-- Generate metrics, a PDF report, and a summary CSV describing the quality of the product
+- Verify the metadata matches the product spec
+- Generate metrics, a PDF report, and a summary CSV describing the quality
+of the product
 - Run CalTools processes on RSLC products
 - Produce a browse image PNG with sidecar KML file for that product
 
@@ -56,11 +57,10 @@ nisarqa -h
 nisarqa dumpconfig -h
 ```
 
-Warning: Please install via `pip` and with the `--no-deps` flag. Installing
-without the `--no-deps` flag fails due to the `isce3` dependency in 
-`requirements.txt`, which is used by `pyproject.toml` during installation.
-Otherwise, `isce3` would need to be removed from `requirements.txt`,
-causing that dependency to be undocumented there.
+> [!CAUTION]
+> `--no-deps` is necessary for installation due to the `isce3` dependency.
+> Otherwise, `isce3` would need to be removed from `pyproject.toml`, causing
+> that dependency list to fall out of sync with `environment.yaml`'s list.
 
 ## Running the QA Code
 
@@ -128,6 +128,17 @@ runconfig.
 
 
 ## Copyright
-Copyright (c) 2024 California Institute of Technology ("Caltech"). U.S. Government
-sponsorship acknowledged.
+Copyright (c) 2024 California Institute of Technology ("Caltech"). U.S.
+Government sponsorship acknowledged.
 All rights reserved.
+
+## License
+
+This software is licensed under your choice of BSD-3-Clause or Apache-2.0
+licenses. The exact terms of each license can be found in the accompanying
+[LICENSE-BSD-3-Clause.txt] and [LICENSE-Apache-2.0.txt] files, respectively.
+
+[LICENSE-BSD-3-Clause.txt]: LICENSE-BSD-3-Clause.txt
+[LICENSE-Apache-2.0.txt]: LICENSE-Apache-2.0.txt
+
+SPDX-License-Identifier: BSD-3-Clause OR Apache-2.0
