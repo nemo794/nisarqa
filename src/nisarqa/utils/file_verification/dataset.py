@@ -41,7 +41,8 @@ class HDF5Dataset(DatasetDesc):
     def value(self) -> Any:
         return self.dataset[:]
 
-    def check(self): ...
+    def check(self):
+        ...
 
     @property
     def dtype(self) -> np.dtype | None:
@@ -121,8 +122,7 @@ class XMLDataset(DatasetDesc):
         if signedness_str.lower() == "false":
             return False
         log.error(
-            f"Unrecognized signedness: {signedness_str}: XML dataset"
-            f" {self.name}"
+            f"Unrecognized signedness: {signedness_str}: XML dataset {self.name}"
         )
         return None
 

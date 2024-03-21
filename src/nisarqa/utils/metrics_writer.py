@@ -157,13 +157,13 @@ def save_percent_total_invalid_to_stats_h5(
 
     if zero_is_invalid:
         msg = (
-            f"Percent of dataset elements that are either NaN, Inf, fill,"
-            f" or near-zero valued pixels."
+            "Percent of dataset elements that are either NaN, Inf, fill,"
+            " or near-zero valued pixels."
         )
     else:
         msg = (
-            f"Percent of dataset elements that are either NaN, Inf, or fill"
-            f" valued pixels. (Near-zero valued pixels are not included.)"
+            "Percent of dataset elements that are either NaN, Inf, or fill"
+            " valued pixels. (Near-zero valued pixels are not included.)"
         )
 
     nisarqa.create_dataset_in_h5group(
