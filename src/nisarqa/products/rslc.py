@@ -1751,9 +1751,9 @@ def process_azimuth_spectra(
     report_pdf: PdfPages,
 ) -> None:
     """
-    Generate the RSLC Range Spectra plot(s) and save to PDF and stats.h5.
+    Generate the RSLC Azimuth Spectra plot(s) and save to PDF and stats.h5.
 
-    Generate the RSLC Range Spectra; save the plot
+    Generate the RSLC Azimuth Spectra; save the plot
     to the graphical summary .pdf file and the data to the
     statistics .h5 file.
 
@@ -1821,8 +1821,8 @@ def generate_az_spectra_single_freq(
 
     # Get the FFT spacing
     # Because `freq` is fixed, and all polarizations within
-    # the same frequency will have the same `fft_freqs`.
-    # So, we only need to do this computation one time.
+    # the same frequency will have the same `fft_freqs`,
+    # we only need to do this computation one time.
     first_pol = product.get_pols(freq=freq)[0]
     with product.get_raster(freq, first_pol) as img:
         # Compute the sample rate
@@ -1831,7 +1831,7 @@ def generate_az_spectra_single_freq(
         sample_rate = 1 / da
 
         fft_freqs = nisarqa.generate_fft_freqs(
-            num_samples=img.data.shape[1],
+            num_samples=img.data.shape[0],
             sampling_rate=sample_rate,
             fft_shift=fft_shift,
         )
@@ -1866,7 +1866,6 @@ def generate_az_spectra_single_freq(
     ax_mid.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
     ax_far.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
 
-    # TODO - units for range spectra were "dB re 1/Hz". What is correct for az?
     az_spec_units = "dB re 1/Hz"
 
     for pol in product.get_pols(freq):
@@ -1878,6 +1877,7 @@ def generate_az_spectra_single_freq(
                 img_width = np.shape(img)[1]
                 num_col = params.num_columns
 
+                # Get the start and stop column index for each subswath.
                 if num_col == -1 or num_col >= img_width:
                     col_idx = (0, img_width)
                 else:
@@ -1887,16 +1887,12 @@ def generate_az_spectra_single_freq(
                         col_idx = (img_width - num_col, -1)
                     else:
                         assert subswath == "Mid"
-                        # TODO - confirm with Geoff the correct strategy for
-                        # the case of an even number of columns per subswath
-                        # but an odd image width, and vice versa
                         mid_img = img_width // 2
                         mid_num_col = num_col // 2
                         start_idx = mid_img - mid_num_col
                         col_idx = (start_idx, start_idx + num_col)
 
-                # Get the near-range spectra
-                # (The returned array is in dB re 1/Hz)
+                # The returned array is in dB re 1/Hz
                 az_spectrum = nisarqa.compute_az_spectra_by_tiling(
                     arr=img.data,
                     sampling_rate=sample_rate,
@@ -1909,7 +1905,7 @@ def generate_az_spectra_single_freq(
                 nisarqa.create_dataset_in_h5group(
                     h5_file=stats_h5,
                     grp_path=img.stats_h5_group_path,
-                    ds_name=f"alongTrack{subswath}RangePowerSpectralDensity",
+                    ds_name=f"alongTrack{subswath}PowerSpectralDensity",
                     ds_data=az_spectrum,
                     ds_units=az_spec_units,
                     ds_description=(
