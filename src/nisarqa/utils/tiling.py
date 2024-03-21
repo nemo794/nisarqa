@@ -803,6 +803,7 @@ def compute_az_spectra_by_tiling(
 
     # Compute FFT over the truncated portion of the subswath
     for tile_slice in input_iter:
+        # TODO - Modularize the next 5 lines of actual code. (It's used 3 times.)
         arr_slice = arr[tile_slice]
 
         # Compute fft over along-track axis (axis 0)

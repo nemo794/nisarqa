@@ -1832,6 +1832,8 @@ def generate_az_spectra_single_freq(
     # (no discontinuity).
     fft_shift = True
 
+    # TODO: Consider breaking this out into a separate function that returns
+    # fft_freqs and freq_units
     # Get the FFT spacing
     # Because `freq` is fixed, and all polarizations within
     # the same frequency will have the same `fft_freqs`,
