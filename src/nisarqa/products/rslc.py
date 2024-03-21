@@ -227,7 +227,7 @@ def verify_rslc(
                 log.info("Beginning processing of azimuth power spectra...")
                 process_azimuth_spectra(
                     product=product,
-                    params=root_params.azimuth_spectra,
+                    params=root_params.az_spectra,
                     stats_h5=stats_h5,
                     report_pdf=report_pdf,
                 )

@@ -92,10 +92,6 @@ class TileIterator:
             else:
                 self.axis_1_idx = None
 
-            print(f"{arr_shape=}")
-            print(f"{self.axis_0_idx=}")
-            print(f"{self.axis_1_idx=}")
-
             # Helpful exception
             if (axis_0_idx is not None) or (axis_1_idx is not None):
                 raise ValueError(
@@ -112,18 +108,15 @@ class TileIterator:
                     f"`{arr_shape=}` and `{axis_0_idx=}`; one must be a"
                     " tuple of int."
                 )
-            if axis_1_idx is not None:
-                self.num_dim = 2
-            else:
+            if axis_1_idx is None:
                 self.num_dim = 1
-
-        print(f"start: {axis_0_tile_length=}")
-        print(f"start: {axis_1_tile_width=}")
+            else:
+                self.num_dim = 2
 
         # Step 2: Determine the tile length and height
         # 1D and 2D arrays always have axes 0:
         if axis_0_tile_length == -1:
-            self.axis_0_tile_length = axis_0_idx[1] - axis_0_idx[0]
+            self.axis_0_tile_length = self.axis_0_idx[1] - self.axis_0_idx[0]
         else:
             self.axis_0_tile_length = axis_0_tile_length
 
@@ -132,13 +125,13 @@ class TileIterator:
         # If the array is 2D, set axis_1_tile_length and axis_1_stride
         if self.num_dim == 2:
             if axis_1_tile_width == -1:
-                self.axis_1_tile_width = axis_1_idx[1] - axis_1_idx[0]
+                self.axis_1_tile_width = self.axis_1_idx[1] - self.axis_1_idx[0]
             else:
                 self.axis_1_tile_width = axis_1_tile_width
 
             self.axis_1_stride = axis_1_stride
         else:
-            # 1D arrays do not have an axis 0.
+            # 1D arrays do not have an axis 1.
             # Set to None so that errors are raised if these are called.
             self.axis_1_tile_width = None
             self.axis_1_stride = None
@@ -148,8 +141,6 @@ class TileIterator:
             + "multiple of the %s decimation value %s."
             + "This will lead to incorrect decimation of the array."
         )
-        print(f"end: {self.axis_0_tile_length=}")
-        print(f"end: {self.axis_1_tile_width=}")
 
         # Warn if the `axis_1_tile_width` is not an integer multiple of `axis_1_stride`
         if self.axis_1_tile_width % self.axis_1_stride != 0:
@@ -183,7 +174,7 @@ class TileIterator:
             indexing into the next tile of an array_like object.
         """
         for axes_0_start in range(
-            self.axis_0_idx[0], self.axis_0_idx[0], self.axis_0_tile_length
+            self.axis_0_idx[0], self.axis_0_idx[1], self.axis_0_tile_length
         ):
             for axes_1_start in range(
                 self.axis_1_idx[0], self.axis_1_idx[1], self.axis_1_tile_width
@@ -198,8 +189,8 @@ class TileIterator:
 
                 else:  # 1 dimension array
                     yield np.s_[
-                        axes_1_start : axes_1_start
-                        + self.axis_1_tile_width : self.axis_1_stride
+                        axes_0_start : axes_0_start
+                        + self.axis_0_tile_length : self.axis_0_stride
                     ]
 
 
@@ -484,10 +475,6 @@ def compute_histogram_by_tiling(
         [m - (m % n) for m, n in zip(tile_shape, decimation_ratio)]
     )
 
-    print(f"{decimation_ratio}")
-    print(f"{tile_shape=}")
-    print(f"{in_tiling_shape=}")
-
     # Create the Iterator over the input array
     input_iter = TileIterator(
         arr_shape=arr_shape,
@@ -700,8 +687,6 @@ def compute_az_spectra_by_tiling(
 ) -> np.ndarray:
     """
     Compute normalized azimuth power spectral density in dB re 1/Hz by tiling.
-
-    # TODO - confirm units are "dB re 1/H" ?
 
     Parameters
     ----------
