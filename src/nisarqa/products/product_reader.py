@@ -2163,7 +2163,7 @@ class RSLC(SLC, NisarRadarProduct):
 
         @lru_cache
         def _get_zero_doppler_time_spacing(freq: str) -> float:
-            path = f"{self.get_freq_path(freq)}/zeroDopplerTimeSpacing"
+            path = f"{self._data_group_path}/zeroDopplerTimeSpacing"
             with h5py.File(self.filepath) as f:
                 try:
                     return f[path][()]

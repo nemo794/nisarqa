@@ -108,10 +108,14 @@ class TileIterator:
                     f"`{arr_shape=}` and `{axis_0_idx=}`; one must be a"
                     " tuple of int."
                 )
+            self.axis_0_idx = axis_0_idx
+
             if axis_1_idx is None:
                 self.num_dim = 1
+                self.axis_1_idx = None
             else:
                 self.num_dim = 2
+                self.axis_1_idx = axis_1_idx
 
         # Step 2: Determine the tile length and height
         # 1D and 2D arrays always have axes 0:
@@ -788,13 +792,13 @@ def compute_az_spectra_by_tiling(
 
     # Create the Iterator over the truncated subswath array
     input_iter = TileIterator(
-        axis_0_idx=-1,  # use all rows
+        axis_0_idx=(0, nrows),  # use all rows
         axis_1_idx=trunc_col_indices,
         axis_1_tile_width=tile_width,
     )
 
     # Initialize the accumulator array
-    S_avg = np.zeros(subswath_width)
+    S_avg = np.zeros(nrows)
 
     # Compute FFT over the truncated portion of the subswath
     for tile_slice in input_iter:

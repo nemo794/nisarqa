@@ -1851,9 +1851,9 @@ def generate_az_spectra_single_freq(
 
         if params.hz_to_mhz:
             fft_freqs = nisarqa.hz2mhz(fft_freqs)
-            freq_units = "megahertz"
+            freq_units = "MHz"
         else:
-            freq_units = "hertz"
+            freq_units = "Hz"
 
     # Save x-axis values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
@@ -1887,7 +1887,7 @@ def generate_az_spectra_single_freq(
             for subswath, ax in zip(
                 ("Near", "Mid", "Far"), (ax_near, ax_mid, ax_far)
             ):
-                img_width = np.shape(img)[1]
+                img_width = np.shape(img.data)[1]
                 num_col = params.num_columns
 
                 # Get the start and stop column index for each subswath.
@@ -1937,14 +1937,17 @@ def generate_az_spectra_single_freq(
                 ax.grid()
 
                 # Label the Plot
-                ax.set_title(f"Azimuth Power Spectra")
+                ax.set_title(
+                    f"{subswath}-Range, columns {col_idx[0]}-{col_idx[1]}"
+                )
 
-                # TODO - What should the x-axis labels be?
-                # For Range Spectra, title was:
-                # ax.set_xlabel(f"Frequency rel. {proc_center_freq} {freq_units}")
-                ax.set_xlabel(f"Frequency {freq_units}")
+    # All axes can share the same y-label. Attach that label to the middle
+    # axes, so that it is centered.
+    ax_mid.set_ylabel(f"Power Spectral Density ({az_spec_units})")
 
-                ax.set_ylabel(f"Power Spectral Density ({az_spec_units})")
+    ax_near.xaxis.set_ticklabels([])
+    ax_mid.xaxis.set_ticklabels([])
+    ax_far.set_xlabel(f"Frequency ({freq_units})")
 
     ax_near.legend(loc="upper right")
 
