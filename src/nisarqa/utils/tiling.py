@@ -52,7 +52,8 @@ class TileIterator:
             If `arr_shape` is not None, this will be ignored.
             For 1D arrays, set to None because axis 1 is out of bounds;
             otherwise an iterator for a 2D array will be returned.
-            If the array is 2D and `arr_shape` is None, then TODO.
+            If the array is 2D and `arr_shape` is None, then this must be
+            provided to create an iterator for a 2D array.
             Defaults to None.
         axis_0_tile_length : int, optional
             Length of tile (i.e. number of elements) along axis 0.
