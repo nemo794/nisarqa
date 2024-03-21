@@ -1897,7 +1897,7 @@ def generate_az_spectra_single_freq(
                     if subswath == "Near":
                         col_idx = (0, num_col)
                     elif subswath == "Far":
-                        col_idx = (img_width - num_col, -1)
+                        col_idx = (img_width - num_col, img_width)
                     else:
                         assert subswath == "Mid"
                         mid_img = img_width // 2
