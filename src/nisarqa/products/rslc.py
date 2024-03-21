@@ -1588,8 +1588,9 @@ def process_range_spectra(
     to the graphical summary .pdf file and the data to the
     statistics .h5 file.
 
-    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
-    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
+    Power Spectral Density (PSD) is computed in decibels referenced to
+    1/hertz (dB re 1/Hz) units, and Frequency in Hz or MHz (specified
+    per `params.hz_to_mhz`).
 
     Parameters
     ----------
@@ -1607,7 +1608,11 @@ def process_range_spectra(
     # Generate and store the range spectra plots
     for freq in product.freqs:
         generate_range_spectra_single_freq(
-            product, freq, params, stats_h5, report_pdf
+            product=product,
+            freq=freq,
+            params=params,
+            stats_h5=stats_h5,
+            report_pdf=report_pdf,
         )
 
 
@@ -1625,8 +1630,9 @@ def generate_range_spectra_single_freq(
     to the graphical summary .pdf file and the data to the
     statistics .h5 file.
 
-    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
-    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
+    Power Spectral Density (PSD) is computed in decibels referenced to
+    1/hertz (dB re 1/Hz) units, and Frequency in Hz or MHz (specified
+    per `params.hz_to_mhz`).
 
     Parameters
     ----------
@@ -1753,12 +1759,14 @@ def process_azimuth_spectra(
     """
     Generate the RSLC Azimuth Spectra plot(s) and save to PDF and stats.h5.
 
-    Generate the RSLC Azimuth Spectra; save the plot
-    to the graphical summary .pdf file and the data to the
-    statistics .h5 file.
+    Generate the RSLC Azimuth Spectra; save the plots to the PDF and
+    statistics to the .h5 file. For each frequency+polarization, three
+    separate plots of azimuth spectra are generated: one at near range,
+    one at mid range, and one at far range.
 
-    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
-    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
+    Power Spectral Density (PSD) is computed in decibels referenced to
+    1/hertz (dB re 1/Hz) units, and Frequency in Hz or MHz (specified
+    per `params.hz_to_mhz`).
 
     Parameters
     ----------
@@ -1776,7 +1784,11 @@ def process_azimuth_spectra(
     # Generate and store the az spectra plots
     for freq in product.freqs:
         generate_az_spectra_single_freq(
-            product, freq, params, stats_h5, report_pdf
+            product=product,
+            freq=freq,
+            params=params,
+            stats_h5=stats_h5,
+            report_pdf=report_pdf,
         )
 
 
@@ -1790,12 +1802,13 @@ def generate_az_spectra_single_freq(
     """
     Generate the RSLC Azimuth Spectra for a single frequency.
 
-    Generate the RSLC Azimuth Spectra; save the plot
-    to the graphical summary .pdf file and the data to the
-    statistics .h5 file.
+    Generate the RSLC Azimuth Spectra; save the plots to the PDF and
+    statistics to the .h5 file. Three separate plots of azimuth spectra
+    are generated: one at near range, one at mid range, and one at far range.
 
-    Power Spectral Density (PSD) is computed in decibels referenced to 1/hertz (dB re 1/Hz) units,
-    and Frequency in Hz or MHz (specified per `params.hz_to_mhz`).
+    Power Spectral Density (PSD) is computed in decibels referenced to
+    1/hertz (dB re 1/Hz) units, and Frequency in Hz or MHz (specified
+    per `params.hz_to_mhz`).
 
     Parameters
     ----------
@@ -1878,7 +1891,7 @@ def generate_az_spectra_single_freq(
                 num_col = params.num_columns
 
                 # Get the start and stop column index for each subswath.
-                if num_col == -1 or num_col >= img_width:
+                if (num_col == -1) or (num_col >= img_width):
                     col_idx = (0, img_width)
                 else:
                     if subswath == "Near":
