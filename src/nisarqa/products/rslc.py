@@ -1938,7 +1938,7 @@ def generate_az_spectra_single_freq(
 
                 # Label the Plot
                 ax.set_title(
-                    f"{subswath}-Range, columns {col_idx[0]}-{col_idx[1]}"
+                    f"{subswath}-Range, columns {col_idx[0]+1}-{col_idx[1]}"
                 )
 
     # All axes can share the same y-label. Attach that label to the middle
