@@ -1403,7 +1403,7 @@ def generate_backscatter_image_histogram_single_freq(
 
     # Per ADT, let the top limit float for Backscatter Histogram
     ax.set_ylim(bottom=0.0)
-    ax.grid()
+    ax.grid(visible=True)
 
     # Save complete plots to graphical summary PDF file
     report_pdf.savefig(fig)
@@ -1536,7 +1536,7 @@ def generate_phase_histogram_single_freq(
             ax.set_ylim(bottom=0.0, top=0.5)
         else:
             ax.set_ylim(bottom=0.0, top=0.01)
-        ax.grid()
+        ax.grid(visible=True)
 
         # Save complete plots to graphical summary PDF file
         report_pdf.savefig(fig)
@@ -1739,7 +1739,7 @@ def generate_range_spectra_single_freq(
     ax.set_ylabel(f"Power Spectral Density ({rng_spec_units})")
 
     ax.legend(loc="upper right")
-    ax.grid()
+    ax.grid(visible=True)
 
     # Save complete plots to graphical summary pdf file
     report_pdf.savefig(fig)
@@ -1941,7 +1941,7 @@ def generate_az_spectra_single_freq(
 
                 # Add this power spectrum to the figure
                 ax.plot(fft_freqs, az_spectrum, label=pol)
-                ax.grid()
+                ax.grid(visible=True)
 
                 # Label the Plot
                 ax.set_title(
