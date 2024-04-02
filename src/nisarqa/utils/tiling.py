@@ -640,46 +640,16 @@ def compute_range_spectra_by_tiling(
     S_avg = np.zeros(ncols)
 
     for tile_slice in input_iter:
-        arr_slice = arr[tile_slice]
+        S_avg += _get_s_avg_for_tile(
+            arr_slice=arr[tile_slice],
+            fft_axis=1,  # Compute fft over range axis (axis 1)
+            num_fft_bins=ncols,
+            averaging_denominator=num_range_lines,
+        )
 
-        # Compute fft over range axis (axis 1)
-        # Note: Ensure no normalization occurs in this FFT! We'll handle that
-        # manually below.
-        # Units of `fft` are the same as the units of `arr_slice`: unitless
-        fft = nisarqa.compute_fft(arr_slice, axis=1)
-
-        # Compute the power
-        S = np.abs(fft) ** 2
-
-        # Normalize the transform
-        S /= ncols  # ncols is the number of fft bins
-
-        # Average over the azimuth axis
-        # (We are processing the raster by tiles, but the total summation of
-        # power for the entire array might cause float overflow.
-        # So, during the accumulation process, if we divide each tile's
-        # power density by the total number of range lines used, then the
-        # final accumulated array will be mathmatically equivalent to
-        # the average of the entire array.)
-        S_avg += np.sum(S, axis=0) / num_range_lines
-
-    # Normalize by the sampling rate
-    # This makes the units unitless/Hz
-    S_out = S_avg / sampling_rate
-
-    # Convert to dB
-    with nisarqa.ignore_runtime_warnings():
-        # This line throws these warnings:
-        #   "RuntimeWarning: divide by zero encountered in log10"
-        # when there are zero values. Ignore those warnings.
-        S_out = nisarqa.pow2db(S_out)
-
-    if fft_shift:
-        # Shift S_out to be aligned with the
-        # shifted FFT frequencies.
-        S_out = np.fft.fftshift(S_out)
-
-    return S_out
+    return _post_process_s_avg(
+        S_avg=S_avg, sampling_rate=sampling_rate, fft_shift=fft_shift
+    )
 
 
 def compute_az_spectra_by_tiling(
@@ -797,44 +767,116 @@ def compute_az_spectra_by_tiling(
 
     # Compute FFT over the truncated portion of the subswath
     for tile_slice in input_iter:
-        # TODO - Modularize the next 5 lines of actual code. (It's used 3 times.)
-        arr_slice = arr[tile_slice]
-
-        # Compute fft over along-track axis (axis 0)
-        # Note: Ensure no normalization occurs in this FFT! We'll handle that
-        # manually below.
-        # Units of `fft` are the same as the units of `arr_slice`: unitless
-        fft = nisarqa.compute_fft(arr_slice, axis=0)
-
-        # Compute the power
-        S = np.abs(fft) ** 2
-
-        # Normalize the transform
-        S /= nrows  # nrows is the number of fft bins
-
-        # Average over the range axis
-        # (We are processing the subswath by tiles, but the total summation of
-        # power for the entire subswath might cause float overflow.
-        # So, during the accumulation process, if we divide each tile's
-        # power density by the total number of range samples used, then the
-        # final accumulated array will be mathmatically equivalent to
-        # the average of the entire subswath.)
-        S_avg += np.sum(S, axis=1) / subswath_width
+        S_avg += _get_s_avg_for_tile(
+            arr_slice=arr[tile_slice],
+            fft_axis=0,  # Compute fft over along-track axis (axis 0)
+            num_fft_bins=nrows,
+            averaging_denominator=subswath_width,
+        )
 
     # Repeat process for the "leftover" portion of the subswath
     if leftover_width > 0:
         arr_slice = arr[:, leftover_col_indices[0] : leftover_col_indices[1]]
-        fft = nisarqa.compute_fft(arr_slice, axis=0)
-        S = np.abs(fft) ** 2
-        S /= nrows
-        S_avg += np.sum(S, axis=1) / subswath_width
+        S_avg += _get_s_avg_for_tile(
+            arr_slice=arr_slice,
+            fft_axis=0,  # Compute fft over along-track axis (axis 0)
+            num_fft_bins=nrows,
+            averaging_denominator=subswath_width,
+        )
 
+    return _post_process_s_avg(
+        S_avg=S_avg, sampling_rate=sampling_rate, fft_shift=fft_shift
+    )
+
+
+def _get_s_avg_for_tile(
+    arr_slice: ArrayLike,
+    fft_axis: int,
+    num_fft_bins: int,
+    averaging_denominator: int,
+) -> np.ndarray:
+    """
+    Helper function for the power spectra; computes the S_avg array for a tile.
+
+    This function is designed to be called by a function that is handling the
+    iteration process over all tiles in an array.
+
+    Parameters
+    ----------
+    arr_slice : array_like
+        Slice of a 2D Array to compute the FFT of. We're in the "tiling.py"
+        module; `arr_slice` should be a full tile.
+    fft_axis : int
+        0 to compute the FFT along the azimuth axis,
+        1 to compute along the range axis.
+    num_fft_bins : int
+        Number of FFT bins.
+    averaging_denominator : int
+        Total number of elements in the source array that will be averaged
+        together to form the `S_avg` array.
+        For Range Spectra, this is the number of range lines.
+        For Azimuth Spectra, this is the subswath width.
+        (We are processing the array by tiles, but the total summation of
+        power might cause float overflow.
+        So, during the accumulation process, if we divide each tile's
+        power density by the total number of samples used, then the
+        final accumulated array will be mathmatically equivalent to
+        the average.)
+
+    Returns
+    -------
+    S_avg_partial : numpy.ndarray
+        Normalized FFT that has been "averaged" with `averaging_denominator`.
+    """
+
+    # Compute FFT
+    # Ensure no normalization occurs here; do that manually below.
+    # Units of `fft` are the same as the units of `arr_slice`: unitless
+    fft = nisarqa.compute_fft(arr_slice, axis=fft_axis)
+
+    # Compute the power
+    S = np.abs(fft) ** 2
+
+    # Normalize the transform
+    S /= num_fft_bins
+
+    # Average over the opposite axis
+    #   `1 - fft_axis` will flip a 1 to a 0, or a 0 to a 1.
+    return np.sum(S, axis=1 - fft_axis) / averaging_denominator
+
+
+def _post_process_s_avg(
+    S_avg: ArrayLike, sampling_rate: float, fft_shift: bool
+) -> np.ndarray:
+    """
+    Helper function for the power spectra; post-processes average spectra.
+
+    Parameters
+    ----------
+    S_avg : array_like
+        The averaged spectra
+    sampling_rate : numeric
+        Range sample rate (inverse of the sample spacing) in Hz. Used to
+        normalize `S_avg`.
+    fft_shift : bool, optional
+        True if the frequency bins for in `S_avg` were continuous from
+        negative (min) -> positive (max) values.
+
+        False if the frequency bins were the output from
+        `numpy.fft.fftfreq()`, where this discrete FFT operation orders values
+        from 0 -> max positive -> min negative -> 0- . (This creates
+        a discontinuity in the interval's values.)
+
+    Returns
+    -------
+    S_out : numpy.ndarray
+        Normalized power spectral density in dB re 1/Hz.
+    """
     # Normalize by the sampling rate
     # This makes the units unitless/Hz
     S_out = S_avg / sampling_rate
 
     # Convert to dB
-    # TODO - Geoff, we converted to dB for range spectra. Same for az spectra?
     with nisarqa.ignore_runtime_warnings():
         # This line throws these warnings:
         #   "RuntimeWarning: divide by zero encountered in log10"
