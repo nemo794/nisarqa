@@ -1703,7 +1703,8 @@ def generate_range_spectra_single_freq(
     # Use custom cycler for accessibility
     ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
 
-    rng_spec_units = "dB re 1/Hz"
+    rng_spec_units_pdf = "dB re 1/Hz"
+    rng_spec_units_hdf5 = "decibel re 1/hertz"
 
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
@@ -1723,7 +1724,7 @@ def generate_range_spectra_single_freq(
                 grp_path=img.stats_h5_group_path,
                 ds_name="rangePowerSpectralDensity",
                 ds_data=rng_spectrum,
-                ds_units=rng_spec_units,
+                ds_units=rng_spec_units_hdf5,
                 ds_description=(
                     "Normalized range power spectral density for Frequency"
                     f" {freq}, Polarization {pol}."
@@ -1737,7 +1738,7 @@ def generate_range_spectra_single_freq(
     ax.set_title(f"Range Power Spectra for Frequency {freq}\n")
     ax.set_xlabel(f"Frequency rel. {proc_center_freq} {abbreviated_units}")
 
-    ax.set_ylabel(f"Power Spectral Density ({rng_spec_units})")
+    ax.set_ylabel(f"Power Spectral Density ({rng_spec_units_pdf})")
 
     ax.legend(loc="upper right")
     ax.grid(visible=True)
@@ -1889,7 +1890,8 @@ def generate_az_spectra_single_freq(
     ax_mid.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
     ax_far.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
 
-    az_spec_units = "dB re 1/Hz"
+    az_spec_units_pdf = "dB re 1/Hz"
+    az_spec_units_hdf5 = "decibel re 1/hertz"
 
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
@@ -1930,7 +1932,7 @@ def generate_az_spectra_single_freq(
                     grp_path=img.stats_h5_group_path,
                     ds_name=f"azimuthPowerSpectralDensity{subswath}Range",
                     ds_data=az_spectrum,
-                    ds_units=az_spec_units,
+                    ds_units=az_spec_units_hdf5,
                     ds_description=(
                         "Normalized azimuth power spectral density for"
                         f" Frequency {freq}, Polarization {pol}"
@@ -1954,7 +1956,7 @@ def generate_az_spectra_single_freq(
 
     # All axes can share the same y-label. Attach that label to the middle
     # axes, so that it is centered.
-    ax_mid.set_ylabel(f"Power Spectral Density ({az_spec_units})")
+    ax_mid.set_ylabel(f"Power Spectral Density ({az_spec_units_pdf})")
 
     ax_near.xaxis.set_ticklabels([])
     ax_mid.xaxis.set_ticklabels([])
