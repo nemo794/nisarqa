@@ -41,14 +41,13 @@ class TileIterator:
             must be provided.
             Defaults to None.
         axis_0_idx : tuple of int, optional
-            The indice interval along axis 0 of the array to iterate over;
-            used for selecting a subset of the array to iterate over.
-            Required if `arr_shape` is None.
+            (<start>, <stop>) indices of the interval along axis 0 of the
+            array to iterate over. Required if `arr_shape` is None.
             If `arr_shape` is not None, this will be ignored.
             Defaults to None.
         axis_1_idx : tuple of int, optional
-            The indice interval along axis 1 of the array to iterate over;
-            used for selecting a subset of the array to iterate over.
+            (<start>, <stop>) indices of the interval along axis 1 of the
+            array to iterate over.
             If `arr_shape` is not None, this will be ignored.
             For 1D arrays, set to None because axis 1 is out of bounds;
             otherwise an iterator for a 2D array will be returned.
@@ -686,7 +685,7 @@ def compute_range_spectra_by_tiling(
 def compute_az_spectra_by_tiling(
     arr: ArrayLike,
     sampling_rate: float,
-    col_indices: Optional[tuple[int, int]] = None,
+    col_indices: Optional[Sequence[int, int]] = None,
     tile_width: int = 256,
     fft_shift: bool = True,
 ) -> np.ndarray:
@@ -699,10 +698,10 @@ def compute_az_spectra_by_tiling(
         Input array, representing a two-dimensional discrete-time signal.
     sampling_rate : numeric
         Azimuth sample rate (inverse of the sample spacing) in Hz.
-    col_indices : tuple[int, int], optional
-        The start and ending range (column) indices that specify a subswath
-        of `arr`; the azimuth spectra will be computed for this subswath.
-            Format: (<starting index>, <end index>)
+    col_indices : pair of int, optional
+        The start and stop indices for axes 1 that specify a subswath of `arr`;
+        the azimuth spectra will be computed for this subswath.
+            Format: (<start index>, <stop index>)
             Example: (2, 5)
                 This means columns 2, 3, and 4 will be used to compute `S_out`.
         If None, or if the number of columns in the subswath is greater than
@@ -737,10 +736,6 @@ def compute_az_spectra_by_tiling(
     perform the FFT; this means that the number of rows is always fixed to
     the height of `arr`.
 
-    Unlike when computing the range spectra, using decimation to reduce the
-    number of lines processed via FFT is not correct. When computing the
-    azimuth spectra, we must use contiguous columns so that
-    TODO.
     To reduce processing time, users can decrease the interval of `col_indices`.
     """
     arr_shape = np.shape(arr)

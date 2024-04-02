@@ -1934,8 +1934,8 @@ def generate_az_spectra_single_freq(
                         f" {subswath}-Range."
                     ),
                     ds_attrs={
-                        "subswathStartIndice": col_idx[0],
-                        "subswathEndIndice": col_idx[1],
+                        "subswathStartIndex": col_idx[0],
+                        "subswathStopIndex": col_idx[1],
                     },
                 )
 
