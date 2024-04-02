@@ -1834,40 +1834,45 @@ def generate_az_spectra_single_freq(
 
     # TODO: Consider breaking this out into a separate function that returns
     # fft_freqs and freq_units
-    # Get the FFT spacing
-    # Because `freq` is fixed, and all polarizations within
-    # the same frequency will have the same `fft_freqs`,
-    # we only need to do this computation one time.
+    # Get the FFT spacing (will be the same for all product images):
+
+    # Compute the sample rate
+    # zero doppler time is in seconds; units for `sample_rate` will be Hz
+    da = product.get_zero_doppler_time_spacing()
+    sample_rate = 1 / da
+
+    # Get the number of range lines
     first_pol = product.get_pols(freq=freq)[0]
     with product.get_raster(freq, first_pol) as img:
-        # Compute the sample rate
-        # zero doppler time is in seconds; units for `sample_rate` will be Hz
-        da = product.get_zero_doppler_time_spacing(freq)
-        sample_rate = 1 / da
+        num_range_lines = img.data.shape[0]
 
-        fft_freqs = nisarqa.generate_fft_freqs(
-            num_samples=img.data.shape[0],
-            sampling_rate=sample_rate,
-            fft_shift=fft_shift,
-        )
+    # Compute fft_freqs
+    fft_freqs = nisarqa.generate_fft_freqs(
+        num_samples=num_range_lines,
+        sampling_rate=sample_rate,
+        fft_shift=fft_shift,
+    )
 
-        if params.hz_to_mhz:
-            fft_freqs = nisarqa.hz2mhz(fft_freqs)
-            freq_units = "MHz"
-        else:
-            freq_units = "Hz"
+    if params.hz_to_mhz:
+        fft_freqs = nisarqa.hz2mhz(fft_freqs)
+        freq_units = "MHz"
+    else:
+        freq_units = "Hz"
 
     # Save x-axis values to stats.h5 file
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq),
-        ds_name="azimuthSpectraFrequencies",
-        ds_data=fft_freqs,
-        ds_units=freq_units,
-        ds_description=(
-            f"Frequency coordinates for Frequency {freq} azimuth power spectra."
-        ),
-    )
+    grp_path = nisarqa.STATS_H5_QA_DATA_GROUP % product.band
+    ds_name = "azimuthSpectraFrequencies"
+    if f"{grp_path}/{ds_name}" not in stats_h5:
+        nisarqa.create_dataset_in_h5group(
+            h5_file=stats_h5,
+            grp_path=grp_path,
+            ds_name=ds_name,
+            ds_data=fft_freqs,
+            ds_units=freq_units,
+            ds_description=(
+                f"Frequency coordinates for azimuth power spectra."
+            ),
+        )
 
     # Plot the Azimuth Power Spectra for each pol+subswath onto the same axes
     fig, (ax_near, ax_mid, ax_far) = plt.subplots(
