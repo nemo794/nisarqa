@@ -3,10 +3,11 @@ from __future__ import annotations
 import logging
 import os
 import warnings
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from typing import Optional
 
+import h5py
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -183,7 +184,7 @@ def create_dataset_in_h5group(
     ds_data: ArrayLike | str,
     ds_description: str,
     ds_units: Optional[str] = None,
-    ds_attrs: Optional[dict[str, ArrayLike | str]] = None,
+    ds_attrs: Mapping[dict[str, ArrayLike | str]] = None,
 ) -> None:
     """
     Add a Dataset with attributes to the provided group.
