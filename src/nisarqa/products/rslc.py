@@ -1876,7 +1876,7 @@ def generate_az_spectra_single_freq(
 
     # Plot the Azimuth Power Spectra for each pol+subswath onto the same axes
     fig, (ax_near, ax_mid, ax_far) = plt.subplots(
-        nrows=3, ncols=1, figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE
+        nrows=3, ncols=1, figsize=nisarqa.FIG_SIZE_THREE_PLOTS_PER_PAGE_STACKED
     )
 
     fig.suptitle(f"Azimuth Power Spectra for Frequency {freq}")
