@@ -1675,12 +1675,13 @@ def generate_range_spectra_single_freq(
 
         proc_center_freq = product.get_processed_center_frequency(freq)
 
-        if params.hz_to_mhz:
-            fft_freqs = nisarqa.hz2mhz(fft_freqs)
-            proc_center_freq = nisarqa.hz2mhz(proc_center_freq)
-            freq_units = "megahertz"
-        else:
-            freq_units = "hertz"
+        fft_freqs, abbreviated_units, hdf5_units = _process_and_label_hz_to_mhz(
+            hz_to_mhz=params.hz_to_mhz, arr=fft_freqs
+        )
+
+        proc_center_freq, _, _ = _process_and_label_hz_to_mhz(
+            hz_to_mhz=params.hz_to_mhz, arr=proc_center_freq
+        )
 
     # Save x-axis values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
@@ -1688,7 +1689,7 @@ def generate_range_spectra_single_freq(
         grp_path=nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq),
         ds_name="rangeSpectraFrequencies",
         ds_data=fft_freqs,
-        ds_units=freq_units,
+        ds_units=hdf5_units,
         ds_description=(
             f"Frequency coordinates for Frequency {freq} range power spectra."
         ),
@@ -1734,7 +1735,7 @@ def generate_range_spectra_single_freq(
 
     # Label the Plot
     ax.set_title(f"Range Power Spectra for Frequency {freq}\n")
-    ax.set_xlabel(f"Frequency rel. {proc_center_freq} {freq_units}")
+    ax.set_xlabel(f"Frequency rel. {proc_center_freq} {abbreviated_units}")
 
     ax.set_ylabel(f"Power Spectral Density ({rng_spec_units})")
 
@@ -1837,7 +1838,7 @@ def generate_az_spectra_single_freq(
     fft_shift = True
 
     # TODO: Consider breaking this out into a separate function that returns
-    # fft_freqs and freq_units
+    # fft_freqs and fft freq units
     # Get the FFT spacing (will be the same for all product images):
 
     # Compute the sample rate
@@ -1857,11 +1858,9 @@ def generate_az_spectra_single_freq(
         fft_shift=fft_shift,
     )
 
-    if params.hz_to_mhz:
-        fft_freqs = nisarqa.hz2mhz(fft_freqs)
-        freq_units = "MHz"
-    else:
-        freq_units = "Hz"
+    fft_freqs, abbreviated_units, hdf5_units = _process_and_label_hz_to_mhz(
+        hz_to_mhz=params.hz_to_mhz, arr=fft_freqs
+    )
 
     # Save x-axis values to stats.h5 file
     grp_path = nisarqa.STATS_H5_QA_DATA_GROUP % product.band
@@ -1872,7 +1871,7 @@ def generate_az_spectra_single_freq(
             grp_path=grp_path,
             ds_name=ds_name,
             ds_data=fft_freqs,
-            ds_units=freq_units,
+            ds_units=hdf5_units,
             ds_description=(
                 f"Frequency coordinates for azimuth power spectra."
             ),
@@ -1959,7 +1958,7 @@ def generate_az_spectra_single_freq(
 
     ax_near.xaxis.set_ticklabels([])
     ax_mid.xaxis.set_ticklabels([])
-    ax_far.set_xlabel(f"Frequency ({freq_units})")
+    ax_far.set_xlabel(f"Frequency ({abbreviated_units})")
 
     ax_near.legend(loc="upper right")
 
@@ -1970,6 +1969,41 @@ def generate_az_spectra_single_freq(
     plt.close()
 
     log.debug(f"Azimuth Power Spectra for Frequency {freq} complete.")
+
+
+def _process_and_label_hz_to_mhz(
+    hz_to_mhz: bool, arr: ArrayLike
+) -> tuple[ArrayLike, str, str]:
+    """
+    Convert (possibly) an array from Hz to MHz, and return with correct units.
+
+    Parameters
+    ----------
+    hz_to_mhz : bool
+        True to convert `arr` from Hz to MHz.
+    arr : array_like
+        Array to be possibly be converted from units of Hz to MHz.
+        Must be in units of Hz.
+
+    Returns
+    -------
+    processed_arr : array_like
+        `arr` converted to MHz if `hz_to_mhz` is True. Otherwise, returns `arr`.
+    abbreviated_units : str
+        "MHz" if `hz_to_mhz`, otherwise "Hz".
+    long_units : str
+        "megahertz" if `hz_to_mhz`, otherwise "hertz".
+    """
+    if hz_to_mhz:
+        processed_arr = nisarqa.hz2mhz(arr)
+        abbreviated_units = "MHz"
+        long_units = "megahertz"
+    else:
+        processed_arr = arr
+        abbreviated_units = "Hz"
+        long_units = "hertz"
+
+    return processed_arr, abbreviated_units, long_units
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
