@@ -816,20 +816,17 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
     Parameters
     ----------
     num_columns : int, optional
-        The azimuth spectra will be computed for three subswaths: near-range,
-        mid-range, and far-range. `num_columns` specifies the number of
-        contiguous, along-track columns to use for each subswath.
-        If `num_columns` is greater than the number of range samples, it will
-        be reduced to the number of range samples.
-        If `num_columns` is -1, each subswath will contain all available range samples.
+        Azimuth spectra will be computed by averaging `num_columns` contiguous
+        range samples for each of near-, mid-, and far-range subswaths.
+        If `num_columns` is -1 or greater than the total number of range
+        samples, it will be set to the number of range samples.
         Must be equal to -1 or greater than zero. Defaults to 1024.
     hz_to_mhz : bool, optional
         True if the input frequencies are in Hz, but user wants outputs in MHz.
         Defaults to False.
     tile_width : int, optional
         Tile width (number of range samples) for processing
-        each subswath by batches. Actual value may be modified by QA to be
-        an integer multiple of `num_columns` . -1 to set this to `num_columns`.
+        each subswath by batches. -1 to set this to `num_columns`.
         Note: full columns must be read in, so the number of rows for each tile
         will be fixed to the height of the input raster.
         Defaults to 256.
@@ -840,13 +837,10 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="num_columns",
-                descr="""The azimuth spectra will be computed for three subswaths: near-range,
-        mid-range, and far-range. `num_columns` specifies the number of
-        contiguous, along-track columns to use for each subswath.
-        If `num_columns` is greater than the number of range samples, it will
-        be reduced to the number of range samples.
-        Hint: Smaller `num_columns` leads to in faster processing times.
-        Must be greater than zero.""",
+                descr="""Azimuth spectra will be computed by averaging `num_columns` contiguous
+        range samples for each of near-, mid-, and far-range subswaths.
+        If `num_columns` is -1 or greater than the number of range samples,
+        it will be set to the number of range samples.""",
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="azimuthSpectraColumnsPerSubswath",
@@ -877,9 +871,8 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="tile_width",
-                descr=""" User-preferred tile width (number of along-track columns) for processing
-        each subswath by batches. Actual value may be modified by QA to be
-        an integer multiple of `num_columns` . -1 to set this to `num_columns`.
+                descr="""Tile width (number of along-track columns) for processing
+        each subswath by batches. -1 to set this to `num_columns`.
         Note: full columns must be read in, so the number of rows for each tile
         will be fixed to the height of the input raster.""",
             )

@@ -700,7 +700,8 @@ def compute_az_spectra_by_tiling(
         Azimuth sample rate (inverse of the sample spacing) in Hz.
     col_indices : pair of int, optional
         The start and stop indices for axes 1 that specify a subswath of `arr`;
-        the azimuth spectra will be computed for this subswath.
+        the azimuth spectra will be computed by averaging the range samples in
+        this subswath.
             Format: (<start index>, <stop index>)
             Example: (2, 5)
                 This means columns 2, 3, and 4 will be used to compute `S_out`.
@@ -708,9 +709,7 @@ def compute_az_spectra_by_tiling(
         the width of the input array, then the full input array will be used.
         Defaults to None.
     tile_width : int, optional
-        User-preferred tile width (number of columns) for processing
-        each subswath by batches. Actual value may be modified by QA to be
-        an integer multiple of the `col_indices` interval .
+        Tile width (number of columns) for processing each subswath by batches.
         -1 to use the full width of the subswath.
         Defaults to 256.
     fft_shift : bool, optional

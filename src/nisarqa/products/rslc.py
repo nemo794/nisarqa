@@ -1760,9 +1760,11 @@ def process_azimuth_spectra(
     Generate the RSLC Azimuth Spectra plot(s) and save to PDF and stats.h5.
 
     Generate the RSLC Azimuth Spectra; save the plots to the PDF and
-    statistics to the .h5 file. For each frequency+polarization, three
-    separate plots of azimuth spectra are generated: one at near range,
+    statistics to the .h5 file. For each frequency+polarization, azimuth
+    spectra plots are generated for three subswaths: one at near range,
     one at mid range, and one at far range.
+    The size of the subswaths is specified in `params`; the azimuth spectra
+    are formed by averaging the contiguous range samples in each subswath.
 
     Power Spectral Density (PSD) is computed in decibels referenced to
     1/hertz (dB re 1/Hz) units, and Frequency in Hz or MHz (specified
@@ -1803,8 +1805,10 @@ def generate_az_spectra_single_freq(
     Generate the RSLC Azimuth Spectra for a single frequency.
 
     Generate the RSLC Azimuth Spectra; save the plots to the PDF and
-    statistics to the .h5 file. Three separate plots of azimuth spectra
-    are generated: one at near range, one at mid range, and one at far range.
+    statistics to the .h5 file. An azimuth spectra plot is computed for
+    each of three subswaths: near range, mid range, and far range.
+    The size of the subswaths is specified in `params`; the azimuth spectra
+    are formed by averaging the contiguous range samples in each subswath.
 
     Power Spectral Density (PSD) is computed in decibels referenced to
     1/hertz (dB re 1/Hz) units, and Frequency in Hz or MHz (specified
