@@ -219,13 +219,13 @@ def create_dataset_in_h5group(
               then set `ds_units` to None so that no units attribute
               is created.
         Defaults to None (no units attribute will be created)
-    ds_attrs : dict[str, ArrayLike | str] or None, optional
-        Additional metadata to attach as h5py.Attributes to the new Dataset.
+    ds_attrs : mapping of str to array_like or str, or None; optional
+        Additional metadata to attach as attributes to the new Dataset.
         If None, no additional Attributes will be added.
         Format:     { <Attribute name> : <Attribute value> }
-        Example:    { "subswathStartIndice" : 45,
-                      "subswathEndIndice" : 65,
-                      "freqBins" : "science/LSAR/QA/data/freqA/azSpectraFreq}
+        Example:    { "subswathStartIndex" : 45,
+                      "subswathStopIndex" : 65,
+                      "freqBins" : "science/LSAR/QA/data/freqA/azSpectraFreq"}
         Defaults to None.
 
     Notes
@@ -248,7 +248,7 @@ def create_dataset_in_h5group(
     grp = h5_file.require_group(grp_path)
 
     # If a string or a list of strings, convert to fixed-length byte strings
-    def _to_fixed_length_str(data):
+    def _to_fixed_length_str(data: ArrayLike | str) -> ArrayLike | np.bytes_:
         # If `data` is an e.g. numpy array with a numeric dtype,
         # do not alter it.
         if isinstance(data, str):

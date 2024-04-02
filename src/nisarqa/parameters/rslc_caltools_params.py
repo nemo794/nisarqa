@@ -811,8 +811,7 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to generate the RSLC Azimuth Spectra plots;
-    this corresponds to the `qa_reports: azimuth_spectra` runconfig group.
+    Parameters to generate the RSLC Azimuth Spectra plots.
 
     Parameters
     ----------
@@ -822,13 +821,13 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         contiguous, along-track columns to use for each subswath.
         If `num_columns` is greater than the number of range samples, it will
         be reduced to the number of range samples.
-        Hint: Smaller `num_columns` leads to in faster processing times.
-        Must be greater than zero. Defaults to 1024.
+        If `num_columns` is -1, each subswath will contain all available range samples.
+        Must be equal to -1 or greater than zero. Defaults to 1024.
     hz_to_mhz : bool, optional
         True if the input frequencies are in Hz, but user wants outputs in MHz.
-        Defaults to True.
+        Defaults to False.
     tile_width : int, optional
-        User-preferred tile width (number of along-track columns) for processing
+        Tile width (number of range samples) for processing
         each subswath by batches. Actual value may be modified by QA to be
         an integer multiple of `num_columns` . -1 to set this to `num_columns`.
         Note: full columns must be read in, so the number of rows for each tile
@@ -840,7 +839,7 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         default=1024,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="az_decimation",
+                name="num_columns",
                 descr="""The azimuth spectra will be computed for three subswaths: near-range,
         mid-range, and far-range. `num_columns` specifies the number of
         contiguous, along-track columns to use for each subswath.
@@ -853,7 +852,7 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name="azimuthSpectraColumnsPerSubswath",
                 units="1",
                 descr=(
-                    "Number of columns along the range axis used to"
+                    "Number of columns (i.e. range samples) used to"
                     " compute the azimuth spectra for each subswath"
                     " (near-range, mid-range, and far-range)."
                 ),
@@ -863,7 +862,7 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
     )
 
     hz_to_mhz: bool = field(
-        default=True,
+        default=False,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="hz_to_mhz",
@@ -896,9 +895,9 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
                 f"`{self.num_columns=}` and has type"
                 f" {type(self.num_columns)}, but must be an int."
             )
-        if self.num_columns <= 0:
+        if (self.num_columns != -1) and (self.num_columns <= 0):
             raise ValueError(
-                f"`{self.num_columns=}`, must be a positive value."
+                f"`{self.num_columns=}`, must be a positive value or -1."
             )
 
         # validate hz_to_mhz

@@ -1916,7 +1916,7 @@ def generate_az_spectra_single_freq(
                     fft_shift=fft_shift,
                 )
 
-                # Save normalized range power spectra values to stats.h5 file
+                # Save normalized power spectra values to stats.h5 file
                 nisarqa.create_dataset_in_h5group(
                     h5_file=stats_h5,
                     grp_path=img.stats_h5_group_path,
@@ -1940,7 +1940,7 @@ def generate_az_spectra_single_freq(
 
                 # Label the Plot
                 ax.set_title(
-                    f"{subswath}-Range, columns {col_idx[0]+1}-{col_idx[1]}",
+                    f"{subswath}-Range (columns {col_idx[0]}-{col_idx[1]})",
                     fontsize=9,
                 )
 
