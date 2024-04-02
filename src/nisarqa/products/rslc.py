@@ -1925,7 +1925,7 @@ def generate_az_spectra_single_freq(
                 nisarqa.create_dataset_in_h5group(
                     h5_file=stats_h5,
                     grp_path=img.stats_h5_group_path,
-                    ds_name=f"alongTrack{subswath}PowerSpectralDensity",
+                    ds_name=f"azimuthPowerSpectralDensity{subswath}Range",
                     ds_data=az_spectrum,
                     ds_units=az_spec_units,
                     ds_description=(
