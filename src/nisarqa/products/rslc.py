@@ -1879,26 +1879,30 @@ def generate_az_spectra_single_freq(
         )
 
     # Plot the Azimuth Power Spectra for each pol+subswath onto the same axes
-    fig, (ax_near, ax_mid, ax_far) = plt.subplots(
+    fig, all_axes = plt.subplots(
         nrows=3, ncols=1, figsize=nisarqa.FIG_SIZE_THREE_PLOTS_PER_PAGE_STACKED
     )
+
+    ax_near, ax_mid, ax_far = all_axes
 
     fig.suptitle(f"Azimuth Power Spectra for Frequency {freq}")
 
     # Use custom cycler for accessibility
-    ax_near.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
-    ax_mid.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
-    ax_far.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+    for ax in all_axes:
+        ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
 
     az_spec_units_pdf = "dB re 1/Hz"
     az_spec_units_hdf5 = "decibel re 1/hertz"
 
+    # We want the y-axis label limits to be consistent for all three plots.
+    # Initialize variables to track the limits.
+    y_min = np.nan
+    y_max = np.nan
+
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
 
-            for subswath, ax in zip(
-                ("Near", "Mid", "Far"), (ax_near, ax_mid, ax_far)
-            ):
+            for subswath, ax in zip(("Near", "Mid", "Far"), all_axes):
                 img_width = np.shape(img.data)[1]
                 num_col = params.num_columns
 
@@ -1948,6 +1952,10 @@ def generate_az_spectra_single_freq(
                 ax.plot(fft_freqs, az_spectrum, label=pol)
                 ax.grid(visible=True)
 
+                y_ax_min, y_ax_max = ax.get_ylim()
+                y_min = np.nanmin([y_min, y_ax_min])
+                y_max = np.nanmax([y_max, y_ax_max])
+
                 # Label the Plot
                 ax.set_title(
                     f"{subswath}-Range (columns {col_idx[0]}-{col_idx[1]})",
@@ -1961,6 +1969,10 @@ def generate_az_spectra_single_freq(
     ax_near.xaxis.set_ticklabels([])
     ax_mid.xaxis.set_ticklabels([])
     ax_far.set_xlabel(f"Frequency ({abbreviated_units})")
+
+    # Make the y axis labels consistent
+    for ax in all_axes:
+        ax.set_ylim([y_min, y_max])
 
     ax_near.legend(loc="upper right")
 
