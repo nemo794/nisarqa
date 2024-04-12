@@ -1684,14 +1684,19 @@ class SLC(NonInsarProduct):
 
     def get_layers_for_browse(self) -> dict[str, list[str]]:
         """
-        Assign polarizations to grayscale or RGBA channels for the Browse Image.
+        Get frequencies+polarization images to use for the SLC Browse Image.
 
-        See `Notes` for details on  possible NISAR modes and assigned channels
+        This function should be used in conjunction with `save_browse()`,
+        which handles the final greyscale or color channel assignments.
+
+        See `Notes` for details on possible NISAR modes and assigned channels
         for LSAR band.
-        SSAR is currently only minimally supported, so only a grayscale image
-        will be created. Prioritization order to select the freq/pol to use:
+        Prioritization order to select the freq/pol to use:
             For frequency: Freq A then Freq B.
             For polarization: 'HH', then 'VV', then first polarization found.
+
+        SSAR is currently only minimally supported, so only a grayscale image
+        will be created.
 
         Returns
         -------
@@ -1724,7 +1729,11 @@ class SLC(NonInsarProduct):
             else:
             - Freq B CoPol
         DP and QQ Assignment:
+            All image layers should come from a single frequency. Freq A has
+            priority over Freq B. HH+HV has priority over VV+VH.
+            Two example assignments:
             - Freq A: Red=HH, Green=HV, Blue=HH
+            - Freq B: Red=VV, Green=VH, Blue=VV
         QP Assignment:
             - Freq A: Red=HH, Green=HV, Blue=VV
         QD Assignment:
@@ -1733,8 +1742,14 @@ class SLC(NonInsarProduct):
         CP Assignment:
             - Freq A: Grayscale of one pol image, with
                     Prioritization order: ['RH','RV','LH','LV']
+
+        See Also
+        --------
+        save_browse :
+            Assigns the layers from this function to greyscale or RGBA channels.
         """
         layers_for_browse = {}
+        log = nisarqa.get_logger()
 
         # Get the frequency sub-band containing science mode data.
         freq = self.science_freq
@@ -1748,31 +1763,30 @@ class SLC(NonInsarProduct):
             elif "VV" in science_pols:
                 layers_for_browse[freq] = ["VV"]
             else:
-                # Take the first available Cross-Pol
-                layers_for_browse[freq] = self.get_raster(
-                    freq=freq, pol=science_pols[0]
-                )
+                # Take the first available pol
+                layers_for_browse[freq] = [science_pols[0]]
 
             return layers_for_browse
 
         # The input file contains LSAR data. Will need to make
         # grayscale/RGB channel assignments
 
-        n_pols = len(science_pols)
+        def _assign_layers_single_freq(freq: str) -> None:
+            """
+            Populate `layers_for_browse` for `freq` per pols in `science_pols`.
 
-        if freq == "B":
-            # Only Freq B has data; this only occurs in Single Pol case.
-            if n_pols > 1:
-                raise ValueError(
-                    "When only Freq B is present, then only "
-                    f"single-pol mode supported. Freq{freq}: {science_pols}"
-                )
+            This function assumes all images should come from the same
+            frequency group, and modifies `layers_for_browse` accordingly.
 
-            layers_for_browse["B"] = science_pols
+            Do not use for quasi-dual.
+            """
+            assert freq in ("A", "B")
 
-        else:  # freq A exists
-            if science_pols[0].startswith("R") or science_pols[0].startswith(
-                "L"
+            n_pols = len(science_pols)
+
+            if all(
+                pol.startswith("L") or pol.startswith("R")
+                for pol in science_pols
             ):
                 # Compact Pol. This is not a planned mode for LSAR,
                 # and there is no test data, so simply make a grayscale image.
@@ -1780,71 +1794,58 @@ class SLC(NonInsarProduct):
                 # Per the Prioritization Order, use first available polarization
                 for pol in ["RH", "RV", "LH", "LV"]:
                     if pol in science_pols:
-                        layers_for_browse["A"] = [pol]
+                        layers_for_browse[freq] = [pol]
                         break
 
-                assert len(layers_for_browse["A"]) == 1
+            elif n_pols == 1:
+                # single pol mode
+                layers_for_browse[freq] = science_pols
 
-            elif n_pols == 1:  # Horizontal/Vertical transmit
-                if "B" in self.freqs:
-                    b_pols = self.get_pols(freq="B")
-                    # Freq A has one pol image, and Freq B exists.
-                    if set(science_pols) == set(b_pols):
-                        # A's polarization image is identical to B's pol image,
-                        # which means that this is a single-pol observation mode
-                        # where both frequency bands were active
-                        layers_for_browse["A"] = science_pols
-
-                    elif len(b_pols) == 1:
-                        # Quasi Dual Pol -- Freq A has HH, Freq B has VV
-                        assert "HH" in self.get_pols(freq="A")
-                        assert "VV" in b_pols
-
-                        layers_for_browse["A"] = science_pols
-                        layers_for_browse["B"] = ["VV"]
-
-                    else:
-                        # There is/are polarization image(s) for both A and B.
-                        # But, they are not representative of any of the current
-                        # observation modes for NISAR.
-                        raise ValueError(
-                            f"Freq A contains 1 polarization {science_pols},"
-                            f" but Freq B contains polarization(s) {b_pols}."
-                            " This setup does not match any known NISAR"
-                            " observation mode."
-                        )
-                else:
-                    # Single Pol
-                    layers_for_browse["A"] = science_pols
-
-            elif n_pols in (2, 4):  # Horizontal/Vertical transmit
-                # dual-pol, quad-pol, or Quasi-Quad pol
+            else:
+                # likely Dual Pol, Quasi Quad, Quad Pol
 
                 # HH has priority over VV
                 if "HH" in science_pols and "HV" in science_pols:
-                    layers_for_browse["A"] = ["HH", "HV"]
-                    if n_pols == 4:
-                        # quad pol
-                        layers_for_browse["A"].append("VV")
+                    layers_for_browse[freq] = ["HH", "HV"]
+                    if "VV" in science_pols:
+                        # likely quad pol
+                        layers_for_browse[freq].append("VV")
 
                 elif "VV" in science_pols and "VH" in science_pols:
-                    # If there is only 'VV', then this granule must be dual-pol
-                    assert n_pols == 2
-                    layers_for_browse["A"] = ["VV", "VH"]
+                    layers_for_browse[freq] = ["VV", "VH"]
 
                 else:
-                    raise ValueError(
-                        "For dual-pol, quad-pol, and quasi-quad modes, "
-                        "the input product must contain at least one "
-                        "of HH+HV and/or VV+VH channels. Instead got: "
-                        f"{science_pols}"
+                    # Warn, but do not fail. Attempt to continue QA.
+                    log.warning(
+                        "Product contains an unexpected configuration of"
+                        " Frequencies and Polarizations. Please verify the"
+                        " input product is as intended."
                     )
-            else:
-                raise ValueError(
-                    f"Input product's frequnecy {freq} contains {n_pols} "
-                    "polarization images, but only 1, 2, or 4 "
-                    "are supported."
-                )
+
+                    # Take the first available pol and make greyscale image
+                    for pol in ["HH", "VV", "HV", "VH"]:
+                        if pol in science_pols:
+                            layers_for_browse[freq] = [pol]
+                            break
+                    else:
+                        raise ValueError(
+                            f"Input product Frequency {freq} contains unexpected"
+                            f" polarization images {science_pols}."
+                        )
+
+        # For the browse images, only use images from one frequency; the
+        # exception is quasi-dual, where we use layers from both A and B.
+
+        # Identify and handle the quasi-dual case
+        b_pols = self.get_pols(freq="B") if "B" in self.freqs else []
+        if (freq == "A" and science_pols == ["HH"]) and b_pols == ["VV"]:
+            # Quasi Dual Pol: Freq A has HH, Freq B has VV, and there
+            # are no additional image layers available
+            layers_for_browse["A"] = ["HH"]
+            layers_for_browse["B"] = ["VV"]
+        else:
+            # Assign layers using only images from the primary science freq
+            _assign_layers_single_freq(freq=freq)
 
         # Sanity Check
         if ("A" not in layers_for_browse) and ("B" not in layers_for_browse):
