@@ -871,7 +871,7 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="tile_width",
-                descr="""Tile width (number of along-track columns) for processing
+                descr="""Tile width (number of columns) for processing
         each subswath by batches. -1 to set this to `num_columns`.
         Note: full columns must be read in, so the number of rows for each tile
         will be fixed to the height of the input raster.""",
