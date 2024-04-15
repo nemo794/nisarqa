@@ -1675,13 +1675,11 @@ def generate_range_spectra_single_freq(
 
         proc_center_freq = product.get_processed_center_frequency(freq)
 
-        fft_freqs, abbreviated_units, hdf5_units = _process_and_label_hz_to_mhz(
-            hz_to_mhz=params.hz_to_mhz, arr=fft_freqs
-        )
+        if params.hz_to_mhz:
+            fft_freqs = nisarqa.hz2mhz(fft_freqs)
+            proc_center_freq = nisarqa.hz2mhz(proc_center_freq)
 
-        proc_center_freq, _, _ = _process_and_label_hz_to_mhz(
-            hz_to_mhz=params.hz_to_mhz, arr=proc_center_freq
-        )
+        abbreviated_units, hdf5_units = _get_units_hz_or_mhz(params.hz_to_mhz)
 
     # Save x-axis values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
@@ -1859,9 +1857,10 @@ def generate_az_spectra_single_freq(
         fft_shift=fft_shift,
     )
 
-    fft_freqs, abbreviated_units, hdf5_units = _process_and_label_hz_to_mhz(
-        hz_to_mhz=params.hz_to_mhz, arr=fft_freqs
-    )
+    if params.hz_to_mhz:
+        fft_freqs = nisarqa.hz2mhz(fft_freqs)
+
+    abbreviated_units, hdf5_units = _get_units_hz_or_mhz(params.hz_to_mhz)
 
     # Save x-axis values to stats.h5 file
     grp_path = nisarqa.STATS_H5_QA_DATA_GROUP % product.band
@@ -1985,43 +1984,30 @@ def generate_az_spectra_single_freq(
     log.debug(f"Azimuth Power Spectra for Frequency {freq} complete.")
 
 
-def _process_and_label_hz_to_mhz(
-    hz_to_mhz: bool, arr: np.ndarray
-) -> tuple[np.ndarray, str, str]:
+def _get_units_hz_or_mhz(hz_to_mhz: bool) -> tuple[str, str]:
     """
-    Return a copy of the frequency array, possibly converted to MHz, with units.
-
-    This function returns a copy of the input array of frequencies, possibly
-    converted from Hz to MHz, along with the correct units.
+    Return the abbreviated and long units for Hz and MHz.
 
     Parameters
     ----------
     hz_to_mhz : bool
         True to convert `arr` from Hz to MHz.
-    arr : numpy.ndarray
-        Frequencies to be possibly be converted from units of Hz to MHz.
-        Must be in units of Hz.
 
     Returns
     -------
-    processed_arr : numpy.ndarray
-        `arr` converted to MHz if `hz_to_mhz` is True. Otherwise, returns a
-        a copy of `arr`.
     abbreviated_units : str
         "MHz" if `hz_to_mhz`, otherwise "Hz".
     long_units : str
         "megahertz" if `hz_to_mhz`, otherwise "hertz".
     """
     if hz_to_mhz:
-        processed_arr = nisarqa.hz2mhz(arr)
         abbreviated_units = "MHz"
         long_units = "megahertz"
     else:
-        processed_arr = np.copy(arr)
         abbreviated_units = "Hz"
         long_units = "hertz"
 
-    return processed_arr, abbreviated_units, long_units
+    return abbreviated_units, long_units
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
