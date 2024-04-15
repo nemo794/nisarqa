@@ -1986,23 +1986,27 @@ def generate_az_spectra_single_freq(
 
 
 def _process_and_label_hz_to_mhz(
-    hz_to_mhz: bool, arr: ArrayLike
-) -> tuple[ArrayLike, str, str]:
+    hz_to_mhz: bool, arr: np.ndarray
+) -> tuple[np.ndarray, str, str]:
     """
-    Convert (possibly) an array from Hz to MHz, and return with correct units.
+    Return a copy of the frequency array, possibly converted to MHz, with units.
+
+    This function returns a copy of the input array of frequencies, possibly
+    converted from Hz to MHz, along with the correct units.
 
     Parameters
     ----------
     hz_to_mhz : bool
         True to convert `arr` from Hz to MHz.
-    arr : array_like
-        Array to be possibly be converted from units of Hz to MHz.
+    arr : numpy.ndarray
+        Frequencies to be possibly be converted from units of Hz to MHz.
         Must be in units of Hz.
 
     Returns
     -------
-    processed_arr : array_like
-        `arr` converted to MHz if `hz_to_mhz` is True. Otherwise, returns `arr`.
+    processed_arr : numpy.ndarray
+        `arr` converted to MHz if `hz_to_mhz` is True. Otherwise, returns a
+        a copy of `arr`.
     abbreviated_units : str
         "MHz" if `hz_to_mhz`, otherwise "Hz".
     long_units : str
@@ -2013,7 +2017,7 @@ def _process_and_label_hz_to_mhz(
         abbreviated_units = "MHz"
         long_units = "megahertz"
     else:
-        processed_arr = arr
+        processed_arr = np.copy(arr)
         abbreviated_units = "Hz"
         long_units = "hertz"
 

@@ -184,7 +184,7 @@ def create_dataset_in_h5group(
     ds_data: ArrayLike | str,
     ds_description: str,
     ds_units: Optional[str] = None,
-    ds_attrs: Mapping[dict[str, ArrayLike | str]] = None,
+    ds_attrs: Optional[Mapping[str, ArrayLike | str]] = None,
 ) -> None:
     """
     Add a Dataset with attributes to the provided group.
