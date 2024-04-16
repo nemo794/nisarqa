@@ -271,6 +271,28 @@ class NisarProduct(ABC):
             return nisarqa.byte_string_to_python_str(wkt)
 
     @cached_property
+    def look_direction(self) -> str:
+        """Look direction of the image, either 'Left' or 'Right'."""
+        id_group = self.identification_path
+        with h5py.File(self.filepath) as f:
+            lookside = f[id_group]["lookDirection"][()]
+
+        valid_options = ("Left", "Right")
+        if lookside not in valid_options:
+            msg = (
+                f"Input product's `lookDirection` is {lookside}, must"
+                f" be one of {valid_options}."
+            )
+            lookside_lower = lookside.lower()
+            if lookside_lower in valid_options:
+                nisarqa.get_logger().warning(msg)
+                lookside = "Left" if lookside_lower == "left" else "Right"
+            else:
+                raise ValueError(msg)
+
+            return nisarqa.byte_string_to_python_str(lookside)
+
+    @cached_property
     def identification_path(self) -> str:
         """
         Return the path to the identification group in the input file.
@@ -997,18 +1019,43 @@ class NisarRadarProduct(NisarProduct):
             raise ValueError("Bounding polygon requires evenly spaced corners")
 
         # Corners are assumed to start at the 0th index and be evenly spaced
-        clockwise_corners = [coords[len(coords) // 4 * i] for i in range(4)]
+        corners = [coords[len(coords) // 4 * i] for i in range(4)]
 
-        # The boundingPolygon is specified in clockwise order, starting at the
-        # upper-left of the image. Here we reorder them for the LatLonQuad,
-        # constructor, which expects them in left-to-right top-to-bottom order.
-        geo_corners = (
-            clockwise_corners[0],
-            clockwise_corners[1],
-            clockwise_corners[3],
-            clockwise_corners[2],
-        )
-        return nisarqa.LatLonQuad(*geo_corners)
+        # Reorder the corners for the LatLonQuad constructor,
+        # which expects them in left-to-right top-to-bottom order.
+        #
+        if nisarqa.Version(self.product_spec_version) <= nisarqa.Version(
+            "1.1.0"
+        ):
+            # The boundingPolygon is specified in clockwise order, starting at the
+            # upper-left of the image.
+            geo_corners = nisarqa.LatLonQuad(
+                ul=corners[0],
+                ur=corners[1],
+                ll=corners[3],
+                lr=corners[2],
+            )
+        else:
+            # boundingPolygon is specifed in counter-clockwise order,
+            # starting from start-time, near-range.
+            # TODO: Geoff, is there a difference for asecnding/descending?
+            if self.look_direction == "Left":
+                geo_corners = nisarqa.LatLonQuad(
+                    ul=corners[2],
+                    ur=corners[1],
+                    ll=corners[3],
+                    lr=corners[0],
+                )
+            else:
+                assert self.look_direction == "Right"
+                geo_corners = nisarqa.LatLonQuad(
+                    ul=corners[3],
+                    ur=corners[2],
+                    ll=corners[0],
+                    lr=corners[1],
+                )
+
+        return geo_corners
 
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str
