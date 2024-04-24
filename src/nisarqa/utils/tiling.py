@@ -738,8 +738,11 @@ def compute_az_spectra_by_tiling(
         )
         col_indices = (0, arr_ncols)
 
-    if (tile_width == -1) or (tile_width > arr_ncols):
-        tile_width = arr_ncols
+        # Subswaths cannot be wider than the available number of columns
+        subswath_width = arr_ncols
+
+    if (tile_width == -1) or (tile_width > subswath_width):
+        tile_width = subswath_width
 
     # The TileIterator can only pull full tiles. In other functions, we simply
     # truncate the full array to have each edge be an integer multiple of the
@@ -749,11 +752,14 @@ def compute_az_spectra_by_tiling(
     # and then add in the "leftover" columns.
 
     # Truncate the column indices to be an integer multiple of `tile_width`.
-    # Otherwise, the decimation will get messy to book-keep.
-    if tile_width < subswath_width:
-        leftover_width = subswath_width % tile_width
+    leftover_width = subswath_width % tile_width
 
-        trunc_col_indices = (col_indices[0], col_indices[1] - leftover_width)
+    trunc_col_indices = (col_indices[0], col_indices[1] - leftover_width)
+
+    if leftover_width == 0:
+        leftover_col_indices = None
+    else:
+        # There are some leftover columns to process!
         leftover_col_indices = (col_indices[1] - leftover_width, col_indices[1])
 
     # Create the Iterator over the truncated subswath array
