@@ -1984,23 +1984,23 @@ def generate_az_spectra_single_freq(
     log.debug(f"Azimuth Power Spectra for Frequency {freq} complete.")
 
 
-def _get_units_hz_or_mhz(hz_to_mhz: bool) -> tuple[str, str]:
+def _get_units_hz_or_mhz(hz_or_mhz: bool) -> tuple[str, str]:
     """
-    Return the abbreviated and long units for Hz and MHz.
+    Return the abbreviated and long units for Hz or MHz.
 
     Parameters
     ----------
-    hz_to_mhz : bool
-        True to convert `arr` from Hz to MHz.
+    hz_or_mhz : bool
+        True for MHz units, False for Hz units.
 
     Returns
     -------
     abbreviated_units : str
-        "MHz" if `hz_to_mhz`, otherwise "Hz".
+        "MHz" if `hz_or_mhz`, otherwise "Hz".
     long_units : str
-        "megahertz" if `hz_to_mhz`, otherwise "hertz".
+        "megahertz" if `hz_or_mhz`, otherwise "hertz".
     """
-    if hz_to_mhz:
+    if hz_or_mhz:
         abbreviated_units = "MHz"
         long_units = "megahertz"
     else:
