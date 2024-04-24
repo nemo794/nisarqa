@@ -655,7 +655,7 @@ def compute_range_spectra_by_tiling(
 def compute_az_spectra_by_tiling(
     arr: ArrayLike,
     sampling_rate: float,
-    col_indices: Optional[Sequence[int, int]] = None,
+    col_indices: Optional[tuple[int, int]] = None,
     tile_width: int = 256,
     fft_shift: bool = True,
 ) -> np.ndarray:
@@ -668,7 +668,7 @@ def compute_az_spectra_by_tiling(
         Input array, representing a two-dimensional discrete-time signal.
     sampling_rate : numeric
         Azimuth sample rate (inverse of the sample spacing) in Hz.
-    col_indices : pair of int, optional
+    col_indices : pair of int or None, optional
         The start and stop indices for axes 1 that specify a subswath of `arr`;
         the azimuth spectra will be computed by averaging the range samples in
         this subswath.
@@ -683,7 +683,7 @@ def compute_az_spectra_by_tiling(
         -1 to use the full width of the subswath.
         Defaults to 256.
     fft_shift : bool, optional
-        True to have the frequency bins should be continuous from
+        True if the frequency bins are continuous from
         negative (min) -> positive (max) values.
 
         False to leave the frequency bins as the output from
@@ -697,7 +697,8 @@ def compute_az_spectra_by_tiling(
     -------
     S_out : numpy.ndarray
         Normalized azimuth power spectral density in dB re 1/Hz of the
-        subswath of `arr` specified by `col_indices`.
+        subswath of `arr` specified by `col_indices`. Azimuth spectra will
+        be computed by averaging across columns within the subswath.
 
     Notes
     -----
@@ -728,7 +729,7 @@ def compute_az_spectra_by_tiling(
             f"`{col_indices=}` must be a sequence of two ints or None."
         )
 
-    subswath_width = col_indices[1] - col_indices[0] + 1
+    subswath_width = col_indices[1] - col_indices[0]
     if subswath_width > arr_ncols:
         nisarqa.get_logger().error(
             f"`{col_indices=}` which is {subswath_width} columns,"
@@ -820,7 +821,7 @@ def _get_s_avg_for_tile(
         power might cause float overflow.
         So, during the accumulation process, if we divide each tile's
         power density by the total number of samples used, then the
-        final accumulated array will be mathmatically equivalent to
+        final accumulated array will be mathematically equivalent to
         the average.)
 
     Returns
