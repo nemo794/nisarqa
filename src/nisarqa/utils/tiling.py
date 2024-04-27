@@ -5,7 +5,7 @@ from collections.abc import Callable, Sequence
 from typing import Optional
 
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, DTypeLike
 
 import nisarqa
 
@@ -19,41 +19,23 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 class TileIterator:
     def __init__(
         self,
-        arr_shape: tuple[int] | tuple[int, int] | None = None,
-        axis_0_idx: tuple[int, int] | None = None,
-        axis_1_idx: tuple[int, int] | None = None,
+        arr_shape: tuple[int, int],
         axis_0_tile_length: int = -1,
         axis_1_tile_width: int = -1,
         axis_0_stride: int = 1,
         axis_1_stride: int = 1,
     ):
         """
-        Simple iterator class to iterate over a 1D or 2D array by tiles.
+        Simple iterator class to iterate over a 2D array by tiles.
+
+        The iterator's first slice yielded will always start at row 0, column 0.
+        To start in the middle of the 2D array (e.g. for iterating over
+        a subswath of an array), please use the XXXX class.
 
         Parameters
         ----------
-        arr_shape : tuple of int or None, optional
-            The shape of the 1D or 2D array that this TileIterator is for.
-            This is syntactic sugar to set:
-                axis_0_idx = (0, arr_shape[0])
-                axis_1_idx = (0, arr_shape[1])  # only for a 2D array
-            If None, then `axis_0_idx` (and `axis_1_idx` for 2D arrays)
-            must be provided.
-            Defaults to None.
-        axis_0_idx : tuple of int, optional
-            (<start>, <stop>) indices of the interval along axis 0 of the
-            array to iterate over. Required if `arr_shape` is None.
-            If `arr_shape` is not None, this will be ignored.
-            Defaults to None.
-        axis_1_idx : tuple of int, optional
-            (<start>, <stop>) indices of the interval along axis 1 of the
-            array to iterate over.
-            If `arr_shape` is not None, this will be ignored.
-            For 1D arrays, set to None because axis 1 is out of bounds;
-            otherwise an iterator for a 2D array will be returned.
-            If the array is 2D and `arr_shape` is None, then this must be
-            provided to create an iterator for a 2D array.
-            Defaults to None.
+        arr_shape : tuple of int
+            The shape of the 2D array that this TileIterator is for.
         axis_0_tile_length : int, optional
             Length of tile (i.e. number of elements) along axis 0.
             Defaults to -1, meaning all elements along axis 0 will be processed.
@@ -63,107 +45,55 @@ class TileIterator:
             Defaults to -1, meaning all elements along axis 1 will be processed.
         axis_0_stride : int, optional
             Amount to decimate the input array along axis 0.
-            Ex: If `axis_0_stride` is 5 and it is a 2D array, then the slices
-            returned during the iteration process will have an axis-0
-            step value of 5, i.e. rows 0, 5, 10,... will be returned.
+            Ex: If `axis_0_stride` is 5, then the slices yielded during the
+            iteration process will have an axes 0 step value of 5,
+            i.e. rows 0, 5, 10,... will be yielded.
             Defaults to 1 (no decimation).
         axis_1_stride : int, optional
             Amount to decimate the input array along axis 1.
-            Ex: If `axis_1_stride` is 5 and it is a 2D array, then the slices
-            returned during the iteration process will have a column-wise
-            step value of 5, i.e. columns 0, 5, 10,... will be returned.
-            Only relevant for 2D arrays; will be ignored for 1D arrays.
+            Ex: If `axis_1_stride` is 5, then the slices yielded during the
+            iteration process will have an axis 1 step value of 5,
+            i.e. columns 0, 5, 10,... will be yielded.
             Defaults to 1 (no decimation).
         """
 
         # Step 1: Determine the axis 0 and axis 1 indice intervals
-        if arr_shape is not None:
-            self.num_dim = len(arr_shape)
-            if self.num_dim not in (1, 2):
-                raise ValueError(
-                    f"{arr_shape=} has {self.num_dim} dimensions"
-                    " but only 1 or 2 dimensions are currently supported."
-                )
+        if len(arr_shape) != 2:
+            raise ValueError(
+                f"{arr_shape=} has {self.num_dim} dimensions"
+                " but only 2D arrays are currently supported."
+            )
+        self._arr_shape = arr_shape
 
-            self.axis_0_idx = (0, arr_shape[0])
-
-            if len(arr_shape) == 2:
-                self.axis_1_idx = (0, arr_shape[1])
-            else:
-                self.axis_1_idx = None
-
-            # Helpful exception
-            if (axis_0_idx is not None) or (axis_1_idx is not None):
-                raise ValueError(
-                    f"`{arr_shape=}` which is not None, so it will take"
-                    f" precendence over `{axis_0_idx=}` and `{axis_1_idx=}`."
-                    "Please set either `arr_shape` to None, or both `axis_0_idx`"
-                    "and `axis_1_idx` to None."
-                )
-        else:
-            # `arr_shape` is None, so use `axis_0_idx` and `axis_0_idx` to
-            # determine the final array indices to use.
-            if axis_0_idx is None:
-                raise ValueError(
-                    f"`{arr_shape=}` and `{axis_0_idx=}`; one must be a"
-                    " tuple of int."
-                )
-            self.axis_0_idx = axis_0_idx
-
-            if axis_1_idx is None:
-                self.num_dim = 1
-                self.axis_1_idx = None
-            else:
-                self.num_dim = 2
-                self.axis_1_idx = axis_1_idx
-
-        # Step 2: Determine the tile length and height
-        # 1D and 2D arrays always have axes 0:
         if axis_0_tile_length == -1:
-            self.axis_0_tile_length = self.axis_0_idx[1] - self.axis_0_idx[0]
+            self._axis_0_tile_length = arr_shape[0]
         else:
-            self.axis_0_tile_length = axis_0_tile_length
+            self._axis_0_tile_length = axis_0_tile_length
 
-        self.axis_0_stride = axis_0_stride
-
-        # If the array is 2D, set axis_1_tile_length and axis_1_stride
-        if self.num_dim == 2:
-            if axis_1_tile_width == -1:
-                self.axis_1_tile_width = self.axis_1_idx[1] - self.axis_1_idx[0]
-            else:
-                self.axis_1_tile_width = axis_1_tile_width
-
-            self.axis_1_stride = axis_1_stride
+        if axis_1_tile_width == -1:
+            self._axis_1_tile_width = arr_shape[1]
         else:
-            # 1D arrays do not have an axis 1.
-            # Set to None so that errors are raised if these are called.
-            self.axis_1_tile_width = None
-            self.axis_1_stride = None
+            self._axis_1_tile_width = axis_1_tile_width
 
+        self._axis_0_stride = axis_0_stride
+        self._axis_1_stride = axis_1_stride
+
+        # Warn if the tile dimensions are not integer multiples of the strides
         msg = (
-            "The %s stride length %d is not an integer"
-            + "multiple of the %s decimation value %s."
-            + "This will lead to incorrect decimation of the array."
+            "The axes %s length is %d, which is not an integer"
+            + "multiple of the axes %s stride value of %s."
+            + "This will lead to incorrect decimation of the source array."
         )
 
-        # Warn if the `axis_1_tile_width` is not an integer multiple of `axis_1_stride`
-        if self.axis_1_tile_width % self.axis_1_stride != 0:
+        if self._axis_1_tile_width % self._axis_1_stride != 0:
             warnings.warn(
-                msg
-                % (
-                    "column",
-                    self.axis_1_tile_width,
-                    "column",
-                    self.axis_1_stride,
-                ),
+                msg % ("1", self._axis_1_tile_width, "1", self._axis_1_stride),
                 RuntimeWarning,
             )
 
-        # Warn if the `axis_0_tile_length` is not an integer multiple of `axis_0_stride`
-        if self.axis_0_tile_length % self.axis_0_stride != 0:
+        if self._axis_0_tile_length % self._axis_0_stride != 0:
             warnings.warn(
-                msg
-                % ("row", self.axis_0_tile_length, "row", self.axis_0_stride),
+                msg % ("0", self._axis_0_tile_length, "0", self._axis_0_stride),
                 RuntimeWarning,
             )
 
@@ -171,31 +101,26 @@ class TileIterator:
         """
         Iterator for TileIterator class.
 
+        The iterator's first slice yielded will always start at row 0, column 0.
+        To start in the middle of the 2D array (e.g. for iterating over
+        a subswath of an array), please use the XXXX class.
+
         Yields
         ------
         np_slice : tuple of slice objects
             A tuple of slice objects that can be used for
             indexing into the next tile of an array_like object.
         """
-        for axes_0_start in range(
-            self.axis_0_idx[0], self.axis_0_idx[1], self.axis_0_tile_length
-        ):
-            for axes_1_start in range(
-                self.axis_1_idx[0], self.axis_1_idx[1], self.axis_1_tile_width
+        for row_start in range(0, self._arr_shape[0], self._axis_0_tile_length):
+            for col_start in range(
+                0, self._arr_shape[1], self._axis_1_tile_width
             ):
-                if self.num_dim == 2:
-                    yield np.s_[
-                        axes_0_start : axes_0_start
-                        + self.axis_0_tile_length : self.axis_0_stride,
-                        axes_1_start : axes_1_start
-                        + self.axis_1_tile_width : self.axis_1_stride,
-                    ]
-
-                else:  # 1 dimension array
-                    yield np.s_[
-                        axes_0_start : axes_0_start
-                        + self.axis_0_tile_length : self.axis_0_stride
-                    ]
+                yield np.s_[
+                    row_start : row_start
+                    + self._axis_0_tile_length : self._axis_0_stride,
+                    col_start : col_start
+                    + self._axis_1_tile_width : self._axis_1_stride,
+                ]
 
 
 def process_arr_by_tiles(
@@ -241,9 +166,133 @@ def process_arr_by_tiles(
         out_arr[out_slice] = tmp_out
 
 
-###############################################
-######       RSLC Tiling Functions      #######
-###############################################
+class SubBlock2D:
+    """
+    An array-like duck-type class for representing a 2D subblock of a 2D array.
+
+    Internally, this class does not create a copy in memory of the source
+    array; instead, it uses views of the source array.
+
+    Parameters
+    ----------
+    arr : array_like
+        Full input array.
+    slices : pair of slices
+        Pair of slices which define a 2D sub-block of `arr`.
+            Format: ( <axes 0 rows slice>, <axes 1 columns slice> )
+
+    Notes
+    -----
+    Slice objects can be created via the format:
+        slice(stop)
+        slice(start, stop[, step])
+
+    Example
+    -------
+    TODO
+    """
+
+    def __init__(self, arr: ArrayLike, slices: tuple[slice, slice]):
+        self._arr = arr
+        self._slices = slices
+
+    def __array__(self) -> np.ndarray:
+        """Return a view of the subblock."""
+        return self._arr[self._slices]
+
+    @property
+    def dtype(self) -> DTypeLike:
+        return self._arr.dtype
+
+    @property
+    def shape(self) -> tuple[int, int]:
+        """Return the shape of the subblock."""
+        nrow, ncol = np.shape(self._arr)
+
+        rowslice, colslice = self._slices
+
+        rowstart, rowstop, rowstride = rowslice.indices(nrow)
+        new_nrow = (rowstop - rowstart) // rowstride
+
+        colstart, colstop, colstride = colslice.indices(ncol)
+        new_ncol = (colstop - colstart) // colstride
+
+        return new_nrow, new_ncol
+
+    def __getitem__(self, /, key: tuple[slice, slice]) -> np.ndarray:
+        """
+        Return a view of a tile of this instance's primary 2D subblock.
+
+        Parameters
+        ----------
+        key : pair of slices
+            Pair of slices which define a tile in the primary 2D subblock
+            defined by this instance.
+            The indice values in the slices should correspond to the indices
+            of the primary 2D subblock; they should not correspond to the indices
+            of the orginal, full source array.
+            Format: ( <axes 0 rows slice>, <axes 1 columns slice> )
+        """
+
+        # Notes on variable names:
+        # Use arr_ to denote variables pertaining to the source array
+        # Use sub_ to denote variables pertaining to the 2D subblock
+        # Use tile_ to denote variables pertaining to the tile in the subblock
+
+        # Use 0 for indice values in source array's "indice coordinate system"
+        # Use 1 for indice values in the sublock's "indice coordinate system"
+
+        # Step 1: Get the subblock indices
+        arr_nrow, arr_ncol = np.shape(self._arr)
+        sub_rowslice0, sub_colslice0 = self._slices
+        sub_rowstart0, _, sub_rowstride0 = sub_rowslice0.indices(arr_nrow)
+        sub_colstart0, _, sub_colstride0 = sub_colslice0.indices(arr_ncol)
+
+        # Step 2: Get the tile indices+strides requested by the caller.
+        # These indices will correlate to the indices of the SUB-BLOCK.
+        sub_nrow, sub_ncol = self.shape
+        tile_rowslice1, tile_colslice1 = key
+        tile_rowstart1, tile_rowstop1, tile_rowstride1 = tile_rowslice1.indices(
+            sub_nrow
+        )
+        tile_colstart1, tile_colstop1, tile_colstride1 = tile_colslice1.indices(
+            sub_ncol
+        )
+
+        # When slicing into a numpy array, if a user provides slice indices
+        # outside of the array's valid indices, numpy simply returns the
+        # valid values in the array within the slice interval, and does not
+        # throw an error.
+        # Let's mimic that behavior here, to ensure we're treating
+        # the subblock as its own array, and not erroneously accessing parts
+        # of the source array outside of the subblock:
+        if tile_rowstart1 < 0:
+            tile_rowstart1 = 0
+        if tile_colstart1 < 0:
+            tile_colstart1 = 0
+        if tile_rowstop1 > sub_nrow:
+            tile_rowstop1 = sub_nrow
+        if tile_colstop1 > sub_ncol:
+            tile_colstop1 = sub_ncol
+
+        # Step 3: Compute the final indices in source-array coordinates to use
+        # to extract the requested tile
+        final_rowstart0 = sub_rowstart0 + tile_rowstart1
+        final_rowstop0 = sub_rowstart0 + tile_rowstop1
+        final_rowstride0 = sub_rowstride0 * tile_rowstride1
+
+        final_colstart0 = sub_colstart0 + tile_colstart1
+        final_colstop0 = sub_colstart0 + tile_colstop1
+        final_colstride0 = sub_colstride0 * tile_colstride1
+
+        final_rowslice0 = slice(
+            final_rowstart0, final_rowstop0, final_rowstride0
+        )
+        final_colslice0 = slice(
+            final_colstart0, final_colstop0, final_colstride0
+        )
+
+        return self._arr[final_rowslice0, final_colslice0]
 
 
 def compute_multilooked_backscatter_by_tiling(
@@ -655,7 +704,7 @@ def compute_range_spectra_by_tiling(
 def compute_az_spectra_by_tiling(
     arr: ArrayLike,
     sampling_rate: float,
-    col_indices: Optional[tuple[int, int]] = None,
+    subswath_slice: Optional[slice] = None,
     tile_width: int = 256,
     fft_shift: bool = True,
 ) -> np.ndarray:
@@ -668,15 +717,16 @@ def compute_az_spectra_by_tiling(
         Input array, representing a two-dimensional discrete-time signal.
     sampling_rate : numeric
         Azimuth sample rate (inverse of the sample spacing) in Hz.
-    col_indices : pair of int or None, optional
-        The start and stop indices for axes 1 that specify a subswath of `arr`;
-        the azimuth spectra will be computed by averaging the range samples in
-        this subswath.
-            Format: (<start index>, <stop index>)
-            Example: (2, 5)
-                This means columns 2, 3, and 4 will be used to compute `S_out`.
+    subswath_slice : slice or None, optional
+        The slice for axes 1 that specifies the columns which define a subswath
+        of `arr`; the azimuth spectra will be computed by averaging the
+        range samples in this subswath.
+            Format: slice(start, stop)
+            Example: slice(2, 5)
         If None, or if the number of columns in the subswath is greater than
         the width of the input array, then the full input array will be used.
+        Note that all rows will be used to compute the azimuth spectra, so
+        there is no need to provide a slice for axes 0.
         Defaults to None.
     tile_width : int, optional
         Tile width (number of columns) for processing each subswath by batches.
@@ -700,6 +750,13 @@ def compute_az_spectra_by_tiling(
         subswath of `arr` specified by `col_indices`. Azimuth spectra will
         be computed by averaging across columns within the subswath.
 
+    Raises
+    ------
+    ValueError
+        If the step value in `col_slice` is not equal to 1.
+        When computing the azimuth spectra, it is best to use contiguous range
+        lines for accurate statistics of the underlying physical phenomena.
+
     Notes
     -----
     When computing the azimuth spectra, full columns must be read in to
@@ -708,41 +765,54 @@ def compute_az_spectra_by_tiling(
 
     To reduce processing time, users can decrease the interval of `col_indices`.
     """
+    log = nisarqa.get_logger()
+
     arr_shape = np.shape(arr)
     if len(arr_shape) != 2:
         raise ValueError(
             f"Input array has {len(arr_shape)} dimensions, but must be 2D."
         )
 
-    nrows, arr_ncols = arr_shape
+    arr_nrows, arr_ncols = arr_shape
 
     # Validate column indices
-    if col_indices is None:
-        col_indices = (0, arr_ncols)
+    if subswath_slice is None:
+        subswath_slice = np.s_[:]  # equivalent to slice(None, None, None)
 
-    if (
-        (not isinstance(col_indices, Sequence))
-        or (len(col_indices) != 2)
-        or (not all(isinstance(i, int) for i in col_indices))
-    ):
-        raise ValueError(
-            f"`{col_indices=}` must be a sequence of two ints or None."
+    if (subswath_slice.step != 1) and (subswath_slice.step is not None):
+        msg = (
+            "Subswath slice along axes 1 has step value of:"
+            f" `{subswath_slice.step}`. Please set the step value"
+            " to 1 to use contiguous range lines when computing the azimuth"
+            " spectra, in order to produce accurate statistics of the"
+            " underlying physical phenomena."
         )
+        raise ValueError(msg)
 
-    subswath_width = col_indices[1] - col_indices[0]
+    subswath_width = subswath_slice.stop - subswath_slice.start
     if subswath_width > arr_ncols:
-        nisarqa.get_logger().error(
-            f"`{col_indices=}` which is {subswath_width} columns,"
-            f" but input raster only has a width of {arr_ncols} columns."
-            f" Column indices will be reduced to (0, {arr_ncols})."
+        log.error(
+            f"`{subswath_slice=}` creates a subswath with {subswath_width}"
+            f" columns, but input array only has {arr_ncols} columns."
+            f" Slice start and stop will be reduced to (0, {arr_ncols})."
         )
-        col_indices = (0, arr_ncols)
+        subswath_slice = slice(0, arr_ncols)
 
         # Subswaths cannot be wider than the available number of columns
         subswath_width = arr_ncols
 
     if (tile_width == -1) or (tile_width > subswath_width):
         tile_width = subswath_width
+
+    # Setup a 2D subblock view of the source array.
+    subswath = SubBlock2D(arr=arr, slices=(np.s_[:], subswath_slice))
+    assert arr_nrows == subswath.shape[0]
+    assert subswath_width == subswath.shape[1]
+
+    # From here on out, we'll treat the `subswath` as if it is our full array.
+    # That means are indice values will be in `subswath`'s "indice
+    # coordinate system". (They will no longer be in the "indice coordinate
+    # system" of the input `arr`.)
 
     # The TileIterator can only pull full tiles. In other functions, we simply
     # truncate the full array to have each edge be an integer multiple of the
@@ -753,41 +823,39 @@ def compute_az_spectra_by_tiling(
 
     # Truncate the column indices to be an integer multiple of `tile_width`.
     leftover_width = subswath_width % tile_width
-
-    trunc_col_indices = (col_indices[0], col_indices[1] - leftover_width)
-
-    if leftover_width == 0:
-        leftover_col_indices = None
-    else:
-        # There are some leftover columns to process!
-        leftover_col_indices = (col_indices[1] - leftover_width, col_indices[1])
+    trunc_width = subswath_width - leftover_width
 
     # Create the Iterator over the truncated subswath array
     input_iter = TileIterator(
-        axis_0_idx=(0, nrows),  # use all rows
-        axis_1_idx=trunc_col_indices,
+        arr_shape=(arr_nrows, trunc_width),
+        axis_0_tile_length=-1,  # use all rows
         axis_1_tile_width=tile_width,
     )
 
     # Initialize the accumulator array
-    S_avg = np.zeros(nrows)
+    S_avg = np.zeros(arr_nrows)
 
     # Compute FFT over the truncated portion of the subswath
     for tile_slice in input_iter:
         S_avg += _get_s_avg_for_tile(
-            arr_slice=arr[tile_slice],
+            arr_slice=subswath[tile_slice],
             fft_axis=0,  # Compute fft over along-track axis (axis 0)
-            num_fft_bins=nrows,
-            averaging_denominator=subswath_width,
+            num_fft_bins=arr_nrows,
+            averaging_denominator=subswath_width,  # full subswath (not truncated)
         )
 
     # Repeat process for the "leftover" portion of the subswath
     if leftover_width > 0:
-        arr_slice = arr[:, leftover_col_indices[0] : leftover_col_indices[1]]
+        leftover_2D_slice = (
+            np.s_[:],
+            slice(subswath_width - leftover_width, subswath_width),
+        )
+
+        leftover_subswath = subswath[leftover_2D_slice]
         S_avg += _get_s_avg_for_tile(
-            arr_slice=arr_slice,
+            arr_slice=leftover_subswath,
             fft_axis=0,  # Compute fft over along-track axis (axis 0)
-            num_fft_bins=nrows,
+            num_fft_bins=arr_nrows,
             averaging_denominator=subswath_width,
         )
 

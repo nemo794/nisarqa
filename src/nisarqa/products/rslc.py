@@ -1907,24 +1907,24 @@ def generate_az_spectra_single_freq(
 
                 # Get the start and stop column index for each subswath.
                 if (num_col == -1) or (num_col >= img_width):
-                    col_idx = (0, img_width)
+                    col_slice = slice(0, img_width)
                 else:
                     if subswath == "Near":
-                        col_idx = (0, num_col)
+                        col_slice = slice(0, num_col)
                     elif subswath == "Far":
-                        col_idx = (img_width - num_col, img_width)
+                        col_slice = slice(img_width - num_col, img_width)
                     else:
                         assert subswath == "Mid"
                         mid_img = img_width // 2
                         mid_num_col = num_col // 2
                         start_idx = mid_img - mid_num_col
-                        col_idx = (start_idx, start_idx + num_col)
+                        col_slice = slice(start_idx, start_idx + num_col)
 
                 # The returned array is in dB re 1/Hz
                 az_spectrum = nisarqa.compute_az_spectra_by_tiling(
                     arr=img.data,
                     sampling_rate=sample_rate,
-                    col_indices=col_idx,
+                    subswath_slice=col_slice,
                     tile_width=params.tile_width,
                     fft_shift=fft_shift,
                 )
@@ -1942,8 +1942,8 @@ def generate_az_spectra_single_freq(
                         f" {subswath}-Range."
                     ),
                     ds_attrs={
-                        "subswathStartIndex": col_idx[0],
-                        "subswathStopIndex": col_idx[1],
+                        "subswathStartIndex": col_slice.start,
+                        "subswathStopIndex": col_slice.stop,
                     },
                 )
 
@@ -1957,7 +1957,7 @@ def generate_az_spectra_single_freq(
 
                 # Label the Plot
                 ax.set_title(
-                    f"{subswath}-Range (columns {col_idx[0]}-{col_idx[1]})",
+                    f"{subswath}-Range (columns {col_slice.start}-{col_slice.stop})",
                     fontsize=9,
                 )
 
