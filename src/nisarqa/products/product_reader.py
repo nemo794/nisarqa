@@ -272,12 +272,12 @@ class NisarProduct(ABC):
 
     @cached_property
     def look_direction(self) -> str:
-        """Look direction of the image, either 'Left' or 'Right'."""
+        """Look direction of the sensor, either 'Left' or 'Right'."""
         id_group = self.identification_path
         with h5py.File(self.filepath) as f:
             lookside = f[id_group]["lookDirection"][()]
 
-        valid_options = ("Left", "Right")
+        valid_options = {"Left", "Right"}
         if lookside not in valid_options:
             msg = (
                 f"Input product's `lookDirection` is {lookside}, must"
@@ -1023,7 +1023,6 @@ class NisarRadarProduct(NisarProduct):
 
         # Reorder the corners for the LatLonQuad constructor,
         # which expects them in left-to-right top-to-bottom order.
-        #
         if nisarqa.Version(self.product_spec_version) <= nisarqa.Version(
             "1.1.0"
         ):
