@@ -277,6 +277,8 @@ class NisarProduct(ABC):
         with h5py.File(self.filepath) as f:
             lookside = f[id_group]["lookDirection"][()]
 
+        lookside = nisarqa.byte_string_to_python_str(lookside)
+
         valid_options = {"Left", "Right"}
         if lookside not in valid_options:
             msg = (
@@ -284,13 +286,16 @@ class NisarProduct(ABC):
                 f" be one of {valid_options}."
             )
             lookside_lower = lookside.lower()
-            if lookside_lower in valid_options:
+            if lookside_lower == "left":
                 nisarqa.get_logger().warning(msg)
-                lookside = "Left" if lookside_lower == "left" else "Right"
+                lookside = "Left"
+            elif lookside_lower == "right":
+                nisarqa.get_logger().warning(msg)
+                lookside = "Right"
             else:
                 raise ValueError(msg)
 
-            return nisarqa.byte_string_to_python_str(lookside)
+        return lookside
 
     @cached_property
     def identification_path(self) -> str:
