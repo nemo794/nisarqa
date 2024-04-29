@@ -1026,11 +1026,13 @@ class NisarRadarProduct(NisarProduct):
         # Corners are assumed to start at the 0th index and be evenly spaced
         corners = [coords[len(coords) // 4 * i] for i in range(4)]
 
-        # Reorder the corners for the LatLonQuad constructor,
-        # which expects them in left-to-right top-to-bottom order.
-        if nisarqa.Version(self.product_spec_version) <= nisarqa.Version(
-            "1.1.0"
-        ):
+        # Reorder the corners for the LatLonQuad constructor.
+        in_v = self.product_spec_version.split(".")
+        input_spec_version = nisarqa.Version(in_v[0], in_v[1], in_v[2])
+
+        if input_spec_version <= nisarqa.Version("1", "1", "0"):  # v1.1.0
+            # products <= v1.1.0 use the "old style" bounding polygon order
+
             # The boundingPolygon is specified in clockwise order in the
             # image coordinate system, starting at the upper-left of the image.
             geo_corners = nisarqa.LatLonQuad(
@@ -1042,7 +1044,8 @@ class NisarRadarProduct(NisarProduct):
         else:
             # boundingPolygon is specifed in counter-clockwise order in
             # map coordinates (not necessarily in the image coordinate system),
-            # starting from start-time, near-range.
+            # with the first point representing the start-time, near-range
+            # corner (aka the upper-left of the image).
 
             # In the left-looking case, the counter-clockwise orientation of
             # points in map coordinates corresponds to a counter-clockwise
