@@ -1026,7 +1026,7 @@ class NisarRadarProduct(NisarProduct):
         if nisarqa.Version(self.product_spec_version) <= nisarqa.Version(
             "1.1.0"
         ):
-            # The boundingPolygon is specified in clockwise order, starting at the
+            # The boundingPolygon is specified in clockwise order in the image coordinate system, starting at the
             # upper-left of the image.
             geo_corners = nisarqa.LatLonQuad(
                 ul=corners[0],
@@ -1035,23 +1035,29 @@ class NisarRadarProduct(NisarProduct):
                 lr=corners[2],
             )
         else:
-            # boundingPolygon is specifed in counter-clockwise order,
+            # boundingPolygon is specifed in counter-clockwise order in map coordinates (not necessarily in the image coordinate system),
             # starting from start-time, near-range.
             # TODO: Geoff, is there a difference for asecnding/descending?
+            # In the left-looking case, the counter-clockwise orientation of points in map coordinates
+                # corresponds to a counter-clockwise orientation of points in image coordinates, so the
+                # order of the corners must be reversed.
             if self.look_direction == "Left":
                 geo_corners = nisarqa.LatLonQuad(
-                    ul=corners[2],
-                    ur=corners[1],
-                    ll=corners[3],
-                    lr=corners[0],
+                    ul=corners[0],
+                    ur=corners[3],
+                    ll=corners[1],
+                    lr=corners[2],
                 )
             else:
+                # In the right-looking case, the counter-clockwise orientation of points in map coordinates
+                # corresponds to a clockwise orientation of points in image coordinates, so the corners are
+                # already in the correct ordering.
                 assert self.look_direction == "Right"
                 geo_corners = nisarqa.LatLonQuad(
-                    ul=corners[3],
-                    ur=corners[2],
-                    ll=corners[0],
-                    lr=corners[1],
+                    ul=corners[0],
+                    ur=corners[1],
+                    ll=corners[3],
+                    lr=corners[2],
                 )
 
         return geo_corners
