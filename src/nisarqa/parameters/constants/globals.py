@@ -159,6 +159,9 @@ STATS_H5_QA_FREQ_GROUP = (
     STATS_H5_QA_DATA_GROUP + "/frequency%s"
 )  # Two '%s' here!
 
+# RFI Group
+STATS_H5_RFI = STATS_H5_BASE_GROUP + "/rfiDetection"
+
 # CalTools
 STATS_H5_ABSCAL_STATS_H5_BASE_GROUP = (
     STATS_H5_BASE_GROUP + "/absoluteRadiometricCalibration"
@@ -212,6 +215,7 @@ __all__ = [
     "STATS_H5_QA_PROCESSING_GROUP",
     "STATS_H5_QA_DATA_GROUP",
     "STATS_H5_QA_FREQ_GROUP",
+    "STATS_H5_RFI",
     "STATS_H5_ABSCAL_STATS_H5_BASE_GROUP",
     "STATS_H5_ABSCAL_PROCESSING_GROUP",
     "STATS_H5_ABSCAL_DATA_GROUP",

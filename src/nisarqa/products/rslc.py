@@ -145,10 +145,13 @@ def verify_rslc(
             )
             log.info(f"QA Processing Parameters saved to {stats_file}")
 
-            nisarqa.rslc.copy_identification_group_to_stats_h5(
+            copy_identification_group_to_stats_h5(
                 product=product, stats_h5=stats_h5
             )
             log.info(f"Input file Identification group copied to {stats_file}")
+
+            copy_rfi_metadata_to_stats_h5(product=product, stats_h5=stats_h5)
+            log.info(f"Input file RFI metadata copied to {stats_file}")
 
     # Both the `qa_reports` and/or `point_target` steps may generate a report
     # PDF. If both are workflows are enabled, this can cause an issue, since
@@ -339,6 +342,43 @@ def copy_identification_group_to_stats_h5(
         else:
             # Copy entire identification metadata from input file to stats.h5
             in_file.copy(in_file[src_grp_path], stats_h5, dest_grp_path)
+
+
+def copy_rfi_metadata_to_stats_h5(
+    product: nisarqa.RSLC,
+    stats_h5: h5py.File,
+) -> None:
+    """
+    Copy the RFI metadata from the RSLC product into the STATS HDF5 file.
+
+    Parameters
+    ----------
+    product : nisarqa.RSLC
+        The RSLC product.
+    stats_filename : path-like
+        Filename (with path) for output STATS.h5 file. This is where
+        outputs from the CalTool should be stored.
+    """
+    with h5py.File(product.filepath, "r") as in_file:
+        for freq in product.freqs:
+            for pol in product.get_pols(freq=freq):
+                try:
+                    with product.get_rfi_likelihood_dataset(
+                        freq=freq, pol=pol
+                    ) as ds:
+
+                        basename = ds.name.split("/")[-1]
+                        out = (
+                            f"{nisarqa.STATS_H5_RFI % product.band}/"
+                            + f"frequency{freq}/{pol}/{basename}"
+                        )
+
+                        in_file.copy(ds, stats_h5, out)
+                except nisarqa.DatasetNotFoundError:
+                    nisarqa.get_logger().error(
+                        "Input RSLC product missing Dataset `rfiLikelihood`"
+                        f" for frequency {freq}, polarization {pol}."
+                    )
 
 
 # TODO - move to generic NISAR module
