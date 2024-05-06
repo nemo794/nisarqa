@@ -421,7 +421,7 @@ def attribute_unit_check(
         xml_iso_str = xml_units.removeprefix("seconds since ")
         hdf5_datetime_str = hdf5_units.removeprefix("seconds since ")
 
-        compare_datetime_iso_strings(
+        compare_datetime_strings(
             dataset_name=dataset_name,
             xml_iso_string=xml_iso_str,
             hdf5_datetime=hdf5_datetime_str,
@@ -435,7 +435,7 @@ def attribute_unit_check(
         )
 
 
-def compare_datetime_iso_strings(
+def compare_datetime_strings(
     dataset_name: str, xml_iso_string: str, hdf5_datetime: str
 ):
     """
@@ -452,48 +452,42 @@ def compare_datetime_iso_strings(
     """
     log = nisarqa.get_logger()
 
-    try:
-        is_valid = compare_datetime_to_iso_format(
-            datetime_str=hdf5_datetime,
-            iso_format_str=xml_iso_string,
-        )
-    except ValueError as err:
-        log.error(f"Dataset {dataset_name}: {err.args}")
-    if not is_valid:
+    standard_format = nisarqa.NISAR_DATETIME_FORMAT_HUMAN
+    if xml_iso_string != standard_format:
         log.error(
-            f"XML ISO format {xml_iso_string} does not match "
-            f"HDF5 datetime format {hdf5_datetime}: "
+            f"XML datetime format string {xml_iso_string} does not match "
+            f"ISCE3 standard datetime format {standard_format} - "
+            f"Dataset {dataset_name}"
+        )
+
+    if not check_product_datetime(hdf5_datetime):
+        log.error(
+            f"HDF5 datetime string {hdf5_datetime} does not conform to "
+            f"ISO-8601 standard datetime format - "
             f"Dataset {dataset_name}"
         )
 
 
-def compare_datetime_to_iso_format(
-    datetime_str: str, iso_format_str: str
-) -> bool:
+def check_product_datetime(datetime_str) -> bool:
     """
-    Compare a datetime string to an ISO format string.
+    Compare a datetime string against the standard datetime format for ISCE3.
 
     Parameters
     ----------
     datetime_str : str
         The datetime string.
-    iso_format_str : str
-        The ISO format string.
 
     Returns
     -------
     bool
         True if valid, False if not.
-
-    Raises
-    ------
-    ValueError
-        If `datetime_str` cannot be decoded into a datetime object.
     """
+    strptime_format = nisarqa.NISAR_DATETIME_FORMAT_PYTHON
+
     # Try to read the datetime string with the strptime format.
     # If this fails, then the format and the string don't match.
     try:
-        datetime.strptime(datetime_str, iso_format_str)
+        datetime.strptime(datetime_str, strptime_format)
     except Exception:
         return False
     return True
