@@ -323,9 +323,9 @@ def run_abscal_tool(
                     )
 
 
-def run_noise_estimation_tool(input_filename, stats_filename):
+def run_nes0_tool(input_filename, stats_filename):
     """
-    Run the Noise Estimation Tool workflow.
+    Run the Noise Equivalent Sigma 0 (nes0) Tool workflow.
 
     Parameters
     ----------
@@ -335,7 +335,9 @@ def run_noise_estimation_tool(input_filename, stats_filename):
         Filename (with path) for output STATS.h5 file. This is where
         outputs from the CalTool should be stored.
     """
-    # TODO: implement this CalTool workflow
+    # Step 1: Copy nes0 data from input RSLC to outputs STATS.h5
+    # 1 / 0
+    # TODO: Step 2: create standard deviation plots
 
     # Get list of bands from the input file.
     # QA must be able to handle both LSAR and SSAR.

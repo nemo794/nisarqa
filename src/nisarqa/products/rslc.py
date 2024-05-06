@@ -130,7 +130,7 @@ def verify_rslc(
     if (
         root_params.workflows.qa_reports
         or root_params.workflows.abs_cal
-        or root_params.workflows.noise_estimation
+        or root_params.workflows.nes0
         or root_params.workflows.point_target
     ):
         # This is the first time opening the STATS.h5 file for RSLC
@@ -257,18 +257,18 @@ def verify_rslc(
             if not verbose:
                 print(msg)
 
-        if root_params.workflows.noise_estimation:
-            log.info("Beginning Noise Estimation Tool CalTool...")
+        if root_params.workflows.nes0:
+            log.info(
+                "Beginning Noise Equivalent Sigma 0 (nes0) Tool CalTool..."
+            )
 
             # Run NET tool
-            nisarqa.caltools.run_noise_estimation_tool(
+            nisarqa.caltools.run_nes0_tool(
                 input_filename=input_file,
                 stats_filename=stats_file,
             )
-            log.info(
-                f"Noise Estimation Tool CalTool results saved to {stats_file}."
-            )
-            msg = "Noise Estimation Tool CalTool complete."
+            log.info(f"nes0 Tool CalTool results saved to {stats_file}.")
+            msg = "Noise Equivalent Sigma 0 (nes0) Tool CalTool complete."
             log.info(msg)
             if not verbose:
                 print(msg)

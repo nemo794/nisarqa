@@ -43,8 +43,9 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     abs_cal : bool, optional
         True to run the Absolute Radiometric Calibration Factor CalTool workflow
         Default: True
-    noise_estimation : bool, optional
-        True to run the Noise Estimation Tool (NET) workflow. Default: True
+    nes0 : bool, optional
+        True to run the Noise Equivalent Sigma 0 Tool (nes0) workflow.
+        Default: True.
     point_target : bool, optional
         True to run the Point Target Analyzer (PTA) workflow. Default: True
     """
@@ -60,13 +61,13 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         },
     )
 
-    noise_estimation: bool = field(
+    nes0: bool = field(
         default=WorkflowsParamGroup._default_val,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="noise_estimation",
+                name="nes0",
                 descr=WorkflowsParamGroup._descr
-                % "Noise Estimator Tool calibration tool",
+                % "Noise Equivalent Sigma 0 Tool (nes0) Tool calibration tool",
             )
         },
     )
@@ -86,7 +87,7 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         # VALIDATE INPUTS
         super().__post_init__()
         self._check_workflows_arg("abs_cal", self.abs_cal)
-        self._check_workflows_arg("noise_estimation", self.noise_estimation)
+        self._check_workflows_arg("nes0", self.nes0)
         self._check_workflows_arg("point_target", self.point_target)
 
 
