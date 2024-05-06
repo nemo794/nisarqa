@@ -264,7 +264,7 @@ def verify_rslc(
 
             # Run NET tool
             nisarqa.caltools.run_nes0_tool(
-                input_filename=input_file,
+                rslc=product,
                 stats_filename=stats_file,
             )
             log.info(f"nes0 Tool CalTool results saved to {stats_file}.")

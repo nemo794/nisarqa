@@ -323,49 +323,39 @@ def run_abscal_tool(
                     )
 
 
-def run_nes0_tool(input_filename, stats_filename):
+def run_nes0_tool(
+    rslc: nisarqa.RSLC,
+    stats_filename: str | os.PathLike,
+) -> None:
     """
     Run the Noise Equivalent Sigma 0 (nes0) Tool workflow.
 
     Parameters
     ----------
-    input_filename : str
-        Filename (with path) for input NISAR Product
-    stats_filename : str
+    rslc : nisarqa.RSLC
+        The RSLC product.
+    stats_filename : path-like
         Filename (with path) for output STATS.h5 file. This is where
         outputs from the CalTool should be stored.
     """
     # Step 1: Copy nes0 data from input RSLC to outputs STATS.h5
-    # 1 / 0
-    # TODO: Step 2: create standard deviation plots
+    with (
+        h5py.File(rslc.filepath, "r") as in_file,
+        h5py.File(stats_filename, "a") as stats_file,
+    ):
+        for freq in rslc.freqs:
+            try:
+                with rslc.get_nes0_metadata_group(freq=freq) as src_nes0_grp:
+                    dest_grp_path = f"{nisarqa.STATS_H5_NES0_DATA_GROUP % rslc.band}/frequency{freq}"
 
-    # Get list of bands from the input file.
-    # QA must be able to handle both LSAR and SSAR.
-    bands = []
-    with h5py.File(input_filename, mode="r") as in_file:
-        for band in nisarqa.NISAR_BANDS:
-            grp_path = f"/science/{band}SAR"
-            if grp_path in in_file:
-                bands.append(band)
+                    # Copy entire nes0 metadata from input file to stats.h5
+                    in_file.copy(src_nes0_grp, stats_file, dest_grp_path)
+            except nisarqa.DatasetNotFoundError:
+                nisarqa.get_logger().error(
+                    f"Input RSLC H5 missing `nes0` Group for frequency {freq}."
+                )
 
-    # Save placeholder data to the STATS.h5 file
-    # QA code workflows have probably already written to this HDF5 file,
-    # so it could be very bad to open in 'w' mode. Open in 'a' mode instead.
-    with h5py.File(stats_filename, mode="a") as stats_h5:
-        for band in bands:
-            # Step 1: Run the tool; get some results
-            result = "PLACEHOLDER"
-
-            # Step 2: store the data
-            grp_path = nisarqa.STATS_H5_NOISE_EST_DATA_GROUP % band
-            nisarqa.create_dataset_in_h5group(
-                h5_file=stats_h5,
-                grp_path=grp_path,
-                ds_name="Placeholder",
-                ds_data=result,
-                ds_description="Placeholder",
-                ds_units="Placeholder",
-            )
+    # TODO: Step 2: create plots
 
 
 def run_pta_single_freq_pol(

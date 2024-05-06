@@ -2242,6 +2242,70 @@ class RSLC(SLC, NisarRadarProduct):
 
         return path
 
+    @contextmanager
+    def get_nes0_metadata_group(self, freq: str) -> Iterator[h5py.Group]:
+        """
+        Get the path to the NES0 h5py Group.
+
+        Parameters
+        ----------
+        freq : {'A', 'B'}
+            The frequency sub-band. Must be a valid sub-band in the product.
+
+        Yields
+        ------
+        nes0_grp : h5py.Group
+            The Noise Equivalent Sigma 0 (NES0) Group for the given freq.
+
+        Raises
+        ------
+        nisarqa.DatasetNotFoundError
+            If the Group could not be found, either due to the input product
+            being too old, or the input product being created incorrectly.
+
+        See Also
+        --------
+        run_nes0_tool :
+            Copies NES0 Group from the input product to STATS.h5.
+
+        Notes
+        -----
+        Older test data (e.g. UAVSAR) has a different product specification
+        structure for storing the nes0 metadata. For simplicity, let's
+        only support data products with the newer (e.g. above ISCE3 R4,
+        product spec v1.1.0)
+        Unfortunately, that release does not correspond directly to product
+        specification version number. Product Specification v1.1.0 and later
+        definitely should have this dataset, but it's messy to algorithmically
+        handle the products generated prior to that.
+
+        Typically, QA product reader returns a actual values, and not a handle
+        to an h5py.Group. However, this Group is only being used by
+        `run_nes0_tool()`, which needs to wholesale copy the Group and its
+        contents recursively. By returning a handle to the Group, updates in
+        subsequent ISCE3 releases will be automatically get copied as well.
+        """
+
+        path = (
+            f"{self.metadata_path}/calibrationInformation/"
+            + f"frequency{freq}/nes0"
+        )
+
+        with h5py.File(self.filepath) as f:
+            try:
+                yield f[path]
+            except KeyError as e:
+                spec = nisarqa.Version.from_string(self.product_spec_version)
+                if spec >= nisarqa.Version(1, 1, 0):
+                    # It is always and error for products >= v1.1.0, so really
+                    # make sure the user sees the error.
+                    nisarqa.get_logger().error(
+                        "Bad input product: missing Group `nes0` for"
+                        f" frequency {freq} at path: {path}"
+                    )
+
+                raise nisarqa.DatasetNotFoundError from e
+
 
 @dataclass
 class GSLC(SLC, NonInsarGeoProduct):
