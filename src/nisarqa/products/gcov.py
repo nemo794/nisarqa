@@ -173,6 +173,12 @@ def verify_gcov(
                 product=product, stats_h5=stats_h5
             )
 
+            # Copy imagery metrics into stats.h5
+            nisarqa.rslc.copy_non_insar_imagery_metrics(
+                product=product, stats_h5=stats_h5
+            )
+            log.info(f"Input file imagery metrics copied to {stats_file}")
+
             input_raster_represents_power = True
             name_of_backscatter_content = (
                 r"GCOV Backscatter Coefficient ($\gamma^0$)"

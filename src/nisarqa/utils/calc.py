@@ -301,93 +301,6 @@ def compute_and_save_basic_statistics(
         so this information can live here.
         """
 
-        # Step 1: Create a dict to hold common naming conventions:
-
-        # Per ISCE3 R4 conventions, for floating-point datasets, use:
-        # min_value
-        # mean_value
-        # max_value
-        # sample_stddev
-
-        # For complex-valued dataset, use:
-        # min_real_value
-        # mean_real_value
-        # max_real_value
-        # sample_stddev_real
-        # min_imag_value
-        # mean_imag_value
-        # max_imag_value
-        # sample_stddev_imag
-        Stat = namedtuple("Stat", "name descr")
-
-        my_dict = {
-            "float": {
-                "min": Stat(
-                    "min_value", "Minimum value of the numeric data points"
-                ),
-                "max": Stat(
-                    "max_value", "Maximum value of the numeric data points"
-                ),
-                "mean": Stat(
-                    "mean_value",
-                    "Arithmetic average of the numeric data points",
-                ),
-                "std": Stat(
-                    "sample_stddev",
-                    "Sample standard deviation of the numeric data points",
-                ),
-            },
-            "real_comp": {
-                "min": Stat(
-                    "min_real_value",
-                    "Minimum value of the real component of the numeric data"
-                    " points",
-                ),
-                "max": Stat(
-                    "max_real_value",
-                    "Maximum value of the real component of the numeric data"
-                    " points",
-                ),
-                "mean": Stat(
-                    "mean_real_value",
-                    "Arithmetic average of the real component of the numeric"
-                    " data points",
-                ),
-                "std": Stat(
-                    "sample_stddev_real",
-                    "Sample standard deviation of the real component of the"
-                    " numeric data points",
-                ),
-            },
-            "imag_comp": {
-                "min": Stat(
-                    "min_imag_value",
-                    "Minimum value of the imaginary component of the numeric"
-                    " data points",
-                ),
-                "max": Stat(
-                    "max_imag_value",
-                    "Maximum value of the imaginary component of the numeric"
-                    " data points",
-                ),
-                "mean": Stat(
-                    "mean_imag_value",
-                    "Arithmetic average of the imaginary component of the"
-                    " numeric data points",
-                ),
-                "std": Stat(
-                    "sample_stddev_imag",
-                    "Sample standard deviation of the imaginary component of"
-                    " the numeric data points",
-                ),
-            },
-        }
-
-        try:
-            my_dict = my_dict[data_type]
-        except KeyError:
-            raise ValueError(f"{data_type=}, must be one of {my_dict.keys()}.")
-
         # Fill all invalid pixels in array with NaN, to easily compute metrics
         arr_copy = np.where(
             (np.isfinite(arr) & (arr != fill_value)), arr, np.nan
@@ -400,13 +313,29 @@ def compute_and_save_basic_statistics(
             ("mean", np.nanmean),
             ("std", lambda x: np.nanstd(x, ddof=1)),
         ]:
+            data_t = "real" if data_type == "float" else "complex"
+            if data_type == "float":
+                component = None
+            elif data_type == "real_comp":
+                component = "real"
+            elif data_type == "imag_comp":
+                component = "imag"
+            else:
+                raise ValueError(
+                    f"`{data_type=}`, must be one of 'float', 'real_comp', or 'imag_comp'."
+                )
+
+            name, descr = nisarqa.get_stats_name_descr(
+                stat=key, component=component
+            )
+
             nisarqa.create_dataset_in_h5group(
                 h5_file=stats_h5,
                 grp_path=grp_path,
-                ds_name=my_dict[key].name,
+                ds_name=name,
                 ds_data=func(arr_copy),
                 ds_units=units,
-                ds_description=my_dict[key].descr,
+                ds_description=descr,
             )
 
     if np.issubdtype(arr, np.complexfloating):

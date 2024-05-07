@@ -190,6 +190,12 @@ def verify_rslc(
                     stats_h5=stats_h5, product=product
                 )
 
+                # Copy imagery metrics into stats.h5
+                copy_non_insar_imagery_metrics(
+                    product=product, stats_h5=stats_h5
+                )
+                log.info(f"Input file imagery metrics copied to {stats_file}")
+
                 input_raster_represents_power = False
                 name_of_backscatter_content = (
                     r"RSLC Backscatter Coefficient ($\beta^0$)"
@@ -245,8 +251,6 @@ def verify_rslc(
                 log.info("Processing of azimuth power spectra complete.")
 
                 # Check for invalid values
-
-                # Compute metrics for stats.h5
 
                 log.info(f"PDF reports saved to {report_file}")
                 log.info(f"HDF5 statistics saved to {stats_file}")
@@ -2024,6 +2028,66 @@ def _get_units_hz_or_mhz(mhz: bool) -> tuple[str, str]:
         long_units = "hertz"
 
     return abbreviated_units, long_units
+
+
+def copy_non_insar_imagery_metrics(
+    product: nisarqa.NonInsarProduct, stats_h5: h5py.File
+) -> None:
+    """
+    Copy min/max/mean/std metrics of primary freq+pol imagery layers to QA HDF5.
+
+    This function accommodates both real or complex datasets.
+
+    Parameters
+    ----------
+    product : nisarqa.NisarProduct
+        Input NISAR product
+    stats_h5 : h5py.File
+        Handle to an h5 file where the metrics should be saved
+    """
+    log = nisarqa.get_logger()
+
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_raster(freq=freq, pol=pol) as img:
+                dest_path = (
+                    f"{nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq)}"
+                    f"/{pol}"
+                )
+
+                # Build dict of metrics attributes which should be in the
+                # input product
+                metric_attrs = {}
+                for m in ("min", "max", "mean", "std"):
+                    if np.issubdtype(img.data.dtype, np.complexfloating):
+                        for component in ("real", "imag"):
+                            metric_name, metric_descr = (
+                                nisarqa.get_stats_name_descr(
+                                    stat=m, component=component
+                                )
+                            )
+                            metric_attrs[metric_name] = metric_descr
+                    else:
+                        assert np.issubdtype(img.data.dtype, np.floating)
+                        metric_name, metric_descr = (
+                            nisarqa.get_stats_name_descr(stat=m, component=None)
+                        )
+                        metric_attrs[metric_name] = metric_descr
+
+                for name, descr in metric_attrs.items():
+                    if name in img.data.attrs:
+                        nisarqa.create_dataset_in_h5group(
+                            h5_file=stats_h5,
+                            grp_path=dest_path,
+                            ds_name=name,
+                            ds_data=img.data.attrs[name],
+                            ds_description=descr,
+                            ds_units=img.units,
+                        )
+                    else:
+                        log.error(
+                            f"Missing attribute `{name}`. Dataset: {img.name}"
+                        )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

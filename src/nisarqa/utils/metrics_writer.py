@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Optional
+
 import h5py
 
 import nisarqa
@@ -488,6 +491,107 @@ def percent_total_invalid_is_within_threshold(
     )
 
     return passes_metric, percentage
+
+
+def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
+    """
+    Return name and description for a min/max/mean/std metric for the STATS.h5.
+
+    Parameters
+    ----------
+    stat : str
+        One of {"min", "max", "mean", "std"}.
+    component : str or None
+        One of "real", "imag", or None.
+        Per ISCE3 convention, for complex-valued data, the statistics
+        should be computed independently for the real component and
+        for the imaginary component of the data.
+        If the source dataset is real-valued, set this to None.
+        If the source dataset is complex-valued, set this to "real" for the
+        real-valued component's name and description, or set to "imag"
+        for the imaginary component's name and description.
+
+    Returns
+    -------
+    name, description : str, str
+        Official name and description (respectively) for the requested stat.
+    """
+    # Per ISCE3 R4 conventions, for floating-point datasets, use:
+    #     min_value
+    #     mean_value
+    #     max_value
+    #     sample_stddev
+
+    # For complex-valued dataset, use:
+    #     min_real_value
+    #     mean_real_value
+    #     max_real_value
+    #     sample_stddev_real
+    #     min_imag_value
+    #     mean_imag_value
+    #     max_imag_value
+    #     sample_stddev_imag
+
+    stat_opts = ("min", "max", "mean", "std")
+    if stat not in stat_opts:
+        raise ValueError(f"{stat=}, must be one of {stat_opts}.")
+
+    if component not in ("real", "imag", None):
+        raise ValueError(f"`{component=!r}, must be 'real', 'imag', or None.")
+
+    if component is None:
+        if stat == "min":
+            return "min_value", "Minimum value of the numeric data points"
+        if stat == "max":
+            return "max_value", "Maximum value of the numeric data points"
+        if stat == "mean":
+            return "mean_value", "Arithmetic average of the numeric data points"
+        if stat == "std":
+            return (
+                "sample_stddev",
+                "Sample standard deviation of the numeric data points",
+            )
+
+    # Complex data
+    if component == "real":
+        short_name = "real"
+        long_name = "real"
+    else:
+        short_name = "imag"
+        long_name = "imaginary"
+
+    if stat == "min":
+        return (
+            f"min_{short_name}_value",
+            (
+                f"Minimum value of the {long_name} component of the"
+                " numeric data points"
+            ),
+        )
+    if stat == "max":
+        return (
+            f"max_{short_name}_value",
+            (
+                f"Maximum value of the {long_name} component of the"
+                " numeric data points"
+            ),
+        )
+    if stat == "mean":
+        return (
+            f"mean_{short_name}_value",
+            (
+                f"Arithmetic average of the {long_name} component of the"
+                " numeric data points"
+            ),
+        )
+    if stat == "std":
+        return (
+            f"sample_stddev_{short_name}",
+            (
+                f"Sample standard deviation of the {long_name} component"
+                " of the numeric data points"
+            ),
+        )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
