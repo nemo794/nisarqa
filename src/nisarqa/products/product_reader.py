@@ -2272,8 +2272,8 @@ class RSLC(SLC, NisarRadarProduct):
         -----
         Older test data (e.g. UAVSAR) has a different product specification
         structure for storing the nes0 metadata. For simplicity, let's
-        only support data products with the newer (e.g. above ISCE3 R4,
-        product spec v1.1.0)
+        only support data products with the newer structure (e.g. above ISCE3 R4,
+        product spec v1.1.0).
         Unfortunately, that release does not correspond directly to product
         specification version number. Product Specification v1.1.0 and later
         definitely should have this dataset, but it's messy to algorithmically

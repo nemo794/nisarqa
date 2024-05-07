@@ -267,8 +267,8 @@ def verify_rslc(
                 rslc=product,
                 stats_filename=stats_file,
             )
-            log.info(f"nes0 Tool CalTool results saved to {stats_file}.")
-            msg = "Noise Equivalent Sigma 0 (nes0) Tool CalTool complete."
+            log.info(f"nes0 CalTool results saved to {stats_file}.")
+            msg = "Noise Equivalent Sigma 0 (nes0) CalTool complete."
             log.info(msg)
             if not verbose:
                 print(msg)
