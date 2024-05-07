@@ -369,7 +369,7 @@ def copy_rfi_metadata_to_stats_h5(
 
                         basename = ds.name.split("/")[-1]
                         out = (
-                            f"{nisarqa.STATS_H5_RFI % product.band}/"
+                            f"{nisarqa.STATS_H5_RFI_DATA_GROUP % product.band}/"
                             + f"frequency{freq}/{pol}/{basename}"
                         )
 
