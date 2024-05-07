@@ -160,7 +160,7 @@ STATS_H5_QA_FREQ_GROUP = (
 )  # Two '%s' here!
 
 # RFI Group
-STATS_H5_RFI = STATS_H5_BASE_GROUP + "/rfiDetection"
+STATS_H5_RFI = STATS_H5_BASE_GROUP + "/RFI"
 
 # CalTools
 STATS_H5_ABSCAL_STATS_H5_BASE_GROUP = (

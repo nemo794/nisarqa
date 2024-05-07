@@ -690,7 +690,6 @@ class NisarProduct(ABC):
         """
         The path in the input file to the `metadata` Group.
 
-
         Returns
         -------
         path : str

@@ -355,9 +355,9 @@ def copy_rfi_metadata_to_stats_h5(
     ----------
     product : nisarqa.RSLC
         The RSLC product.
-    stats_filename : path-like
-        Filename (with path) for output STATS.h5 file. This is where
-        outputs from the CalTool should be stored.
+    stats_h5 : h5py.File
+        Handle to an HDF5 file where the identification metadata
+        should be saved.
     """
     with h5py.File(product.filepath, "r") as in_file:
         for freq in product.freqs:
