@@ -20,8 +20,8 @@ class TileIterator:
     def __init__(
         self,
         arr_shape: tuple[int, int],
-        axis_0_tile_length: int = -1,
-        axis_1_tile_width: int = -1,
+        axis_0_tile_dim: int = -1,
+        axis_1_tile_dim: int = -1,
         axis_0_stride: int = 1,
         axis_1_stride: int = 1,
     ):
@@ -30,18 +30,17 @@ class TileIterator:
 
         The iterator's first slice yielded will always start at row 0, column 0.
         To start in the middle of the 2D array (e.g. for iterating over
-        a subswath of an array), please use the XXXX class.
+        a subswath of an array), please use the `SubBlock2D` class.
 
         Parameters
         ----------
         arr_shape : tuple of int
             The shape of the 2D array that this TileIterator is for.
-        axis_0_tile_length : int, optional
+        axis_0_tile_dim : int, optional
             Length of tile (i.e. number of elements) along axis 0.
             Defaults to -1, meaning all elements along axis 0 will be processed.
-        axis_1_tile_width : int, optional
+        axis_1_tile_dim : int, optional
             Width of tile (i.e. number of elements) along axis 1.
-            Only relevant for 2D arrays; will be ignored for 1D arrays.
             Defaults to -1, meaning all elements along axis 1 will be processed.
         axis_0_stride : int, optional
             Amount to decimate the input array along axis 0.
@@ -103,7 +102,7 @@ class TileIterator:
 
         The iterator's first slice yielded will always start at row 0, column 0.
         To start in the middle of the 2D array (e.g. for iterating over
-        a subswath of an array), please use the XXXX class.
+        a subswath of an array), please use the `SubBlock2D` class.
 
         Yields
         ------
@@ -168,7 +167,7 @@ def process_arr_by_tiles(
 
 class SubBlock2D:
     """
-    An array-like duck-type class for representing a 2D subblock of a 2D array.
+    An array-like class for representing a 2D subblock of a 2D array.
 
     Internally, this class does not create a copy in memory of the source
     array; instead, it uses views of the source array.
@@ -180,16 +179,6 @@ class SubBlock2D:
     slices : pair of slices
         Pair of slices which define a 2D sub-block of `arr`.
             Format: ( <axes 0 rows slice>, <axes 1 columns slice> )
-
-    Notes
-    -----
-    Slice objects can be created via the format:
-        slice(stop)
-        slice(start, stop[, step])
-
-    Example
-    -------
-    TODO
     """
 
     def __init__(self, arr: ArrayLike, slices: tuple[slice, slice]):
@@ -197,8 +186,8 @@ class SubBlock2D:
         self._slices = slices
 
     def __array__(self) -> np.ndarray:
-        """Return a view of the subblock."""
-        return self._arr[self._slices]
+        """Return the subblock as a NumPy array."""
+        return np.asanyarray(self._arr[self._slices])
 
     @property
     def dtype(self) -> DTypeLike:
@@ -221,7 +210,7 @@ class SubBlock2D:
 
     def __getitem__(self, /, key: tuple[slice, slice]) -> np.ndarray:
         """
-        Return a view of a tile of this instance's primary 2D subblock.
+        Return a tile of the 2D subblock.
 
         Parameters
         ----------
@@ -239,8 +228,8 @@ class SubBlock2D:
         # Use sub_ to denote variables pertaining to the 2D subblock
         # Use tile_ to denote variables pertaining to the tile in the subblock
 
-        # Use 0 for indice values in source array's "indice coordinate system"
-        # Use 1 for indice values in the sublock's "indice coordinate system"
+        # Use 0 for index values in source array's "index coordinate system"
+        # Use 1 for index values in the sublock's "index coordinate system"
 
         # Step 1: Get the subblock indices
         arr_nrow, arr_ncol = np.shape(self._arr)
@@ -249,7 +238,7 @@ class SubBlock2D:
         sub_colstart0, _, sub_colstride0 = sub_colslice0.indices(arr_ncol)
 
         # Step 2: Get the tile indices+strides requested by the caller.
-        # These indices will correlate to the indices of the SUB-BLOCK.
+        # These indices will be in the index coordinate system of the SUB-BLOCK.
         sub_nrow, sub_ncol = self.shape
         tile_rowslice1, tile_colslice1 = key
         tile_rowstart1, tile_rowstop1, tile_rowstride1 = tile_rowslice1.indices(
@@ -259,40 +248,25 @@ class SubBlock2D:
             sub_ncol
         )
 
-        # When slicing into a numpy array, if a user provides slice indices
-        # outside of the array's valid indices, numpy simply returns the
-        # valid values in the array within the slice interval, and does not
-        # throw an error.
-        # Let's mimic that behavior here, to ensure we're treating
-        # the subblock as its own array, and not erroneously accessing parts
-        # of the source array outside of the subblock:
-        if tile_rowstart1 < 0:
-            tile_rowstart1 = 0
-        if tile_colstart1 < 0:
-            tile_colstart1 = 0
-        if tile_rowstop1 > sub_nrow:
-            tile_rowstop1 = sub_nrow
-        if tile_colstop1 > sub_ncol:
-            tile_colstop1 = sub_ncol
 
         # Step 3: Compute the final indices in source-array coordinates to use
         # to extract the requested tile
-        final_rowstart0 = sub_rowstart0 + tile_rowstart1
-        final_rowstop0 = sub_rowstart0 + tile_rowstop1
-        final_rowstride0 = sub_rowstride0 * tile_rowstride1
+        tile_rowstart0 = sub_rowstart0 + tile_rowstart1
+        tile_rowstop0 = sub_rowstart0 + tile_rowstop1
+        tile_rowstride0 = sub_rowstride0 * tile_rowstride1
 
-        final_colstart0 = sub_colstart0 + tile_colstart1
-        final_colstop0 = sub_colstart0 + tile_colstop1
-        final_colstride0 = sub_colstride0 * tile_colstride1
+        tile_colstart0 = sub_colstart0 + tile_colstart1
+        tile_colstop0 = sub_colstart0 + tile_colstop1
+        tile_colstride0 = sub_colstride0 * tile_colstride1
 
-        final_rowslice0 = slice(
-            final_rowstart0, final_rowstop0, final_rowstride0
+        tile_rowslice0 = slice(
+            tile_rowstart0, tile_rowstop0, tile_rowstride0
         )
-        final_colslice0 = slice(
-            final_colstart0, final_colstop0, final_colstride0
+        tile_colslice0 = slice(
+            tile_colstart0, tile_colstop0, tile_colstride0
         )
 
-        return self._arr[final_rowslice0, final_colslice0]
+        return self._arr[tile_rowslice0, tile_colslice0]
 
 
 def compute_multilooked_backscatter_by_tiling(
@@ -394,13 +368,13 @@ def compute_multilooked_backscatter_by_tiling(
     # Create the Iterators
     input_iter = TileIterator(
         arr_shape=in_arr_valid_shape,
-        axis_0_tile_length=in_tiling_shape[0],
-        axis_1_tile_width=in_tiling_shape[1],
+        axis_0_tile_dim=in_tiling_shape[0],
+        axis_1_tile_dim=in_tiling_shape[1],
     )
     out_iter = TileIterator(
         arr_shape=final_out_arr_shape,
-        axis_0_tile_length=out_tiling_shape[0],
-        axis_1_tile_width=out_tiling_shape[1],
+        axis_0_tile_dim=out_tiling_shape[0],
+        axis_1_tile_dim=out_tiling_shape[1],
     )
 
     # Create an inner function for this use case.
@@ -531,8 +505,8 @@ def compute_histogram_by_tiling(
     # Create the Iterator over the input array
     input_iter = TileIterator(
         arr_shape=arr_shape,
-        axis_0_tile_length=in_tiling_shape[0],
-        axis_1_tile_width=in_tiling_shape[1],
+        axis_0_tile_dim=in_tiling_shape[0],
+        axis_1_tile_dim=in_tiling_shape[1],
         axis_0_stride=decimation_ratio[0],
         axis_1_stride=decimation_ratio[1],
     )
@@ -681,7 +655,7 @@ def compute_range_spectra_by_tiling(
     # Create the Iterator over the input array
     input_iter = TileIterator(
         arr_shape=np.shape(arr),
-        axis_0_tile_length=tile_height,
+        axis_0_tile_dim=tile_height,
         axis_0_stride=az_decimation,
     )
 
@@ -789,7 +763,8 @@ def compute_az_spectra_by_tiling(
         )
         raise ValueError(msg)
 
-    subswath_width = subswath_slice.stop - subswath_slice.start
+    subswath_start, subswath_stop, _ = subswath_slice.indices(arr_ncols)
+    subswath_width = subswath_stop - subswath_start
     if subswath_width > arr_ncols:
         log.error(
             f"`{subswath_slice=}` creates a subswath with {subswath_width}"
@@ -810,8 +785,8 @@ def compute_az_spectra_by_tiling(
     assert subswath_width == subswath.shape[1]
 
     # From here on out, we'll treat the `subswath` as if it is our full array.
-    # That means are indice values will be in `subswath`'s "indice
-    # coordinate system". (They will no longer be in the "indice coordinate
+    # That means are index values will be in `subswath`'s "index
+    # coordinate system". (They will no longer be in the "index coordinate
     # system" of the input `arr`.)
 
     # The TileIterator can only pull full tiles. In other functions, we simply
