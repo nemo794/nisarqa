@@ -376,8 +376,6 @@ def copy_rfi_metadata_to_stats_h5(
                     # does not exist:
                     #       RuntimeError: Unable to synchronously copy object
                     #       (component not found)
-
-                    # If the
                     nisarqa.get_logger().error(
                         "Cannot copy `rfiLikelihood`. Input RSLC product is"
                         " missing `rfiLikelihood` for"
