@@ -64,15 +64,15 @@ class TileIterator:
             )
         self._arr_shape = arr_shape
 
-        if axis_0_tile_length == -1:
-            self._axis_0_tile_length = arr_shape[0]
+        if axis_0_tile_dim == -1:
+            self._axis_0_tile_dim = arr_shape[0]
         else:
-            self._axis_0_tile_length = axis_0_tile_length
+            self._axis_0_tile_dim = axis_0_tile_dim
 
-        if axis_1_tile_width == -1:
-            self._axis_1_tile_width = arr_shape[1]
+        if axis_1_tile_dim == -1:
+            self._axis_1_tile_dim = arr_shape[1]
         else:
-            self._axis_1_tile_width = axis_1_tile_width
+            self._axis_1_tile_dim = axis_1_tile_dim
 
         self._axis_0_stride = axis_0_stride
         self._axis_1_stride = axis_1_stride
@@ -84,15 +84,15 @@ class TileIterator:
             + "This will lead to incorrect decimation of the source array."
         )
 
-        if self._axis_1_tile_width % self._axis_1_stride != 0:
+        if self._axis_1_tile_dim % self._axis_1_stride != 0:
             warnings.warn(
-                msg % ("1", self._axis_1_tile_width, "1", self._axis_1_stride),
+                msg % ("1", self._axis_1_tile_dim, "1", self._axis_1_stride),
                 RuntimeWarning,
             )
 
-        if self._axis_0_tile_length % self._axis_0_stride != 0:
+        if self._axis_0_tile_dim % self._axis_0_stride != 0:
             warnings.warn(
-                msg % ("0", self._axis_0_tile_length, "0", self._axis_0_stride),
+                msg % ("0", self._axis_0_tile_dim, "0", self._axis_0_stride),
                 RuntimeWarning,
             )
 
@@ -110,15 +110,15 @@ class TileIterator:
             A tuple of slice objects that can be used for
             indexing into the next tile of an array_like object.
         """
-        for row_start in range(0, self._arr_shape[0], self._axis_0_tile_length):
+        for row_start in range(0, self._arr_shape[0], self._axis_0_tile_dim):
             for col_start in range(
-                0, self._arr_shape[1], self._axis_1_tile_width
+                0, self._arr_shape[1], self._axis_1_tile_dim
             ):
                 yield np.s_[
                     row_start : row_start
-                    + self._axis_0_tile_length : self._axis_0_stride,
+                    + self._axis_0_tile_dim : self._axis_0_stride,
                     col_start : col_start
-                    + self._axis_1_tile_width : self._axis_1_stride,
+                    + self._axis_1_tile_dim : self._axis_1_stride,
                 ]
 
 
@@ -248,7 +248,6 @@ class SubBlock2D:
             sub_ncol
         )
 
-
         # Step 3: Compute the final indices in source-array coordinates to use
         # to extract the requested tile
         tile_rowstart0 = sub_rowstart0 + tile_rowstart1
@@ -259,12 +258,8 @@ class SubBlock2D:
         tile_colstop0 = sub_colstart0 + tile_colstop1
         tile_colstride0 = sub_colstride0 * tile_colstride1
 
-        tile_rowslice0 = slice(
-            tile_rowstart0, tile_rowstop0, tile_rowstride0
-        )
-        tile_colslice0 = slice(
-            tile_colstart0, tile_colstop0, tile_colstride0
-        )
+        tile_rowslice0 = slice(tile_rowstart0, tile_rowstop0, tile_rowstride0)
+        tile_colslice0 = slice(tile_colstart0, tile_colstop0, tile_colstride0)
 
         return self._arr[tile_rowslice0, tile_colslice0]
 
@@ -724,13 +719,6 @@ def compute_az_spectra_by_tiling(
         subswath of `arr` specified by `col_indices`. Azimuth spectra will
         be computed by averaging across columns within the subswath.
 
-    Raises
-    ------
-    ValueError
-        If the step value in `col_slice` is not equal to 1.
-        When computing the azimuth spectra, it is best to use contiguous range
-        lines for accurate statistics of the underlying physical phenomena.
-
     Notes
     -----
     When computing the azimuth spectra, full columns must be read in to
@@ -754,27 +742,17 @@ def compute_az_spectra_by_tiling(
         subswath_slice = np.s_[:]  # equivalent to slice(None, None, None)
 
     if (subswath_slice.step != 1) and (subswath_slice.step is not None):
+        # In theory, having a step size >1 could be supported, but it seems
+        # unnecessary and overly complicated to bookkeep for current QA needs.
         msg = (
             "Subswath slice along axes 1 has step value of:"
-            f" `{subswath_slice.step}`. Please set the step value"
-            " to 1 to use contiguous range lines when computing the azimuth"
-            " spectra, in order to produce accurate statistics of the"
-            " underlying physical phenomena."
+            f" `{subswath_slice.step}`, which is not supported. Please set"
+            " the step value to 1."
         )
-        raise ValueError(msg)
+        raise NotImplementedError(msg)
 
     subswath_start, subswath_stop, _ = subswath_slice.indices(arr_ncols)
     subswath_width = subswath_stop - subswath_start
-    if subswath_width > arr_ncols:
-        log.error(
-            f"`{subswath_slice=}` creates a subswath with {subswath_width}"
-            f" columns, but input array only has {arr_ncols} columns."
-            f" Slice start and stop will be reduced to (0, {arr_ncols})."
-        )
-        subswath_slice = slice(0, arr_ncols)
-
-        # Subswaths cannot be wider than the available number of columns
-        subswath_width = arr_ncols
 
     if (tile_width == -1) or (tile_width > subswath_width):
         tile_width = subswath_width
@@ -803,8 +781,8 @@ def compute_az_spectra_by_tiling(
     # Create the Iterator over the truncated subswath array
     input_iter = TileIterator(
         arr_shape=(arr_nrows, trunc_width),
-        axis_0_tile_length=-1,  # use all rows
-        axis_1_tile_width=tile_width,
+        axis_0_tile_dim=-1,  # use all rows
+        axis_1_tile_dim=tile_width,
     )
 
     # Initialize the accumulator array
