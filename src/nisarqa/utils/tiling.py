@@ -600,10 +600,10 @@ def compute_range_spectra_by_tiling(
         will be fixed to the number of columns in the input raster.
         Defaults to 512.
     fft_shift : bool, optional
-        True to have the frequencies in `range_power_spec` be continuous from
-        negative (min) -> positive (max) values.
+        True to shift `S_out` to correspond to frequency bins that are
+        continuous from negative (min) -> positive (max) values.
 
-        False to leave `range_power_spec` as the output from
+        False to leave `S_out` unshifted, such that the values correspond to
         `numpy.fft.fftfreq()`, where this discrete FFT operation orders values
         from 0 -> max positive -> min negative -> 0- . (This creates
         a discontinuity in the interval's values.)
@@ -702,10 +702,10 @@ def compute_az_spectra_by_tiling(
         -1 to use the full width of the subswath.
         Defaults to 256.
     fft_shift : bool, optional
-        True if the frequency bins are continuous from
-        negative (min) -> positive (max) values.
+        True to shift `S_out` to correspond to frequency bins that are
+        continuous from negative (min) -> positive (max) values.
 
-        False to leave the frequency bins as the output from
+        False to leave `S_out` unshifted, such that the values correspond to
         `numpy.fft.fftfreq()`, where this discrete FFT operation orders values
         from 0 -> max positive -> min negative -> 0- . (This creates
         a discontinuity in the interval's values.)
@@ -912,8 +912,7 @@ def _post_process_s_avg(
         S_out = nisarqa.pow2db(S_out)
 
     if fft_shift:
-        # Shift S_out to be aligned with the
-        # shifted FFT frequencies.
+        # Shift S_out to be aligned with the shifted FFT frequencies.
         S_out = np.fft.fftshift(S_out)
 
     return S_out
