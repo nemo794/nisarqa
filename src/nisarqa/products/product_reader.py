@@ -1027,13 +1027,10 @@ class NisarRadarProduct(NisarProduct):
         corners = [coords[len(coords) // 4 * i] for i in range(4)]
 
         # Reorder the corners for the LatLonQuad constructor.
-        in_v = self.product_spec_version.split(".")
-        input_spec_version = nisarqa.Version(in_v[0], in_v[1], in_v[2])
-
-        if input_spec_version <= nisarqa.Version("1", "1", "0"):  # v1.1.0
-            # products <= v1.1.0 use the "old style" bounding polygon order
-
-            # The boundingPolygon is specified in clockwise order in the
+        input_spec_version = nisarqa.Version.from_string(self.product_spec_version)
+        if input_spec_version <= nisarqa.Version(1, 1, 0):
+            # products <= v1.1.0 use the "old style" bounding polygon order: 
+            # the boundingPolygon is specified in clockwise order in the
             # image coordinate system, starting at the upper-left of the image.
             geo_corners = nisarqa.LatLonQuad(
                 ul=corners[0],
