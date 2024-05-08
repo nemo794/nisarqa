@@ -362,22 +362,26 @@ def copy_rfi_metadata_to_stats_h5(
     with h5py.File(product.filepath, "r") as in_file:
         for freq in product.freqs:
             for pol in product.get_pols(freq=freq):
+                src_path = product.get_rfi_likelihood_path(freq=freq, pol=pol)
+
+                basename = src_path.split("/")[-1]
+                dest_path = (
+                    f"{nisarqa.STATS_H5_RFI_DATA_GROUP % product.band}/"
+                    + f"frequency{freq}/{pol}/{basename}"
+                )
                 try:
-                    with product.get_rfi_likelihood_dataset(
-                        freq=freq, pol=pol
-                    ) as ds:
+                    in_file.copy(src_path, stats_h5, dest_path)
+                except RuntimeError:
+                    # h5py.File.copy() raises this error if `src_path`
+                    # does not exist:
+                    #       RuntimeError: Unable to synchronously copy object
+                    #       (component not found)
 
-                        basename = ds.name.split("/")[-1]
-                        out = (
-                            f"{nisarqa.STATS_H5_RFI_DATA_GROUP % product.band}/"
-                            + f"frequency{freq}/{pol}/{basename}"
-                        )
-
-                        in_file.copy(ds, stats_h5, out)
-                except nisarqa.DatasetNotFoundError:
+                    # If the
                     nisarqa.get_logger().error(
-                        "Input RSLC product missing Dataset `rfiLikelihood`"
-                        f" for frequency {freq}, polarization {pol}."
+                        "Cannot copy `rfiLikelihood`. Input RSLC product is"
+                        " missing `rfiLikelihood` for"
+                        f" frequency {freq}, polarization {pol} at {src_path}"
                     )
 
 

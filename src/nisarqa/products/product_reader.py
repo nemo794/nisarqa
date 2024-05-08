@@ -2185,10 +2185,7 @@ class RSLC(SLC, NisarRadarProduct):
 
         return _get_proc_center_freq(freq)
 
-    @contextmanager
-    def get_rfi_likelihood_dataset(
-        self, freq: str, pol: str
-    ) -> Iterator[h5py.Dataset]:
+    def get_rfi_likelihood_path(self, freq: str, pol: str) -> str:
         """
         Get the path to the RFI likelihood h5py Dataset.
 
@@ -2199,17 +2196,22 @@ class RSLC(SLC, NisarRadarProduct):
         pol : str
             The desired polarization, e.g. "HH" or "HV".
 
-        Yields
-        ------
-        rfi_likelihood_path : h5py.Dataset
-            The radio frequency interference (RFI) likelihood Dataset
-            for the given freq and pol.
+        Returns
+        -------
+        rfi_likelihood_path : str
+            The path to the radio frequency interference (RFI) likelihood
+            Dataset for the given freq and pol.
 
-        Raises
-        ------
-        nisarqa.DatasetNotFoundError
-            If the Dataset could not be found, either due to the input product
-            being too old, or the input product being created incorrectly.
+        Warnings
+        --------
+        `rfiLikelihood` was added in ISCE3 v0.17.0 for R3.4.1.
+        Unfortunately, that release does not correspond directly to product
+        specification version number. Product Specification v1.1.0 and later
+        should have this dataset, but it's messy to algorithmically
+        handle the products generated prior to that. The returned
+        `rfi_likelihood_path` will be correct for products generated with
+        ISCE3 v0.17.0 and later, but might not exist in earlier test datasets.
+        The calling function should handle this case accordingly.
 
         See Also
         --------
@@ -2218,39 +2220,27 @@ class RSLC(SLC, NisarRadarProduct):
 
         Notes
         -----
-        `rfiLikelihood` was added in ISCE3 v0.17.0 for R3.4.1.
-        Unfortunately, that release does not correspond directly to product
-        specification version number. Product Specification v1.1.0 and later
-        definitely should have this dataset, but it's messy to algorithmically
-        handle the products generated prior to that.
-
-        Typically, QA returns the Dataset's actual values, and not a handle
+        Typically, QA returns the Dataset's actual values, and not a path
         to an h5py.Dataset. However, this Dataset is only being used by
         `copy_rfi_metadata_to_stats_h5()`, which needs to wholesale copy
         the Dataset and its Attributes. By returning just the path, then
         any new Attributes in subsequent ISCE3 releases will be automatically
         get copied as well.
         """
-
         path = (
             f"{self.metadata_path}/calibrationInformation/"
             + f"frequency{freq}/{pol}/rfiLikelihood"
         )
 
-        with h5py.File(self.filepath) as f:
-            try:
-                yield f[path]
-            except KeyError as e:
-                spec = nisarqa.Version.from_string(self.product_spec_version)
-                if spec >= nisarqa.Version(1, 1, 0):
-                    # It is always and error for products >= v1.1.0, so really
-                    # make sure the user sees the error.
-                    nisarqa.get_logger().error(
-                        "Bad input product: missing Dataset `rfiLikelihood` for"
-                        f" frequency {freq}, polarization {pol}. Path: {path}"
-                    )
+        spec = nisarqa.Version.from_string(self.product_spec_version)
+        if spec < nisarqa.Version(1, 1, 0):
+            nisarqa.get_logger().warning(
+                "Input product was generated with an older product spec; the"
+                " `rfiLikelihood` Dataset might not exist for"
+                f" frequency {freq}, polarization {pol}. Path: {path}"
+            )
 
-                raise nisarqa.DatasetNotFoundError from e
+        return path
 
 
 @dataclass
