@@ -344,16 +344,30 @@ def run_nes0_tool(
         h5py.File(stats_filename, "a") as stats_file,
     ):
         for freq in rslc.freqs:
-            try:
-                with rslc.get_nes0_metadata_group(freq=freq) as src_nes0_grp:
-                    dest_grp_path = f"{nisarqa.STATS_H5_NES0_DATA_GROUP % rslc.band}/frequency{freq}"
+            src_grp_path = rslc.get_nes0_group_path(freq=freq)
+            dest_grp_path = (
+                f"{nisarqa.STATS_H5_NES0_DATA_GROUP % rslc.band}"
+                f"/frequency{freq}"
+            )
 
-                    # Copy entire nes0 metadata from input file to stats.h5
-                    in_file.copy(src_nes0_grp, stats_file, dest_grp_path)
-            except nisarqa.DatasetNotFoundError:
+            try:
+                # Copy entire nes0 metadata group from input file to stats.h5
+                in_file.copy(src_grp_path, stats_file, dest_grp_path)
+            except RuntimeError:
+                # h5py.File.copy() raises this error if `src_grp_path`
+                # does not exist:
+                #       RuntimeError: Unable to synchronously copy object
+                #       (component not found)
                 nisarqa.get_logger().error(
-                    f"Input RSLC H5 missing `nes0` Group for frequency {freq}."
+                    "Cannot copy `nes0` Group. Input RSLC product is"
+                    f" missing `nes0` for frequency {freq} at {src_grp_path}"
                 )
+                nisarqa.get_logger().error(
+                    "Cannot plot `nes0` metadata. Input RSLC product is"
+                    f" missing `nes0` for frequency {freq} at {src_grp_path}"
+                )
+                # Return early, because we cannot create plots
+                return
 
     # TODO: Step 2: create plots
 

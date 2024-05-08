@@ -2242,8 +2242,7 @@ class RSLC(SLC, NisarRadarProduct):
 
         return path
 
-    @contextmanager
-    def get_nes0_metadata_group(self, freq: str) -> Iterator[h5py.Group]:
+    def get_nes0_group_path(self, freq: str) -> str:
         """
         Get the path to the NES0 h5py Group.
 
@@ -2252,16 +2251,25 @@ class RSLC(SLC, NisarRadarProduct):
         freq : {'A', 'B'}
             The frequency sub-band. Must be a valid sub-band in the product.
 
-        Yields
-        ------
-        nes0_grp : h5py.Group
-            The Noise Equivalent Sigma 0 (NES0) Group for the given freq.
+        Returns
+        -------
+        nes0_grp_path : str
+            Path in the input product to the Noise Equivalent Sigma 0 (NES0)
+            Group for the given `freq`.
 
-        Raises
-        ------
-        nisarqa.DatasetNotFoundError
-            If the Group could not be found, either due to the input product
-            being too old, or the input product being created incorrectly.
+        Warnings
+        --------
+        Older test data (e.g. UAVSAR) has a different product specification
+        structure for storing the nes0 metadata. For simplicity, let's only
+        only support data products with the newer structure (e.g. above ISCE3 R4,
+        product spec v1.1.0).
+        Unfortunately, that release does not correspond directly to product
+        specification version number. Product Specification v1.1.0 and later
+        definitely should have this dataset, but it's messy to algorithmically
+        handle the products generated prior to that.
+        The returned `nes0_grp_path` will be correct for products generated
+        with ISCE3 R4 and later, but might not exist in earlier test datasets.
+        The calling function should handle this case accordingly.
 
         See Also
         --------
@@ -2270,20 +2278,11 @@ class RSLC(SLC, NisarRadarProduct):
 
         Notes
         -----
-        Older test data (e.g. UAVSAR) has a different product specification
-        structure for storing the nes0 metadata. For simplicity, let's
-        only support data products with the newer structure (e.g. above ISCE3 R4,
-        product spec v1.1.0).
-        Unfortunately, that release does not correspond directly to product
-        specification version number. Product Specification v1.1.0 and later
-        definitely should have this dataset, but it's messy to algorithmically
-        handle the products generated prior to that.
-
-        Typically, QA product reader returns a actual values, and not a handle
-        to an h5py.Group. However, this Group is only being used by
+        Typically, QA product reader returns a actual values, and not a path
+        to an h5py.Group. However, this path is only being used by
         `run_nes0_tool()`, which needs to wholesale copy the Group and its
-        contents recursively. By returning a handle to the Group, updates in
-        subsequent ISCE3 releases will be automatically get copied as well.
+        contents recursively. Returning the path to the Group allows updates in
+        subsequent ISCE3 releases to be automatically copied as well.
         """
 
         path = (
@@ -2291,20 +2290,14 @@ class RSLC(SLC, NisarRadarProduct):
             + f"frequency{freq}/nes0"
         )
 
-        with h5py.File(self.filepath) as f:
-            try:
-                yield f[path]
-            except KeyError as e:
-                spec = nisarqa.Version.from_string(self.product_spec_version)
-                if spec >= nisarqa.Version(1, 1, 0):
-                    # It is always and error for products >= v1.1.0, so really
-                    # make sure the user sees the error.
-                    nisarqa.get_logger().error(
-                        "Bad input product: missing Group `nes0` for"
-                        f" frequency {freq} at path: {path}"
-                    )
+        spec = nisarqa.Version.from_string(self.product_spec_version)
+        if spec >= nisarqa.Version(1, 1, 0):
+            nisarqa.get_logger().warning(
+                "Input product was generated with an older product spec; `nes0`"
+                f" Group might not exist for frequency {freq}. Path: {path}"
+            )
 
-                raise nisarqa.DatasetNotFoundError from e
+        return path
 
 
 @dataclass
