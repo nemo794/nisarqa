@@ -1737,8 +1737,7 @@ class SLC(NonInsarProduct):
         QP Assignment:
             - Freq A: Red=HH, Green=HV, Blue=VV
         QD Assignment:
-            - Freq A: Red=HH, Blue=HH
-            - Freq B: Green=VV
+            - Freq A: Red=HH, Blue=HH; Freq B: Green=VV
         CP Assignment:
             - Freq A: Grayscale of one pol image, with
                     Prioritization order: ['RH','RV','LH','LV']
@@ -1843,6 +1842,11 @@ class SLC(NonInsarProduct):
             # are no additional image layers available
             layers_for_browse["A"] = ["HH"]
             layers_for_browse["B"] = ["VV"]
+        elif (freq == "A" and science_pols == ["VV"]) and b_pols == ["HH"]:
+            # Quasi Dual Pol: Freq A has VV, Freq B has HH, and there
+            # are no additional image layers available
+            layers_for_browse["A"] = ["VV"]
+            layers_for_browse["B"] = ["HH"]
         else:
             # Assign layers using only images from the primary science freq
             _assign_layers_single_freq(freq=freq)
