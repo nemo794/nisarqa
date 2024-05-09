@@ -1730,7 +1730,7 @@ class SLC(NonInsarProduct):
             - Freq B CoPol
         DP and QQ Assignment:
             All image layers should come from a single frequency. Freq A has
-            priority over Freq B. HH+HV has priority over VV+VH.
+            priority over Freq B.
             Two example assignments:
             - Freq A: Red=HH, Green=HV, Blue=HH
             - Freq B: Red=VV, Green=VH, Blue=VV
