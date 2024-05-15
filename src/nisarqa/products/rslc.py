@@ -120,6 +120,8 @@ def verify_rslc(
             freq_pols=freq_pol,
         )
 
+        nisarqa.verify_metadata_cubes(product=product)
+
         msg = "Input file validation complete."
         log.info(msg)
         if not verbose:

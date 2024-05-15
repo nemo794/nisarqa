@@ -139,7 +139,7 @@ def _get_path_to_nearest_dataset(
     layer inside the same directory as our provided path.
 
     >>> name = "coherenceMagnitude"
-    >>> nisarqa.get_path_to_nearest_dataset(in_file, path, name)
+    >>> nisarqa._get_path_to_nearest_dataset(in_file, path, name)
     '/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/coherenceMagnitude'
 
     Now, find the "zeroDopplerTime" dataset that corresponds to that layer.
@@ -191,7 +191,7 @@ def _get_paths_in_h5(h5_file: h5py.File, name: str) -> list[str]:
     Parameters
     ----------
     h5_file : h5py.File, h5py.Group
-        Handle to HDF5 input file or group to be searched.
+        Handle to HDF5 input file or Group to be searched.
     name : str
         Base Name of a h5py.Dataset or h5py.Group to be located.
 
@@ -857,6 +857,7 @@ class NisarProduct(ABC):
         """
         pass
 
+    @cached_property
     def _metadata_group_path(self) -> str:
         """
         Get the path to the metadata group.
@@ -1271,6 +1272,61 @@ class NisarRadarProduct(NisarProduct):
         """
         pass
 
+    def coordinate_grid_metadata_cubes(
+        self,
+    ) -> Iterator[nisarqa.MetadataCube3D]:
+        """
+        Generator for all metadata cubes in `../metadata/geolocationGrid` Group.
+
+        Yields
+        ------
+        cube : nisarqa.MetadataCube3D
+            The next MetadataCube3D in `../metadata/geolocationGrid` Group.
+        """
+        with h5py.File(self.filepath, "r") as f:
+            grp_path = "/".join([self._metadata_group_path, "geolocationGrid"])
+
+            for ds_arr in f[grp_path].values():
+                ds_path = ds_arr.name
+
+                n_dim = np.ndim(ds_arr)
+                if n_dim in (0, 1):
+                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
+                    pass
+                elif n_dim != 3:
+                    raise ValueError(
+                        f"The radar grid metadata group should only contain 1D"
+                        f" or 3D Datasets. Dataset contains {n_dim}"
+                        f" dimensions: {ds_path}"
+                    )
+                else:
+                    print(f"{self.product_spec_version=}")
+                    yield nisarqa.MetadataCube3D(
+                        data=ds_arr,
+                        name=ds_path,
+                        y_coord_vector=f[
+                            _get_path_to_nearest_dataset(
+                                h5_file=f,
+                                starting_path=ds_path,
+                                dataset_to_find="zeroDopplerTime",
+                            )
+                        ],
+                        x_coord_vector=f[
+                            _get_path_to_nearest_dataset(
+                                h5_file=f,
+                                starting_path=ds_path,
+                                dataset_to_find="slantRange",
+                            )
+                        ],
+                        z_coord_vector=f[
+                            _get_path_to_nearest_dataset(
+                                h5_file=f,
+                                starting_path=ds_path,
+                                dataset_to_find="heightAboveEllipsoid",
+                            )
+                        ],
+                    )
+
 
 @dataclass
 class NisarGeoProduct(NisarProduct):
@@ -1486,6 +1542,76 @@ class NisarGeoProduct(NisarProduct):
         """
         pass
 
+    def coordinate_grid_metadata_cubes(
+        self,
+    ) -> Iterator[nisarqa.MetadataCube3D]:
+        """
+        Generator for all metadata cubes in `../metadata/radarGrid` Group.
+
+        Yields
+        ------
+        cube : nisarqa.MetadataCube3D
+            The next MetadataCube3D in `../metadata/radarGrid` Group.
+        """
+
+        with h5py.File(self.filepath, "r") as f:
+            grp_path = "/".join([self._metadata_group_path, "radarGrid"])
+            grp = f[grp_path]
+            for ds_arr in grp.values():
+                ds_path = ds_arr.name
+
+                n_dim = np.ndim(ds_arr)
+                if n_dim in (0, 1):
+                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
+                    pass
+                elif n_dim != 3:
+                    raise ValueError(
+                        f"The radar grid metadata group should only contain 1D"
+                        f" or 3D Datasets. Dataset contains {n_dim}"
+                        f" dimensions: {ds_path}"
+                    )
+                else:
+                    try:
+                        yield nisarqa.MetadataCube3D(
+                            data=ds_arr,
+                            name=ds_path,
+                            y_coord_vector=f[
+                                _get_path_to_nearest_dataset(
+                                    h5_file=f,
+                                    starting_path=ds_path,
+                                    dataset_to_find="yCoordinates",
+                                )
+                            ],
+                            x_coord_vector=f[
+                                _get_path_to_nearest_dataset(
+                                    h5_file=f,
+                                    starting_path=ds_path,
+                                    dataset_to_find="xCoordinates",
+                                )
+                            ],
+                            z_coord_vector=f[
+                                _get_path_to_nearest_dataset(
+                                    h5_file=f,
+                                    starting_path=ds_path,
+                                    dataset_to_find="heightAboveEllipsoid",
+                                )
+                            ],
+                        )
+                    except nisarqa.InvalidRasterError as e:
+                        # if nisarqa.Version.from_string(
+                        #     self.product_spec_version
+                        # ) < nisarqa.Version(1, 1, 0):
+                        #     # Older products sometimes had filler metadata.
+                        #     # log, and quiet the exception.
+                        #     nisarqa.get_logger().error(
+                        #         "Could not build MetadataCube3D for Dataset"
+                        #         f" {ds_path}"
+                        #     )
+                        # else:
+                        #     # Newer products should have complete metadata
+                        #     raise
+                        raise
+
 
 @dataclass
 class NonInsarProduct(NisarProduct):
@@ -1692,6 +1818,18 @@ class NonInsarProduct(NisarProduct):
             raise nisarqa.DatasetNotFoundError(errmsg)
 
         return pols
+
+    @cached_property
+    def calibration_metadata_path(self) -> str:
+        """
+        Path in the input file to the `metadata/calibrationInformation` Group.
+
+        Returns
+        -------
+        path : str
+            Path in input file to the metadata/calibrationInformation Group.
+        """
+        return "/".join([self._metadata_group_path, "calibrationInformation"])
 
 
 @dataclass
@@ -2327,7 +2465,7 @@ class RSLC(SLC, NisarRadarProduct):
         get copied as well.
         """
         path = (
-            f"{self.metadata_path}/calibrationInformation/"
+            f"{self.calibration_metadata_path}/"
             + f"frequency{freq}/{pol}/rfiLikelihood"
         )
 
@@ -2384,10 +2522,7 @@ class RSLC(SLC, NisarRadarProduct):
         subsequent ISCE3 releases to be automatically copied as well.
         """
 
-        path = (
-            f"{self.metadata_path}/calibrationInformation/"
-            + f"frequency{freq}/nes0"
-        )
+        path = f"{self.calibration_metadata_path}/frequency{freq}/nes0"
 
         spec = nisarqa.Version.from_string(self.product_spec_version)
         if spec >= nisarqa.Version(1, 1, 0):

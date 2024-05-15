@@ -124,6 +124,8 @@ def verify_offset(
             layer_groups=layer_groups,
         )
 
+        nisarqa.verify_metadata_cubes(product=product)
+
         msg = "Input file validation complete."
         log.info(msg)
         if not verbose:
