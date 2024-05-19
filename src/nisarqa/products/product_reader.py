@@ -813,6 +813,41 @@ class NisarProduct(ABC):
                 errmsg = f"Input file is missing the path: {grid_path}"
                 raise nisarqa.DatasetNotFoundError(errmsg)
 
+    def coordinate_grid_metadata_cubes(
+        self,
+    ) -> Iterator[nisarqa.MetadataCube3D]:
+        """
+        Generator for all metadata cubes in `../metadata/xxxGrid` Group.
+
+        For L1 products, this is the `../metadata/geolocationGrid` Group.
+        For L2 products, this is the `../metadata/radarGrid` Group.
+
+        Yields
+        ------
+        cube : nisarqa.MetadataCube3D
+            The next MetadataCube3D in the Group.
+        """
+        with h5py.File(self.filepath, "r") as f:
+            grp_path = self._coordinate_grid_metadata_group_path
+            grp = f[grp_path]
+            for ds_arr in grp.values():
+                ds_path = ds_arr.name
+
+                n_dim = np.ndim(ds_arr)
+                if n_dim in (0, 1):
+                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
+                    pass
+                elif n_dim != 3:
+                    raise ValueError(
+                        f"The radar grid metadata group should only contain 1D"
+                        f" or 3D Datasets. Dataset contains {n_dim}"
+                        f" dimensions: {ds_path}"
+                    )
+                else:
+                    yield self._build_metadata_cube(
+                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
+                    )
+
     @abstractmethod
     def _data_group_path(self) -> str:
         """
@@ -886,6 +921,24 @@ class NisarProduct(ABC):
         to accommodate the new spec.
         """
         return "/".join([self._root_path, self.product_type, "metadata"])
+
+    @cached_property
+    def _coordinate_grid_metadata_group_path(self) -> str:
+        """
+        Get the path to the coordinate grid metadata Group.
+
+        Returns
+        -------
+        root : str
+            Path to the metadata directory.
+                Standard Rxxx Format:
+                    "/science/<band>/<product_type>/metadata/geolocationGrid"
+                Standard Gxxx Format:
+                    "/science/<band>/<product_type>/metadata/radarGrid"
+                Example:
+                    "/science/LSAR/GSLC/metadata/radarGrid"
+        """
+        pass
 
     def _get_stats_h5_group_path(self, raster_path: str) -> str:
         """
@@ -981,6 +1034,94 @@ class NisarProduct(ABC):
         """
         pass
 
+    def _build_metadata_cube(
+        self,
+        f: h5py.File,
+        ds_arr: h5py.Dataset,
+        expected_ndim: int,
+    ) -> (
+        nisarqa.MetadataCube1D | nisarqa.MetadataCube2D | nisarqa.MetadataCube3D
+    ):
+        """
+        Construct a MetadataCube for the given 1D, 2D, or 3D metadata cube.
+
+        Parameters
+        ----------
+        f : h5py.File
+            Handle to the NISAR input product.
+        ds_arr : h5py.Dataset
+            Path to the metadata cube Dataset.
+        expected_ndim : int
+            The expected number of dimensions of the metadata cube.
+            Only 1D, 2D, or 3D metadata cubes are supported.
+
+        Returns
+        -------
+        cube : MetadataCube1D or MetadataCube2D or MetadataCube3D
+            A constructed MetadataCube of `ds_arr`.
+            `expected_ndim` determines whether a MetadataCube1D, *2D, or *3D
+            is returned.
+        """
+        # Get the full HDF5 path to the Dataset
+        ds_path = ds_arr.name
+
+        if expected_ndim not in (1, 2, 3):
+            raise ValueError(f"{expected_ndim=}, must be 1, 2, or 3.")
+
+        # build arguments dict
+        kwargs = {"data": ds_arr, "name": ds_path}
+
+        if self.is_geocoded:
+            names = ("xCoordinates", "yCoordinates")
+        else:
+            names = ("slantRange", "zeroDopplerTime")
+
+        kwargs["x_coord_vector"] = f[
+            _get_path_to_nearest_dataset(
+                h5_file=f,
+                starting_path=ds_path,
+                dataset_to_find=names[0],
+            )
+        ]
+        if expected_ndim >= 2:
+            kwargs["y_coord_vector"] = f[
+                _get_path_to_nearest_dataset(
+                    h5_file=f,
+                    starting_path=ds_path,
+                    dataset_to_find=names[1],
+                )
+            ]
+        if expected_ndim == 3:
+            kwargs["z_coord_vector"] = f[
+                _get_path_to_nearest_dataset(
+                    h5_file=f,
+                    starting_path=ds_path,
+                    dataset_to_find="heightAboveEllipsoid",
+                )
+            ]
+        if expected_ndim == 1:
+            cube_cls = nisarqa.MetadataCube1D
+        elif expected_ndim == 2:
+            cube_cls = nisarqa.MetadataCube2D
+        else:
+            cube_cls = nisarqa.MetadataCube3D
+
+        try:
+            return cube_cls(**kwargs)
+        except nisarqa.InvalidRasterError as e:
+            if nisarqa.Version.from_string(
+                self.product_spec_version
+            ) < nisarqa.Version(1, 1, 0):
+                # Older products sometimes had filler metadata.
+                # log, and quiet the exception.
+                nisarqa.get_logger().error(
+                    f"Could not build MetadataCube{expected_ndim}D for"
+                    f" Dataset {ds_path}"
+                )
+            else:
+                # Newer products should have complete metadata
+                raise
+
 
 @dataclass
 class NisarRadarProduct(NisarProduct):
@@ -991,6 +1132,10 @@ class NisarRadarProduct(NisarProduct):
     @cached_property
     def _data_group_path(self) -> str:
         return "/".join([self._root_path, self.product_type, "swaths"])
+
+    @cached_property
+    def _coordinate_grid_metadata_group_path(self) -> str:
+        return "/".join([self._metadata_group_path, "geolocationGrid"])
 
     def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
         # Shapely boundary coords is a tuple of coordinate lists of form ([x...], [y...])
@@ -1272,61 +1417,6 @@ class NisarRadarProduct(NisarProduct):
         """
         pass
 
-    def coordinate_grid_metadata_cubes(
-        self,
-    ) -> Iterator[nisarqa.MetadataCube3D]:
-        """
-        Generator for all metadata cubes in `../metadata/geolocationGrid` Group.
-
-        Yields
-        ------
-        cube : nisarqa.MetadataCube3D
-            The next MetadataCube3D in `../metadata/geolocationGrid` Group.
-        """
-        with h5py.File(self.filepath, "r") as f:
-            grp_path = "/".join([self._metadata_group_path, "geolocationGrid"])
-
-            for ds_arr in f[grp_path].values():
-                ds_path = ds_arr.name
-
-                n_dim = np.ndim(ds_arr)
-                if n_dim in (0, 1):
-                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
-                    pass
-                elif n_dim != 3:
-                    raise ValueError(
-                        f"The radar grid metadata group should only contain 1D"
-                        f" or 3D Datasets. Dataset contains {n_dim}"
-                        f" dimensions: {ds_path}"
-                    )
-                else:
-                    print(f"{self.product_spec_version=}")
-                    yield nisarqa.MetadataCube3D(
-                        data=ds_arr,
-                        name=ds_path,
-                        y_coord_vector=f[
-                            _get_path_to_nearest_dataset(
-                                h5_file=f,
-                                starting_path=ds_path,
-                                dataset_to_find="zeroDopplerTime",
-                            )
-                        ],
-                        x_coord_vector=f[
-                            _get_path_to_nearest_dataset(
-                                h5_file=f,
-                                starting_path=ds_path,
-                                dataset_to_find="slantRange",
-                            )
-                        ],
-                        z_coord_vector=f[
-                            _get_path_to_nearest_dataset(
-                                h5_file=f,
-                                starting_path=ds_path,
-                                dataset_to_find="heightAboveEllipsoid",
-                            )
-                        ],
-                    )
-
 
 @dataclass
 class NisarGeoProduct(NisarProduct):
@@ -1351,6 +1441,10 @@ class NisarGeoProduct(NisarProduct):
     @cached_property
     def _data_group_path(self) -> str:
         return "/".join([self._root_path, self.product_type, "grids"])
+
+    @cached_property
+    def _coordinate_grid_metadata_group_path(self) -> str:
+        return "/".join([self._metadata_group_path, "radarGrid"])
 
     @cached_property
     def epsg(self) -> str:
@@ -1542,20 +1636,25 @@ class NisarGeoProduct(NisarProduct):
         """
         pass
 
-    def coordinate_grid_metadata_cubes(
-        self,
-    ) -> Iterator[nisarqa.MetadataCube3D]:
+
+@dataclass
+class NonInsarProduct(NisarProduct):
+    """Common functionality for RSLC, GLSC, and GCOV products."""
+
+    def nes0_metadata_cubes(
+        self, freq: str
+    ) -> Iterator[nisarqa.MetadataCube2D]:
         """
-        Generator for all metadata cubes in `../metadata/radarGrid` Group.
+        Generator for all metadata cubes in nes0 calibration information Group.
 
         Yields
         ------
-        cube : nisarqa.MetadataCube3D
-            The next MetadataCube3D in `../metadata/radarGrid` Group.
+        cube : nisarqa.MetadataCube2D
+            The next MetadataCube2D in this Group:
+            `../metadata/calibrationInformation/frequency<freq>/nes0`
         """
-
         with h5py.File(self.filepath, "r") as f:
-            grp_path = "/".join([self._metadata_group_path, "radarGrid"])
+            grp_path = self.get_nes0_group_path(freq)
             grp = f[grp_path]
             for ds_arr in grp.values():
                 ds_path = ds_arr.name
@@ -1564,58 +1663,54 @@ class NisarGeoProduct(NisarProduct):
                 if n_dim in (0, 1):
                     # scalar and 1D datasets are not metadata cubes. Skip 'em.
                     pass
-                elif n_dim != 3:
+                elif n_dim != 2:
                     raise ValueError(
-                        f"The radar grid metadata group should only contain 1D"
-                        f" or 3D Datasets. Dataset contains {n_dim}"
+                        f"The nes0 metadata group should only contain 1D"
+                        f" or 2D Datasets. Dataset contains {n_dim}"
                         f" dimensions: {ds_path}"
                     )
                 else:
-                    try:
-                        yield nisarqa.MetadataCube3D(
-                            data=ds_arr,
-                            name=ds_path,
-                            y_coord_vector=f[
-                                _get_path_to_nearest_dataset(
-                                    h5_file=f,
-                                    starting_path=ds_path,
-                                    dataset_to_find="yCoordinates",
-                                )
-                            ],
-                            x_coord_vector=f[
-                                _get_path_to_nearest_dataset(
-                                    h5_file=f,
-                                    starting_path=ds_path,
-                                    dataset_to_find="xCoordinates",
-                                )
-                            ],
-                            z_coord_vector=f[
-                                _get_path_to_nearest_dataset(
-                                    h5_file=f,
-                                    starting_path=ds_path,
-                                    dataset_to_find="heightAboveEllipsoid",
-                                )
-                            ],
-                        )
-                    except nisarqa.InvalidRasterError as e:
-                        # if nisarqa.Version.from_string(
-                        #     self.product_spec_version
-                        # ) < nisarqa.Version(1, 1, 0):
-                        #     # Older products sometimes had filler metadata.
-                        #     # log, and quiet the exception.
-                        #     nisarqa.get_logger().error(
-                        #         "Could not build MetadataCube3D for Dataset"
-                        #         f" {ds_path}"
-                        #     )
-                        # else:
-                        #     # Newer products should have complete metadata
-                        #     raise
-                        raise
+                    yield self._build_metadata_cube(
+                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
+                    )
 
+    def elevation_antenna_pat_metadata_cubes(
+        self, freq: str
+    ) -> Iterator[nisarqa.MetadataCube2D]:
+        """
+        Generator for all elevation antenna pattern metadata cubes.
 
-@dataclass
-class NonInsarProduct(NisarProduct):
-    """Common functionality for RSLC, GLSC, and GCOV products."""
+        Yields
+        ------
+        cube : nisarqa.MetadataCube2D
+            The next MetadataCube2D in this Group:
+            `../metadata/calibrationInformation/frequency<freq>/elevationAntennaPattern`
+        """
+        with h5py.File(self.filepath, "r") as f:
+            grp_path = "/".join(
+                [
+                    self._calibration_metadata_path,
+                    f"frequency{freq}/elevationAntennaPattern",
+                ]
+            )
+            grp = f[grp_path]
+            for ds_arr in grp.values():
+                ds_path = ds_arr.name
+
+                n_dim = np.ndim(ds_arr)
+                if n_dim in (0, 1):
+                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
+                    pass
+                elif n_dim != 2:
+                    raise ValueError(
+                        f"The elevationAntennaPattern metadata group should"
+                        f" only contain 1D or 2D Datasets. Dataset contains"
+                        f" {n_dim} dimensions: {ds_path}"
+                    )
+                else:
+                    yield self._build_metadata_cube(
+                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
+                    )
 
     @abstractmethod
     def get_layers_for_browse(self) -> dict[str, list[str]]:
@@ -1820,7 +1915,7 @@ class NonInsarProduct(NisarProduct):
         return pols
 
     @cached_property
-    def calibration_metadata_path(self) -> str:
+    def _calibration_metadata_path(self) -> str:
         """
         Path in the input file to the `metadata/calibrationInformation` Group.
 
@@ -1830,6 +1925,60 @@ class NonInsarProduct(NisarProduct):
             Path in input file to the metadata/calibrationInformation Group.
         """
         return "/".join([self._metadata_group_path, "calibrationInformation"])
+
+    def get_nes0_group_path(self, freq: str) -> str:
+        """
+        Get the path to the NES0 h5py Group.
+
+        Parameters
+        ----------
+        freq : {'A', 'B'}
+            The frequency sub-band. Must be a valid sub-band in the product.
+
+        Returns
+        -------
+        nes0_grp_path : str
+            Path in the input product to the Noise Equivalent Sigma 0 (NES0)
+            Group for the given `freq`.
+
+        Warnings
+        --------
+        Older test data (e.g. UAVSAR) has a different product specification
+        structure for storing the nes0 metadata. For simplicity, let's only
+        only support data products with the newer structure (e.g. >= ISCE3 R4).
+        Unfortunately, that release does not correspond directly to product
+        specification version number. Product Specification v1.1.0 and later
+        definitely should have this dataset, but it's messy to algorithmically
+        handle the products generated prior to that.
+        The returned `nes0_grp_path` will be correct for products generated
+        with ISCE3 R4 and later, but might not exist in earlier test datasets.
+        The calling function should handle this case accordingly.
+
+        See Also
+        --------
+        run_nes0_tool :
+            Copies NES0 Group from the input product to STATS.h5.
+
+        Notes
+        -----
+        Typically, QA product reader returns a actual values, and not a path
+        to an h5py.Group. However, this path is only being used by
+        `run_nes0_tool()`, which needs to wholesale copy the Group and its
+        contents recursively. Returning the path to the Group allows updates in
+        subsequent ISCE3 releases to be automatically copied as well.
+        """
+
+        path = f"{self._calibration_metadata_path}/frequency{freq}/nes0"
+
+        spec = nisarqa.Version.from_string(self.product_spec_version)
+        if spec >= nisarqa.Version(1, 1, 0):
+            nisarqa.get_logger().warning(
+                "Input product was generated with an older product spec; `nes0`"
+                f" Group might not exist for frequency {freq}. Path: {path}"
+            )
+        print(f"{path=}")
+
+        return path
 
 
 @dataclass
@@ -2170,6 +2319,38 @@ class SLC(NonInsarProduct):
             red=red, green=green, blue=blue, filepath=filepath
         )
 
+    def geometry_metadata_cubes(
+        self,
+    ) -> Iterator[nisarqa.MetadataCube2D]:
+        """
+        Generator for all metadata cubes in nes0 calibration information Group.
+
+        Yields
+        ------
+        cube : nisarqa.MetadataCube2D
+            The next MetadataCube2D in this Group: `../metadata/geometry`
+        """
+        with h5py.File(self.filepath, "r") as f:
+            grp_path = "/".join([self._calibration_metadata_path, "geometry"])
+            grp = f[grp_path]
+            for ds_arr in grp.values():
+                ds_path = ds_arr.name
+
+                n_dim = np.ndim(ds_arr)
+                if n_dim in (0, 1):
+                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
+                    pass
+                elif n_dim != 2:
+                    raise ValueError(
+                        f"The geometry metadata group should only contain 1D"
+                        f" or 2D Datasets. Dataset contains {n_dim}"
+                        f" dimensions: {ds_path}"
+                    )
+                else:
+                    yield self._build_metadata_cube(
+                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
+                    )
+
 
 @dataclass
 class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
@@ -2465,7 +2646,7 @@ class RSLC(SLC, NisarRadarProduct):
         get copied as well.
         """
         path = (
-            f"{self.calibration_metadata_path}/"
+            f"{self._calibration_metadata_path}/"
             + f"frequency{freq}/{pol}/rfiLikelihood"
         )
 
@@ -2475,60 +2656,6 @@ class RSLC(SLC, NisarRadarProduct):
                 "Input product was generated with an older product spec; the"
                 " `rfiLikelihood` Dataset might not exist for"
                 f" frequency {freq}, polarization {pol}. Path: {path}"
-            )
-
-        return path
-
-    def get_nes0_group_path(self, freq: str) -> str:
-        """
-        Get the path to the NES0 h5py Group.
-
-        Parameters
-        ----------
-        freq : {'A', 'B'}
-            The frequency sub-band. Must be a valid sub-band in the product.
-
-        Returns
-        -------
-        nes0_grp_path : str
-            Path in the input product to the Noise Equivalent Sigma 0 (NES0)
-            Group for the given `freq`.
-
-        Warnings
-        --------
-        Older test data (e.g. UAVSAR) has a different product specification
-        structure for storing the nes0 metadata. For simplicity, let's only
-        only support data products with the newer structure (e.g. above ISCE3 R4,
-        product spec v1.1.0).
-        Unfortunately, that release does not correspond directly to product
-        specification version number. Product Specification v1.1.0 and later
-        definitely should have this dataset, but it's messy to algorithmically
-        handle the products generated prior to that.
-        The returned `nes0_grp_path` will be correct for products generated
-        with ISCE3 R4 and later, but might not exist in earlier test datasets.
-        The calling function should handle this case accordingly.
-
-        See Also
-        --------
-        run_nes0_tool :
-            Copies NES0 Group from the input product to STATS.h5.
-
-        Notes
-        -----
-        Typically, QA product reader returns a actual values, and not a path
-        to an h5py.Group. However, this path is only being used by
-        `run_nes0_tool()`, which needs to wholesale copy the Group and its
-        contents recursively. Returning the path to the Group allows updates in
-        subsequent ISCE3 releases to be automatically copied as well.
-        """
-
-        path = f"{self.calibration_metadata_path}/frequency{freq}/nes0"
-
-        spec = nisarqa.Version.from_string(self.product_spec_version)
-        if spec >= nisarqa.Version(1, 1, 0):
-            nisarqa.get_logger().warning(
-                "Input product was generated with an older product spec; `nes0`"
-                f" Group might not exist for frequency {freq}. Path: {path}"
             )
 
         return path
