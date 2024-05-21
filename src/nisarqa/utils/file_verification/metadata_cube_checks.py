@@ -207,6 +207,15 @@ class MetadataCube3D(MetadataCube2D):
 def verify_metadata_cubes(
     product: nisarqa.NisarProduct,
 ) -> None:
+    """
+    Verify if the input product's metadata cubes are valid.
+
+    Parameters
+    ----------
+    product : nisarqa.NisarProduct
+        Instance of the input product. Note: there will be additional checks
+        performed for particular subclasses of nisarqa.NisarProduct.
+    """
 
     # Flag for Summary CSV reporting
     all_mc_are_ok = True
@@ -247,11 +256,15 @@ def verify_metadata_cubes(
                             # exercise the __post_init__ verification checks.
                             pass
 
-    except (nisarqa.DatasetNotFoundError, ValueError) as e:
+    except (nisarqa.DatasetNotFoundError, ValueError):
         all_mc_are_ok = False
-        raise
 
     # SUMMARY LOG
+    summary = nisarqa.get_summary()
+    if all_mc_are_ok:
+        summary.check_metadata_cubes(result="PASS")
+    else:
+        summary.check_metadata_cubes(result="FAIL")
 
 
 def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:

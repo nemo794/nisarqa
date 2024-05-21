@@ -402,5 +402,12 @@ class _SummaryCSV:
             notes=notes,
         )
 
+    def check_metadata_cubes(self, result: str) -> None:
+        """Check: 'Metadata cubes are valid?'"""
+        self.check(
+            description="Metadata cubes are valid?",
+            result=result,
+        )
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

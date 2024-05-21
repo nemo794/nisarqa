@@ -2319,38 +2319,6 @@ class SLC(NonInsarProduct):
             red=red, green=green, blue=blue, filepath=filepath
         )
 
-    def geometry_metadata_cubes(
-        self,
-    ) -> Iterator[nisarqa.MetadataCube2D]:
-        """
-        Generator for all metadata cubes in nes0 calibration information Group.
-
-        Yields
-        ------
-        cube : nisarqa.MetadataCube2D
-            The next MetadataCube2D in this Group: `../metadata/geometry`
-        """
-        with h5py.File(self.filepath, "r") as f:
-            grp_path = "/".join([self._calibration_metadata_path, "geometry"])
-            grp = f[grp_path]
-            for ds_arr in grp.values():
-                ds_path = ds_arr.name
-
-                n_dim = np.ndim(ds_arr)
-                if n_dim in (0, 1):
-                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
-                    pass
-                elif n_dim != 2:
-                    raise ValueError(
-                        f"The geometry metadata group should only contain 1D"
-                        f" or 2D Datasets. Dataset contains {n_dim}"
-                        f" dimensions: {ds_path}"
-                    )
-                else:
-                    yield self._build_metadata_cube(
-                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
-                    )
-
 
 @dataclass
 class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
@@ -2659,6 +2627,38 @@ class RSLC(SLC, NisarRadarProduct):
             )
 
         return path
+
+    def geometry_metadata_cubes(
+        self,
+    ) -> Iterator[nisarqa.MetadataCube2D]:
+        """
+        Generator for all metadata cubes in nes0 calibration information Group.
+
+        Yields
+        ------
+        cube : nisarqa.MetadataCube2D
+            The next MetadataCube2D in this Group: `../metadata/geometry`
+        """
+        with h5py.File(self.filepath, "r") as f:
+            grp_path = "/".join([self._calibration_metadata_path, "geometry"])
+            grp = f[grp_path]
+            for ds_arr in grp.values():
+                ds_path = ds_arr.name
+
+                n_dim = np.ndim(ds_arr)
+                if n_dim in (0, 1):
+                    # scalar and 1D datasets are not metadata cubes. Skip 'em.
+                    pass
+                elif n_dim != 2:
+                    raise ValueError(
+                        f"The geometry metadata group should only contain 1D"
+                        f" or 2D Datasets. Dataset contains {n_dim}"
+                        f" dimensions: {ds_path}"
+                    )
+                else:
+                    yield self._build_metadata_cube(
+                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
+                    )
 
 
 @dataclass
