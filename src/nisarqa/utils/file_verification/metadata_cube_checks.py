@@ -183,10 +183,16 @@ class MetadataCube3D(MetadataCube2D):
                     " contains all non-finite (e.g. NaN) values."
                 )
             if np.all(np.abs(self.data[z, :, :]) < 1e-12):
-                raise nisarqa.InvalidRasterError(
+                # This check is likely to raise a lot of failures.
+                # We do not want to halt processing during CalVal.
+                # So, issue obnoxious warnings for now.
+                # TODO - refine this check during CalVal once real data comes back.
+                msg = (
                     f"Metadata cube {self.name} z-axis layer number {z}"
                     " contains all near-zero (<1e-12) values."
                 )
+                nisarqa.get_logger().warning(msg)
+                warnings.warn(msg, RuntimeWarning)
 
     @property
     def z_axis_dim(self) -> int:
@@ -256,7 +262,8 @@ def verify_metadata_cubes(
                             # exercise the __post_init__ verification checks.
                             pass
 
-    except (nisarqa.DatasetNotFoundError, ValueError):
+    except (nisarqa.DatasetNotFoundError, ValueError) as e:
+        print(e.__traceback__)
         all_mc_are_ok = False
 
     # SUMMARY LOG
