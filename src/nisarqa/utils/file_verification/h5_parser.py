@@ -49,11 +49,11 @@ def generate_h5_datasets(
             del attributes["description"]
         else:
             description = ""
-        annotation = nisarqa.HDF5Annotation(
+        annotation = nisarqa.DataAnnotation(
             attributes=attributes, description=description
         )
-        # Now, create a Node object and place it in the dictionary at the location of
-        # its' prefix.
+        # Now, create a Node object and place it in the dictionary at the
+        # location of its' prefix.
         dataset = HDF5Dataset(
             name=prefix, dataset=hdf5_object, annotation=annotation
         )
@@ -67,16 +67,17 @@ def generate_h5_datasets(
     elif type(hdf5_object) == h5py.Datatype:
         log = nisarqa.get_logger()
         log.warning(
-            f"HDF5 parsing: Found datatype HDF5 object {hdf5_object} at "
-            f"prefix {prefix}"
+            f"HDF5 parsing: Found datatype HDF5 object {hdf5_object} at"
+            f" prefix {prefix}"
         )
         return
-    # This should not happen, but if an unrecognized type is passed in, raise an error.
+    # This should not happen, but if an unrecognized type is passed in,
+    # raise an error.
     else:
         raise ValueError(
-            "HDF5 parsing: Unable to recognize "
-            f"object {hdf5_object} with type {type(hdf5_object)} at "
-            f"prefix {prefix}"
+            "HDF5 parsing: Unable to recognize"
+            f" object {hdf5_object} with type {type(hdf5_object)} at"
+            f" prefix {prefix}"
         )
 
 

@@ -31,18 +31,15 @@ def check_hdf5_against_xml(
     hdf5_file : path-like
         The HDF5 product file path.
     valid_freq_pols : Mapping[str, Iterable[str]]
-        Mapping of the expected polarizations for each frequency. Example:
-            { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
-        Note that for GCOV products, these will instead be a mapping of
-        expected covariance terms for each frequency.
-    valid_layers : Sequence[int] or None, optional
-        ROFF and GOFF products contain HDF5 Groups referred to as "layer number
-        groups" (e.g. `../layer1/..`, `../layer3/..`).
-        This parameter should be a sequence of integers in domain [1, 8] of
-        the expected layer number groups' numbers in `input_file`.
-        If the product type is not ROFF or GOFF, this should be set to None.
-        Defaults to `None`.
-        Examples: (1,), (1, 3), None
+        Dict of the expected frequency + polarization combinations that the
+        input NISAR product says it contains.
+            Example: { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
+    valid_layers : Iterable[str] or None, optional
+        ROFF and GOFF products contain HDF5 datasets referred to as "layer number
+        datasets" (e.g. `../layer1/..`, `../layer3/..`).
+        This parameter should be a set of all valid layer groups for this product,
+        e.g., {'layer1', 'layer2', 'layer3'}, or None.
+        If None, layer datasets will not be checked. Defaults to None.
     valid_subswaths : Iterable[str] | None, optional
         Some products contain a number of subswaths - if the product has
         subswath information, this should be a set of subswaths expected
@@ -56,8 +53,8 @@ def check_hdf5_against_xml(
     # them into a dictionary of XML dataset objects indexed by their path,
     # as well as a dictionary of XML shape objects indexed by their name.
     log.info(
-        "HDF5 product XML checker: Retrieving dataset descriptions and "
-        "shapes from XML."
+        "HDF5 product XML checker: Retrieving dataset descriptions and"
+        " shapes from XML."
     )
     xml_dataset_elmts, shapes = nisarqa.get_xml_datasets_and_shapes(
         xml_file=xml_file
@@ -70,7 +67,7 @@ def check_hdf5_against_xml(
 
     # Checked for unused shapes in the XML
     log.info("HDF5 product XML checker: Checking XML file shapes.")
-    nisarqa.shape_usage_check(
+    nisarqa.check_xml_for_unused_shape_elements(
         shape_names=shape_objs.keys(),
         shapes=shape_objs.values(),
         xml_datasets=xml_datasets.values(),
@@ -85,8 +82,8 @@ def check_hdf5_against_xml(
         # Get sets of datasets: Those shared by both the XML and HDF5, those
         # exclusive to the XML file, and those exclusive to the HDF5 file.
         log.info(
-            "HDF5 product XML checker: Comparing HDF5 datasets existence "
-            "vs. XML spec."
+            "HDF5 product XML checker: Comparing HDF5 datasets existence"
+            " vs. XML spec."
         )
         shared_datasets, _, _ = nisarqa.compare_dataset_lists(
             product_type=product_type,
@@ -100,8 +97,8 @@ def check_hdf5_against_xml(
         # COMMON DATASET CHECKS:
         # These tests check the XML datasets and HDF5 datasets against each other.
         log.info(
-            "HDF5 product XML checker: Comparing HDF5 dataset contents "
-            "vs. XML spec for all datasets in common between XML, HDF5."
+            "HDF5 product XML checker: Comparing HDF5 dataset contents"
+            " vs. XML spec for all datasets in common between XML, HDF5."
         )
         for dataset_name in sorted(shared_datasets):
             xml_dataset = xml_datasets[dataset_name]

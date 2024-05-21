@@ -12,59 +12,48 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 # Not marked as a dataclass because it needs to contain a mutable type
 # (dict, in this case)
+@dataclass
 class DataAnnotation:
-    """A data annotation."""
+    """
+    A set of attributes and description associated with a dataset or shape.
+    """
 
     attributes: dict[str, Any]
     description: str
-
-    def __init__(self, attributes: dict[str, Any], description: str):
-        self.attributes = attributes
-        self.description = description
 
     @property
     def attribute_names(self) -> set[str]:
         return set(self.attributes.keys())
 
-    def __repr__(self) -> str:
-        return (
-            f"DataAnnotation(attributes={self.attributes}, "
-            f'description="{self.description}")'
-        )
-
 
 class XMLAnnotation(DataAnnotation):
-    """A data annotation as described in an XML spec file."""
-
-    app: str
-
-    def __init__(self, app: str, attributes: dict[str, Any], description: str):
-        super().__init__(attributes=attributes, description=description)
-        self.app = app
+    """
+    A set of attributes and description associated with a dataset or shape, as
+    described in an XML spec file.
+    """
 
     @property
-    def attribute_names(self) -> set[str]:
-        return set(
-            filter(
-                lambda key: not nisarqa.ignore_xml_annotation_attribute(key),
-                self.attributes.keys(),
-            )
-        )
-
-    @property
-    def is_cpx_marker(self) -> bool:
-        if self.app == "io":
-            if "kwd" in self.attributes.keys():
-                if self.attributes["kwd"] == "complex":
-                    return True
+    def is_complex_marker(self) -> bool:
+        """
+        True if this annotation marks a dataset as complex, False otherwise.
+        """
+        if self.attributes["app"] != "io":
+            return False
+        if "kwd" in self.attributes:
+            return self.attributes["kwd"] == "complex"
         return False
 
-    # Hacky method of figuring out if an annotation describes a boolean-valued
-    # dataset. Look for the terms "True" and "False" in the annotation description -
-    # there is no other unambiguous means of determining if a dataset is a boolean.
     @property
     def is_bool_marker(self) -> bool:
-        if self.app != "conformance":
+        """
+        True if this annotation marks a Dataset as a boolean, False otherwise.
+
+        Hacky method of figuring out if an annotation describes a
+        boolean-valued dataset. Look for the terms "True" and "False" or
+        "Flag to indicate" in the annotation description - there is no other
+        unambiguous means of determining if a dataset is a boolean.
+        """
+        if self.attributes["app"] != "conformance":
             return False
         if '"True"' in self.description and '"False"' in self.description:
             return True
@@ -72,23 +61,29 @@ class XMLAnnotation(DataAnnotation):
             return True
         return False
 
-    def __repr__(self) -> str:
-        return (
-            f"XMLAnnotation(values={self.attributes}, "
-            f'description="{self.description}", app="{self.app}")'
-        )
-
-
-class HDF5Annotation(DataAnnotation):
-    """A data annotation as expressed in an HDF5 file."""
-
-    def __init__(self, attributes: dict[str, Any], description: str):
-        super().__init__(attributes=attributes, description=description)
-
 
 @dataclass
 class DataShape:
-    """A data shape as described in an XML spec."""
+    """
+    A set of dimensions associated with one or more datasets in a NISAR product
+    or other shapes.
+
+    Also includes (at least) one annotation, which is a brief description of
+    the dimensions, and can be used to check whether associated datasets are
+    complex-valued.
+
+
+    Parameters
+    -------
+    name : str
+        The name of the shape.
+    order : str
+        The order attribute of the shape.
+    annotations : list[XMLAnnotation]
+        The set of annotations described within the shape.
+    dimensions : list[Dimension]
+        The set of dimensions described within the shape.
+    """
 
     name: str
     order: str
@@ -97,18 +92,27 @@ class DataShape:
 
     @property
     def is_complex(self) -> bool:
-        return any(dimension.is_cpx_marker for dimension in self.dimensions)
+        return any(dimension.is_complex_marker for dimension in self.dimensions)
 
 
 @dataclass
 class Dimension:
-    """A data dimension."""
+    """
+    A data dimension.
+
+    Parameters
+    -------
+    name : str
+        The name of the dimension.
+    extent : str
+        The extent attribute of the dimension.
+    """
 
     name: str
     extent: int
 
     @property
-    def is_cpx_marker(self) -> bool:
+    def is_complex_marker(self) -> bool:
         return self.name == "complex"
 
 

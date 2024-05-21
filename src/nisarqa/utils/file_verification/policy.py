@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from string import Template
 from typing import TypeVar
 
 # List of objects from the import statements that
@@ -104,9 +105,9 @@ def get_supported_xml_spec_versions() -> list[Version]:
             versions.append(ver)
         except ValueError:
             log.debug(
-                f'XML product specification directory "{dir}" cannot be '
-                "parsed as a version number. This directory will be "
-                "ignored when selecting XML specifications."
+                f'XML product specification directory "{dir}" cannot be'
+                " parsed as a version number. This directory will be"
+                " ignored when selecting XML specifications."
             )
 
     # Return the sorted list of version directory names.
@@ -153,8 +154,8 @@ def get_xml_version_to_compare_against(version: Version) -> Version:
         # This is not necessarily an error but is a warning case.
         # Notify the user and continue.
         log.warning(
-            f"Input HDF5 file's product is {version}, which is less than the "
-            f"latest XML version available in QA: {latest_version}."
+            f"Input HDF5 file's product is {version}, which is less than the"
+            f" latest XML version available in QA: {latest_version}."
         )
         return version
     if version > latest_version:
@@ -162,9 +163,9 @@ def get_xml_version_to_compare_against(version: Version) -> Version:
         # supported version.
         # Default to the greatest supported version.
         log.error(
-            f"Input HDF5 file's product is {version}, which is greater than "
-            f"the the latest XML version available in QA: {latest_version}. "
-            f"Defaulting to latest supported version {latest_version}. "
+            f"Input HDF5 file's product is {version}, which is greater than"
+            f" the the latest XML version available in QA: {latest_version}."
+            f" Defaulting to latest supported version {latest_version}. "
         )
         return str(latest_version)
     if version < minimum_version:
@@ -172,11 +173,11 @@ def get_xml_version_to_compare_against(version: Version) -> Version:
         # supported version.
         # Default to the minimum supported version.
         log.error(
-            f"Input HDF5 file's product is {version}, which is less than "
-            f"the the earliest XML version available in QA: {minimum_version}."
+            f"Input HDF5 file's product is {version}, which is less than"
+            f" the the earliest XML version available in QA: {minimum_version}."
             f" Defaulting to earliest supported version {minimum_version}."
-            "The input HDF5 will be compared to this higher version, "
-            "likely resulting in many false-positives of validation errors."
+            " The input HDF5 will be compared to this higher version,"
+            " likely resulting in many false-positives of validation errors."
         )
         return minimum_version
     # At this juncture it has been established that the version parameter
@@ -189,27 +190,23 @@ def get_xml_version_to_compare_against(version: Version) -> Version:
 
     # The code should never reach this point. Raise a critical error.
     raise ValueError(
-        "check_version_number was unable to find a supported XML product "
-        f"spec version number for HDF5 product with spec version {version}. "
-        "This is a bug."
+        "check_version_number was unable to find a supported XML product"
+        f" spec version number for HDF5 product with spec version {version}."
+        " This is a bug."
     )
 
 
-def ignore_xml_annotation_attribute(attribute: str) -> bool:
+def ignored_xml_annotation_attributes() -> set[str]:
     """
-    Whether or not to ignore an attribute in an XML annotation.
-
-    Parameters
-    ----------
-    attribute : str
-        The attribute name.
+    A set of XML annotation attributes that are not expected to appear in
+    products and therefore should not be checked against.
 
     Returns
     -------
-    bool
-        True if ignore, else False.
+    set[str]
+        The set of ignored attributes.
     """
-    return attribute in ["lang"]
+    return {"lang", "app"}
 
 
 def ignore_annotation(app: str) -> bool:
@@ -235,10 +232,19 @@ def ignore_annotation(app: str) -> bool:
     return False
 
 
-def rule_excepted_paths(product_type: str) -> list[str]:
+def rule_excepted_paths(product_type: str) -> list[Template]:
     """
-    Given a product type, return all ignored path strings associated with that
-    product type.
+    Given a product type, return all ignored regular expression path templates
+    associated with that product type, i.e. a "rule excepted path".
+
+    Rule excepted paths are paths that ignore inclusion rules that might cause
+    a dataset to be expected or not expected for a given product.
+    For instance, RSLC calibration info is frequency dependent, but for each
+    frequency in the product, all linear polarizations will be represented,
+    even if they are not all valid in other places in the product. This is
+    where such edge cases can be handled.
+    The templates returned by this function are regular expressions which
+    will be processed by `nisarqa.process_excepted_paths()`
 
     Parameters
     ----------
@@ -247,17 +253,19 @@ def rule_excepted_paths(product_type: str) -> list[str]:
 
     Returns
     -------
-    list[str]
-        All ignored path strings associated with the given product type.
+    list[string.Template]
+        All ignored regexp path templates associated with the given product
+        type.
     """
+    calibration_info_formats = [
+        ".*/metadata/calibrationInformation/$freq/$lin_pol/differentialDelay",
+        ".*/metadata/calibrationInformation/$freq/$lin_pol/differentialPhase",
+        ".*/metadata/calibrationInformation/$freq/$lin_pol/scaleFactor",
+        ".*/metadata/calibrationInformation/$freq/$lin_pol/scaleFactorSlope",
+    ]
 
     if product_type in ["rslc", "gslc", "gcov"]:
-        return [
-            ".*/metadata/calibrationInformation/$freq/$lin_pol/differentialDelay",
-            ".*/metadata/calibrationInformation/$freq/$lin_pol/differentialPhase",
-            ".*/metadata/calibrationInformation/$freq/$lin_pol/scaleFactor",
-            ".*/metadata/calibrationInformation/$freq/$lin_pol/scaleFactorSlope",
-        ]
+        return [Template(format) for format in calibration_info_formats]
     return []
 
 
@@ -295,18 +303,11 @@ def linear_pols(include_quad: bool = False) -> list[str]:
     """
     pols = ["HH", "HV", "VH", "VV"]
     if include_quad:
-        pols += [
-            "HHHH",
-            "HVHV",
-            "VHVH",
-            "VHVV",
-            "VVVV",
-            "HHHV",
-            "HHVH",
-            "HHVV",
-            "HVVH",
-            "HVVV",
-        ]
+        quad_pols = []
+        for sub_pol_1 in pols:
+            for sub_pol_2 in pols:
+                quad_pols.append(sub_pol_1 + sub_pol_2)
+        pols += quad_pols
     return pols
 
 
@@ -374,8 +375,8 @@ def locate_spec_xml_file(product_type: str, version: Version) -> Path | None:
     log.info(f"Using XML spec file: {full_path}")
     if not full_path.exists():
         raise FileNotFoundError(
-            f"Product spec XML file not found for {product_type} "
-            f"version {version} at path: {full_path}."
+            f"Product spec XML file not found for {product_type}"
+            f" version {version} at path: {full_path}."
         )
     return full_path
 

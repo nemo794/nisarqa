@@ -16,7 +16,7 @@ def verify_file_against_xml(
     product_type: str,
     product_spec_version: str,
     freq_pols: Mapping[str, Iterable[str]],
-    layer_numbers: Iterable[int] | None = None,
+    layer_groups: Iterable[str] | None = None,
 ) -> None:
     """
     Verify input HDF5 file meets the XML product specifications document.
@@ -31,16 +31,15 @@ def verify_file_against_xml(
         Contents of `../identification/productSpecificationVersion` from input
         file. Examples: "0.0.9", "1.1.0"
     freq_pols : Mapping[str, Iterable[str]]
-        Dict of the expected polarizations for each frequency. Example:
-            { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
-    layer_numbers : Iterable[int] or None, optional
-        ROFF and GOFF products contain HDF5 Groups referred to as "layer number
-        groups" (e.g. `../layer1/..`, `../layer3/..`).
-        This parameter should be an iterable of integers in domain [1, 8] of
-        the expected layer number groups' numbers in `input_file`.
-        If the product type is not ROFF or GOFF, this should be set to None.
-        Defaults to `None`.
-        Examples: (1,), (1, 3), None
+        Dict of the expected frequency + polarization combinations that the
+        input NISAR product says it contains.
+            Example: { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
+    valid_layers : Iterable[str] or None, optional
+        ROFF and GOFF products contain HDF5 datasets referred to as "layer number
+        datasets" (e.g. `../layer1/..`, `../layer3/..`).
+        This parameter should be a set of all valid layer groups for this product,
+        e.g., {'layer1', 'layer2', 'layer3'}, or None.
+        If None, layer datasets will not be checked. Defaults to None.
     """
     log = nisarqa.get_logger()
 
@@ -51,38 +50,36 @@ def verify_file_against_xml(
         )
 
     if product_type in ("roff", "goff"):
-        if layer_numbers is None:
+        if layer_groups is None:
             raise ValueError(
                 f"{product_type=}, so `layer_numbers` cannot be None."
             )
-        elif not isinstance(layer_numbers, Iterable):
-            msg = f"`{layer_numbers=}` must be an iterable or None."
+        elif not isinstance(layer_groups, Iterable):
+            msg = f"`{layer_groups=}` must be an iterable or None."
             raise TypeError(msg)
         elif not all(
-            (isinstance(n, int) and (n > 0) and (n < 9)) for n in layer_numbers
+            (isinstance(n, int) and (n > 0) and (n < 9)) for n in layer_groups
         ):
             msg = (
-                f"`{layer_numbers=}` must be an iterable of integers in range"
+                f"`{layer_groups=}` must be an iterable of integers in range"
                 " [1, 8], or None."
             )
             raise ValueError(msg)
     else:
-        if layer_numbers is not None:
+        if layer_groups is not None:
             raise ValueError(
                 f"`{product_type=}` which should not have layer number groups,"
-                f" but input parameter `{layer_numbers=}`. `layer_numbers` is"
+                f" but input parameter `{layer_groups=}`. `layer_numbers` is"
                 " only used in the case of ROFF and GOFF products. Please"
                 " check that this is intended; if not, set `layer_numbers` to"
                 " None."
             )
-
-    freq_pols_formatted = {
-        f"frequency{freq}": pols for (freq, pols) in freq_pols.items()
-    }
+    
     if product_type in ("roff", "goff"):
         log.info(
-            f"Verification of HDF5 against XML will check for these numbered "
-            f"layer groups: {layer_numbers}")
+            f"Verification of HDF5 against XML will check for these numbered"
+            f" layer groups: {layer_groups}"
+        )
 
     log.info(f"Checking product version against supported versions.")
     xml_version = nisarqa.get_xml_version_to_compare_against(
@@ -94,16 +91,16 @@ def verify_file_against_xml(
         version=xml_version,
     )
     log.debug(
-        "Validating input HDF5 product against XML spec located at: "
-        f"{xml_filepath}"
+        "Validating input HDF5 product against XML spec located at:"
+        f" {xml_filepath}"
     )
 
     nisarqa.check_hdf5_against_xml(
         product_type=product_type,
         xml_file=xml_filepath,
         hdf5_file=input_file,
-        valid_freq_pols=freq_pols_formatted,
-        valid_layers=layer_numbers,
+        valid_freq_pols=freq_pols,
+        valid_layers=layer_groups,
         valid_subswaths=[],
     )
 

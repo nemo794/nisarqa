@@ -11,8 +11,8 @@ from numpy.typing import DTypeLike
 # should not be included when importing this module
 import nisarqa
 from nisarqa import (
+    DataAnnotation,
     DataShape,
-    HDF5Annotation,
     HDF5Dataset,
     XMLAnnotation,
     XMLDataset,
@@ -21,13 +21,14 @@ from nisarqa import (
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def shape_usage_check(
+def check_xml_for_unused_shape_elements(
     shape_names: Iterable[str],
     shapes: Iterable[DataShape],
     xml_datasets: Iterable[XMLDataset],
 ):
     """
-    Check the given XML datasets and Shape objects for unused shapes, then log them.
+    Check the given XML shapes against other shapes and Datasets, and log
+    any shapes that are not in use by any Dataset or other shape.
 
     Parameters
     ----------
@@ -50,7 +51,7 @@ def shape_usage_check(
     # is taken later.
     for shape in shapes:
         for dimension in shape.dimensions:
-            if shape.name != dimension.name:
+            if dimension.name in shape_set:
                 used_shapes.add(dimension.name)
 
     # All datasets either have an DataShape or None in their shape field. If there is an
@@ -61,7 +62,7 @@ def shape_usage_check(
 
     # The set of unused shapes is the difference between the set of all shapes and
     # the set of used shapes.
-    unused_shapes = shape_set.difference(used_shapes)
+    unused_shapes = shape_set - used_shapes
 
     # Log the number of unused shapes, and then log their names, if any.
     log.info(f"\tUNUSED XML SHAPES: {len(unused_shapes)}")
@@ -76,12 +77,12 @@ def compare_dataset_lists(
     xml_datasets: Iterable[str],
     hdf5_datasets: Iterable[str],
     valid_freq_pols: Mapping[str, Iterable[str]],
-    valid_layers: Iterable[str] = None,
-    valid_subswaths: Iterable[str] = None,
+    valid_layers: Iterable[str] | None = None,
+    valid_subswaths: Iterable[str] | None = None,
 ) -> Tuple[set[str], set[str], set[str]]:
     """
-    Calculate the sets of datasets in common between XML and HDF5, as well as those unique
-    to each. Log the results.
+    Calculate the sets of datasets in common between XML and HDF5, as well as
+    those unique to each. Log the results.
 
     Parameters
     ----------
@@ -92,18 +93,15 @@ def compare_dataset_lists(
     hdf5_datasets : Iterable[str]
         A set of dataset names in the HDF5 file.
     valid_freq_pols : Mapping[str, Iterable[str]]
-        Mapping of the expected polarizations for each frequency. Example:
-            { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
-        Note that for GCOV products, these will instead be a mapping of
-        expected covariance terms for each frequency.
-    valid_layers : Sequence[int] or None, optional
+        Dict of the expected frequency + polarization combinations that the
+        input NISAR product says it contains.
+            Example: { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
+    valid_layers : Iterable[str] or None, optional
         ROFF and GOFF products contain HDF5 datasets referred to as "layer number
         datasets" (e.g. `../layer1/..`, `../layer3/..`).
-        This parameter should be a sequence of integers in domain [1, 8] of
-        the expected layer number datasets' numbers in `input_file`.
-        If the product type is not ROFF or GOFF, this should be set to None.
-        Defaults to `None`.
-        Examples: (1,), (1, 3), None
+        This parameter should be a set of all valid layer groups for this product,
+        e.g., {'layer1', 'layer2', 'layer3'}, or None.
+        If None, layer datasets will not be checked. Defaults to None.
     valid_subswaths : Iterable[str] | None, optional
         Some products contain a number of subswaths - if the product has
         subswath information, this should be a set of subswaths expected
@@ -126,9 +124,16 @@ def compare_dataset_lists(
 
     all_pols = list(nisarqa.get_possible_pols(product_type=product_type))
 
+    if product_type == "gcov":
+        # For GCOV, the Dataset paths can use either the four-character
+        # covariance terms or the two-character polarizations (or neither).
+        # Append the two-character pols from RSLC to create the full GCOV list.
+        all_pols += list(nisarqa.get_possible_pols(product_type="rslc"))
+
     excepted_paths = nisarqa.rule_excepted_paths(product_type=product_type)
 
-    # The shared datasets are all those in the intersect between the two input sets.
+    # The shared datasets are all those in the intersect between the two
+    # input sets.
     shared_dataset_names = xml_datasets.intersection(hdf5_datasets)
     exp_shared, unexp_shared = nisarqa.check_paths(
         paths=shared_dataset_names,
@@ -146,8 +151,8 @@ def compare_dataset_lists(
     for name in sorted(unexp_shared):
         log.error(f"\t\t\tUNEXPECTED XML DATASET PRESENT IN HDF5: {name}")
 
-    # The XML unique datasets are all those in the difference between the XML datasets and the
-    # common set.
+    # The XML unique datasets are all those in the difference between the XML
+    # datasets and the common set.
     xml_only_dataset_names = xml_datasets.difference(shared_dataset_names)
     exp_xml, unexp_xml = nisarqa.check_paths(
         paths=xml_only_dataset_names,
@@ -195,14 +200,14 @@ def compare_xml_dataset_to_hdf5(
     # different names.
     if not xml_dataset.name == hdf5_dataset.name:
         raise ValueError(
-            f"Dataset names differ: XML:{xml_dataset.name}, "
-            f"HDF5:{hdf5_dataset.name}"
+            f"Dataset names differ: XML:{xml_dataset.name},"
+            f" HDF5:{hdf5_dataset.name}"
         )
 
     compare_dtypes_xml_hdf5(xml_dataset, hdf5_dataset)
 
     for annotation in xml_dataset.annotations:
-        if annotation.app == "io":
+        if annotation.attributes["app"] == "io":
             continue
         common_attribute_check(
             xml_annotation=annotation,
@@ -225,28 +230,10 @@ def compare_xml_dataset_to_hdf5(
             )
 
 
-def stringify_dtype(dtype: DTypeLike) -> str:
-    """
-    Get the name of a datatype as a concise, human-readable string.
-
-    Parameters
-    ----------
-    dtype : data-type
-        The input datatype.
-
-    Returns
-    -------
-    name : str
-        The datatype name, such as 'int32' or 'float64'. If `dtype` was
-        `nisarqa.complex32`, returns 'complex32'.
-    """
-    dtype = np.dtype(dtype)
-    return "complex32" if (dtype == nisarqa.complex32) else str(dtype)
-
-
 def compare_dtypes_xml_hdf5(xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset):
     """
-    Compare the dtypes of an XML dataset and HDF5 dataset, and log any discrepancies.
+    Compare the dtypes of an XML dataset and HDF5 dataset, and log any
+    discrepancies.
 
     Parameters
     ----------
@@ -256,7 +243,7 @@ def compare_dtypes_xml_hdf5(xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset):
         The HDF5 dataset to compare.
     """
     log = nisarqa.get_logger()
-    xml_dtype: np.dtype = xml_dataset.dtype
+    xml_dtype = xml_dataset.dtype
     hdf5_dtype = hdf5_dataset.dtype
 
     # If either type is None (far more likely to be an XML dtype, but check for both,)
@@ -264,7 +251,9 @@ def compare_dtypes_xml_hdf5(xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset):
     # Print this error and return.
     dtype_check = True
     if xml_dtype is None:
-        log.error(f"XML dataset dtype could not be determined: {xml_dataset.name}")
+        log.error(
+            f"XML dataset dtype could not be determined: {xml_dataset.name}"
+        )
         dtype_check = False
     if hdf5_dtype is None:
         log.error(
@@ -281,31 +270,20 @@ def compare_dtypes_xml_hdf5(xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset):
     # Strings are a special case. When the XML requests a string, the HDF5 dataset
     # should be a byte string with a length given by the XML file, or an arbitrary
     # length if the XML length is "0".
-    if xml_dtype is str:
-        # HDF5 byte string types have np.dtype.kind == "S". If the kind is not S,
-        # this is not the expected type.
-        if hdf5_dtype.kind != "S":
+    if xml_dtype == str:
+        if not np.issubdtype(hdf5_dtype, np.bytes_):
             log.error(
-                f"XML expects string. HDF5 type is not numpy byte string, "
-                f"but instead {hdf5_dtype}: {hdf5_dataset.name}"
+                f"XML expects string. HDF5 type is not numpy byte string,"
+                f" but instead {hdf5_dtype}: {hdf5_dataset.name}"
             )
             return
+
+        xml_stated_length = xml_dataset.length
 
         # All strings should have a length in their properties.
-        if not "length" in xml_dataset.properties:
+        if xml_stated_length is None:
             log.error(
                 f"String given without length: XML dataset {xml_dataset.name}"
-            )
-            return
-
-        # The length property should be an integer encoded as a string.
-        xml_length_str: xml_dataset.properties["length"]
-        try:
-            xml_stated_length = int(xml_dataset.properties["length"])
-        except ValueError:
-            log.error(
-                f"Length given as non-integer value: {xml_length_str}: "
-                f"XML dataset {xml_dataset.name}"
             )
             return
 
@@ -317,26 +295,39 @@ def compare_dtypes_xml_hdf5(xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset):
         # If this is different from the length value, then the actual string
         # length differs from the expected one.
         hdf5_dataset_length = hdf5_dtype.itemsize
-        if xml_stated_length == hdf5_dataset_length:
-            return
-        log.error(
-            "Unequal string lengths. XML expects length "
-            f"{xml_stated_length}, HDF5 dataset byte string length is "
-            f"{hdf5_dataset_length}: Dataset {xml_dataset.name}"
-        )
+        if xml_stated_length != hdf5_dataset_length:
+            log.error(
+                "Unequal string lengths. XML expects length"
+                f" {xml_stated_length}, HDF5 dataset byte string length is"
+                f" {hdf5_dataset_length}: Dataset {xml_dataset.name}"
+            )
         return
 
+    if nisarqa.is_complex32(hdf5_dataset.dataset):
+        hdf5_dtype_name = "complex32"
+    else:
+        hdf5_dtype_name = str(hdf5_dtype)
+    
+    if xml_dtype == np.dtype([("r", np.float16), ("i", np.float16)]):
+        xml_dtype_name = "complex32"
+    else:
+        xml_dtype_name = str(xml_dtype().dtype)
+
     # For non-string types, perform a simple type check.
+    # The reason for using `xml_dtype().dtype` below instead of xml_dtype on
+    # its own is to ensure that it prints something sensible and brief. The
+    # dtype itself prints <class '[dtype name]'> which isn't really accurate.
+    # This just prints the dtype name itself.
     if xml_dtype != hdf5_dtype:
         log.error(
-            f"dtypes differ: XML: {stringify_dtype(xml_dtype)}, "
-            f"HDF5: {stringify_dtype(hdf5_dtype)} - Dataset {xml_dataset.name}"
+            f"dtypes differ: XML: {xml_dtype_name},"
+            f" HDF5: {hdf5_dtype_name} - Dataset {xml_dataset.name}"
         )
 
 
 def common_attribute_check(
     xml_annotation: XMLAnnotation,
-    hdf5_annotation: HDF5Annotation,
+    hdf5_annotation: DataAnnotation,
     dataset_name: str,
 ) -> None:
     """
@@ -346,34 +337,34 @@ def common_attribute_check(
     ----------
     xml_annotation : nisarqa.XMLAnnotation
         An XML annotation to compare.
-    hdf5_annotation : nisarqa.HDF5Annotation
+    hdf5_annotation : nisarqa.DataAnnotation
         An HDF5 annotation to compare.
     dataset_name : str
         The name of the dataset on which both annotations exist.
     """
     log = nisarqa.get_logger()
-    common_attribs = (
-        xml_annotation.attribute_names & hdf5_annotation.attribute_names
-    )
+    ignored_xml_attributes = nisarqa.ignored_xml_annotation_attributes()
+    xml_attributes = xml_annotation.attribute_names - ignored_xml_attributes
+    common_attribs = xml_attributes & hdf5_annotation.attribute_names
 
     # Keys that exist only on this annotation or the other.
-    xml_unique_attribs = xml_annotation.attribute_names - common_attribs
+    xml_unique_attribs = xml_attributes - common_attribs
     if len(xml_unique_attribs) > 0:
         log.error(
-            f"Keys found only on XML annotation: {xml_unique_attribs} - "
-            f"Dataset {dataset_name}"
+            f"Keys found only on XML annotation: {xml_unique_attribs} -"
+            f" Dataset {dataset_name}"
         )
     hdf5_unique_attribs = hdf5_annotation.attribute_names - common_attribs
     if len(hdf5_unique_attribs) > 0:
         log.error(
-            f"Keys found only on HDF5 annotation: {hdf5_unique_attribs} - "
-            f"Dataset {dataset_name}"
+            f"Keys found only on HDF5 annotation: {hdf5_unique_attribs} -"
+            f" Dataset {dataset_name}"
         )
 
 
 def attribute_unit_check(
     xml_annotation: XMLAnnotation,
-    hdf5_annotation: HDF5Annotation,
+    hdf5_annotation: DataAnnotation,
     dataset_name: str,
 ):
     """
@@ -383,7 +374,7 @@ def attribute_unit_check(
     ----------
     xml_annotation : nisarqa.XMLAnnotation
         An XML annotation to check.
-    hdf5_annotation : nisarqa.HDF5Annotation
+    hdf5_annotation : nisarqa.DataAnnotation
         An HDF5 annotation to check.
     dataset_name : str
         The dataset being checked, for logging.
@@ -407,7 +398,9 @@ def attribute_unit_check(
         log.error(f'Empty "units" attribute on XML: Dataset {dataset_name}')
         proceed = False
     if hdf5_units == "":
-        log.error(f'Empty "units" attribute field on HDF5: Dataset {dataset_name}')
+        log.error(
+            f'Empty "units" attribute field on HDF5: Dataset {dataset_name}'
+        )
         proceed = False
 
     if not proceed:
@@ -430,8 +423,8 @@ def attribute_unit_check(
 
     if xml_units != hdf5_units:
         log.error(
-            f'Differing units detected on annotations. XML: "{xml_units}", '
-            f'HDF5: "{hdf5_units}": Dataset {dataset_name}'
+            f'Differing units detected on annotations. XML: "{xml_units}",'
+            f' HDF5: "{hdf5_units}": Dataset {dataset_name}'
         )
 
 
@@ -495,7 +488,7 @@ def check_product_datetime(datetime_str) -> bool:
 
 def attribute_description_check(
     xml_annotation: XMLAnnotation,
-    hdf5_annotation: HDF5Annotation,
+    hdf5_annotation: DataAnnotation,
     dataset_name: str,
 ):
     """
@@ -505,7 +498,7 @@ def attribute_description_check(
     ----------
     xml_annotation : nisarqa.XMLAnnotation
         An XML annotation to check.
-    hdf5_annotation : nisarqa.HDF5Annotation
+    hdf5_annotation : nisarqa.DataAnnotation
         An HDF5 annotation to check.
     dataset_name : str
         The dataset being checked, for logging.
@@ -520,7 +513,9 @@ def attribute_description_check(
         log.error(f"Empty description on XML: Dataset {dataset_name}")
         proceed = False
     if hdf5_desc == "":
-        log.error(f"Empty description attribute on HDF5: Dataset {dataset_name}")
+        log.error(
+            f"Empty description attribute on HDF5: Dataset {dataset_name}"
+        )
         proceed = False
 
     if not proceed:
@@ -528,8 +523,8 @@ def attribute_description_check(
 
     if xml_desc != hdf5_desc:
         log.error(
-            f'Differing descriptions detected: XML: "{xml_desc}", '
-            f'HDF5: "{hdf5_desc}": Dataset {dataset_name}'
+            f'Differing descriptions detected: XML: "{xml_desc}",'
+            f' HDF5: "{hdf5_desc}": Dataset {dataset_name}'
         )
 
 

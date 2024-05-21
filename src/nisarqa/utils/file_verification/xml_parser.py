@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import Element
 
@@ -155,7 +155,7 @@ def element_to_dimension(element: Element) -> Dimension:
 
 def elements_to_datasets(
     xml_elements: Iterable[Element],
-    shapes: dict[str, DataShape],
+    shapes: Mapping[str, DataShape],
 ) -> dict[str, XMLDataset]:
     """
     Parse a set of XML elements into XMLDataset objects.
@@ -164,74 +164,25 @@ def elements_to_datasets(
     ----------
     xml_elements : Iterable[Element]
         The XML elements to parse.
+    shapes : Mapping[str, DataShape]
+        A mapping of DataShape objects indexable by their name.
 
     Returns
     -------
     dict[str, nisarqa.XMLDataset]
         The XMLDataset objects generated, addressable by name.
+        Each XMLDataset name should be its path in the HDF5 file.
     """
 
     datasets: dict[str, XMLDataset] = {}
     for element in xml_elements:
-        dataset: nisarqa.XMLDataset = element_to_xml_dataset(
-            element,
+        dataset = XMLDataset.from_xml_element(
+            xml_element=element,
             shapes=shapes,
         )
         datasets[dataset.name] = dataset
 
     return datasets
-
-
-def element_to_xml_dataset(
-    xml_element: Element,
-    shapes: dict[str, DataShape],
-) -> nisarqa.XMLDataset:
-    """
-    Process an XML element into an XMLDataset object.
-
-    Parameters
-    ----------
-    xml_element : Element
-        The element to be processed.
-
-    Returns
-    -------
-    nisarqa.XMLDataset
-        The generated XMLDataset object.
-    """
-    log = nisarqa.get_logger()
-
-    attributes = xml_element.attrib
-    name = attributes["name"]
-    del attributes["name"]
-    shape_name = attributes["shape"]
-    del attributes["shape"]
-    if shape_name not in shapes:
-        log.error(
-            f"XML is missing shape {shape_name} associated with this dataset. "
-            f"Could not associate this dataset with a shape - XML dataset {name}"
-        )
-        shape = None
-    else:
-        shape = shapes[shape_name]
-
-    node_type = xml_element.tag
-    if node_type not in ["integer", "real", "string"]:
-        log.error(f"unknown type tag: {node_type} - XML dataset {name}")
-
-    annotation_elements = xml_element.findall("annotation")
-    annotations = parse_annotations(
-        annotation_elements=annotation_elements,
-        parent_name=name,
-    )
-
-    return nisarqa.XMLDataset(
-        name=name,
-        properties=attributes,
-        annotations=annotations,
-        node_type=node_type,
-        shape=shape,
-    )
 
 
 def parse_annotations(
@@ -280,22 +231,21 @@ def element_to_annotation(
     """
     log = nisarqa.get_logger()
     annotation_attribs = element.attrib
-    app = annotation_attribs["app"]
     description = element.text
-    attributes: dict[str, str] = {}
-    for key in annotation_attribs:
-        if key == "description":
-            log.warning(
-                f"{element.tag} contains attribute 'description'. "
-                "This tag is deprecated; use the text field to describe "
-                f"the element instead - XML Element {parent_name}"
-            )
-        if key not in ["app", "description"]:
-            attribute: str = annotation_attribs[key]
-            attributes[key] = attribute
-    return nisarqa.XMLAnnotation(
-        app=app, attributes=attributes, description=description
-    )
+    if "description" in annotation_attribs:
+        log.warning(
+            f"{element.tag} annotation contains attribute 'description'."
+            " This tag is deprecated; use the text field to describe"
+            f" the element instead - XML Element {parent_name}"
+        )
+        del annotation_attribs['description']
+    if "app" not in annotation_attribs:
+        log.error(
+            f"{element.tag} annotation does not contain attribute 'app'."
+            " This attribute is required for annotations -"
+            f" XML Element {parent_name}"
+        )
+    return nisarqa.XMLAnnotation(attributes=annotation_attribs, description=description)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
