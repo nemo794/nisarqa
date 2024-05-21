@@ -262,6 +262,11 @@ def verify_metadata_cubes(
                             # exercise the __post_init__ verification checks.
                             pass
 
+                        for cube in product.crosstalk_metadata_cubes():
+                            # RSLC's are never gdal-friendly. But, let's still
+                            # exercise the __post_init__ verification checks.
+                            pass
+
     except (nisarqa.DatasetNotFoundError, ValueError) as e:
         print(e.__traceback__)
         all_mc_are_ok = False

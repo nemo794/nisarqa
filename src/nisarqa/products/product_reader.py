@@ -2632,7 +2632,7 @@ class RSLC(SLC, NisarRadarProduct):
         self,
     ) -> Iterator[nisarqa.MetadataCube2D]:
         """
-        Generator for all metadata cubes in nes0 calibration information Group.
+        Generator for all metadata cubes in geometry calibration info Group.
 
         Yields
         ------
@@ -2655,6 +2655,37 @@ class RSLC(SLC, NisarRadarProduct):
                         f" or 2D Datasets. Dataset contains {n_dim}"
                         f" dimensions: {ds_path}"
                     )
+                else:
+                    yield self._build_metadata_cube(
+                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
+                    )
+
+    def crosstalk_metadata_cubes(
+        self,
+    ) -> Iterator[nisarqa.MetadataCube1D]:
+        """
+        Generator for all metadata cubes in crosstalk calibration info Group.
+
+        Yields
+        ------
+        cube : nisarqa.MetadataCube2D
+            The next MetadataCube2D in this Group: `../metadata/crosstalk`
+        """
+        with h5py.File(self.filepath, "r") as f:
+            grp_path = "/".join([self._calibration_metadata_path, "crosstalk"])
+            grp = f[grp_path]
+            for ds_arr in grp.values():
+                ds_path = ds_arr.name
+
+                n_dim = np.ndim(ds_arr)
+                if n_dim not in (0, 1):
+                    raise ValueError(
+                        f"The crosstalk metadata group should only contain 1D"
+                        f" Datasets. Dataset contains {n_dim}"
+                        f" dimensions: {ds_path}"
+                    )
+                if grp_path.endswith("/slantRange") or (n_dim == 0):
+                    pass
                 else:
                     yield self._build_metadata_cube(
                         f=f, ds_arr=ds_arr, expected_ndim=n_dim
