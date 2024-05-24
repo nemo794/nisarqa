@@ -831,6 +831,12 @@ class NisarProduct(ABC):
             grp_path = self._coordinate_grid_metadata_group_path
             grp = f[grp_path]
             for ds_arr in grp.values():
+
+                if isinstance(ds_arr, h5py.Group):
+                    raise TypeError(
+                        f"unexpected HDF5 Group found in {grp_path}."
+                        " Metadata cubes Groups should only contain Datasets."
+                    )
                 ds_path = ds_arr.name
 
                 n_dim = np.ndim(ds_arr)
@@ -1659,6 +1665,11 @@ class NonInsarProduct(NisarProduct):
             grp_path = self.get_nes0_group_path(freq)
             grp = f[grp_path]
             for ds_arr in grp.values():
+                if isinstance(ds_arr, h5py.Group):
+                    raise TypeError(
+                        f"unexpected HDF5 Group found in {grp_path}."
+                        " Metadata cubes Groups should only contain Datasets."
+                    )
                 ds_path = ds_arr.name
 
                 n_dim = np.ndim(ds_arr)
@@ -1695,6 +1706,11 @@ class NonInsarProduct(NisarProduct):
             )
             grp = f[grp_path]
             for ds_arr in grp.values():
+                if isinstance(ds_arr, h5py.Group):
+                    raise TypeError(
+                        f"unexpected HDF5 Group found in {grp_path}."
+                        " Metadata cubes Groups should only contain Datasets."
+                    )
                 ds_path = ds_arr.name
 
                 n_dim = np.ndim(ds_arr)
@@ -2641,6 +2657,11 @@ class RSLC(SLC, NisarRadarProduct):
             grp_path = "/".join([self._calibration_metadata_path, "geometry"])
             grp = f[grp_path]
             for ds_arr in grp.values():
+                if isinstance(ds_arr, h5py.Group):
+                    raise TypeError(
+                        f"unexpected HDF5 Group found in {grp_path}."
+                        " Metadata cubes Groups should only contain Datasets."
+                    )
                 ds_path = ds_arr.name
 
                 n_dim = np.ndim(ds_arr)
@@ -2672,6 +2693,11 @@ class RSLC(SLC, NisarRadarProduct):
             grp_path = "/".join([self._calibration_metadata_path, "crosstalk"])
             grp = f[grp_path]
             for ds_arr in grp.values():
+                if isinstance(ds_arr, h5py.Group):
+                    raise TypeError(
+                        f"unexpected HDF5 Group found in {grp_path}."
+                        " Metadata cubes Groups should only contain Datasets."
+                    )
                 ds_path = ds_arr.name
 
                 n_dim = np.ndim(ds_arr)
