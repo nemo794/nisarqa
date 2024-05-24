@@ -982,8 +982,7 @@ class ValidationGroupParamGroup(YamlParamGroup):
         True
     """
 
-    # Required parameter - do not set a default
-    m_cubes_fail_if_all_nan: str = field(
+    m_cubes_fail_if_all_nan: bool = field(
         default=True,
         metadata={
             "yaml_attrs": YamlAttrs(
