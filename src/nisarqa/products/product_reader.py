@@ -2634,7 +2634,8 @@ class RSLC(SLC, NisarRadarProduct):
         Yields
         ------
         cube : nisarqa.MetadataCube2D
-            The next MetadataCube2D in this Group: `../metadata/calibrationInformation/geometry`
+            The next MetadataCube2D in this Group:
+                `../metadata/calibrationInformation/geometry`
         """
         with h5py.File(self.filepath, "r") as f:
             grp_path = "/".join([self._calibration_metadata_path, "geometry"])
@@ -2663,8 +2664,9 @@ class RSLC(SLC, NisarRadarProduct):
 
         Yields
         ------
-        cube : nisarqa.MetadataCube2D
-            The next MetadataCube2D in this Group: `../metadata/calibrationInformation/crosstalk`
+        cube : nisarqa.MetadataCube1D
+            The next MetadataCube1D in this Group:
+                `../metadata/calibrationInformation/crosstalk`
         """
         with h5py.File(self.filepath, "r") as f:
             grp_path = "/".join([self._calibration_metadata_path, "crosstalk"])
