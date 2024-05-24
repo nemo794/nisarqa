@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import warnings
-from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Optional
 
 import h5py
 import numpy as np
@@ -414,7 +411,6 @@ def _metadata_cube_is_not_all_zeros(cube: nisarqa.MetadataCube1D) -> bool:
             " (<1e-12) values."
         )
         log.warning(msg)
-        warnings.warn(msg, RuntimeWarning)
         return False
 
     # For 3-D cubes, check each z-layer individually for all near-zero values.
@@ -430,7 +426,6 @@ def _metadata_cube_is_not_all_zeros(cube: nisarqa.MetadataCube1D) -> bool:
                     " contains all near-zero (<1e-12) values."
                 )
                 log.warning(msg)
-                warnings.warn(msg, RuntimeWarning)
                 return False
     return True
 
