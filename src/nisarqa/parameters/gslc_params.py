@@ -8,6 +8,7 @@ from nisarqa import (
     InputFileGroupParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
+    ValidationGroupParamGroup,
     WorkflowsParamGroup,
 )
 
@@ -34,6 +35,8 @@ class GSLCRootParamGroup(RootParamGroup):
         Input File Group parameters for QA
     prodpath : ProductPathGroupParamGroup or None, optional
         Product Path Group parameters for QA
+    validation : ValidationGroupParamGroup or None, optional
+        Validation Group parameters for QA
     backscatter_img : BackscatterImageParamGroup or None, optional
         Backscatter Image Group parameters for SLC QA
     histogram : HistogramParamGroup or None, optional
@@ -64,6 +67,11 @@ class GSLCRootParamGroup(RootParamGroup):
                 param_grp_cls_obj=ProductPathGroupParamGroup,
             ),
             Grp(
+                flag_param_grp_req=workflows.validate,
+                root_param_grp_attr_name="validation",
+                param_grp_cls_obj=ValidationGroupParamGroup,
+            ),
+            Grp(
                 flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="backscatter_img",
                 param_grp_cls_obj=BackscatterImageParamGroup,
@@ -85,6 +93,7 @@ class GSLCRootParamGroup(RootParamGroup):
             InputFileGroupParamGroup,
             ProductPathGroupParamGroup,
             WorkflowsParamGroup,
+            ValidationGroupParamGroup,
             BackscatterImageParamGroup,
             HistogramParamGroup,
         )

@@ -162,7 +162,7 @@ class MetadataCube3D(MetadataCube2D):
 
 
 def verify_metadata_cubes(
-    product: nisarqa.NisarProduct,
+    product: nisarqa.NisarProduct, fail_if_all_nan: bool = True
 ) -> None:
     """
     Verify if the input product's metadata cubes are valid.
@@ -171,7 +171,12 @@ def verify_metadata_cubes(
     ----------
     product : nisarqa.NisarProduct
         Instance of the input product. Note: there will be additional checks
-        performed for particular subclasses of nisarqa.NisarProduct.
+    fail_if_all_nan : bool, optional
+        True to raise an exception if one of the metadata cubes contains
+        all non-finite (e.g. Nan, +/- Inf) values, or if one of the
+        z-dimension height layers in a 3D cube has all non-finite values.
+        False to quiet the exception, although it will still be logged.
+        Defaults to True.
 
     Raises
     ------
@@ -250,7 +255,7 @@ def verify_metadata_cubes(
     summary = nisarqa.get_summary()
     summary.check_metadata_cubes(result="PASS" if passes else "FAIL")
 
-    if not has_finite:
+    if fail_if_all_nan and (not has_finite):
         raise nisarqa.InvalidRasterError(
             "One of the metadata cubes contains all non-finite (e.g. NaN,"
             " +/1 Inf) values or one of the z-dimension height layers in a"

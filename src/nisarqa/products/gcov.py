@@ -109,7 +109,10 @@ def verify_gcov(
             freq_pols=freq_cov,
         )
 
-        nisarqa.verify_metadata_cubes(product=product)
+        nisarqa.verify_metadata_cubes(
+            product=product,
+            fail_if_all_nan=root_params.validation.m_cubes_fail_if_all_nan,
+        )
 
         msg = "Input file validation complete."
         log.info(msg)

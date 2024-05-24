@@ -971,6 +971,40 @@ class ProductPathGroupParamGroup(YamlParamGroup):
         return ["runconfig", "groups", "product_path_group"]
 
 
+@dataclass(frozen=True)
+class ValidationGroupParamGroup(YamlParamGroup):
+    """
+    Parameters from the Validation Group runconfig group.
+
+    Parameters
+    ----------
+    metadata_cubes_fail_if_all_nan : str
+        True
+    """
+
+    # Required parameter - do not set a default
+    m_cubes_fail_if_all_nan: str = field(
+        default=True,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="metadata_cubes_fail_if_all_nan",
+                descr="""True to raise an exception if one of the metadata cubes contains
+                all non-finite (e.g. Nan, +/- Inf) values, or if one of the
+                z-dimension height layers in a 3D cube has all non-finite values.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+        if not isinstance(self.m_cubes_fail_if_all_nan, bool):
+            raise TypeError(f"`{self.m_cubes_fail_if_all_nan=}`, must be bool.")
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "validation"]
+
+
 @dataclass
 class RootParamGroup(ABC):
     """Abstract Base Class for all NISAR Products' *RootParamGroup"""
@@ -978,6 +1012,7 @@ class RootParamGroup(ABC):
     workflows: WorkflowsParamGroup
     input_f: Optional[InputFileGroupParamGroup] = None
     prodpath: Optional[ProductPathGroupParamGroup] = None
+    validation: Optional[ValidationGroupParamGroup] = None
 
     # Create a namedtuple which maps the workflows requested
     # in `workflows` to their corresponding *RootParamGroup attribute(s)
