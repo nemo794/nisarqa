@@ -242,15 +242,19 @@ def verify_metadata_cubes(
     # Check metadata cubes in metadata Group
     try:
         # Note: During the __post_init__ of constructing each MetadataCube,
-        # several validation checks are performed.
+        # several validation checks are performed, including ensuring that
+        # there are corresponding datasets with x coordinates and y coordinates
+        # of the correct length. If these elements are missing, exceptions
+        # will get thrown.
         for cube in product.coordinate_grid_metadata_cubes():
             all_mc_are_ok &= _check_gdal(c=cube)
+
+        spec = nisarqa.Version.from_string(product.product_spec_version)
 
         # Non-InSAR products have calibrationInformation groups
         if isinstance(product, nisarqa.NonInsarProduct):
             for freq in product.freqs:
 
-                spec = nisarqa.Version.from_string(product.product_spec_version)
                 if spec >= nisarqa.Version(1, 1, 0):
                     for cube in product.nes0_metadata_cubes(freq):
                         all_mc_are_ok &= _check_gdal(c=cube)
@@ -272,7 +276,7 @@ def verify_metadata_cubes(
                             pass
 
     except (nisarqa.DatasetNotFoundError, ValueError) as e:
-        print(e.__traceback__)
+        nisarqa.get_logger().error(e.__traceback__)
         all_mc_are_ok = False
 
     # SUMMARY LOG
