@@ -11,8 +11,6 @@ import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
-MetadataCube = TypeVar("MetadataCube", bound=nisarqa.MetadataCube1D)
-
 
 @dataclass
 class MetadataCube1D:
@@ -58,6 +56,9 @@ class MetadataCube1D:
     def shape(self) -> tuple[int, ...]:
         """Shape of the metadata cube."""
         return self.data.shape
+
+
+MetadataCube = TypeVar("MetadataCube", bound=MetadataCube1D)
 
 
 @dataclass
@@ -238,7 +239,7 @@ def verify_metadata_cubes(
                         passes &= _metadata_cube_is_not_all_zeros(cube)
                         passes &= _check_gdal(c=cube)
 
-                    if issubclass(type(product), nisarqa.RSLC):
+                    if isinstance(type(product), nisarqa.RSLC):
                         for cube in product.geometry_metadata_cubes():
                             has_finite &= _metadata_cube_has_finite_pixels(cube)
                             passes &= has_finite
