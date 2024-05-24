@@ -21,13 +21,13 @@ class MetadataCube1D:
 
     Parameters
     ----------
-    data : np.ndarray
-        Metadata cube with shape (X,). Can be a numpy.ndarray,
-        h5py.Dataset, etc.
+    data : array_like
+        Metadata cube with shape (X,). Can be a numpy.ndarray, h5py.Dataset,
+        etc. The dataset will be coerced to and stored as a NumPy array.
     name : str
         Name for this Dataset. If source data is from an HDF5 file, suggest
         using the full path to the Dataset for `name`.
-    x_coord_vector : np.ndarray
+    x_coord_vector : array_like
         1D vector with shape (X,) containing the coordinate values for the
         x axis of the datacube.
         For L1 products, this is the `slantRange` corresponding to `data`.
@@ -55,7 +55,7 @@ class MetadataCube1D:
             )
 
     @property
-    def shape(self) -> tuple[int]:
+    def shape(self) -> tuple[int, ...]:
         """Shape of the metadata cube."""
         return self.data.shape
 
@@ -67,18 +67,18 @@ class MetadataCube2D(MetadataCube1D):
 
     Parameters
     ----------
-    data : np.ndarray
-        Metadata cube with shape (Y, X). Can be a numpy.ndarray,
-        h5py.Dataset, etc.
+    data : array_like
+        Metadata cube with shape (Y, X). Can be a numpy.ndarray, h5py.Dataset,
+        etc. The dataset will be coerced to and stored as a NumPy array.
     name : str
         Name for this Dataset. If data is from an HDF5 file, suggest using
         the full path to the Dataset for `name`.
-    x_coord_vector : np.ndarray
+    x_coord_vector : array_like
         1D vector with shape (X,) containing the coordinate values for the
         x axis of the datacube.
         For L1 products, this is the `slantRange` corresponding to `data`.
         For L2 products, this is the `xCoordinates` corresponding to `data`.
-    y_coord_vector : np.ndarray
+    y_coord_vector : array_like
         1D vector with shape (Y,) containing the coordinate values for the
         y axis of the datacube.
         For L1 products, this is the `zeroDopplerTime` corresponding to `data`.
@@ -108,25 +108,27 @@ class MetadataCube3D(MetadataCube2D):
 
     Parameters
     ----------
-    data : np.ndarray
+    data : array_like
         Metadata cube with shape (Z, Y, X). Can be a numpy.ndarray,
-        h5py.Dataset, etc.
+        h5py.Dataset, etc. The dataset will be coerced to and stored as
+        a NumPy array.
     name : str
         Name for this Dataset. If data is from an HDF5 file, suggest using
         the full path to the Dataset for `name`. If `name` ends with 'Baseline',
         the dataset will be assumed to be a parallel baseline or perpendicular
-        baseline dataset, which may have a z-dimension of 2.
-    x_coord_vector : np.ndarray
+        baseline dataset, which may have a z-dimension of 2 regardless of the
+        size of `z_coord_vector`.
+    x_coord_vector : array_like
         1D vector with shape (X,) containing the coordinate values for the
         x axis of the datacube.
         For L1 products, this is the `slantRange` corresponding to `data`.
         For L2 products, this is the `xCoordinates` corresponding to `data`.
-    y_coord_vector : np.ndarray
+    y_coord_vector : array_like
         1D vector with shape (Y,) containing the coordinate values for the
         y axis of the datacube.
         For L1 products, this is the `zeroDopplerTime` corresponding to `data`.
         For L2 products, this is the `yCoordinates` corresponding to `data`.
-    z_coord_vector : np.ndarray
+    z_coord_vector : array_like
         1D vector with shape (Z,) containing the coordinate values for the
         z axis of the datacube.
         For NISAR, this is `heightAboveEllipsoid` corresponding to `data`.
@@ -181,9 +183,9 @@ def verify_metadata_cubes(
     Raises
     ------
     nisarqa.InvalidRasterError
-        If one of the metadata cubes contains all non-finite (e.g. Nan, +/- Inf)
-        values, or if one of the z-dimension height layers in a 3D cube has
-        all non-finite values.
+        If one or more metadata cubes contains all non-finite (e.g. Nan,
+        +/- Inf) values, or if one of the z-dimension height layers in a
+        3D cube has all non-finite values.
     """
 
     # Flag indicating if metadata cubes pass all verification checks; used
@@ -257,8 +259,8 @@ def verify_metadata_cubes(
 
     if fail_if_all_nan and (not has_finite):
         raise nisarqa.InvalidRasterError(
-            "One of the metadata cubes contains all non-finite (e.g. NaN,"
-            " +/1 Inf) values or one of the z-dimension height layers in a"
+            "One or more metadata cubes contains all non-finite (e.g. NaN,"
+            " +/- Inf) values or one of the z-dimension height layers in a"
             " 3D cube has all non-finite values. See log for full details."
         )
 
@@ -340,7 +342,7 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
 
 def _metadata_cube_has_finite_pixels(cube: nisarqa.MetadataCube1D) -> bool:
     """
-    Return False if metedata cube contains all non-finite values; True otherwise.
+    Return False if metadata cube contains all non-finite values; True otherwise.
 
     Parameters
     ----------
@@ -352,7 +354,7 @@ def _metadata_cube_has_finite_pixels(cube: nisarqa.MetadataCube1D) -> bool:
     passes : bool
         True if the cube contains at least one finite pixel. (Meaning, it is
         considered a valid dataset.)
-        False if the given metedata cube contain all non-finite (e.g. NaN,
+        False if the given metadata cube contain all non-finite (e.g. NaN,
         +/- Inf) values, it is likely a mal-formed Dataset.
         Or, if the cube is a 3D metadata cube, and if any of the z-dimension
         height layers is all non-finite, it is also considered malformed and we
@@ -360,7 +362,7 @@ def _metadata_cube_has_finite_pixels(cube: nisarqa.MetadataCube1D) -> bool:
     """
     log = nisarqa.get_logger()
 
-    if not np.isfinite(cube.data[()]).any():
+    if not np.isfinite(cube.data).any():
         log.error(
             f"Metadata cube {cube.name} contains all non-finite"
             " (e.g. NaN) values."
@@ -382,7 +384,7 @@ def _metadata_cube_has_finite_pixels(cube: nisarqa.MetadataCube1D) -> bool:
 
 def _metadata_cube_is_not_all_zeros(cube: nisarqa.MetadataCube1D) -> bool:
     """
-    Return False if metedata cube contains all near-zeros; True otherwise.
+    Return False if metadata cube contains all near-zeros; True otherwise.
 
     Parameters
     ----------
@@ -394,7 +396,7 @@ def _metadata_cube_is_not_all_zeros(cube: nisarqa.MetadataCube1D) -> bool:
     Passes : bool
         True if the cube contains at least one non-near-zero pixel. (Meaning,
         it is considered a valid dataset.)
-        False if the given metedata cube contain all near-zero ( <1e-12 )
+        False if the given metadata cube contain all near-zero ( <1e-12 )
         values, it is likely a malformed Dataset.
         Or, if the cube is a 3D metadata cube, and if any of the z-dimension
         height layers is all near-zero, it is also considered malformed and we
@@ -402,7 +404,7 @@ def _metadata_cube_is_not_all_zeros(cube: nisarqa.MetadataCube1D) -> bool:
     """
     log = nisarqa.get_logger()
 
-    if np.all(np.abs(cube.data[()]) < 1e-12):
+    if np.all(np.abs(cube.data) < 1e-12):
         # This check is likely to raise a lot of failures.
         # We do not want to halt processing during CalVal.
         # So, issue obnoxious warnings for now.

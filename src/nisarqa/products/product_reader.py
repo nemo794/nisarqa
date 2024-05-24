@@ -1077,8 +1077,10 @@ class NisarProduct(ABC):
         else:
             names = ("slantRange", "zeroDopplerTime")
 
-        # In all L2 products, the coordinate datasets exist in the same group as the cube itself.
-        # However, in L1 products, some coordinate datasets exist in a predecessor group, so we must recursively scan parent directories until finding the coordinate dataset.
+        # In all L2 products, the coordinate datasets exist in the same group
+        # as the cube itself. However, in L1 products, some coordinate
+        # datasets exist in a predecessor group, so we must recursively scan
+        # parent directories until finding the coordinate dataset.
         kwargs["x_coord_vector"] = f[
             _get_path_to_nearest_dataset(
                 h5_file=f,
@@ -1141,7 +1143,8 @@ class NisarRadarProduct(NisarProduct):
         return "/".join([self._metadata_group_path, "geolocationGrid"])
 
     def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
-        # Shapely boundary coords is a tuple of coordinate lists of form ([x...], [y...])
+        # Shapely boundary coords is a tuple of coordinate lists of
+        # form ([x...], [y...])
         coords = shapely.from_wkt(self.bounding_polygon).boundary.coords
         # Rezip the coordinates to a list of (x, y) tuples,
         # and convert to radians for the internal LonLat class
