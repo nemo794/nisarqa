@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeVar
 
 import h5py
 import numpy as np
@@ -9,6 +10,8 @@ from osgeo import gdal, osr
 import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
+
+MetadataCube = TypeVar("MetadataCube", bound=nisarqa.MetadataCube1D)
 
 
 @dataclass
@@ -337,13 +340,13 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
         return False
 
 
-def _metadata_cube_has_finite_pixels(cube: nisarqa.MetadataCube1D) -> bool:
+def _metadata_cube_has_finite_pixels(cube: MetadataCube) -> bool:
     """
     Return False if metadata cube contains all non-finite values; True otherwise.
 
     Parameters
     ----------
-    cube : nisarqa.MetadataCube1D
+    cube : nisarqa.MetadataCube
         MetadataCube to be checked.
 
     Returns
@@ -379,13 +382,13 @@ def _metadata_cube_has_finite_pixels(cube: nisarqa.MetadataCube1D) -> bool:
     return True
 
 
-def _metadata_cube_is_not_all_zeros(cube: nisarqa.MetadataCube1D) -> bool:
+def _metadata_cube_is_not_all_zeros(cube: MetadataCube) -> bool:
     """
     Return False if metadata cube contains all near-zeros; True otherwise.
 
     Parameters
     ----------
-    cube : nisarqa.MetadataCube1D
+    cube : nisarqa.MetadataCube
         MetadataCube to be checked.
 
     Returns
