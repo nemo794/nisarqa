@@ -180,9 +180,9 @@ def verify_metadata_cubes(
     Raises
     ------
     nisarqa.InvalidRasterError
-        If one or more metadata cubes contains all non-finite (e.g. Nan,
-        +/- Inf) values, or if one of the z-dimension height layers in a
-        3D cube has all non-finite values.
+        If `fail_if_all_nan` is True and if one or more metadata cubes
+        contains all non-finite (e.g. Nan, +/- Inf) values, or if one of
+        the z-dimension height layers in a 3D cube has all non-finite values.
     """
 
     # Flag indicating if metadata cubes pass all verification checks; used

@@ -979,25 +979,32 @@ class ValidationGroupParamGroup(YamlParamGroup):
     Parameters
     ----------
     metadata_cubes_fail_if_all_nan : str
-        True
+        True to raise an exception if one or more metadata cubes contains
+        all non-finite (e.g. Nan, +/- Inf) values, or if one or more
+        z-dimension height layers in a 3D cube has all non-finite values.
+        False to quiet the exception (although it will still be logged).
+        Defaults to True.
     """
 
-    m_cubes_fail_if_all_nan: bool = field(
+    metadata_cubes_fail_if_all_nan: bool = field(
         default=True,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="metadata_cubes_fail_if_all_nan",
-                descr="""True to raise an exception if one of the metadata cubes contains
-                all non-finite (e.g. Nan, +/- Inf) values, or if one of the
-                z-dimension height layers in a 3D cube has all non-finite values.""",
+                descr="""True to raise an exception if one or more metadata cubes contains
+                all non-finite (e.g. Nan, +/- Inf) values, or if one or more
+                z-dimension height layers in a 3D cube has all non-finite values.
+                False to quiet the exception (although it will still be logged).""",
             )
         },
     )
 
     def __post_init__(self):
         # VALIDATE INPUTS
-        if not isinstance(self.m_cubes_fail_if_all_nan, bool):
-            raise TypeError(f"`{self.m_cubes_fail_if_all_nan=}`, must be bool.")
+        if not isinstance(self.metadata_cubes_fail_if_all_nan, bool):
+            raise TypeError(
+                f"`{self.metadata_cubes_fail_if_all_nan=}`, must be bool."
+            )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
