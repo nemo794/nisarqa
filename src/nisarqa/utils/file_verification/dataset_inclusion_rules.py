@@ -282,7 +282,7 @@ def check_paths(
     valid_freq_pols: Mapping[str, Iterable[str]],
     all_freqs: Iterable[str] = nisarqa.NISAR_FREQS,
     all_pols: Iterable[str] = pol_options(),
-    all_layers: Iterable[str] = [nisarqa.NISAR_LAYERS],
+    all_layers: Iterable[str] = nisarqa.NISAR_LAYERS,
     all_subswaths: Iterable[str] = subswaths_options(),
     valid_layers: Iterable[str] | None = None,
     valid_subswaths: Iterable[str] | None = None,

@@ -55,14 +55,31 @@ def verify_file_against_xml(
                 f"{product_type=}, so `layer_numbers` cannot be None."
             )
         elif not isinstance(layer_groups, Iterable):
-            msg = f"`{layer_groups=}` must be an iterable or None."
+            msg = (
+                f"`{layer_groups=}` and has type `{type(layer_groups)}`,"
+                " but must be an iterable."
+            )
             raise TypeError(msg)
         elif not all(
-            (isinstance(n, int) and (n > 0) and (n < 9)) for n in layer_groups
+            isinstance(n, str) for n in layer_groups
         ):
             msg = (
-                f"`{layer_groups=}` must be an iterable of integers in range"
-                " [1, 8], or None."
+                f"`{layer_groups=}`, but must be an iterable of strings"
+                " for ROFF and GOFF products."
+            )
+            raise ValueError(msg)
+        elif not all(n.startswith("layer") for n in layer_groups):
+            msg = (
+                f"`{layer_groups=}`, but all layer group must all start"
+                " with 'layer'."
+            )
+            raise ValueError(msg)
+        elif not all(
+            ((int(n[5:]) > 0) and (int(n[5:]) < 9)) for n in layer_groups
+        ):
+            msg = (
+                f"`{layer_groups=}`, but the layer groups' numbers must"
+                " all be within range [1, 8]."
             )
             raise ValueError(msg)
     else:
