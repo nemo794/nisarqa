@@ -922,7 +922,7 @@ class NisarProduct(ABC):
         """
         return "/".join([self._root_path, self.product_type, "metadata"])
 
-    @cached_property
+    @abstractproperty
     def _coordinate_grid_metadata_group_path(self) -> str:
         """
         Get the path to the coordinate grid metadata Group.
@@ -1043,7 +1043,7 @@ class NisarProduct(ABC):
         nisarqa.MetadataLUT1D | nisarqa.MetadataLUT2D | nisarqa.MetadataLUT3D
     ):
         """
-        Construct a MetadataCube for the given 1D, 2D, or 3D metadata cube.
+        Construct a MetadataCube for the given 1D, 2D, or 3D dataset.
 
         Parameters
         ----------
@@ -1978,7 +1978,7 @@ class NonInsarProduct(NisarProduct):
         path = f"{self._calibration_metadata_path}/frequency{freq}/nes0"
 
         spec = nisarqa.Version.from_string(self.product_spec_version)
-        if spec >= nisarqa.Version(1, 1, 0):
+        if spec < nisarqa.Version(1, 1, 0):
             nisarqa.get_logger().warning(
                 "Input product was generated with an older product spec; `nes0`"
                 f" Group might not exist for frequency {freq}. Path: {path}"

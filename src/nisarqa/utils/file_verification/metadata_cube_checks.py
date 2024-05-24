@@ -245,7 +245,7 @@ def verify_metadata_cubes(
             all_mc_are_ok &= _check_gdal(c=cube)
 
         # Non-InSAR products have calibrationInformation groups
-        if issubclass(type(product), nisarqa.NonInsarProduct):
+        if isinstance(product, nisarqa.NonInsarProduct):
             for freq in product.freqs:
 
                 spec = nisarqa.Version.from_string(product.product_spec_version)
@@ -275,10 +275,7 @@ def verify_metadata_cubes(
 
     # SUMMARY LOG
     summary = nisarqa.get_summary()
-    if all_mc_are_ok:
-        summary.check_metadata_cubes(result="PASS")
-    else:
-        summary.check_metadata_cubes(result="FAIL")
+    summary.check_metadata_cubes(result="PASS" if all_mc_are_ok else "FAIL")
 
 
 def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
@@ -324,6 +321,10 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
     except AttributeError:
         log.error(bad_msg)
         return False
+    
+    if wkt == "":
+        log.error(bad_msg)
+        return False
 
     proj = osr.SpatialReference(wkt=wkt)
 
@@ -336,7 +337,7 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
     # returns None.
     crs = gdal_ds.GetSpatialRef()
 
-    if (crs is None) or (wkt == "") or (epsg is None):
+    if (crs is None) or (epsg is None):
         log.error(bad_msg)
         return False
     # Note: this is specifically checking that the dataset used a map projection (e.g. UTM, UPS)
