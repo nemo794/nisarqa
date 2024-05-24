@@ -132,7 +132,9 @@ class MetadataCube3D(MetadataCube2D):
         h5py.Dataset, etc.
     name : str
         Name for this Dataset. If data is from an HDF5 file, suggest using
-        the full path to the Dataset for `name`. If `name` ends with 'Baseline', the dataset will be assumed to be a parallel baseline or perpendicular baseline dataset, which may have a z-dimension of 2.
+        the full path to the Dataset for `name`. If `name` ends with 'Baseline',
+        the dataset will be assumed to be a parallel baseline or perpendicular
+        baseline dataset, which may have a z-dimension of 2.
     x_coord_vector : array_like
         1D vector with shape (X,) containing the coordinate values for the
         x axis of the datacube.
@@ -321,7 +323,7 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
     except AttributeError:
         log.error(bad_msg)
         return False
-    
+
     if wkt == "":
         log.error(bad_msg)
         return False
@@ -340,8 +342,10 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
     if (crs is None) or (epsg is None):
         log.error(bad_msg)
         return False
-    # Note: this is specifically checking that the dataset used a map projection (e.g. UTM, UPS)
-    # It is *not* checking that the dataset contained a projection, which just means that it stored coordinate system info
+    # Note: this is specifically checking that the dataset used a map
+    # projection (e.g. UTM, UPS)
+    # It is *not* checking that the dataset contained a projection, which
+    # just means that it stored coordinate system info.
     # If the dataset is Lon/Lat, this check will be false
     elif crs.IsProjected() == 1:
         log.info(good_msg)
