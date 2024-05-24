@@ -239,7 +239,7 @@ def verify_metadata_cubes(
                         passes &= _metadata_cube_is_not_all_zeros(cube)
                         passes &= _check_gdal(c=cube)
 
-                    if isinstance(type(product), nisarqa.RSLC):
+                    if isinstance(product, nisarqa.RSLC):
                         for cube in product.geometry_metadata_cubes():
                             has_finite &= _metadata_cube_has_finite_pixels(cube)
                             passes &= has_finite
