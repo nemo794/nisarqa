@@ -1040,7 +1040,7 @@ class NisarProduct(ABC):
         ds_arr: h5py.Dataset,
         expected_ndim: int,
     ) -> (
-        nisarqa.MetadataCube1D | nisarqa.MetadataCube2D | nisarqa.MetadataCube3D
+        nisarqa.MetadataLUT1D | nisarqa.MetadataLUT2D | nisarqa.MetadataLUT3D
     ):
         """
         Construct a MetadataCube for the given 1D, 2D, or 3D metadata cube.
@@ -1068,7 +1068,7 @@ class NisarProduct(ABC):
         if expected_ndim not in (1, 2, 3):
             raise ValueError(f"{expected_ndim=}, must be 1, 2, or 3.")
 
-        # build arguments dict
+        # build arguments dict for the MetadataCubeXD constructor.
         kwargs = {"data": ds_arr, "name": ds_path}
 
         if self.is_geocoded:
@@ -1076,6 +1076,8 @@ class NisarProduct(ABC):
         else:
             names = ("slantRange", "zeroDopplerTime")
 
+        # In all L2 products, the coordinate datasets exist in the same group as the cube itself.
+        # However, in L1 products, some coordinate datasets exist in a predecessor group, so we must recursively scan parent directories until finding the coordinate dataset.
         kwargs["x_coord_vector"] = f[
             _get_path_to_nearest_dataset(
                 h5_file=f,
@@ -1646,6 +1648,11 @@ class NonInsarProduct(NisarProduct):
     ) -> Iterator[nisarqa.MetadataCube2D]:
         """
         Generator for all metadata cubes in nes0 calibration information Group.
+        
+        Parameters
+        ----------
+        freq : {'A', 'B'}
+            The frequency sub-band. Must be a valid sub-band in the product.
 
         Yields
         ------
@@ -1976,7 +1983,6 @@ class NonInsarProduct(NisarProduct):
                 "Input product was generated with an older product spec; `nes0`"
                 f" Group might not exist for frequency {freq}. Path: {path}"
             )
-        print(f"{path=}")
 
         return path
 
@@ -2637,7 +2643,7 @@ class RSLC(SLC, NisarRadarProduct):
         Yields
         ------
         cube : nisarqa.MetadataCube2D
-            The next MetadataCube2D in this Group: `../metadata/geometry`
+            The next MetadataCube2D in this Group: `../metadata/calibrationInformation/geometry`
         """
         with h5py.File(self.filepath, "r") as f:
             grp_path = "/".join([self._calibration_metadata_path, "geometry"])
@@ -2669,7 +2675,7 @@ class RSLC(SLC, NisarRadarProduct):
         Yields
         ------
         cube : nisarqa.MetadataCube2D
-            The next MetadataCube2D in this Group: `../metadata/crosstalk`
+            The next MetadataCube2D in this Group: `../metadata/calibrationInformation/crosstalk`
         """
         with h5py.File(self.filepath, "r") as f:
             grp_path = "/".join([self._calibration_metadata_path, "crosstalk"])

@@ -35,9 +35,9 @@ class MetadataCube1D:
         For L2 products, this is the `xCoordinates` corresponding to `data`.
     """
 
-    data: npt.ArrayLike
+    data: np.ndarray
     name: str
-    x_coord_vector: npt.ArrayLike
+    x_coord_vector: np.ndarray
 
     def __post_init__(self):
         if self.x_axis_dim != len(self.x_coord_vector):
@@ -132,7 +132,7 @@ class MetadataCube3D(MetadataCube2D):
         h5py.Dataset, etc.
     name : str
         Name for this Dataset. If data is from an HDF5 file, suggest using
-        the full path to the Dataset for `name`.
+        the full path to the Dataset for `name`. If `name` ends with 'Baseline', the dataset will be assumed to be a parallel baseline or perpendicular baseline dataset, which may have a z-dimension of 2.
     x_coord_vector : array_like
         1D vector with shape (X,) containing the coordinate values for the
         x axis of the datacube.
@@ -176,6 +176,7 @@ class MetadataCube3D(MetadataCube2D):
                     f" z-axis coordinate vector which is {len_z}."
                 )
 
+        # For 3-D cubes, check each z-layer individually for all-NaN values.
         for z in range(len_z):
             if not np.isfinite(self.data[z, :, :]).any():
                 raise nisarqa.InvalidRasterError(
@@ -226,8 +227,9 @@ def verify_metadata_cubes(
     # Flag for Summary CSV reporting
     all_mc_are_ok = True
 
-    # helper function
-    def _check_gdal(c: nisarqa.MetadataCube2D) -> bool:
+    # helper function to check if the cube is GDAL-friendly.
+    # no-op if the cube is not geocoded and/or not an h5py.Dataset
+    def _check_gdal(c: nisarqa.MetadataCube2D | nisarqa.MetadataCube3D) -> bool:
         if product.is_geocoded and isinstance(c.data, h5py.Dataset):
             return is_gdal_friendly(
                 input_filepath=product.filepath, ds_path=c.data.name
@@ -237,8 +239,8 @@ def verify_metadata_cubes(
 
     # Check metadata cubes in metadata Group
     try:
-        # Note: During the __post_init__ of constructing each MetadataCube3D,
-        # several validation checks are performed. Do not exit the loop early.
+        # Note: During the __post_init__ of constructing each MetadataCube,
+        # several validation checks are performed.
         for cube in product.coordinate_grid_metadata_cubes():
             all_mc_are_ok &= _check_gdal(c=cube)
 
@@ -304,7 +306,7 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
 
     log = nisarqa.get_logger()
 
-    good_msg = f"Dataset is gdal-friendly: {ds_path}"
+    good_msg = f"Dataset is GDAL-friendly: {ds_path}"
     bad_msg = good_msg.replace("is ", "is not ")
 
     gdal_ds = gdal.Open(f'NETCDF:"{input_filepath}":{ds_path}')
@@ -315,33 +317,7 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
 
     # However, if, for example, the Dataset's corresponding `xCoordinates`
     # Dataset is the incorrect length, then GetProjection() raises an
-    # AttributeError, like this:
-    """
-    .../anaconda3/envs/qa39/lib/python3.9/site-packages/osgeo/gdal.py:312: FutureWarning: Neither gdal.UseExceptions() nor gdal.DontUseExceptions() has been explicitly called. In GDAL 4.0, exceptions will be enabled by default.
-    warnings.warn(
-    ERROR 1: netcdf error #-46 : NetCDF: Invalid dimension ID or name .
-    at (/Users/runner/miniforge3/conda-bld/gdal-split_1713568997692/work/frmts/netcdf/netcdfdataset.cpp,Open,9668)
-
-    Warning 1: dimension #2 () is not a Longitude/X dimension.
-    ERROR 1: netcdf error #-46 : NetCDF: Invalid dimension ID or name .
-    at (/Users/runner/miniforge3/conda-bld/gdal-split_1713568997692/work/frmts/netcdf/netcdfdataset.cpp,Open,9738)
-
-    ERROR 1: Invalid raster dimensions: 4528871360x605
-    Traceback (most recent call last):
-    File "/Users/niemoell/opt/anaconda3/envs/qa39/bin/nisarqa", line 33, in <module>
-        sys.exit(load_entry_point('nisarqa', 'console_scripts', 'nisarqa')())
-    File "/Users/niemoell/Desktop/qa_repo/QualityAssurance/src/nisarqa/__main__.py", line 235, in main
-        run()
-    File "/Users/niemoell/Desktop/qa_repo/QualityAssurance/src/nisarqa/__main__.py", line 203, in run
-        nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg, verbose=args.verbose)
-    File "/Users/niemoell/Desktop/qa_repo/QualityAssurance/src/nisarqa/products/gcov.py", line 112, in verify_gcov
-        nisarqa.verify_metadata_cubes(product=product)
-    File "/Users/niemoell/Desktop/qa_repo/QualityAssurance/src/nisarqa/utils/file_verification/metadata_cube_checks.py", line 178, in verify_metadata_cubes
-        is_gdal_friendly(
-    File "/Users/niemoell/Desktop/qa_repo/QualityAssurance/src/nisarqa/utils/file_verification/metadata_cube_checks.py", line 198, in is_gdal_friendly
-        wkt = gdal_ds.GetProjection()
-    AttributeError: 'NoneType' object has no attribute 'GetProjection'
-    """
+    # AttributeError.
 
     try:
         wkt = gdal_ds.GetProjection()
@@ -363,7 +339,11 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
     if (crs is None) or (wkt == "") or (epsg is None):
         log.error(bad_msg)
         return False
+    # Note: this is specifically checking that the dataset used a map projection (e.g. UTM, UPS)
+    # It is *not* checking that the dataset contained a projection, which just means that it stored coordinate system info
+    # If the dataset is Lon/Lat, this check will be false
     elif crs.IsProjected() == 1:
+        log.info(good_msg)
         return True
     else:
         log.error(bad_msg)
