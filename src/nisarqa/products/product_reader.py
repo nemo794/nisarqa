@@ -844,9 +844,7 @@ class NisarProduct(ABC):
                         f" dimensions: {ds_path}"
                     )
                 else:
-                    yield self._build_metadata_cube(
-                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
-                    )
+                    yield self._build_metadata_cube(f=f, ds_arr=ds_arr)
 
     @abstractmethod
     def _data_group_path(self) -> str:
@@ -1038,9 +1036,8 @@ class NisarProduct(ABC):
         self,
         f: h5py.File,
         ds_arr: h5py.Dataset,
-        expected_ndim: int,
     ) -> (
-        nisarqa.MetadataLUT1D | nisarqa.MetadataLUT2D | nisarqa.MetadataLUT3D
+        nisarqa.MetadataCube1D | nisarqa.MetadataCube2D | nisarqa.MetadataCube3D
     ):
         """
         Construct a MetadataCube for the given 1D, 2D, or 3D dataset.
@@ -1051,22 +1048,20 @@ class NisarProduct(ABC):
             Handle to the NISAR input product.
         ds_arr : h5py.Dataset
             Path to the metadata cube Dataset.
-        expected_ndim : int
-            The expected number of dimensions of the metadata cube.
-            Only 1D, 2D, or 3D metadata cubes are supported.
 
         Returns
         -------
         cube : MetadataCube1D or MetadataCube2D or MetadataCube3D
-            A constructed MetadataCube of `ds_arr`.
-            `expected_ndim` determines whether a MetadataCube1D, *2D, or *3D
+            A constructed MetadataCube of `ds_arr`. The number of dimensions
+            of `ds_arr` determines whether a MetadataCube1D, *2D, or *3D
             is returned.
         """
         # Get the full HDF5 path to the Dataset
         ds_path = ds_arr.name
+        n_dim = ds_arr.ndim
 
-        if expected_ndim not in (1, 2, 3):
-            raise ValueError(f"{expected_ndim=}, must be 1, 2, or 3.")
+        if n_dim not in (1, 2, 3):
+            raise ValueError(f"{n_dim=}, must be 1, 2, or 3.")
 
         # build arguments dict for the MetadataCubeXD constructor.
         kwargs = {"data": ds_arr, "name": ds_path}
@@ -1085,7 +1080,7 @@ class NisarProduct(ABC):
                 dataset_to_find=names[0],
             )
         ]
-        if expected_ndim >= 2:
+        if n_dim >= 2:
             kwargs["y_coord_vector"] = f[
                 _get_path_to_nearest_dataset(
                     h5_file=f,
@@ -1093,7 +1088,7 @@ class NisarProduct(ABC):
                     dataset_to_find=names[1],
                 )
             ]
-        if expected_ndim == 3:
+        if n_dim == 3:
             kwargs["z_coord_vector"] = f[
                 _get_path_to_nearest_dataset(
                     h5_file=f,
@@ -1101,9 +1096,9 @@ class NisarProduct(ABC):
                     dataset_to_find="heightAboveEllipsoid",
                 )
             ]
-        if expected_ndim == 1:
+        if n_dim == 1:
             cube_cls = nisarqa.MetadataCube1D
-        elif expected_ndim == 2:
+        elif n_dim == 2:
             cube_cls = nisarqa.MetadataCube2D
         else:
             cube_cls = nisarqa.MetadataCube3D
@@ -1117,7 +1112,7 @@ class NisarProduct(ABC):
                 # Older products sometimes had filler metadata.
                 # log, and quiet the exception.
                 nisarqa.get_logger().error(
-                    f"Could not build MetadataCube{expected_ndim}D for"
+                    f"Could not build MetadataCube{n_dim}D for"
                     f" Dataset {ds_path}"
                 )
             else:
@@ -1648,7 +1643,7 @@ class NonInsarProduct(NisarProduct):
     ) -> Iterator[nisarqa.MetadataCube2D]:
         """
         Generator for all metadata cubes in nes0 calibration information Group.
-        
+
         Parameters
         ----------
         freq : {'A', 'B'}
@@ -1677,9 +1672,7 @@ class NonInsarProduct(NisarProduct):
                         f" dimensions: {ds_path}"
                     )
                 else:
-                    yield self._build_metadata_cube(
-                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
-                    )
+                    yield self._build_metadata_cube(f=f, ds_arr=ds_arr)
 
     def elevation_antenna_pat_metadata_cubes(
         self, freq: str
@@ -1715,9 +1708,7 @@ class NonInsarProduct(NisarProduct):
                         f" {n_dim} dimensions: {ds_path}"
                     )
                 else:
-                    yield self._build_metadata_cube(
-                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
-                    )
+                    yield self._build_metadata_cube(f=f, ds_arr=ds_arr)
 
     @abstractmethod
     def get_layers_for_browse(self) -> dict[str, list[str]]:
@@ -2662,9 +2653,7 @@ class RSLC(SLC, NisarRadarProduct):
                         f" dimensions: {ds_path}"
                     )
                 else:
-                    yield self._build_metadata_cube(
-                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
-                    )
+                    yield self._build_metadata_cube(f=f, ds_arr=ds_arr)
 
     def crosstalk_metadata_cubes(
         self,
@@ -2693,9 +2682,7 @@ class RSLC(SLC, NisarRadarProduct):
                 if grp_path.endswith("/slantRange") or (n_dim == 0):
                     pass
                 else:
-                    yield self._build_metadata_cube(
-                        f=f, ds_arr=ds_arr, expected_ndim=n_dim
-                    )
+                    yield self._build_metadata_cube(f=f, ds_arr=ds_arr)
 
 
 @dataclass
