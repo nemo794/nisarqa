@@ -2856,11 +2856,28 @@ def plot_range_and_az_offsets_variances_to_pdf(
         sharey=True,
     )
 
+    # Variance should be in units of e.g. pixels^2 or meters^2. We're plotting
+    # stddev, so get the square root of the units.
+    units = az_offset_variance.units
+    if ("^2" not in units) and ("*" not in units) and ("squared" not in units):
+        raise ValueError(
+            f"`{az_offset_variance.name}` layer has units of '{units}',"
+            " but must be that base unit squared (e.g. 'meters^2')."
+        )
+    if "meter" in units:
+        # normalize for units of either "meter" or "meters"
+        units = "meters"
+    elif "pixel" in units:
+        # normalize for units of either "pixel" or "pixels"
+        units = "pixels"
+    else:
+        units = f"sqrt({units})"
+
     # Construct title for the overall PDF page. (`*raster.name` has a format
     # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(az_offset_variance.name.split("_")[:-1])
-    title = f"Azimuth and Slant Range Offsets STD (pixels)\n{name}"
+    title = f"Azimuth and Slant Range Offsets STD ({units})\n{name}"
     fig.suptitle(title)
 
     # Replace non-finite and/or masked-out pixels (i.e. pixels set to the
@@ -2927,7 +2944,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     # Add a colorbar to the figure
     cax = fig.colorbar(im2, ax=ax2)
     cax.ax.set_ylabel(
-        ylabel="Standard deviation (pixels)",
+        ylabel=f"Standard deviation ({units})",
         rotation=270,
         labelpad=10.0,
     )
@@ -3269,13 +3286,15 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         sharey=True,
     )
 
+    cross_offset_units = cross_offset_variance.units
+
     # Construct title for the overall PDF page. (`*raster.name` has a format
     # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(cross_offset_variance.name.split("_")[:-1])
     title = (
-        "Cross Offset Covariance (pixels^2) and Correlation Surface Peak"
-        f" (unitless)\n{name}"
+        f"Cross Offset Covariance ({cross_offset_units}) and Correlation"
+        f" Surface Peak (unitless)\n{name}"
     )
     fig.suptitle(title)
 
@@ -3332,10 +3351,10 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         title=cross_var_title,
     )
 
-    # Add a colorbar to the variance plot
+    # Add a colorbar to the cross offsets variance plot
     cax1 = fig.colorbar(im1, ax=ax1)
     cax1.ax.set_ylabel(
-        ylabel="Covariance (pixels^2)",
+        ylabel=f"Covariance ({cross_offset_units})",
         rotation=270,
         labelpad=10.0,
     )
