@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, fields
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Tuple
 
 import numpy as np
-from numpy.typing import DTypeLike
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -501,7 +500,7 @@ def attribute_names_check(
     name_of_attr_aspect: str,
 ) -> nisarqa.AttributeAspectStats:
     """
-    Compare existence of attribute names between XML and HDF5.
+    Compare attribute names between XML and HDF5.
 
     Parameters
     ----------
@@ -536,7 +535,7 @@ def attribute_names_check(
     num_only_in_xml = len(xml_unique_attribs)
     if num_only_in_xml > 0:
         log.error(
-            f"Attributes found XML but not HDF5: {xml_unique_attribs} -"
+            f"Attributes found in XML but not HDF5: {xml_unique_attribs} -"
             f" Dataset {dataset_name}"
         )
 
@@ -652,6 +651,10 @@ def check_iso_format_string(iso_format_string: str, dataset_name: str) -> bool:
     """
     Compare an ISO format string against the standard ISO format for ISCE3.
 
+    The standard datetime format for ISCE3 XML products specs is set in QA by:
+        `nisarqa.NISAR_DATETIME_FORMAT_HUMAN`.
+    As of June 2024, this is: "YYYY-mm-ddTHH:MM:SS"
+
     Parameters
     ----------
     iso_format_string : str
@@ -661,8 +664,8 @@ def check_iso_format_string(iso_format_string: str, dataset_name: str) -> bool:
 
     Returns
     -------
-    bool
-        True if valid, False if not.
+    passes : bool
+        True if `iso_format_string` is equal to ISCE3 standard, False if not.
     """
     standard_format = nisarqa.NISAR_DATETIME_FORMAT_HUMAN
     if iso_format_string != standard_format:
@@ -679,17 +682,21 @@ def check_datetime_string(datetime_str: str, dataset_name: str) -> bool:
     """
     Compare a datetime string against the standard datetime format for ISCE3.
 
+    The standard datetime format for ISCE3 is set by:
+        `nisarqa.NISAR_DATETIME_FORMAT_PYTHON`.
+    As of June 2024, this is: "%Y-%m-%dT%H:%M:%S"
+
     Parameters
     ----------
     datetime_str : str
-        The datetime string.
+        The datetime string, e.g. "2008-10-12T00:00:00"
     dataset_name : str
         Name of the dataset associated with `datatime_str`. (Used for logging.)
 
     Returns
     -------
-    bool
-        True if valid, False if not.
+    passes : bool
+        True if `datetime_str` conforms to the ISCE3 standard, False if not.
     """
     strptime_format = nisarqa.NISAR_DATETIME_FORMAT_PYTHON
 
