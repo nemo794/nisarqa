@@ -209,6 +209,19 @@ def ignored_xml_annotation_attributes() -> set[str]:
     return {"lang", "app"}
 
 
+def ignored_hdf5_attributes() -> set[str]:
+    """
+    A set of HDF5 Attributes that should be ignored because they are not in XML.
+
+    Returns
+    -------
+    attrs : set of str
+        The set of ignored attributes.
+    """
+    # return {"lang", "app"}
+    return {"DIMENSION_LIST", "NAME", "CLASS", "REFERENCE_LIST"}
+
+
 def ignore_annotation(app: str) -> bool:
     """
     Determine if an annotation should be ignored when an XML dataset is

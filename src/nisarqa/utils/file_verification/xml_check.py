@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Mapping, Iterable
+from collections.abc import Iterable, Mapping
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -97,15 +97,18 @@ def check_hdf5_against_xml(
         # COMMON DATASET CHECKS:
         # These tests check the XML datasets and HDF5 datasets against each other.
         log.info(
-            "HDF5 product XML checker: Comparing HDF5 dataset contents"
-            " vs. XML spec for all datasets in common between XML, HDF5."
+            "HDF5 product XML checker: Comparing attributes and other"
+            " metadata-like aspects of HDF5 datasets vs. XML spec."
         )
+        attr_stats = nisarqa.AttributeStats()
         for dataset_name in sorted(shared_datasets):
             xml_dataset = xml_datasets[dataset_name]
             hdf5_dataset = hdf5_datasets[dataset_name]
-            nisarqa.compare_xml_dataset_to_hdf5(
+            attr_stats += nisarqa.compare_xml_dataset_to_hdf5(
                 xml_dataset=xml_dataset, hdf5_dataset=hdf5_dataset
             )
+
+        attr_stats.print_to_log()
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
