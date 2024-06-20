@@ -272,7 +272,7 @@ class AttributeAspectStats:
         )
         num_diff = self.num_differ
         log.info(
-            f"\t{name}: NUMBER DIFFER IN XML VS. HDF5:"
+            f"\t{name}: NUMBER DIFFERENT IN XML VS. HDF5:"
             f" {num_diff} ({100*num_diff/total:.1f} %)"
         )
 
@@ -435,7 +435,7 @@ def compare_dtypes_xml_hdf5(
         if not np.issubdtype(hdf5_dtype, np.bytes_):
             # Python bytes object, such as a variable length string. Boo.
             log.error(
-                f"`XML expects string. HDF5 has type `{hdf5_dtype}`, but"
+                f"XML expects string. HDF5 has type `{hdf5_dtype}`, but"
                 f" should be a NumPy byte string. Dataset {hdf5_dataset.name}"
             )
             flags.improper_in_hdf5 = True

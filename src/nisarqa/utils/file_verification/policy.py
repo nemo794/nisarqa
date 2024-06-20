@@ -218,7 +218,6 @@ def ignored_hdf5_attributes() -> set[str]:
     attrs : set of str
         The set of ignored attributes.
     """
-    # return {"lang", "app"}
     return {"DIMENSION_LIST", "NAME", "CLASS", "REFERENCE_LIST"}
 
 

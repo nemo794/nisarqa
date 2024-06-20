@@ -97,8 +97,7 @@ def check_hdf5_against_xml(
         # COMMON DATASET CHECKS:
         # These tests check the XML datasets and HDF5 datasets against each other.
         log.info(
-            "HDF5 product XML checker: Comparing attributes and other"
-            " metadata-like aspects of HDF5 datasets vs. XML spec."
+            "HDF5 product XML checker: Comparing Dataset metadata (attributes, dtypes, descriptions, and units) of HDF5 product vs. XML spec."
         )
         attr_stats = nisarqa.AttributeStats()
         for dataset_name in sorted(shared_datasets):
