@@ -143,7 +143,10 @@ def compare_dataset_lists(
         rule_exceptions=excepted_paths,
         all_pols=all_pols,
     )
-    log.info(f"\tDATASETS IN BOTH XML AND HDF5: {len(shared_dataset_names)}")
+    log.info(
+        "\tTOTAL NUMBER OF DATASETS IN INTERSECTION OF XML AND HDF5:"
+        f" {len(shared_dataset_names)}"
+    )
     log.info(f"\t\tCORRECTLY INCLUDED IN HDF5: {len(exp_shared)}")
     for name in sorted(exp_shared):
         log.info(f"\t\t\tCORRECTLY INCLUDED DATASET: {name}")
@@ -253,13 +256,11 @@ class AttributeAspectStats:
     def print_to_log(self) -> None:
         """Record the current status of this instance in the log file."""
         log = nisarqa.get_logger()
-        name = f"`{self.name_of_attr_aspect}`"
+        name = self.name_of_attr_aspect
         log.info(f"Comparing HDF5 Dataset {name} vs. XML spec {name}:")
 
         total = self.total_num_attr_aspects_checked
-        log.info(
-            f"\t{name}: TOTAL NUMBER CHECKED IN BOTH XML AND HDF5: {total}"
-        )
+        log.info(f"\t{name}: TOTAL NUMBER IN UNION OF XML AND HDF5: {total}")
         impr_xml = self.num_improper_in_xml
         log.info(
             f"\t{name}: NUMBER MISSING OR IMPROPERLY FORMED IN XML:"
@@ -631,13 +632,16 @@ def attribute_units_check(
         ):
             flags.improper_in_hdf5 = True
 
-    date_time_str_differ = False
     if xml_units_is_iso_str and hdf5_units_is_dt_str:
         # Should either both start with the prefix or both not start with it.
         if xml_units.startswith(prefix) != hdf5_units.startswith(prefix):
-            date_time_str_differ = True
-
-    if date_time_str_differ or (xml_units != hdf5_units):
+            log.error(
+                f"Differing format of `units` attributes detected for datasets;"
+                f" both should start with '{prefix}'. XML: "
+                f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
+            )
+            flags.xml_and_hdf5_differ = True
+    elif xml_units != hdf5_units:
         log.error(
             f"Differing `units` attributes detected for datasets. XML: "
             f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
