@@ -38,8 +38,9 @@ class MetaEnum(EnumMeta):
 
 class XMLNodeType(Enum, metaclass=MetaEnum):
     """
-    An enum of all accepted XML dataset node tags, denoting some of the
-    information necessary to infer the dtype of that dataset.
+    An enum of all accepted XML node tags.
+
+    These can be used to infer the dtype of that dataset.
     """
 
     string = "string"
@@ -47,6 +48,9 @@ class XMLNodeType(Enum, metaclass=MetaEnum):
     # complex datasets.
     real = "real"
     integer = "integer"
+
+    # XMLs also have "shape" nodes (these do not correspond to HDF5 Datasets)
+    shape = "shape"
 
 
 @dataclass
@@ -138,6 +142,11 @@ class XMLDataset(DatasetDesc):
     _dtype: np.dtype | None = None
 
     def __post_init__(self):
+        if self.node_type == XMLNodeType.shape:
+            raise TypeError(
+                f"XML node provided with {self.node_type=}, but must be"
+                " real, integer, string, or None for this class."
+            )
         # If _dtype was not given, infer its type based on the given info.
         if self._dtype is None:
             self._dtype = self._determine_dtype()
@@ -198,7 +207,7 @@ class XMLDataset(DatasetDesc):
         if node_tag not in XMLNodeType:
             log.error(
                 f"Bad node type: {node_tag}. Must be in"
-                " (string, real, integer):"
+                " (string, real, integer, shape):"
                 f" XML dataset {name}"
             )
             node_type = None
@@ -209,7 +218,8 @@ class XMLDataset(DatasetDesc):
         annotation_elements = xml_element.findall("annotation")
         annotations = nisarqa.parse_annotations(
             annotation_elements=annotation_elements,
-            parent_name=name,
+            dataset_name=name,
+            xml_node_type=node_type,
         )
 
         # Strings have a "length" attribute, other types don't. This will

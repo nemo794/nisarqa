@@ -90,6 +90,9 @@ def element_to_shape(xml_element: Element) -> nisarqa.DataShape:
     nisarqa.DataShape
         The generated DataShape object.
     """
+    if xml_element.tag != "shape":
+        raise ValueError(f"{xml_element.tag=}, must have tag of 'shape'.")
+
     attributes = xml_element.attrib
     name = attributes["name"]
     order = attributes["order"]
@@ -97,7 +100,8 @@ def element_to_shape(xml_element: Element) -> nisarqa.DataShape:
     annotation_elements = xml_element.findall("annotation")
     annotations = parse_annotations(
         annotation_elements=annotation_elements,
-        parent_name=name,
+        dataset_name=name,
+        xml_node_type=nisarqa.XMLNodeType.shape,
     )
 
     dimension_elements = xml_element.findall("dimension")
@@ -187,7 +191,8 @@ def elements_to_datasets(
 
 def parse_annotations(
     annotation_elements: Iterable[Element],
-    parent_name: str,
+    dataset_name: str,
+    xml_node_type: nisarqa.XMLNodeType | None,
 ) -> list[XMLAnnotation]:
     """
     Parse a set of "annotation" XML elements into DataAnnotation objects.
@@ -196,6 +201,11 @@ def parse_annotations(
     ----------
     annotation_elements : Iterable[Element]
         The XML elements to parse.
+    dataset_name : str
+        Name of the dataset that this annotation is attached to.
+        Example: "/science/LSAR/RSLC/swaths/frequencyA/slantRange"
+    xml_node_type : nisarqa.XMLNodeType | None
+        dtype for the dataset that this annotation is attached to.
 
     Returns
     -------
@@ -207,14 +217,17 @@ def parse_annotations(
         annotation_objs.append(
             element_to_annotation(
                 element=annotation,
-                parent_name=parent_name,
+                dataset_name=dataset_name,
+                xml_node_type=xml_node_type,
             )
         )
     return annotation_objs
 
 
 def element_to_annotation(
-    element: Element, parent_name: str
+    element: Element,
+    dataset_name: str,
+    xml_node_type: nisarqa.XMLNodeType | None,
 ) -> nisarqa.XMLAnnotation:
     """
     Parse an "annotation" XML element into a DataAnnotation object.
@@ -223,29 +236,98 @@ def element_to_annotation(
     ----------
     element : Element
         The XML element to parse.
+    dataset_name : str
+        Name of the dataset that this annotation is attached to.
+        Example: "/science/LSAR/RSLC/swaths/frequencyA/slantRange"
+    xml_node_type : nisarqa.XMLNodeType | None
+        XML type of the dataset that this annotation is attached to.
 
     Returns
     -------
     DataAnnotation
         The generated DataAnnotation object.
+
+    Notes
+    -----
+    The XML Spec should be treated as the source of truth, however, there
+    are likely "bugs" in the XML. If any of these "buggy" cases are found,
+    this function will log the bugs but still include them in the
+    DataAnnotation's attributes.
+    This way, downstream processing can ensure that the HDF5 products
+    generated faithfully match the current state of the XML (issues included).
+
+    An error will be logged in these cases:
+        * The annotation contains a "description" attribute.
+        * `xml_node_type` is string and the annotation contains a "units" attribute.
+        * `xml_node_type` is numeric and `dataset_name` ends with a name in
+          `nisarqa.numeric_dtype_should_not_have_units()` and the annotation
+          comtains a "units" attribute.
     """
     log = nisarqa.get_logger()
     annotation_attribs = element.attrib
     description = element.text
+
+    if element.tag != "annotation":
+        raise TypeError(
+            f"`{element.tag=}`, must be 'annotation'. XML Element:"
+            f" {dataset_name}"
+        )
+
+    # Checks relevant to all annotations
     if "description" in annotation_attribs:
-        log.warning(
+        log.error(
             f"{element.tag} annotation contains attribute 'description'."
             " This tag is deprecated; use the text field to describe"
-            f" the element instead - XML Element {parent_name}"
+            f" the element instead - XML Element: {dataset_name}"
         )
-        del annotation_attribs['description']
+
     if "app" not in annotation_attribs:
         log.error(
             f"{element.tag} annotation does not contain attribute 'app'."
             " This attribute is required for annotations -"
-            f" XML Element {parent_name}"
+            f" XML Element {dataset_name}"
         )
-    return nisarqa.XMLAnnotation(attributes=annotation_attribs, description=description)
+    elif annotation_attribs["app"] == "conformance":
+        if xml_node_type == nisarqa.XMLNodeType.string:
+            # string datasets should never have a units attribute
+            if "units" in annotation_attribs:
+                log.error(
+                    f"{element.tag} annotation contains attribute 'units' but is"
+                    " attached to a node with type string. (String nodes should not"
+                    f" have units). XML Element: {dataset_name}"
+                )
+
+        elif dataset_name.endswith(
+            tuple(nisarqa.numeric_dtype_should_not_have_units())
+        ):
+            # only certain numeric datasets should have a units attribute
+            if "units" in annotation_attribs:
+                log.error(
+                    f"{element.tag} annotation contains attribute 'units' but"
+                    " is attached to a node which should not have units."
+                    f" XML Element: {dataset_name}"
+                )
+        elif xml_node_type == nisarqa.XMLNodeType.shape:
+            # shape elements do not have units
+            pass
+        else:
+            if "units" not in annotation_attribs:
+                log.error(
+                    f"{element.tag} annotation does not contain attribute 'units'"
+                    " but is attached to a node which should have units."
+                    f" XML Element: {dataset_name}"
+                )
+    else:
+        if annotation_attribs["app"] != "io":
+            log.error(
+                f"{element.tag} annotation contains has 'app' attribute of"
+                f" {annotation_attribs['app']=}, but only 'conformance' and"
+                f" 'io' are supported. XML Element: {dataset_name}"
+            )
+
+    return nisarqa.XMLAnnotation(
+        attributes=annotation_attribs, description=description
+    )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

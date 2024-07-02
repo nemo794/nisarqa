@@ -263,7 +263,7 @@ class AttributeAspectStats:
         log.info(f"\t{name}: TOTAL NUMBER IN UNION OF XML AND HDF5: {total}")
         impr_xml = self.num_improper_in_xml
         log.info(
-            f"\t{name}: NUMBER MISSING OR IMPROPERLY FORMED IN XML:"
+            f"\t{name}: NUMBER MISSING IN XML:"
             f" {impr_xml} ({100*impr_xml / total:.1f} %)"
         )
         impr_hdf5 = self.num_improper_in_hdf5
@@ -299,7 +299,7 @@ class AttributeStats:
         name_of_attr_aspect="description"
     )
     units_stats: AttributeAspectStats = AttributeAspectStats(
-        name_of_attr_aspect="units (only non-string Datasets)"
+        name_of_attr_aspect="units"
     )
 
     def __add__(self, other: AttributeStats, /) -> AttributeStats:
@@ -353,9 +353,7 @@ def compare_xml_dataset_to_hdf5(
         name_of_attr_aspect=name_of_attr_name_aspect
     )
     descr_stats = AttributeAspectStats(name_of_attr_aspect="description")
-    units_stats = AttributeAspectStats(
-        name_of_attr_aspect="units (only non-string Datasets)"
-    )
+    units_stats = AttributeAspectStats(name_of_attr_aspect="units")
 
     for annotation in xml_dataset.annotations:
         if annotation.attributes["app"] == "io":
@@ -374,15 +372,11 @@ def compare_xml_dataset_to_hdf5(
             dataset_name=hdf5_dataset.name,
         )
 
-        # Strings types should not have units Attribute; but all others should.
-        if (xml_dataset.dtype is not str) and (
-            not xml_dataset.name.endswith(("epsg", "projection"))
-        ):
-            units_stats += attribute_units_check(
-                xml_annotation=annotation,
-                hdf5_annotation=hdf5_dataset.annotation,
-                dataset_name=hdf5_dataset.name,
-            )
+        units_stats += attribute_units_check(
+            xml_annotation=annotation,
+            hdf5_annotation=hdf5_dataset.annotation,
+            dataset_name=hdf5_dataset.name,
+        )
 
     return AttributeStats(
         attr_names_stats=attr_names_stats,
@@ -569,7 +563,11 @@ def attribute_units_check(
     dataset_name: str,
 ) -> SingleDatasetAspectFlags:
     """
-    Check the units listed on two Annotations against each other.
+    Check the units listed on two Annotation datasets against each other.
+
+    An error will be logged if if `xml_dtype` has a numeric type but `dataset_name` ends with one of
+    the following, an error will also be logged:
+        "epsg", "projection", "diagnosticModeFlag"
 
     Parameters
     ----------
@@ -584,56 +582,72 @@ def attribute_units_check(
     -------
     stats : nisarqa.SingleDatasetAspectFlags
         Metrics for units attributes in `xml_annotation` and `hdf5_annotation`.
+
+    Notes
+    -----
+    The XML Spec should be treated as the source of truth, however, there
+    are likely "bugs" in the XML. For example, string datasets sometimes
+    have units attributes, but they should not.
+    However, in this function merely checks that the HDF5 properly
+    represents the structure determined by the XML; if the XML has a bug,
+    then the HDF5 dataset should similarly have that bug in order to maintain
+    consistency with the product spec.
     """
 
     log = nisarqa.get_logger()
 
     flags = SingleDatasetAspectFlags()
 
-    if "units" not in xml_annotation.attributes:
-        log.error(f"No units detected in XML: Dataset {dataset_name}")
-        xml_units = None
-        flags.improper_in_xml = True
-    else:
-        xml_units = str(xml_annotation.attributes["units"])
-
-    if "units" not in hdf5_annotation.attributes:
-        log.error(f"No units detected in HDF5: Dataset {dataset_name}")
-        hdf5_units = None
-        flags.improper_in_hdf5 = True
-    else:
-        hdf5_units = str(hdf5_annotation.attributes["units"])
-
-    if xml_units == "":
-        log.error(f'Empty "units" attribute in XML: Dataset {dataset_name}')
-        flags.improper_in_xml = True
-    if hdf5_units == "":
-        log.error(f'Empty "units" attribute in HDF5: Dataset {dataset_name}')
-        flags.improper_in_hdf5 = True
-
     # Datetime and ISO format strings in `units` fields tend to start with
-    # the string "seconds since " - do special datetime/ISO checks for these.
+    # the string "seconds since " - do special datetime/ISO checks for these
+    # because the value of the datetime strings they contain will never match.
     xml_units_is_iso_str = False
     hdf5_units_is_dt_str = False
     prefix = "seconds since "
-    if xml_units is not None and xml_units.startswith(prefix):
-        xml_units_is_iso_str = True
-        xml_iso_str = xml_units.removeprefix(prefix)
-        if not check_iso_format_string(
-            iso_format_string=xml_iso_str, dataset_name=dataset_name
-        ):
+
+    # Get value of 'units'; perform basic checks
+    if "units" in xml_annotation.attributes:
+        xml_units = str(xml_annotation.attributes["units"])
+
+        if xml_units == "":
+            log.error(f'Empty "units" attribute in XML: Dataset {dataset_name}')
             flags.improper_in_xml = True
 
-    if hdf5_units is not None and hdf5_units.startswith(prefix):
-        hdf5_units_is_dt_str = True
-        hdf5_datetime_str = hdf5_units.removeprefix(prefix)
-        if not check_datetime_string(
-            datetime_str=hdf5_datetime_str, dataset_name=dataset_name
-        ):
+        # datetime check for XML
+        if xml_units.startswith(prefix):
+            xml_units_is_iso_str = True
+            xml_iso_str = xml_units.removeprefix(prefix)
+            if not check_iso_format_string(
+                iso_format_string=xml_iso_str, dataset_name=dataset_name
+            ):
+                flags.improper_in_xml = True
+    else:
+        xml_units = None
+
+    if "units" in hdf5_annotation.attributes:
+        hdf5_units = str(hdf5_annotation.attributes["units"])
+
+        if hdf5_units == "":
+            log.error(
+                f'Empty "units" attribute in HDF5: Dataset {dataset_name}'
+            )
             flags.improper_in_hdf5 = True
 
+        # datetime check for HDF5
+        if hdf5_units.startswith(prefix):
+            hdf5_units_is_dt_str = True
+            hdf5_datetime_str = hdf5_units.removeprefix(prefix)
+            if not check_datetime_string(
+                datetime_str=hdf5_datetime_str, dataset_name=dataset_name
+            ):
+                flags.improper_in_hdf5 = True
+
+    else:
+        hdf5_units = None
+
+    # Log if the XML and HDF5 have differing units
     if xml_units_is_iso_str and hdf5_units_is_dt_str:
-        # Should either both start with the prefix or both not start with it.
+        # Should either both start with prefix or both not start with it
         if xml_units.startswith(prefix) != hdf5_units.startswith(prefix):
             log.error(
                 f"Differing format of `units` attributes detected for datasets;"

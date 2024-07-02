@@ -221,6 +221,19 @@ def ignored_hdf5_attributes() -> set[str]:
     return {"DIMENSION_LIST", "NAME", "CLASS", "REFERENCE_LIST"}
 
 
+def numeric_dtype_should_not_have_units() -> set[str]:
+    """
+    Set of dataset basenames that are numeric but should not have units.
+
+    Returns
+    -------
+    basenames : set of str
+        The set dataset basenames that have numeric dtype but should NOT
+        have a units attribute.
+    """
+    return {"epsg", "projection", "diagnosticModeFlag"}
+
+
 def ignore_annotation(app: str) -> bool:
     """
     Determine if an annotation should be ignored when an XML dataset is

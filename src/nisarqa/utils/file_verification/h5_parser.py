@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import os
-import h5py
-import numpy as np
 from contextlib import contextmanager
 from typing import Any, Generator
+
+import h5py
+import numpy as np
 
 # List of objects from the import statements that
 # should not be included when importing this module
