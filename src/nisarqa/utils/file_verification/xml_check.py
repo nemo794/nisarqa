@@ -104,7 +104,7 @@ def check_hdf5_against_xml(
         for dataset_name in sorted(shared_datasets):
             xml_dataset = xml_datasets[dataset_name]
             hdf5_dataset = hdf5_datasets[dataset_name]
-            attr_stats += nisarqa.compare_xml_dataset_to_hdf5(
+            attr_stats += nisarqa.compare_hdf5_dataset_to_xml(
                 xml_dataset=xml_dataset, hdf5_dataset=hdf5_dataset
             )
 

@@ -3,7 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Tuple
+from functools import singledispatchmethod
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -186,82 +187,136 @@ def compare_dataset_lists(
 
 
 @dataclass
-class SingleDatasetAspectFlags:
-    improper_in_xml: bool = False
+class SingleItemMatchesXMLFlags:
+    """
+    Flags for if a single metadata aspect of a single HDF5 Dataset matches XML.
+
+    Example: The `zeroDopplerTime` Dataset has a "units" Attribute. Create
+    an instance of this class to capture if the HDF5 Dataset's "units" is:
+        1) found in the HDF5 but missing from the XML,
+        2) Improperly formed in the HDF5 (e.g. incorrect datetime format), or
+        3) is inconsistent with what the XML says it should be
+
+    Examples of a Dataset metadata aspect: an attribute, the dtype,
+    the description, the 'units' attribute.
+
+    Parameters
+    ----------
+    missing_from_xml : bool
+        True if HDF5's metadata aspect is missing from the XML. False otherwise.
+    improper_in_hdf5 : bool
+        True if HDF5's metadata aspect is improperly formed. False otherwise.
+    hdf5_inconsistent_with_xml : bool
+        True if HDF5's metadata aspect does not match the XML. False otherwise.
+
+    See Also
+    --------
+    StatsForAMetadataAspect :
+        Class to accumulate instances of SingleItemMatchesXMLFlags.
+    """
+
+    missing_from_xml: bool = False
     improper_in_hdf5: bool = False
-    xml_and_hdf5_differ: bool = False
+    hdf5_inconsistent_with_xml: bool = False
 
     @property
-    def both_pass_checks(self):
-        """True if Dataset aspect is correct (matches) in XML and HDF5."""
+    def hdf5_and_xml_match(self):
+        """True if HDF5 Dataset's metadata aspect matches exactly the XML."""
         return not (
-            self.improper_in_xml
+            self.missing_from_xml
             | self.improper_in_hdf5
-            | self.xml_and_hdf5_differ
+            | self.hdf5_inconsistent_with_xml
         )
 
 
 @dataclass(frozen=True)
-class AttributeAspectStats:
-    name_of_attr_aspect: str
-    total_num_attr_aspects_checked: int = 0
-    num_improper_in_xml: int = 0
+class StatsForAMetadataAspect:
+    """
+    Number of H5 Datasets consistent with XML spec re: a single metadata aspect.
+
+    Examples of a Dataset's metadata aspect: an attribute, the dtype,
+    the description, the 'units' attribute.
+
+    Parameters
+    ----------
+    name_of_metadata_aspect : str
+        Name of the metadata aspect whose stats are being tallied here.
+        Ex: "Attribute name", "units", "dtype", "description"
+    total_num_aspects_checked : int
+        Total number of instances of `name_of_metadata_aspect` checked.
+    num_missing_from_xml : int
+        Number of the HDF5's `name_of_metadata_aspect` missing from the XML.
+    improper_in_hdf5 : int
+        Number of the HDF5's `name_of_metadata_aspect` improperly formed.
+    hdf5_inconsistent_with_xml : int
+        Number of the HDF5's `name_of_metadata_aspect` which do not match the XML.
+    num_hdf5_and_xml_match : int
+        Total number of h5 items where this metadata aspect in consistent
+        between the HDF5 and the XML.
+    """
+
+    name_of_metadata_aspect: str
+    total_num_aspects_checked: int = 0
+    num_missing_from_xml: int = 0
     num_improper_in_hdf5: int = 0
-    num_differ: int = 0
-    num_both_pass_checks: int = 0
+    num_hdf5_inconsistent_with_xml: int = 0
+    num_hdf5_and_xml_match: int = 0
 
     def __add__(
-        self, other: AttributeAspectStats | SingleDatasetAspectFlags, /
-    ) -> AttributeAspectStats:
+        self,
+        other: StatsForAMetadataAspect | SingleItemMatchesXMLFlags,
+        /,
+    ) -> StatsForAMetadataAspect:
 
-        if isinstance(other, AttributeAspectStats):
-            if self.name_of_attr_aspect != other.name_of_attr_aspect:
+        if isinstance(other, StatsForAMetadataAspect):
+            if self.name_of_metadata_aspect != other.name_of_metadata_aspect:
                 raise ValueError(
-                    f"`{self.name_of_attr_aspect=}` but"
-                    f" `{other.name_of_attr_aspect=}`; they must be identical."
+                    f"`{self.name_of_metadata_aspect=}` but"
+                    f" `{other.name_of_metadata_aspect=}`; they must be identical."
                 )
-            other_total_num_attrs = other.total_num_attr_aspects_checked
-            other_improper_in_xml = other.num_improper_in_xml
+            other_total_num_attrs = other.total_num_aspects_checked
+            other_improper_in_xml = other.num_missing_from_xml
             other_improper_in_hdf5 = other.num_improper_in_hdf5
-            other_differ = other.num_differ
-            other_both_pass_checks = other.num_both_pass_checks
-        elif isinstance(other, SingleDatasetAspectFlags):
+            other_differ = other.num_hdf5_inconsistent_with_xml
+            other_both_pass_checks = other.num_hdf5_and_xml_match
+        elif isinstance(other, SingleItemMatchesXMLFlags):
             other_total_num_attrs = 1
 
             # `True` and `False` become `1` and `0` when used for addition
-            other_improper_in_xml = other.improper_in_xml
+            other_improper_in_xml = other.missing_from_xml
             other_improper_in_hdf5 = other.improper_in_hdf5
-            other_differ = other.xml_and_hdf5_differ
-            other_both_pass_checks = other.both_pass_checks
+            other_differ = other.hdf5_inconsistent_with_xml
+            other_both_pass_checks = other.hdf5_and_xml_match
         else:
             raise TypeError(
                 f"The second addend has type `{type(other)}`,"
-                " but only AttributeAspectStats or SingleDatasetAspectFlags"
+                " but only StatsForAMetadataAspect or SingleItemMatchesXMLFlags"
                 " are supported."
             )
 
-        return AttributeAspectStats(
-            name_of_attr_aspect=self.name_of_attr_aspect,
-            total_num_attr_aspects_checked=self.total_num_attr_aspects_checked
+        return StatsForAMetadataAspect(
+            name_of_metadata_aspect=self.name_of_metadata_aspect,
+            total_num_aspects_checked=self.total_num_aspects_checked
             + other_total_num_attrs,
-            num_improper_in_xml=self.num_improper_in_xml
+            num_missing_from_xml=self.num_missing_from_xml
             + other_improper_in_xml,
             num_improper_in_hdf5=self.num_improper_in_hdf5
             + other_improper_in_hdf5,
-            num_differ=self.num_differ + other_differ,
-            num_both_pass_checks=self.num_both_pass_checks
+            num_hdf5_inconsistent_with_xml=self.num_hdf5_inconsistent_with_xml
+            + other_differ,
+            num_hdf5_and_xml_match=self.num_hdf5_and_xml_match
             + other_both_pass_checks,
         )
 
     def print_to_log(self) -> None:
         """Record the current status of this instance in the log file."""
         log = nisarqa.get_logger()
-        name = self.name_of_attr_aspect
+        name = self.name_of_metadata_aspect
         log.info(f"Comparing HDF5 Dataset {name} vs. XML spec {name}:")
 
-        total = self.total_num_attr_aspects_checked
+        total = self.total_num_aspects_checked
         log.info(f"\t{name}: TOTAL NUMBER IN UNION OF XML AND HDF5: {total}")
-        impr_xml = self.num_improper_in_xml
+        impr_xml = self.num_missing_from_xml
         log.info(
             f"\t{name}: NUMBER MISSING IN XML:"
             f" {impr_xml} ({100*impr_xml / total:.1f} %)"
@@ -271,13 +326,13 @@ class AttributeAspectStats:
             f"\t{name}: NUMBER MISSING OR IMPROPERLY FORMED IN HDF5:"
             f" {impr_hdf5} ({100*impr_hdf5 / total:.1f} %)"
         )
-        num_diff = self.num_differ
+        num_diff = self.num_hdf5_inconsistent_with_xml
         log.info(
-            f"\t{name}: NUMBER DIFFERENT IN XML VS. HDF5:"
+            f"\t{name}: NUMBER IN HDF5 THAT ARE INCONSISTENT WITH XML SPEC:"
             f" {num_diff} ({100*num_diff/total:.1f} %)"
         )
 
-        correct = self.num_both_pass_checks
+        correct = self.num_hdf5_and_xml_match
         log.info(
             f"\t{name}: NUMBER PASS ALL CHECKS AND ARE CONSISTENT IN XML AND HDF5:"
             f" {correct} ({100*correct/total:.1f} %)"
@@ -286,20 +341,36 @@ class AttributeAspectStats:
 
 @dataclass(frozen=True)
 class AttributeStats:
-    """Class to hold all overview stats on the attributes."""
+    """
+    Class to hold all overview stats on the attributes.
 
-    attr_names_stats: AttributeAspectStats = AttributeAspectStats(
-        name_of_attr_aspect="Attribute names"
+    Examples of a Dataset's metadata aspect: an attribute, the dtype,
+    the description, the 'units' attribute.
+
+    Parameters
+    ----------
+    attr_names_stats : StatsForAMetadataAspect
+        Stats on the "Attribute name" metadata aspect.
+    dtype_stats : StatsForAMetadataAspect
+        Stats on the "dtype" metadata aspect.
+    description_stats : StatsForAMetadataAspect
+        Stats on the "description" metadata aspect.
+    units_stats : StatsForAMetadataAspect
+        Stats on the "units" metadata aspect.
+    """
+
+    attr_names_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
+        name_of_metadata_aspect="Attribute names"
     )
 
-    dtype_stats: AttributeAspectStats = AttributeAspectStats(
-        name_of_attr_aspect="dtype"
+    dtype_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
+        name_of_metadata_aspect="dtype"
     )
-    description_stats: AttributeAspectStats = AttributeAspectStats(
-        name_of_attr_aspect="description"
+    description_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
+        name_of_metadata_aspect="description"
     )
-    units_stats: AttributeAspectStats = AttributeAspectStats(
-        name_of_attr_aspect="units"
+    units_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
+        name_of_metadata_aspect="units"
     )
 
     def __add__(self, other: AttributeStats, /) -> AttributeStats:
@@ -318,7 +389,7 @@ class AttributeStats:
         self.units_stats.print_to_log()
 
 
-def compare_xml_dataset_to_hdf5(
+def compare_hdf5_dataset_to_xml(
     xml_dataset: XMLDataset,
     hdf5_dataset: HDF5Dataset,
 ) -> AttributeStats:
@@ -345,15 +416,15 @@ def compare_xml_dataset_to_hdf5(
             f" HDF5:{hdf5_dataset.name}"
         )
 
-    dtype_stats = AttributeAspectStats(name_of_attr_aspect="dtype")
+    dtype_stats = StatsForAMetadataAspect(name_of_metadata_aspect="dtype")
     dtype_stats += compare_dtypes_xml_hdf5(xml_dataset, hdf5_dataset)
 
     name_of_attr_name_aspect = "Attribute names"
-    attr_names_stats = AttributeAspectStats(
-        name_of_attr_aspect=name_of_attr_name_aspect
+    attr_names_stats = StatsForAMetadataAspect(
+        name_of_metadata_aspect=name_of_attr_name_aspect
     )
-    descr_stats = AttributeAspectStats(name_of_attr_aspect="description")
-    units_stats = AttributeAspectStats(name_of_attr_aspect="units")
+    descr_stats = StatsForAMetadataAspect(name_of_metadata_aspect="description")
+    units_stats = StatsForAMetadataAspect(name_of_metadata_aspect="units")
 
     for annotation in xml_dataset.annotations:
         if annotation.attributes["app"] == "io":
@@ -363,7 +434,7 @@ def compare_xml_dataset_to_hdf5(
             xml_annotation=annotation,
             hdf5_annotation=hdf5_dataset.annotation,
             dataset_name=hdf5_dataset.name,
-            name_of_attr_aspect=name_of_attr_name_aspect,
+            name_of_metadata_aspect=name_of_attr_name_aspect,
         )
 
         descr_stats += attribute_description_check(
@@ -388,7 +459,7 @@ def compare_xml_dataset_to_hdf5(
 
 def compare_dtypes_xml_hdf5(
     xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset
-) -> SingleDatasetAspectFlags:
+) -> SingleItemMatchesXMLFlags:
     """
     Compare dtypes of an XML dataset and an HDF5 dataset; log any discrepancies.
 
@@ -401,14 +472,14 @@ def compare_dtypes_xml_hdf5(
 
     Returns
     -------
-    flags : nisarqa.SingleDatasetAspectFlags
+    flags : nisarqa.SingleItemMatchesXMLFlags
         Metrics for dtypes in `xml_annotation` and `hdf5_annotation`.
     """
     log = nisarqa.get_logger()
     xml_dtype = xml_dataset.dtype
     hdf5_dtype = hdf5_dataset.dtype
 
-    flags = SingleDatasetAspectFlags()
+    flags = SingleItemMatchesXMLFlags()
 
     # If either dtype is None (more likely to be for an XML, but check for both)
     # means the dtype could not be determined. Print error and return.
@@ -416,7 +487,7 @@ def compare_dtypes_xml_hdf5(
         log.error(
             f"XML dataset dtype could not be determined: {xml_dataset.name}"
         )
-        flags.improper_in_xml = True
+        flags.missing_from_xml = True
     if hdf5_dtype is None:
         log.error(
             f"HDF5 dataset dtype could not be determined: {hdf5_dataset.name}"
@@ -443,7 +514,7 @@ def compare_dtypes_xml_hdf5(
                 log.error(
                     f"String given without length: XML dataset {xml_dataset.name}"
                 )
-                flags.improper_in_xml = True
+                flags.missing_from_xml = True
 
             # If the length is 0, there is no expected length. Return successfully.
             elif xml_stated_length == 0:
@@ -460,7 +531,7 @@ def compare_dtypes_xml_hdf5(
                         f" {xml_stated_length}, HDF5 dataset byte string length is"
                         f" {hdf5_dataset_length}: Dataset {xml_dataset.name}"
                     )
-                    flags.xml_and_hdf5_differ = True
+                    flags.hdf5_inconsistent_with_xml = True
 
     else:
         # For non-string types, perform a simple type check.
@@ -483,7 +554,7 @@ def compare_dtypes_xml_hdf5(
                 f"dtypes differ: XML: {xml_dtype_name},"
                 f" HDF5: {hdf5_dtype_name} - Dataset {xml_dataset.name}"
             )
-            flags.xml_and_hdf5_differ = True
+            flags.hdf5_inconsistent_with_xml = True
 
     return flags
 
@@ -492,8 +563,8 @@ def attribute_names_check(
     xml_annotation: XMLAnnotation,
     hdf5_annotation: DataAnnotation,
     dataset_name: str,
-    name_of_attr_aspect: str,
-) -> nisarqa.AttributeAspectStats:
+    name_of_metadata_aspect: str,
+) -> nisarqa.StatsForAMetadataAspect:
     """
     Compare attribute names between XML and HDF5.
 
@@ -505,13 +576,13 @@ def attribute_names_check(
         An HDF5 annotation to compare.
     dataset_name : str
         The name of the dataset on which both annotations exist.
-    name_of_attr_aspect : str
+    name_of_metadata_aspect : str
         Name for this attribute aspect, which will be used when constructing
         the returned `stats` object. Example: "Attribute names".
 
     Returns
     -------
-    stats : nisarqa.AttributeAspectStats
+    stats : nisarqa.StatsForAMetadataAspect
         Metrics for attribute names in `xml_annotation` and `hdf5_annotation`.
     """
     log = nisarqa.get_logger()
@@ -544,16 +615,16 @@ def attribute_names_check(
         )
 
     num_in_common = len(hdf5_attrs & xml_attributes)
-    num_differ = num_only_in_xml + num_only_in_hdf5
-    assert total_num == num_in_common + num_differ
+    num_hdf5_inconsistent_with_xml = num_only_in_xml + num_only_in_hdf5
+    assert total_num == num_in_common + num_hdf5_inconsistent_with_xml
 
-    return AttributeAspectStats(
-        name_of_attr_aspect=name_of_attr_aspect,
-        total_num_attr_aspects_checked=total_num,
-        num_improper_in_xml=num_only_in_xml,
+    return StatsForAMetadataAspect(
+        name_of_metadata_aspect=name_of_metadata_aspect,
+        total_num_aspects_checked=total_num,
+        num_missing_from_xml=num_only_in_xml,
         num_improper_in_hdf5=num_only_in_hdf5,
-        num_differ=num_differ,
-        num_both_pass_checks=num_in_common,
+        num_hdf5_inconsistent_with_xml=num_hdf5_inconsistent_with_xml,
+        num_hdf5_and_xml_match=num_in_common,
     )
 
 
@@ -561,7 +632,7 @@ def attribute_units_check(
     xml_annotation: XMLAnnotation,
     hdf5_annotation: DataAnnotation,
     dataset_name: str,
-) -> SingleDatasetAspectFlags:
+) -> SingleItemMatchesXMLFlags:
     """
     Check the units listed on two Annotation datasets against each other.
 
@@ -580,7 +651,7 @@ def attribute_units_check(
 
     Returns
     -------
-    stats : nisarqa.SingleDatasetAspectFlags
+    stats : nisarqa.SingleItemMatchesXMLFlags
         Metrics for units attributes in `xml_annotation` and `hdf5_annotation`.
 
     Notes
@@ -596,7 +667,7 @@ def attribute_units_check(
 
     log = nisarqa.get_logger()
 
-    flags = SingleDatasetAspectFlags()
+    flags = SingleItemMatchesXMLFlags()
 
     # Datetime and ISO format strings in `units` fields tend to start with
     # the string "seconds since " - do special datetime/ISO checks for these
@@ -611,7 +682,7 @@ def attribute_units_check(
 
         if xml_units == "":
             log.error(f'Empty "units" attribute in XML: Dataset {dataset_name}')
-            flags.improper_in_xml = True
+            flags.missing_from_xml = True
 
         # datetime check for XML
         if xml_units.startswith(prefix):
@@ -620,7 +691,7 @@ def attribute_units_check(
             if not check_iso_format_string(
                 iso_format_string=xml_iso_str, dataset_name=dataset_name
             ):
-                flags.improper_in_xml = True
+                flags.missing_from_xml = True
     else:
         xml_units = None
 
@@ -654,13 +725,13 @@ def attribute_units_check(
                 f" both should start with '{prefix}'. XML: "
                 f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
             )
-            flags.xml_and_hdf5_differ = True
+            flags.hdf5_inconsistent_with_xml = True
     elif xml_units != hdf5_units:
         log.error(
             f"Differing `units` attributes detected for datasets. XML: "
             f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
         )
-        flags.xml_and_hdf5_differ = True
+        flags.hdf5_inconsistent_with_xml = True
 
     return flags
 
@@ -736,7 +807,7 @@ def attribute_description_check(
     xml_annotation: XMLAnnotation,
     hdf5_annotation: DataAnnotation,
     dataset_name: str,
-) -> SingleDatasetAspectFlags:
+) -> SingleItemMatchesXMLFlags:
     """
     Check the descriptions listed on XML and HDF5 attributes against each other.
 
@@ -751,19 +822,19 @@ def attribute_description_check(
 
     Returns
     -------
-    stats : nisarqa.SingleDatasetAspectFlags
+    stats : nisarqa.SingleItemMatchesXMLFlags
         Metrics for description attributes in `xml_annotation` and
         `hdf5_annotation`.
     """
     log = nisarqa.get_logger()
-    flags = SingleDatasetAspectFlags()
+    flags = SingleItemMatchesXMLFlags()
 
     xml_desc = str(xml_annotation.description)
     hdf5_desc = str(hdf5_annotation.description)
 
     if xml_desc == "":
         log.error(f"Empty description on XML: Dataset {dataset_name}")
-        flags.improper_in_xml = True
+        flags.missing_from_xml = True
 
     if hdf5_desc == "":
         log.error(
@@ -776,7 +847,7 @@ def attribute_description_check(
             f'Differing descriptions detected: XML: "{xml_desc}",'
             f' HDF5: "{hdf5_desc}": Dataset {dataset_name}'
         )
-        flags.xml_and_hdf5_differ = True
+        flags.hdf5_inconsistent_with_xml = True
 
     return flags
 
