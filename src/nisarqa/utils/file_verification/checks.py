@@ -737,9 +737,9 @@ def attribute_units_check(
 
 def check_iso_format_string(iso_format_string: str, dataset_name: str) -> bool:
     """
-    Compare an ISO format string against the standard ISO format for ISCE3.
+    Compare a string against the ISO format convention for NISAR.
 
-    The standard datetime format for ISCE3 XML products specs is set in QA by:
+    The standard datetime format for NISAR XML products specs is set in QA by:
         `nisarqa.NISAR_DATETIME_FORMAT_HUMAN`.
     As of June 2024, this is: "YYYY-mm-ddTHH:MM:SS"
 
@@ -753,13 +753,13 @@ def check_iso_format_string(iso_format_string: str, dataset_name: str) -> bool:
     Returns
     -------
     passes : bool
-        True if `iso_format_string` is equal to ISCE3 standard, False if not.
+         True if `iso_format_string` matches the NISAR convention, False if not.
     """
     standard_format = nisarqa.NISAR_DATETIME_FORMAT_HUMAN
     if iso_format_string != standard_format:
         nisarqa.get_logger().error(
             f"XML datetime format string '{iso_format_string}' does not match "
-            f"ISCE3 standard ISO format '{standard_format}' - "
+            f"NISAR ISO format convention '{standard_format}' - "
             f"Dataset {dataset_name}"
         )
         return False
