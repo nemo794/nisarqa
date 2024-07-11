@@ -588,8 +588,7 @@ def attribute_names_check(
     ignored_xml_attributes = nisarqa.ignored_xml_annotation_attributes()
     xml_attributes = xml_annotation.attribute_names - ignored_xml_attributes
 
-    ignored_hdf5_attributes = nisarqa.ignored_hdf5_attributes()
-    hdf5_attrs = hdf5_annotation.attribute_names - ignored_hdf5_attributes
+    hdf5_attrs = hdf5_annotation.attribute_names
 
     total_num = len(hdf5_attrs | xml_attributes)
 

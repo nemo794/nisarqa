@@ -209,18 +209,6 @@ def ignored_xml_annotation_attributes() -> set[str]:
     return {"lang", "app"}
 
 
-def ignored_hdf5_attributes() -> set[str]:
-    """
-    A set of HDF5 Attributes that should be ignored because they are not in XML.
-
-    Returns
-    -------
-    attrs : set of str
-        The set of ignored attributes.
-    """
-    return {"DIMENSION_LIST", "NAME", "CLASS", "REFERENCE_LIST"}
-
-
 def numeric_dtype_should_not_have_units() -> set[str]:
     """
     Set of Dataset basenames that are numeric but should not have units.
