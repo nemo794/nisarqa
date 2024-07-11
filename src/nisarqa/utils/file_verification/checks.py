@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from functools import singledispatchmethod
 from typing import Any, Tuple
 
 import numpy as np
@@ -197,7 +196,7 @@ class SingleItemMatchesXMLFlags:
         2) Improperly formed in the HDF5 (e.g. incorrect datetime format), or
         3) is inconsistent with what the XML says it should be
 
-    Examples of a Dataset metadata aspect: an attribute, the dtype,
+    Examples of Dataset metadata: an attribute, the dtype,
     the description, the 'units' attribute.
 
     Parameters
@@ -232,7 +231,7 @@ class SingleItemMatchesXMLFlags:
 @dataclass(frozen=True)
 class StatsForAMetadataAspect:
     """
-    Number of H5 Datasets consistent with XML spec re: a single metadata aspect.
+    Number of HDF5 Datasets consistent with XML spec re: a single metadata aspect.
 
     Examples of a Dataset's metadata aspect: an attribute, the dtype,
     the description, the 'units' attribute.
@@ -316,7 +315,7 @@ class StatsForAMetadataAspect:
 
         total = self.total_num_aspects_checked
         log.info(f"\t{name}: TOTAL NUMBER IN UNION OF XML AND HDF5: {total}")
-        impr_xml = self.num_missing_from_xml
+        miss_xml = self.num_missing_from_xml
         log.info(
             f"\t{name}: NUMBER MISSING IN XML:"
             f" {impr_xml} ({100*impr_xml / total:.1f} %)"
@@ -342,10 +341,10 @@ class StatsForAMetadataAspect:
 @dataclass(frozen=True)
 class AttributeStats:
     """
-    Class to hold all overview stats on the attributes.
+    Class to hold stats on all metadata aspects of all Datasets.
 
-    Examples of a Dataset's metadata aspect: an attribute, the dtype,
-    the description, the 'units' attribute.
+    Examples of a Dataset's metadata aspect: an Attribute, the dtype,
+    the description, the 'units' Attribute.
 
     Parameters
     ----------
@@ -362,7 +361,6 @@ class AttributeStats:
     attr_names_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
         name_of_metadata_aspect="Attribute names"
     )
-
     dtype_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
         name_of_metadata_aspect="dtype"
     )
@@ -394,7 +392,7 @@ def compare_hdf5_dataset_to_xml(
     hdf5_dataset: HDF5Dataset,
 ) -> AttributeStats:
     """
-    Perform checks that compare an XML dataset against an HDF5 dataset.
+    Perform checks that compare an HDF5 dataset against the XML spec.
 
     Parameters
     ----------
@@ -499,7 +497,6 @@ def compare_dtypes_xml_hdf5(
     # or an arbitrary length if the XML length is "0".
     if xml_dtype == str:
         if not np.issubdtype(hdf5_dtype, np.bytes_):
-            # Python bytes object, such as a variable length string. Boo.
             log.error(
                 f"XML expects string. HDF5 has type `{hdf5_dtype}`, but"
                 f" should be a NumPy byte string. Dataset {hdf5_dataset.name}"
@@ -566,7 +563,7 @@ def attribute_names_check(
     name_of_metadata_aspect: str,
 ) -> nisarqa.StatsForAMetadataAspect:
     """
-    Compare attribute names between XML and HDF5.
+    Compare attribute names for a single Dataset between XML and HDF5.
 
     Parameters
     ----------
@@ -587,7 +584,7 @@ def attribute_names_check(
     """
     log = nisarqa.get_logger()
 
-    # ignore certain attributes present in the XML, such as "lang" and "app"
+    # Ignore certain attributes present in the XML, such as "lang" and "app"
     ignored_xml_attributes = nisarqa.ignored_xml_annotation_attributes()
     xml_attributes = xml_annotation.attribute_names - ignored_xml_attributes
 
@@ -634,7 +631,7 @@ def attribute_units_check(
     dataset_name: str,
 ) -> SingleItemMatchesXMLFlags:
     """
-    Check the units listed on two Annotation datasets against each other.
+    Check the units Attribute of an HDF5 dataset against the XML spec.
 
     An error will be logged if if `xml_dtype` has a numeric type but `dataset_name` ends with one of
     the following, an error will also be logged:
@@ -653,23 +650,13 @@ def attribute_units_check(
     -------
     stats : nisarqa.SingleItemMatchesXMLFlags
         Metrics for units attributes in `xml_annotation` and `hdf5_annotation`.
-
-    Notes
-    -----
-    The XML Spec should be treated as the source of truth, however, there
-    are likely "bugs" in the XML. For example, string datasets sometimes
-    have units attributes, but they should not.
-    However, in this function merely checks that the HDF5 properly
-    represents the structure determined by the XML; if the XML has a bug,
-    then the HDF5 dataset should similarly have that bug in order to maintain
-    consistency with the product spec.
     """
 
     log = nisarqa.get_logger()
 
     flags = SingleItemMatchesXMLFlags()
 
-    # Datetime and ISO format strings in `units` fields tend to start with
+    # Datetime strings in `units` fields are expected to start with
     # the string "seconds since " - do special datetime/ISO checks for these
     # because the value of the datetime strings they contain will never match.
     xml_units_is_iso_str = False
@@ -769,9 +756,9 @@ def check_iso_format_string(iso_format_string: str, dataset_name: str) -> bool:
 
 def check_datetime_string(datetime_str: str, dataset_name: str) -> bool:
     """
-    Compare a datetime string against the standard datetime format for ISCE3.
+    Compare a datetime string against the standard datetime format for NISAR.
 
-    The standard datetime format for ISCE3 is set by:
+    The standard datetime format for NISAR is set by:
         `nisarqa.NISAR_DATETIME_FORMAT_PYTHON`.
     As of June 2024, this is: "%Y-%m-%dT%H:%M:%S"
 
@@ -785,7 +772,7 @@ def check_datetime_string(datetime_str: str, dataset_name: str) -> bool:
     Returns
     -------
     passes : bool
-        True if `datetime_str` conforms to the ISCE3 standard, False if not.
+        True if `datetime_str` conforms to the NISAR convention, False if not.
     """
     strptime_format = nisarqa.NISAR_DATETIME_FORMAT_PYTHON
 
@@ -795,9 +782,9 @@ def check_datetime_string(datetime_str: str, dataset_name: str) -> bool:
         datetime.strptime(datetime_str, strptime_format)
     except Exception:
         nisarqa.get_logger().error(
-            f"HDF5 datetime string '{datetime_str}' does not conform to "
-            f"ISCE3 standard datetime format '{strptime_format}' - "
-            f"Dataset {dataset_name}"
+            f"HDF5 datetime string '{datetime_str}' does not conform to"
+            f" NISAR datetime format convention '{strptime_format}' -"
+            f" Dataset {dataset_name}"
         )
         return False
     return True

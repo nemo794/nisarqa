@@ -223,7 +223,7 @@ def ignored_hdf5_attributes() -> set[str]:
 
 def numeric_dtype_should_not_have_units() -> set[str]:
     """
-    Set of dataset basenames that are numeric but should not have units.
+    Set of Dataset basenames that are numeric but should not have units.
 
     Returns
     -------
