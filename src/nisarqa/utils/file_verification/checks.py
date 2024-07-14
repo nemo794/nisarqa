@@ -246,7 +246,7 @@ class StatsForAMetadataAspect:
         Ex: "Attribute name", "units", "dtype", "description"
     total_num_aspects_checked : int
         Total number of instances of `name_of_metadata_aspect` found in
-        union of HDF5 or XML.
+        either HDF5 or XML.
     num_missing_in_xml : int
         Number of instances of `name_of_metadata_aspect` found in HDF5
         but missing from the XML.
@@ -645,10 +645,6 @@ def attribute_units_check(
     """
     Check the units Attribute of an HDF5 dataset against the XML spec.
 
-    An error will be logged if if `xml_dtype` has a numeric type but `dataset_name` ends with one of
-    the following, an error will also be logged:
-        "epsg", "projection", "diagnosticModeFlag"
-
     Parameters
     ----------
     xml_annotation : nisarqa.XMLAnnotation
@@ -716,15 +712,13 @@ def attribute_units_check(
         hdf5_units = None
 
     # Log if the XML and HDF5 have differing units
-    if xml_units_is_iso_str and hdf5_units_is_dt_str:
-        # Should either both start with prefix or both not start with it
-        if xml_units.startswith(prefix) != hdf5_units.startswith(prefix):
-            log.error(
-                f"Differing format of `units` attributes detected for datasets;"
-                f" both should start with '{prefix}'. XML: "
-                f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
-            )
-            flags.hdf5_inconsistent_with_xml = True
+    if xml_units_is_iso_str != hdf5_units_is_dt_str:
+        log.error(
+            f"Differing format of `units` attributes detected for datasets;"
+            f" both should start with '{prefix}'. XML: "
+            f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
+        )
+        flags.hdf5_inconsistent_with_xml = True
     elif xml_units != hdf5_units:
         log.error(
             f"Differing `units` attributes detected for datasets. XML: "

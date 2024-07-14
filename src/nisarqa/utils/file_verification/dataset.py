@@ -143,7 +143,7 @@ class XMLDataset(DatasetDesc):
 
     def __post_init__(self):
         if self.node_type == XMLNodeType.shape:
-            raise TypeError(
+            raise ValueError(
                 f"XML node provided with {self.node_type=}, but must be"
                 " real, integer, string, or None for this class."
             )

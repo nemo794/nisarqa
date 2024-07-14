@@ -202,7 +202,7 @@ def parse_annotations(
     annotation_elements : Iterable[Element]
         The XML elements to parse.
     dataset_name : str
-        Name of the dataset that this annotation is attached to.
+        Name of the dataset that the annotations are attached to.
         Example: "/science/LSAR/RSLC/swaths/frequencyA/slantRange"
     xml_node_type : nisarqa.XMLNodeType | None
         dtype for the dataset that this annotation is attached to.
@@ -261,14 +261,14 @@ def element_to_annotation(
         * `xml_node_type` is string and the annotation contains a "units" attribute.
         * `xml_node_type` is numeric and `dataset_name` ends with a name in
           `nisarqa.numeric_dtype_should_not_have_units()` and the annotation
-          comtains a "units" attribute.
+          contains a "units" attribute.
     """
     log = nisarqa.get_logger()
     annotation_attribs = element.attrib
     description = element.text
 
     if element.tag != "annotation":
-        raise TypeError(
+        raise ValueError(
             f"`{element.tag=}`, must be 'annotation'. XML Element:"
             f" {dataset_name}"
         )
