@@ -319,32 +319,35 @@ class StatsForAMetadataAspect:
         """Record the current status of this instance in the log file."""
         log = nisarqa.get_logger()
         name = self.name_of_metadata_aspect
+        fmt_frac = lambda x: f"{x} ({100 * x / total:.1f} %)"
+
         log.info(f"Comparing HDF5 Dataset {name} vs. XML spec {name}:")
 
         total = self.total_num_aspects_checked
         log.info(
-            f"\t{name}: Total number of instances in union of HDF5 and XML: {total}"
+            f"\t{name}: Total number of instances in union of HDF5 and XML:"
+            f" {total}"
         )
         miss_xml = self.num_missing_in_xml
         log.info(
             f"\t{name}: Number of instances in HDF5 but missing from XML:"
-            f" {miss_xml} ({100*miss_xml / total:.1f} %)"
+            f" {fmt_frac(miss_xml)}"
         )
-        impr_hdf5 = self.num_missing_from_hdf5
+        miss_hdf5 = self.num_missing_from_hdf5
         log.info(
             f"\t{name}: Number of instances in XML but missing from HDF5:"
-            f" {impr_hdf5} ({100*impr_hdf5 / total:.1f} %)"
+            f" {fmt_frac(miss_hdf5)}"
         )
         num_diff = self.num_inconsistent_hdf5_vs_xml
         log.info(
-            f"\t{name}: Number of instances in HDF5 that are inconsistent with XML spec:"
-            f" {num_diff} ({100*num_diff/total:.1f} %)"
+            f"\t{name}: Number of instances in HDF5 that are inconsistent"
+            f" with XML spec: {fmt_frac(num_diff)}"
         )
 
         correct = self.num_hdf5_and_xml_match
         log.info(
-            f"\t{name}: Number of instances that are consistent between the HDF5 and XML:"
-            f" {correct} ({100*correct/total:.1f} %)"
+            f"\t{name}: Number of instances that are consistent between"
+            f" the HDF5 and XML: {fmt_frac(correct)}"
         )
 
 
