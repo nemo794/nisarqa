@@ -68,7 +68,7 @@ LIST_OF_INSAR_PRODUCTS = ["rifg", "roff", "runw", "goff", "gunw"]
 # As of Nov 2023, ADT agreed on the format: "%Y-%m-%dT%H:%M:%S",
 # which would be written in documentation as "YYYY-mm-ddTHH:MM:SS".
 # (Previously, there may or may not have been a "T", milliseconds, etc.)
-# Note that this does not conform to the ISO-8601 standard format for the
+# Note that this does not conform to the ISO-8601 standard template for the
 # same datetime expression, which would be "YYYY-MM-DDThh:mm:ss".
 NISAR_DATETIME_FORMAT_PYTHON = "%Y-%m-%dT%H:%M:%S"
 NISAR_DATETIME_FORMAT_HUMAN = "YYYY-mm-ddTHH:MM:SS"

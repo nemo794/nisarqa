@@ -361,11 +361,12 @@ def element_to_annotation(
                 # datetime template string check
                 prefix = "seconds since "
                 if xml_units.startswith(prefix):
-                    xml_iso_str = xml_units.removeprefix(prefix)
+                    xml_datetime_template = xml_units.removeprefix(prefix)
 
                     # (This function logs if there is a discrepancy)
-                    nisarqa.check_iso_format_string(
-                        iso_format_string=xml_iso_str, dataset_name=dataset_name
+                    nisarqa.check_datetime_template_string(
+                        datetime_template_string=xml_datetime_template,
+                        dataset_name=dataset_name,
                     )
 
     else:

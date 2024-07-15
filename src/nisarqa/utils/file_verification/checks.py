@@ -665,10 +665,10 @@ def attribute_units_check(
     flags = SingleItemMatchesXMLFlags()
 
     # Datetime strings in `units` fields are expected to start with
-    # the string "seconds since " - do special datetime/ISO checks for these
+    # the string "seconds since " - do special checks for these strings
     # because the value of the datetime strings they contain will never match.
-    xml_units_is_iso_str = False
-    hdf5_units_is_dt_str = False
+    xml_units_has_dt_template_str = False
+    hdf5_units_has_dt_str = False
     prefix = "seconds since "
 
     # Get value of 'units'; perform basic checks
@@ -678,7 +678,7 @@ def attribute_units_check(
         xml_units = str(xml_annotation.attributes["units"])
 
         if xml_units.startswith(prefix):
-            xml_units_is_iso_str = True
+            xml_units_has_dt_template_str = True
     else:
         xml_units = None
 
@@ -692,7 +692,7 @@ def attribute_units_check(
 
         # datetime check for HDF5
         if hdf5_units.startswith(prefix):
-            hdf5_units_is_dt_str = True
+            hdf5_units_has_dt_str = True
             hdf5_datetime_str = hdf5_units.removeprefix(prefix)
             if not check_datetime_string(
                 datetime_str=hdf5_datetime_str, dataset_name=dataset_name
@@ -712,7 +712,7 @@ def attribute_units_check(
         f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
     )
 
-    if xml_units_is_iso_str != hdf5_units_is_dt_str:
+    if xml_units_has_dt_template_str != hdf5_units_has_dt_str:
         # "units" exists in both XML and HDF5, but they do not consistently
         # begin with the prefix "seconds since ". Handle this edge case first.
         log.error(
@@ -737,34 +737,39 @@ def attribute_units_check(
     return flags
 
 
-def check_iso_format_string(iso_format_string: str, dataset_name: str) -> bool:
+def check_datetime_template_string(
+    datetime_template_string: str, dataset_name: str
+) -> bool:
     """
-    Compare a string against the ISO format convention for NISAR.
+    Compare a string against the datetime template convention for NISAR.
 
     Logs if there is a discrepancy.
 
-    The standard datetime format for NISAR XML products specs is set in QA by:
+    The standard datetime template for NISAR XML products specs is set in QA by:
         `nisarqa.NISAR_DATETIME_FORMAT_HUMAN`.
     As of June 2024, this is: "YYYY-mm-ddTHH:MM:SS"
 
     Parameters
     ----------
-    iso_format_string : str
-        The ISO format string, e.g. "YYYY-mm-ddTHH:MM:SS".
+    datetime_template_string : str
+        The datetime template string to be checked.
+        Example: "YYYY-mm-ddTHH:MM:SS".
     dataset_name : str
-        Name of dataset associated with `iso_format_string`. (Used for logging.)
+        Name of dataset associated with `datetime_template_string`.
+        (Used for logging.)
 
     Returns
     -------
     passes : bool
-         True if `iso_format_string` matches the NISAR convention, False if not.
+         True if `datetime_template_string` matches the NISAR convention,
+         False if not.
     """
     standard_format = nisarqa.NISAR_DATETIME_FORMAT_HUMAN
-    if iso_format_string != standard_format:
+    if datetime_template_string != standard_format:
         nisarqa.get_logger().error(
-            f"XML datetime format string '{iso_format_string}' does not match "
-            f"NISAR ISO format convention '{standard_format}' - "
-            f"Dataset {dataset_name}"
+            f"XML datetime template string '{datetime_template_string}' does"
+            f" not match NISAR datetime template convention '{standard_format}'"
+            f" - Dataset {dataset_name}"
         )
         return False
     return True
