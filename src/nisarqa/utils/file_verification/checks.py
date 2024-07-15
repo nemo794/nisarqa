@@ -186,15 +186,15 @@ def compare_dataset_lists(
 
 
 @dataclass
-class SingleItemMatchesXMLFlags:
+class SingleAspectSingleInstanceFlags:
     """
     Flags for if a single metadata aspect of a single HDF5 Dataset matches XML.
 
     Example: The `zeroDopplerTime` Dataset has a "units" Attribute. Create
-    an instance of this class to capture if the HDF5 Dataset's "units" is:
-        1) found in the HDF5 but missing from the XML,
-        2) Improperly formed in the HDF5 (e.g. incorrect datetime format), or
-        3) is inconsistent with what the XML says it should be
+    an instance of this class to capture if the "units" Attribute is:
+        1) found in the HDF5 but missing from the XML
+        2) found in the XML but missing from the HDF5
+        3) found in both HDF5 and XML, but inconsistent between them.
 
     Examples of Dataset metadata: an Attribute, the dtype,
     the description, the 'units' Attribute.
@@ -213,8 +213,8 @@ class SingleItemMatchesXMLFlags:
 
     See Also
     --------
-    StatsForAMetadataAspect :
-        Class to accumulate instances of SingleItemMatchesXMLFlags.
+    SingleAspectMultipleInstancesAccumulator :
+        Class to accumulate instances of SingleAspectSingleInstanceFlags.
     """
 
     missing_in_xml: bool = False
@@ -232,12 +232,18 @@ class SingleItemMatchesXMLFlags:
 
 
 @dataclass(frozen=True)
-class StatsForAMetadataAspect:
+class SingleAspectMultipleInstancesAccumulator:
     """
-    Number of HDF5 Datasets consistent with XML spec re: a single metadata aspect.
+    Accumulator for correctness of a single aspect across multiple instances.
 
     Examples of a Dataset's metadata aspect: an Attribute, the dtype,
     the description, the 'units' Attribute.
+
+    "Multiple Instances" refers to the number of instances of that aspect
+    which have been accumulated. For example, say a GCOV product contains
+    103 Datasets with a 'units' Attribute. This means that there are 103
+    instances of the 'units' aspect to have their stats accumulated into
+    an instance of this Class.
 
     Parameters
     ----------
@@ -272,11 +278,14 @@ class StatsForAMetadataAspect:
 
     def __add__(
         self,
-        other: StatsForAMetadataAspect | SingleItemMatchesXMLFlags,
+        other: (
+            SingleAspectMultipleInstancesAccumulator
+            | SingleAspectSingleInstanceFlags
+        ),
         /,
-    ) -> StatsForAMetadataAspect:
+    ) -> SingleAspectMultipleInstancesAccumulator:
 
-        if isinstance(other, StatsForAMetadataAspect):
+        if isinstance(other, SingleAspectMultipleInstancesAccumulator):
             if self.name_of_metadata_aspect != other.name_of_metadata_aspect:
                 raise ValueError(
                     f"`{self.name_of_metadata_aspect=}` but"
@@ -287,7 +296,7 @@ class StatsForAMetadataAspect:
             other_missing_in_hdf5 = other.num_missing_from_hdf5
             other_differ = other.num_inconsistent_hdf5_vs_xml
             other_both_pass_checks = other.num_hdf5_and_xml_match
-        elif isinstance(other, SingleItemMatchesXMLFlags):
+        elif isinstance(other, SingleAspectSingleInstanceFlags):
             other_total_num_attrs = 1
 
             # `True` and `False` become `1` and `0` when used for addition
@@ -298,11 +307,11 @@ class StatsForAMetadataAspect:
         else:
             raise TypeError(
                 f"The second addend has type `{type(other)}`,"
-                " but only StatsForAMetadataAspect or SingleItemMatchesXMLFlags"
+                " but only SingleAspectMultipleInstancesAccumulator or SingleAspectSingleInstanceFlags"
                 " are supported."
             )
 
-        return StatsForAMetadataAspect(
+        return SingleAspectMultipleInstancesAccumulator(
             name_of_metadata_aspect=self.name_of_metadata_aspect,
             total_num_aspects_checked=self.total_num_aspects_checked
             + other_total_num_attrs,
@@ -352,40 +361,50 @@ class StatsForAMetadataAspect:
 
 
 @dataclass(frozen=True)
-class AttributeStats:
+class MultipleAspectsMultipleInstancesSummary:
     """
-    Class to hold stats on all metadata aspects of all Datasets.
+    Class to hold stats on all metadata aspects across all Datasets.
 
     Examples of a Dataset's metadata aspect: an Attribute, the dtype,
     the description, the 'units' Attribute.
 
     Parameters
     ----------
-    attr_names_stats : StatsForAMetadataAspect
+    attr_names_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "Attribute name" metadata aspect.
-    dtype_stats : StatsForAMetadataAspect
+    dtype_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "dtype" metadata aspect.
-    description_stats : StatsForAMetadataAspect
+    description_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "description" metadata aspect.
-    units_stats : StatsForAMetadataAspect
+    units_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "units" metadata aspect.
     """
 
-    attr_names_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
-        name_of_metadata_aspect="Attribute names"
+    attr_names_stats: SingleAspectMultipleInstancesAccumulator = (
+        SingleAspectMultipleInstancesAccumulator(
+            name_of_metadata_aspect="Attribute names"
+        )
     )
-    dtype_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
-        name_of_metadata_aspect="dtype"
+    dtype_stats: SingleAspectMultipleInstancesAccumulator = (
+        SingleAspectMultipleInstancesAccumulator(
+            name_of_metadata_aspect="dtype"
+        )
     )
-    description_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
-        name_of_metadata_aspect="description"
+    description_stats: SingleAspectMultipleInstancesAccumulator = (
+        SingleAspectMultipleInstancesAccumulator(
+            name_of_metadata_aspect="description"
+        )
     )
-    units_stats: StatsForAMetadataAspect = StatsForAMetadataAspect(
-        name_of_metadata_aspect="units"
+    units_stats: SingleAspectMultipleInstancesAccumulator = (
+        SingleAspectMultipleInstancesAccumulator(
+            name_of_metadata_aspect="units"
+        )
     )
 
-    def __add__(self, other: AttributeStats, /) -> AttributeStats:
-        return AttributeStats(
+    def __add__(
+        self, other: MultipleAspectsMultipleInstancesSummary, /
+    ) -> MultipleAspectsMultipleInstancesSummary:
+        return MultipleAspectsMultipleInstancesSummary(
             attr_names_stats=self.attr_names_stats + other.attr_names_stats,
             dtype_stats=self.dtype_stats + other.dtype_stats,
             description_stats=self.description_stats + other.description_stats,
@@ -403,7 +422,7 @@ class AttributeStats:
 def compare_hdf5_dataset_to_xml(
     xml_dataset: XMLDataset,
     hdf5_dataset: HDF5Dataset,
-) -> AttributeStats:
+) -> MultipleAspectsMultipleInstancesSummary:
     """
     Perform checks that compare an HDF5 dataset against the XML spec.
 
@@ -416,7 +435,7 @@ def compare_hdf5_dataset_to_xml(
 
     Returns
     -------
-    stats : nisarqa.AttributeStats
+    stats : nisarqa.MultipleAspectsMultipleInstancesSummary
         Metrics for attributes and aspects of `xml_dataset` and `hdf5_dataset`.
     """
     # This section should not be reached. Error if the given datasets have
@@ -427,15 +446,21 @@ def compare_hdf5_dataset_to_xml(
             f" HDF5:{hdf5_dataset.name}"
         )
 
-    dtype_stats = StatsForAMetadataAspect(name_of_metadata_aspect="dtype")
+    dtype_stats = SingleAspectMultipleInstancesAccumulator(
+        name_of_metadata_aspect="dtype"
+    )
     dtype_stats += compare_dtypes_xml_hdf5(xml_dataset, hdf5_dataset)
 
     name_of_attr_name_aspect = "Attribute names"
-    attr_names_stats = StatsForAMetadataAspect(
+    attr_names_stats = SingleAspectMultipleInstancesAccumulator(
         name_of_metadata_aspect=name_of_attr_name_aspect
     )
-    descr_stats = StatsForAMetadataAspect(name_of_metadata_aspect="description")
-    units_stats = StatsForAMetadataAspect(name_of_metadata_aspect="units")
+    descr_stats = SingleAspectMultipleInstancesAccumulator(
+        name_of_metadata_aspect="description"
+    )
+    units_stats = SingleAspectMultipleInstancesAccumulator(
+        name_of_metadata_aspect="units"
+    )
 
     for annotation in xml_dataset.annotations:
         if annotation.attributes["app"] == "io":
@@ -460,7 +485,7 @@ def compare_hdf5_dataset_to_xml(
             dataset_name=hdf5_dataset.name,
         )
 
-    return AttributeStats(
+    return MultipleAspectsMultipleInstancesSummary(
         attr_names_stats=attr_names_stats,
         dtype_stats=dtype_stats,
         description_stats=descr_stats,
@@ -470,7 +495,7 @@ def compare_hdf5_dataset_to_xml(
 
 def compare_dtypes_xml_hdf5(
     xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset
-) -> SingleItemMatchesXMLFlags:
+) -> SingleAspectSingleInstanceFlags:
     """
     Compare dtypes of an XML dataset and an HDF5 dataset; log any discrepancies.
 
@@ -483,14 +508,14 @@ def compare_dtypes_xml_hdf5(
 
     Returns
     -------
-    flags : nisarqa.SingleItemMatchesXMLFlags
+    flags : nisarqa.SingleAspectSingleInstanceFlags
         Metrics for dtypes in `xml_annotation` and `hdf5_annotation`.
     """
     log = nisarqa.get_logger()
     xml_dtype = xml_dataset.dtype
     hdf5_dtype = hdf5_dataset.dtype
 
-    flags = SingleItemMatchesXMLFlags()
+    flags = SingleAspectSingleInstanceFlags()
 
     # If either dtype is None (more likely to be for an XML, but check for both)
     # means the dtype could not be determined. Print error and return.
@@ -574,7 +599,7 @@ def attribute_names_check(
     hdf5_annotation: DataAnnotation,
     dataset_name: str,
     name_of_metadata_aspect: str,
-) -> nisarqa.StatsForAMetadataAspect:
+) -> nisarqa.SingleAspectMultipleInstancesAccumulator:
     """
     Compare attribute names for a single Dataset between XML and HDF5.
 
@@ -592,7 +617,7 @@ def attribute_names_check(
 
     Returns
     -------
-    stats : nisarqa.StatsForAMetadataAspect
+    stats : nisarqa.SingleAspectMultipleInstancesAccumulator
         Metrics for attribute names in `xml_annotation` and `hdf5_annotation`.
     """
     log = nisarqa.get_logger()
@@ -630,7 +655,7 @@ def attribute_names_check(
     # or the other.
     num_inconsistent_hdf5_vs_xml = 0
 
-    return StatsForAMetadataAspect(
+    return SingleAspectMultipleInstancesAccumulator(
         name_of_metadata_aspect=name_of_metadata_aspect,
         total_num_aspects_checked=total_num,
         num_missing_in_xml=num_only_in_xml,
@@ -644,7 +669,7 @@ def attribute_units_check(
     xml_annotation: XMLAnnotation,
     hdf5_annotation: DataAnnotation,
     dataset_name: str,
-) -> SingleItemMatchesXMLFlags:
+) -> SingleAspectSingleInstanceFlags:
     """
     Check the units Attribute of an HDF5 dataset against the XML spec.
 
@@ -659,13 +684,13 @@ def attribute_units_check(
 
     Returns
     -------
-    flags : nisarqa.SingleItemMatchesXMLFlags
+    flags : nisarqa.SingleAspectSingleInstanceFlags
         Metrics for units attributes in `xml_annotation` and `hdf5_annotation`.
     """
 
     log = nisarqa.get_logger()
 
-    flags = SingleItemMatchesXMLFlags()
+    flags = SingleAspectSingleInstanceFlags()
 
     # Datetime strings in `units` fields are expected to start with
     # the string "seconds since " - do special checks for these strings
@@ -818,7 +843,7 @@ def attribute_description_check(
     xml_annotation: XMLAnnotation,
     hdf5_annotation: DataAnnotation,
     dataset_name: str,
-) -> SingleItemMatchesXMLFlags:
+) -> SingleAspectSingleInstanceFlags:
     """
     Check the descriptions listed on XML and HDF5 attributes against each other.
 
@@ -833,12 +858,12 @@ def attribute_description_check(
 
     Returns
     -------
-    flags : nisarqa.SingleItemMatchesXMLFlags
+    flags : nisarqa.SingleAspectSingleInstanceFlags
         Metrics for description attributes in `xml_annotation` and
         `hdf5_annotation`.
     """
     log = nisarqa.get_logger()
-    flags = SingleItemMatchesXMLFlags()
+    flags = SingleAspectSingleInstanceFlags()
 
     xml_desc = str(xml_annotation.description)
     hdf5_desc = str(hdf5_annotation.description)

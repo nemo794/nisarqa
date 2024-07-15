@@ -100,7 +100,7 @@ def check_hdf5_against_xml(
             "HDF5 product XML checker: Comparing Dataset metadata (attributes,"
             " dtypes, descriptions, and units) of HDF5 product vs. XML spec."
         )
-        attr_stats = nisarqa.AttributeStats()
+        attr_stats = nisarqa.MultipleAspectsMultipleInstancesSummary()
         for dataset_name in sorted(shared_datasets):
             xml_dataset = xml_datasets[dataset_name]
             hdf5_dataset = hdf5_datasets[dataset_name]
