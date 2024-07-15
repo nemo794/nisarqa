@@ -280,6 +280,14 @@ def element_to_annotation(
             " This tag is deprecated; use the text field to describe"
             f" the element instead - XML Element: {dataset_name}"
         )
+        # Delete the "description" attribute; the text for the description
+        # should be parsed from `element.text`, which happens earlier in this
+        # function.
+        # Note: in `h5_parser.py > generate_h5_datasets()`, if the HDF5
+        # Dataset has a "description" Attribute, that Attribute is similarly
+        # deleted from the attributes dictionary and stored in a separate
+        # parameter.
+        del annotation_attribs["description"]
 
     if "app" not in annotation_attribs:
         log.error(

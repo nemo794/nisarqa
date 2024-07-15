@@ -47,6 +47,11 @@ def generate_h5_datasets(
                 attributes[key] = attribute
         if "description" in attributes:
             description = attributes["description"]
+            # Remove the "description" from the attributes dictionary.
+            # Note: in `xml_parser.py > element_to_annotation()`, if the XML
+            # has a designated "description" Attribute, that Attribute
+            # is similarly deleted from the attributes dictionary and
+            # stored in a separate parameter.
             del attributes["description"]
         else:
             description = ""
