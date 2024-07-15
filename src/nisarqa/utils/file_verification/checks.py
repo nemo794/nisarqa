@@ -196,8 +196,8 @@ class SingleItemMatchesXMLFlags:
         2) Improperly formed in the HDF5 (e.g. incorrect datetime format), or
         3) is inconsistent with what the XML says it should be
 
-    Examples of Dataset metadata: an attribute, the dtype,
-    the description, the 'units' attribute.
+    Examples of Dataset metadata: an Attribute, the dtype,
+    the description, the 'units' Attribute.
 
     Parameters
     ----------

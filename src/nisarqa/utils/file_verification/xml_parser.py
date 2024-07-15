@@ -297,6 +297,9 @@ def element_to_annotation(
                     f" have units). XML Element: {dataset_name}"
                 )
 
+        elif xml_node_type == nisarqa.XMLNodeType.shape:
+            # shape elements do not have units
+            pass
         elif dataset_name.endswith(
             tuple(nisarqa.numeric_dtype_should_not_have_units())
         ):
@@ -307,9 +310,6 @@ def element_to_annotation(
                     " is attached to a node which should not have units."
                     f" XML Element: {dataset_name}"
                 )
-        elif xml_node_type == nisarqa.XMLNodeType.shape:
-            # shape elements do not have units
-            pass
         else:
             if "units" not in annotation_attribs:
                 log.error(

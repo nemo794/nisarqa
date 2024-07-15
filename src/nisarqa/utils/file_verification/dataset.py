@@ -202,7 +202,7 @@ class XMLDataset(DatasetDesc):
             log.error(f"XML dataset element has no shape: XML Dataset {name}")
             shape = None
 
-        # Node Type. This should be one of {'integer', 'real', or 'string'}.
+        # Node Type. Should be one of {'integer', 'real', 'string', 'shape'}.
         node_tag = xml_element.tag
         if node_tag not in XMLNodeType:
             log.error(
