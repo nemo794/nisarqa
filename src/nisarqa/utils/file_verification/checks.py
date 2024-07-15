@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Tuple
 
 import numpy as np
+from numpy.typing import DTypeLike
 
 # List of objects from the import statements that
 # should not be included when importing this module
@@ -493,6 +494,23 @@ def compare_hdf5_dataset_to_xml(
     )
 
 
+def stringify_dtype(dtype: DTypeLike) -> str:
+    """
+    Get the name of a datatype as a concise, human-readable string.
+    Parameters
+    ----------
+    dtype : data-type
+        The input datatype.
+    Returns
+    -------
+    name : str
+        The datatype name, such as 'int32' or 'float64'. If `dtype` was
+        `nisarqa.complex32`, returns 'complex32'.
+    """
+    dtype = np.dtype(dtype)
+    return "complex32" if (dtype == nisarqa.complex32) else str(dtype)
+
+
 def compare_dtypes_xml_hdf5(
     xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset
 ) -> SingleAspectSingleInstanceFlags:
@@ -539,7 +557,7 @@ def compare_dtypes_xml_hdf5(
                 f"XML expects string. HDF5 has type `{hdf5_dtype}`, but"
                 f" should be a NumPy byte string. Dataset {hdf5_dataset.name}"
             )
-            flags.missing_in_hdf5 = True
+            flags.hdf5_inconsistent_with_xml = True
         else:
             # NumPy byte string, or a list of numpy bytes strings. Perfect!
             xml_stated_length = xml_dataset.length
@@ -568,28 +586,13 @@ def compare_dtypes_xml_hdf5(
                     )
                     flags.hdf5_inconsistent_with_xml = True
 
-    else:
+    elif xml_dtype != hdf5_dtype:
         # For non-string types, perform a simple type check.
-        # The reason for using `xml_dtype().dtype` below instead of xml_dtype on
-        # its own is to ensure that it prints something sensible and brief. The
-        # dtype itself prints <class '[dtype name]'> which isn't really accurate.
-        # This just prints the dtype name itself.
-        if nisarqa.is_complex32(hdf5_dataset.dataset):
-            hdf5_dtype_name = "complex32"
-        else:
-            hdf5_dtype_name = str(hdf5_dtype)
-
-        if xml_dtype == nisarqa.complex32:
-            xml_dtype_name = "complex32"
-        else:
-            xml_dtype_name = str(xml_dtype().dtype)
-
-        if xml_dtype != hdf5_dtype:
-            log.error(
-                f"dtypes differ: XML: {xml_dtype_name},"
-                f" HDF5: {hdf5_dtype_name} - Dataset {xml_dataset.name}"
-            )
-            flags.hdf5_inconsistent_with_xml = True
+        log.error(
+            f"dtypes differ. XML: {stringify_dtype(xml_dtype)}, "
+            f"HDF5: {stringify_dtype(hdf5_dtype)} - Dataset {xml_dataset.name}"
+        )
+        flags.hdf5_inconsistent_with_xml = True
 
     return flags
 
