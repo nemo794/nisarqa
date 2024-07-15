@@ -230,7 +230,7 @@ def element_to_annotation(
     xml_node_type: nisarqa.XMLNodeType | None,
 ) -> nisarqa.XMLAnnotation:
     """
-    Parse an "annotation" XML element into a DataAnnotation object.
+    Parse a single "annotation" XML element into a DataAnnotation object.
 
     Parameters
     ----------
@@ -273,29 +273,53 @@ def element_to_annotation(
             f" {dataset_name}"
         )
 
-    # Checks relevant to all annotations
+    # Verification of the annotations:
+
+    # For reference in maintaining this function, here is an example XML
+    # dataset which contains two "annotations":
+    #
+    #        <real name="/science/LSAR/RSLC/swaths/frequencyA/HH"
+    #            shape="complexDataFrequencyAShape"
+    #            width="32">
+    #        <annotation app="conformance"
+    #                    lang="en"
+    #                    units="1">Focused RSLC image (HH)</annotation>
+    #        <annotation app="io" kwd="complex" />
+    #        </real>
+
+    # The "conformance" annotation holds the dataset's attribute and text
+    # for the description.
+    # The "io" annotation should only appear to designate a Dataset as
+    # complex-valued.
+    # There should not be any other
+
+    # Verify "description" is not listed as an attribute. (The description
+    # of a Dataset should instead be stored in the `element.text` XML field.)
     if "description" in annotation_attribs:
         log.error(
             f"{element.tag} annotation contains attribute 'description'."
             " This tag is deprecated; use the text field to describe"
             f" the element instead - XML Element: {dataset_name}"
         )
-        # Delete the "description" attribute; the text for the description
-        # should be parsed from `element.text`, which happens earlier in this
-        # function.
+        # Delete the "description" attribute. (It should be in `element.text`.)
         # Note: in `h5_parser.py > generate_h5_datasets()`, if the HDF5
         # Dataset has a "description" Attribute, that Attribute is similarly
         # deleted from the attributes dictionary and stored in a separate
         # parameter.
         del annotation_attribs["description"]
 
+    # Each XML annotation tag must contain an attribute named "app".
     if "app" not in annotation_attribs:
         log.error(
             f"{element.tag} annotation does not contain attribute 'app'."
             " This attribute is required for annotations -"
             f" XML Element {dataset_name}"
         )
+    # The "app" attribute must set to be either "conformance" or "io".
     elif annotation_attribs["app"] == "conformance":
+        # Annotations with "conformance" contain all information about HDF5
+        # Attributes, the description, etc.
+        # Verify that these are reasonably formed.
         if xml_node_type == nisarqa.XMLNodeType.string:
             # string datasets should never have a units attribute
             if "units" in annotation_attribs:
@@ -325,7 +349,27 @@ def element_to_annotation(
                     " but is attached to a node which should have units."
                     f" XML Element: {dataset_name}"
                 )
+            else:
+                # "units" is an Attribute
+                xml_units = str(annotation_attribs["units"])
+
+                if xml_units == "":
+                    log.error(
+                        f'Empty "units" attribute in XML: Dataset {dataset_name}'
+                    )
+
+                # datetime template string check
+                prefix = "seconds since "
+                if xml_units.startswith(prefix):
+                    xml_iso_str = xml_units.removeprefix(prefix)
+
+                    # (This function logs if there is a discrepancy)
+                    nisarqa.check_iso_format_string(
+                        iso_format_string=xml_iso_str, dataset_name=dataset_name
+                    )
+
     else:
+        # The "io" annotations are used to designate complex datasets.
         if annotation_attribs["app"] != "io":
             log.error(
                 f"{element.tag} annotation contains has 'app' attribute of"

@@ -673,20 +673,12 @@ def attribute_units_check(
 
     # Get value of 'units'; perform basic checks
     if "units" in xml_annotation.attributes:
+        # `xml_parser.py > element_to_annotation()` already validated the XML.
+        # Here, simply use those validated results.
         xml_units = str(xml_annotation.attributes["units"])
 
-        if xml_units == "":
-            log.error(f'Empty "units" attribute in XML: Dataset {dataset_name}')
-            flags.missing_in_xml = True
-
-        # datetime check for XML
         if xml_units.startswith(prefix):
             xml_units_is_iso_str = True
-            xml_iso_str = xml_units.removeprefix(prefix)
-            if not check_iso_format_string(
-                iso_format_string=xml_iso_str, dataset_name=dataset_name
-            ):
-                flags.missing_in_xml = True
     else:
         xml_units = None
 
@@ -697,7 +689,6 @@ def attribute_units_check(
             log.error(
                 f'Empty "units" attribute in HDF5: Dataset {dataset_name}'
             )
-            flags.missing_in_hdf5 = True
 
         # datetime check for HDF5
         if hdf5_units.startswith(prefix):
@@ -706,25 +697,42 @@ def attribute_units_check(
             if not check_datetime_string(
                 datetime_str=hdf5_datetime_str, dataset_name=dataset_name
             ):
+                # The XML *should* provide the correct datetime template string,
+                # which should follow the NISAR format. So, if the HDF5 does
+                # not also follow that NISAR format, flag that here.
+                # Warning: Setting this flag introduces a risk of
+                # double-counting a problematic "units" attribute.
                 flags.hdf5_inconsistent_with_xml = True
 
     else:
         hdf5_units = None
 
-    # Log if the XML and HDF5 have differing units
+    log_err = lambda: log.error(
+        f"Differing `units` attributes detected for datasets. XML: "
+        f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
+    )
+
     if xml_units_is_iso_str != hdf5_units_is_dt_str:
+        # "units" exists in both XML and HDF5, but they do not consistently
+        # begin with the prefix "seconds since ". Handle this edge case first.
         log.error(
             f"Differing format of `units` attributes detected for datasets;"
             f" both should start with '{prefix}'. XML: "
             f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
         )
         flags.hdf5_inconsistent_with_xml = True
+    elif (xml_units is None) and (hdf5_units is not None):
+        flags.missing_in_xml = True
+        log_err()
+
+    elif (xml_units is not None) and (hdf5_units is None):
+        flags.missing_in_hdf5 = True
+        log_err()
     elif xml_units != hdf5_units:
-        log.error(
-            f"Differing `units` attributes detected for datasets. XML: "
-            f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
-        )
+        # "units" exists in both XML and HDF5, but they are inconsistent.
+        # (The datetime edge case was handled above.)
         flags.hdf5_inconsistent_with_xml = True
+        log_err()
 
     return flags
 
@@ -732,6 +740,8 @@ def attribute_units_check(
 def check_iso_format_string(iso_format_string: str, dataset_name: str) -> bool:
     """
     Compare a string against the ISO format convention for NISAR.
+
+    Logs if there is a discrepancy.
 
     The standard datetime format for NISAR XML products specs is set in QA by:
         `nisarqa.NISAR_DATETIME_FORMAT_HUMAN`.
