@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -239,12 +239,14 @@ class NisarProduct(ABC):
         self._check_is_geocoded()
         self._check_data_group_path()
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def product_type(self) -> str:
         """Product type (e.g. "RSLC" or "GCOV")."""
         pass
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def is_geocoded(self) -> bool:
         """True if product is geocoded, False if range Doppler grid."""
         pass
@@ -926,7 +928,8 @@ class NisarProduct(ABC):
         """
         return "/".join([self._root_path, self.product_type, "metadata"])
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def _coordinate_grid_metadata_group_path(self) -> str:
         """
         Get the path to the coordinate grid metadata Group.
@@ -1179,9 +1182,11 @@ class NisarRadarProduct(NisarProduct):
         corners = [coords[len(coords) // 4 * i] for i in range(4)]
 
         # Reorder the corners for the LatLonQuad constructor.
-        input_spec_version = nisarqa.Version.from_string(self.product_spec_version)
+        input_spec_version = nisarqa.Version.from_string(
+            self.product_spec_version
+        )
         if input_spec_version <= nisarqa.Version(1, 1, 0):
-            # products <= v1.1.0 use the "old style" bounding polygon order: 
+            # products <= v1.1.0 use the "old style" bounding polygon order:
             # the boundingPolygon is specified in clockwise order in the
             # image coordinate system, starting at the upper-left of the image.
             geo_corners = nisarqa.LatLonQuad(
@@ -1474,8 +1479,9 @@ class NisarGeoProduct(NisarProduct):
 
             return f[proj_path][...]
 
-    @abstractproperty
-    def browse_x_range(self) -> tuple(float, float):
+    @property
+    @abstractmethod
+    def browse_x_range(self) -> tuple[float, float]:
         """
         Get the x range coordinates for the browse image.
 
@@ -1488,8 +1494,9 @@ class NisarGeoProduct(NisarProduct):
         """
         pass
 
-    @abstractproperty
-    def browse_y_range(self) -> tuple(float, float):
+    @property
+    @abstractmethod
+    def browse_y_range(self) -> tuple[float, float]:
         """
         Get the y range coordinates for the browse image.
 
@@ -2339,7 +2346,7 @@ class SLC(NonInsarProduct):
 @dataclass
 class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
     @cached_property
-    def browse_x_range(self) -> tuple(float, float):
+    def browse_x_range(self) -> tuple[float, float]:
         # All rasters used for the browse should have the same grid specs
         # So, WLOG parse the specs from the first one of them.
         layers = self.get_layers_for_browse()
@@ -2353,7 +2360,7 @@ class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
         return (x_start, x_stop)
 
     @cached_property
-    def browse_y_range(self) -> tuple(float, float):
+    def browse_y_range(self) -> tuple[float, float]:
         # All rasters used for the browse should have the same grid specs
         # So, WLOG parse the specs from the first one of them.
         layers = self.get_layers_for_browse()
