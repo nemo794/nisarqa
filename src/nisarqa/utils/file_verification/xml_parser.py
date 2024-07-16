@@ -287,11 +287,11 @@ def element_to_annotation(
     #        <annotation app="io" kwd="complex" />
     #        </real>
 
-    # The "conformance" annotation holds the dataset's attribute and text
+    # The "conformance" annotation holds the dataset's attributes and text
     # for the description.
     # The "io" annotation should only appear to designate a Dataset as
     # complex-valued.
-    # There should not be any other
+    # There should not be any other annotations.
 
     # Verify "description" is not listed as an attribute. (The description
     # of a Dataset should instead be stored in the `element.text` XML field.)

@@ -497,10 +497,12 @@ def compare_hdf5_dataset_to_xml(
 def stringify_dtype(dtype: DTypeLike) -> str:
     """
     Get the name of a datatype as a concise, human-readable string.
+
     Parameters
     ----------
     dtype : data-type
         The input datatype.
+
     Returns
     -------
     name : str
@@ -704,7 +706,7 @@ def attribute_units_check(
 
     # Get value of 'units'; perform basic checks
     if "units" in xml_annotation.attributes:
-        # `xml_parser.py > element_to_annotation()` already validated the XML.
+        # `element_to_annotation()` in `xml_parser.py` already validated the XML.
         # Here, simply use those validated results.
         xml_units = str(xml_annotation.attributes["units"])
 
@@ -717,6 +719,9 @@ def attribute_units_check(
         hdf5_units = str(hdf5_annotation.attributes["units"])
 
         if hdf5_units == "":
+            # Log an error but don't flag the attribute as "missing".
+            # If the XML units string is non-empty, this will be treated
+            # as an inconsistency and we don't want to double-count.
             log.error(
                 f'Empty "units" attribute in HDF5: Dataset {dataset_name}'
             )
@@ -740,7 +745,7 @@ def attribute_units_check(
 
     log_err = lambda: log.error(
         f"Differing `units` attributes detected for datasets. XML: "
-        f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
+        f"{xml_units!r}, HDF5: {hdf5_units!r}: Dataset {dataset_name}"
     )
 
     if xml_units_has_dt_template_str != hdf5_units_has_dt_str:
