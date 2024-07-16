@@ -244,7 +244,8 @@ class SingleAspectMultipleInstancesAccumulator:
     which have been accumulated. For example, say a GCOV product contains
     103 Datasets with a 'units' Attribute. This means that there are 103
     instances of the 'units' aspect to have their stats accumulated into
-    an instance of this Class.
+    an instance of this Class. Note that a single Dataset may have zero
+    or multiple instances of a given metadata aspect.
 
     Parameters
     ----------
@@ -748,22 +749,24 @@ def attribute_units_check(
         f"{xml_units!r}, HDF5: {hdf5_units!r}: Dataset {dataset_name}"
     )
 
-    if xml_units_has_dt_template_str != hdf5_units_has_dt_str:
-        # "units" exists in both XML and HDF5, but they do not consistently
-        # begin with the prefix "seconds since ". Handle this edge case first.
-        log.error(
-            f"Differing format of `units` attributes detected for datasets;"
-            f" both should start with '{prefix}'. XML: "
-            f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
-        )
-        flags.hdf5_inconsistent_with_xml = True
-    elif (xml_units is None) and (hdf5_units is not None):
+    if (xml_units is None) and (hdf5_units is not None):
         flags.missing_in_xml = True
         log_err()
 
     elif (xml_units is not None) and (hdf5_units is None):
         flags.missing_in_hdf5 = True
         log_err()
+    elif xml_units_has_dt_template_str or hdf5_units_has_dt_str:
+        # "units" exists in both XML and HDF5, and one or both of the "units"
+        # begins with the prefix "seconds since ".
+        # This is an edge case that we need to handle separately.
+        if xml_units_has_dt_template_str != hdf5_units_has_dt_str:
+            log.error(
+                f"Differing format of `units` attributes detected for datasets;"
+                f" both should start with '{prefix}'. XML: "
+                f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
+            )
+            flags.hdf5_inconsistent_with_xml = True
     elif xml_units != hdf5_units:
         # "units" exists in both XML and HDF5, but they are inconsistent.
         # (The datetime edge case was handled above.)

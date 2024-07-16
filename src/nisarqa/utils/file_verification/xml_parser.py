@@ -302,7 +302,7 @@ def element_to_annotation(
             f" the element instead - XML Element: {dataset_name}"
         )
         # Delete the "description" attribute. (It should be in `element.text`.)
-        # Note: in `h5_parser.py > generate_h5_datasets()`, if the HDF5
+        # Note: in `generate_h5_datasets()` in `h5_parser.py``, if the HDF5
         # Dataset has a "description" Attribute, that Attribute is similarly
         # deleted from the attributes dictionary and stored in a separate
         # parameter.
@@ -368,15 +368,13 @@ def element_to_annotation(
                         datetime_template_string=xml_datetime_template,
                         dataset_name=dataset_name,
                     )
-
-    else:
-        # The "io" annotations are used to designate complex datasets.
-        if annotation_attribs["app"] != "io":
-            log.error(
-                f"{element.tag} annotation contains has 'app' attribute of"
-                f" {annotation_attribs['app']=}, but only 'conformance' and"
-                f" 'io' are supported. XML Element: {dataset_name}"
-            )
+    # The "io" annotations are used to designate complex datasets.
+    elif annotation_attribs["app"] != "io":
+        log.error(
+            f"{element.tag} annotation contains has 'app' attribute of"
+            f" {annotation_attribs['app']=}, but only 'conformance' and"
+            f" 'io' are supported. XML Element: {dataset_name}"
+        )
 
     return nisarqa.XMLAnnotation(
         attributes=annotation_attribs, description=description
