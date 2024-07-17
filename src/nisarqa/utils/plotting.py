@@ -2813,7 +2813,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
 
 def plot_range_and_az_offsets_variances_to_pdf(
-    az_offset_variance, rg_offset_variance, report_pdf, cbar_min_max=[0.0, 0.1]
+    az_offset_variance, rg_offset_variance, report_pdf, cbar_min_max=None
 ):
     """
     Plot azimuth and slant range offset variance layers as standard dev to PDF.
@@ -2833,11 +2833,19 @@ def plot_range_and_az_offsets_variances_to_pdf(
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the plots to.
     cbar_min_max : pair of float or None, optional
-        The range for the colorbar for the plotted images. After taking the
-        square root, both rasters will be clipped to this range and plotted.
-        `None` to use the min and max of the square root of both images
-        for the colorbar range.
-        Defaults to [0.0, 0.1].
+        The vmin and vmax values to generate the plots
+        for the az and slant range variance layers.
+        The square root of these layers (i.e. the standard deviation
+        of the offsets) is computed, clipped to this interval, and
+        then plotted using this interval for the colorbar.
+        If `None`:
+            If the variance layers' units are meters^2, default to:
+                [0.0, 2.5 * (max(mean(<az var layer>), mean(<rg var layer>))]
+            If the variance layers' units are pixels^2, default to:
+                [0.0, 0.1]
+            If variance layers' units are anything else, default to:
+                [0.0, max(max(sqrt(<az var layer>)), max(sqrt(<rg var layer>)))]
+        Defaults to None.
     """
     # Validate that the pertinent metadata in the rasters is equal.
     nisarqa.compare_raster_metadata(
@@ -2871,6 +2879,11 @@ def plot_range_and_az_offsets_variances_to_pdf(
         # normalize for units of either "pixel" or "pixels"
         units = "pixels"
     else:
+        nisarqa.get_logger().warning(
+            f"Azimuth and range offset variance layers have units of {units}."
+            " Suggest using units of 'pixels^2' or 'meters^2' for better"
+            " colorbar range defaults."
+        )
         units = f"sqrt({units})"
 
     # Construct title for the overall PDF page. (`*raster.name` has a format
@@ -2893,8 +2906,17 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
     if cbar_min_max is None:
         # Use same colorbar scale for both plots
-        cbar_min = min(np.nanmin(az_std), np.nanmin(rg_std))
-        cbar_max = max(np.nanmax(az_std), np.nanmax(rg_std))
+        cbar_min = 0.0
+        if units == "pixels":
+            cbar_max = 0.1
+        elif units == "meters":
+            # Using `2.5 * mean(covariance)` as the max value is a heuristic
+            # that empirically works well for the InSAR team.
+            cbar_max = 2.5 * max(np.nanmean(az_var), np.nanmean(rg_var))
+        else:
+            # Units could not be determined. Set the max to the largest
+            # value in the actual arrays being plotted.
+            cbar_max = max(np.nanmax(az_std), np.nanmax(rg_std))
     else:
         cbar_min, cbar_max = cbar_min_max
 
@@ -2903,7 +2925,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     rg_std = downsample_img_to_size_of_axes(ax=ax2, arr=rg_std, mode="decimate")
 
     # Add the azimuth offsets variance plot (left plot)
-    im1 = ax1.imshow(
+    ax1.imshow(
         az_std,
         aspect="equal",
         cmap="magma_r",

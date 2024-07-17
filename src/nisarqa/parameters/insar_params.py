@@ -1080,33 +1080,41 @@ class GOFFQuiverParamGroup(QuiverParamGroup):
 @dataclass(frozen=True)
 class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to generate Variance Layer Plots for ROFF and GOFF.
+    Parameters to generate az & range offsets variance plots for ROFF and GOFF.
 
     Parameters
     ----------
     cbar_min_max : None or pair of float or int, optional
         The vmin and vmax values to generate the plots
-        for the az and slant range variance layers for ROFF and GOFF.
+        for the az and slant range offset variance layers for ROFF and GOFF.
         The square root of these layers (i.e. the standard deviation
-        of the offsets) is clipped to this interval,
-        which (in turn) is used for the interval of the colorbar.
-        If None, the interval is computed using the min and max
-        of the square root of these layers.
-        Defaults to [0.0, 0.1].
+        of the offsets) is computed, clipped to this interval, and
+        then plotted using this interval for the colorbar.
+        If `None`:
+            If the variance layers' units are meters^2, this will default to:
+                [0.0, 2.5 * (max(mean(<az var layer>), mean(<rg var layer>))]
+            If the variance layers' units are pixels^2, this will default to:
+                [0.0, 0.1]
+            If variance layers' units are anything else, this will default to:
+                [0.0, max(sqrt(<az var layer>), sqrt(<rg var layer>))]
+        Defaults to None.
     """
 
     cbar_min_max: Optional[Sequence[float]] = field(
-        default=(0.0, 0.1),
+        default=None,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="colorbar_min_max",
-                descr="""The vmin and vmax values to generate the plots
-                for the az and slant range variance layers for ROFF and GOFF.
+                descr="""The vmin and vmax values to generate the plots for the
+                az and slant range offset variance layers for ROFF and GOFF.
                 The square root of these layers (i.e. the standard deviation
-                of the offsets) is clipped to this interval,
-                which (in turn) is used for the interval of the colorbar.
-                If None, the interval is computed using the min and max 
-                of the square root of these layers.""",
+                of the offsets) is computed, clipped to this interval, and
+                then plotted using this interval for the colorbar.
+                If None, the interval is computed by:
+                    If the variance layers' units are 'meters^2': [0.0, 2.5 * (max(mean(<az var layer>), mean(<rg var layer>))]
+                    Else-if the variance layers' units are 'pixels^2': [0.0, 0.1]
+                    Otherwise: [0.0, max(sqrt(<az var layer>), sqrt(<rg var layer>))]
+                Defaults to None.""",
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="azAndRngOffsetVarianceColorbarMinMax",
@@ -1115,10 +1123,10 @@ class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
                     "The vmin and vmax values used to generate the plots"
                     " for the az and slant range variance layers. The"
                     " square root of these layers (i.e. the standard deviation"
-                    " of the offsets) was clipped to this interval, which"
-                    " (in turn) was used for the interval of the colorbar."
-                    " If None, the interval was computed using the min and max"
-                    " of the square root of each layer"
+                    " of the offsets) was computed, clipped to this interval,"
+                    " and then used for the interval of the colorbar."
+                    " If None, the interval was determined based on the units"
+                    " of the input layers."
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -1128,14 +1136,15 @@ class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
-        self._validate_pair_of_numeric(
-            param_value=self.cbar_min_max,
-            param_name="colorbar_min_max",
-            min=0.0,
-            max=None,
-            none_is_valid_value=True,
-            strictly_increasing=True,
-        )
+        if self.cbar_min_max is not None:
+            self._validate_pair_of_numeric(
+                param_value=self.cbar_min_max,
+                param_name="colorbar_min_max",
+                min=0.0,
+                max=None,
+                none_is_valid_value=True,
+                strictly_increasing=True,
+            )
 
 
 @dataclass(frozen=True)
