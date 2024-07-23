@@ -409,5 +409,12 @@ class _SummaryCSV:
             result=result,
         )
 
+    def check_identification_group(self, result: str) -> None:
+        """Check: 'Passes all `identification` group checks?'"""
+        self.check(
+            description="Passes all `identification` group checks?",
+            result=result,
+        )
+
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

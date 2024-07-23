@@ -45,6 +45,9 @@ PI_UNICODE = "\u03c0"
 # an error should be logged.
 STATISTICS_THRESHOLD_PERCENTAGE = 95.0
 
+# Total number of tracks for the NISAR mission during operations
+NUM_TRACKS = 173
+
 
 LIST_OF_NISAR_PRODUCTS = [
     "rslc",
@@ -200,6 +203,7 @@ __all__ = [
     "FIG_SIZE_TWO_PLOTS_PER_PAGE",
     "FIG_SIZE_THREE_PLOTS_PER_PAGE_STACKED",
     "PI_UNICODE",
+    "NUM_TRACKS",
     "PRODUCT_SPECS_PATH",
     "NISAR_DATETIME_FORMAT_PYTHON",
     "NISAR_DATETIME_FORMAT_HUMAN",

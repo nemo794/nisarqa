@@ -111,7 +111,9 @@ def verify_offset(
         for freq in product.list_of_frequencies:
             freq_pol[freq] = product.get_list_of_polarizations(freq=freq)
 
-        layer_groups = [f"layer{num}" for num in product.available_layer_numbers]
+        layer_groups = [
+            f"layer{num}" for num in product.available_layer_numbers
+        ]
 
         nisarqa.verify_file_against_xml(
             input_file=product.filepath,
@@ -128,6 +130,8 @@ def verify_offset(
             product=product,
             fail_if_all_nan=root_params.validation.metadata_cubes_fail_if_all_nan,
         )
+
+        nisarqa.dataset_sanity_checks(product=product)
 
         msg = "Input file validation complete."
         log.info(msg)

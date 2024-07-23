@@ -115,6 +115,8 @@ def verify_gslc(
             fail_if_all_nan=root_params.validation.metadata_cubes_fail_if_all_nan,
         )
 
+        nisarqa.dataset_sanity_checks(product=product)
+
         msg = "Input file validation complete."
         log.info(msg)
         if not verbose:
