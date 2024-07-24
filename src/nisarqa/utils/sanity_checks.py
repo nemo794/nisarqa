@@ -11,49 +11,6 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def verify_shapes_are_consistent(product: nisarqa.NisarProduct) -> None:
-    """
-    Verify that the shape dimensions are consistent between datasets.
-
-    For example, if the Dataset `zeroDopplerTime` has a shape of
-    `frequencyALength` specified in the XML and has dimensions (132,),
-    then all other Datasets with a shape of `frequencyALength` in the XML
-    must also have a shape of (132,) in the HDF5.
-    """
-
-    # Create a dict of all groups and datasets inside the input file,
-    # where the path is the key and the value is an hdf5 object
-
-    # Parse all of the xml Shapes into a dict, initializing each to None.
-    # key will be the Shape name,
-    # value will be set the first time it is encountered.
-    # Each subsequent time it is encountered, check that the shape is consistent
-
-    # for every item in the xml_tree:
-    #     if that path exists in the input file:
-    #         check that the description matches the xml_file
-    #         check that the units matches the xml_file
-
-    #         Look at the shape:
-    #             if Shape is in the NISAR Shapes:
-    #                 if shape.value is None:
-    #                     set the Value
-    #                 else:
-    #                     assert shape.value == the value in the dict
-
-    #             if the shape is a known constant, confirm the actual data
-    #                 has that shape
-
-    #             else:
-    #                 raise error, because each dataset should have a shape
-
-    #         remove that path from the input file's dict
-
-    # if the input file's dict is not empty:
-    #     raise error - input file has extraneous datasets
-    pass
-
-
 def dataset_sanity_checks(product: nisarqa.NisarProduct) -> None:
     """
     Perform a series of verification checks on the input product's datasets.
