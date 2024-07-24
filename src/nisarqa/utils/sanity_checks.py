@@ -11,53 +11,6 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def validate_spacing(
-    data: ArrayLike, spacing: float, dname: str, epsilon=1e-5
-) -> None:
-    """
-    Validate that the values in `data` are in ascending order
-    and equispaced, within a tolerance of +/- epsilon (EPS = 1.0E-05).
-
-    Example usage: validate_spacing() can be used to validate that the
-    timestamps in a zero doppler time array are always increasing,
-    or that the distances in a slant range array are always increasing.
-
-    Parameters
-    ----------
-    data : array_like
-        The 1D data array to be validated.
-    spacing : numeric
-        The theoretical interval between each value in `data`.
-    dataset_name : string
-        Name of `data`, which will be used for log messages.
-    """
-
-    log = nisarqa.get_logger()
-
-    # Validate that data's values are strictly increasing
-    delta = data[1:] - data[:-1]
-
-    if not np.all(delta > 0.0):
-        idx = np.where(delta <= 0.0)
-        log.info(
-            f"{dname}: Found {len(idx[0])} elements with negative spacing: "
-            f"{data[idx]} at locations {idx}"
-        )
-
-    # Validate that successive values in data are separated by `spacing`,
-    # within a tolerance of +/- epsilon.
-    EPS = 1.0e-05
-    diff = np.abs(delta - spacing)
-    try:
-        assert np.all(diff <= EPS)
-    except AssertionError as e:
-        idx = np.where(diff > EPS)
-        log.error(
-            f"{dname}: Found {len(idx[0])} elements with unexpected steps: "
-            f"{diff[idx]} at locations {idx}"
-        )
-
-
 def verify_shapes_are_consistent(product: nisarqa.NisarProduct) -> None:
     """
     Verify that the shape dimensions are consistent between datasets.
