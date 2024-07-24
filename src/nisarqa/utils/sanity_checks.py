@@ -105,9 +105,6 @@ def dataset_sanity_checks(product: nisarqa.NisarProduct) -> None:
     """
     Perform a series of verification checks on the input product's datasets.
 
-    -> If logic error, fail the entire program.
-    -> If validation error, then log those to terminal/log, and continue and do the quality outputs.
-
     Parameters
     ----------
     product : nisarqa.NisarProduct
@@ -138,7 +135,6 @@ def identification_sanity_checks(
     """
 
     log = nisarqa.get_logger()
-    passes = True
 
     def _full_path(ds_name: str) -> str:
         return f"{id_group.name}/{ds_name}"
@@ -157,7 +153,7 @@ def identification_sanity_checks(
             return data
         else:
             log.error(
-                f"Dataset has type `{type(data)}`, must be an integer."
+                f"Dataset has dtype `{data.dtype}`, must be an integer type."
                 f" Dataset: {_full_path(ds_name)}"
             )
             return None
@@ -170,14 +166,15 @@ def identification_sanity_checks(
             return data
         else:
             log.error(
-                f"Dataset has type `{type(data)}`, must be a NumPy"
+                f"Dataset has dtype `{data.dtype}`, must be a NumPy"
                 f" byte string. Dataset: {_full_path(ds_name)}"
             )
+            return None
 
     def _verify_greater_than_zero(value: int, ds_name: str) -> bool:
         if value <= 0:
             log.error(
-                f"Dataset value is `{value}`, must be greater than zero."
+                f"Dataset value is {value}, must be greater than zero."
                 f" Dataset: {_full_path(ds_name)}"
             )
             return False
@@ -218,7 +215,7 @@ def identification_sanity_checks(
     if data is not None:
         if data != product_type.upper():
             log.error(
-                f"Dataset value is `{data}`, must match the specified"
+                f"Dataset value is {data}, must match the specified"
                 f" product type of {product_type.upper()}."
                 f" Dataset: {_full_path(ds_name)}"
             )
@@ -231,7 +228,7 @@ def identification_sanity_checks(
     if data is not None:
         if data not in ("Left", "Right"):
             log.error(
-                f"Dataset value is `{data}`, must be 'Left' or 'Right'."
+                f"Dataset value is {data}, must be 'Left' or 'Right'."
                 f" Dataset: {_full_path(ds_name)}"
             )
             passes = False
