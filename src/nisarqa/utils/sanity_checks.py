@@ -138,7 +138,7 @@ def identification_sanity_checks(
     if data is not None:
         if data not in ("Left", "Right"):
             log.error(
-                f"Dataset value is {data}, must be 'Left' or 'Right'."
+                f"Dataset value is {data!r}, must be 'Left' or 'Right'."
                 f" Dataset: {_full_path(ds_name)}"
             )
             passes = False
