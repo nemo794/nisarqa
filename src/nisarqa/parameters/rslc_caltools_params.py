@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numbers
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, fields, replace
 from typing import ClassVar, Optional, Type, Union
@@ -468,8 +469,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
 @dataclass(frozen=True)
 class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
-    Parameters to generate the RSLC or GSLC Backscatter and Phase Histograms;
-    this corresponds to the `qa_reports: histogram` runconfig group.
+    Parameters to generate RSLC, GSLC, GCOV Backscatter and Phase Histograms.
 
     Parameters
     ----------
@@ -480,13 +480,23 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         every 3rd range sample will be used to compute the histograms.
         Defaults to (8, 8).
         Format: (<azimuth>, <range>)
-    backscatter_histogram_bin_edges_range : pair of int or float, optional
+    phase_histogram_y_axis_range : None or pair of float or None, optional
+        The range for the phase histograms' y-axis.
+            Format: [<min of range>, <max of range>]
+            Example: None, [0.0, None], [None, 0.7], [-0.2, 1.2], [None, None]
+        If the min or max is set to None, then that limit is set dynamically
+        based on the range of phase histogram density values.
+        If None, this is equivalent to [None, None].
+        Defaults to [0.0, 0.5].
+    backscatter_histogram_bin_edges_range : pair of float, optional
         The dB range for the backscatter histogram's bin edges. Endpoint will
         be included. Defaults to [-80.0, 20.0].
         Format: (<starting value>, <endpoint>)
     phs_in_radians : bool, optional
         True to compute phase in radians units; False for degrees units.
         Defaults to True.
+        Note: If False, suggest setting `phase_histogram_y_axis_range`
+        to [0.0, 0.1] for RSLC/GSLC, or [0.0, 0.2] for GCOV.
     tile_shape : iterable of int, optional
         User-preferred tile shape for processing images by batches.
         Actual tile shape may be modified by QA to be an integer
@@ -544,13 +554,30 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         },
     )
 
+    phase_histogram_y_axis_range: None | Sequence[int | float | None] = field(
+        default=(0.0, 0.5),
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="phase_histogram_y_axis_range",
+                descr="""The range for the phase histograms' y-axis.
+            Format: [<min of range>, <max of range>]
+            Examples: None, [0.0, None], [None, 0.7], [-0.2, 1.2], [None, None]
+        If the min or max is set to None, then that limit is set dynamically
+        based on the range of phase histogram density values.
+        If None, this is equivalent to [None, None].""",
+            ),
+        },
+    )
+
     phs_in_radians: bool = field(
         default=True,
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="phs_in_radians",
                 descr="""True to compute phase histogram in radians units,
-                False for degrees units.""",
+                False for degrees units.
+                Note: If False, suggest setting `phase_histogram_y_axis_range`
+                to [0.0, 0.1] for RSLC/GSLC, or [0.0, 0.2] for GCOV..""",
             )
         },
     )
@@ -633,28 +660,42 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
             )
 
         # Validate backscatter_histogram_bin_edges_range
-        val = self.backscatter_histogram_bin_edges_range
-        if not isinstance(val, (list, tuple)):
-            raise TypeError(
-                "`backscatter_histogram_bin_edges_range` must"
-                f" be a list or tuple: {val}"
+        self._validate_pair_of_numeric(
+            param_value=self.backscatter_histogram_bin_edges_range,
+            param_name="backscatter_histogram_bin_edges_range",
+            min=None,
+            max=None,
+            none_is_valid_value=False,
+            strictly_increasing=True,
+        )
+
+        # Validate phase_histogram_y_axis_range
+        val = self.phase_histogram_y_axis_range
+        if self.phase_histogram_y_axis_range is None:
+            pass
+        elif all(x is not None for x in val):
+            # phase histogram y axis range is a pair of numeric
+            self._validate_pair_of_numeric(
+                param_value=val,
+                param_name="phase_histogram_y_axis_range",
+                min=None,
+                max=None,
+                none_is_valid_value=False,
+                strictly_increasing=True,
             )
-        if not len(val) == 2:
-            raise ValueError(
-                "`backscatter_histogram_bin_edges_range` must"
-                f" have a length of two: {val}"
-            )
-        if not all(isinstance(e, (int, float)) for e in val):
-            raise TypeError(
-                "`backscatter_histogram_bin_edges_range` must"
-                f" contain only int or float values: {val}"
-            )
-        if val[0] >= val[1]:
-            raise ValueError(
-                "`backscatter_histogram_bin_edges_range` has format "
-                "[<starting value>, <endpoint>] where <starting value> "
-                f"must be less than <ending value>: {val}"
-            )
+        else:
+            # Check that format is like: [None, <number>], [<number>, None],
+            # or [None, None]
+            if not len(val) == 2:
+                raise TypeError(
+                    f"`phase_histogram_y_axis_range` must be length two: {val}"
+                )
+            for x in val:
+                if (x is not None) and (not isinstance(x, numbers.Real)):
+                    raise TypeError(
+                        f"`phase_histogram_y_axis_range` must contain"
+                        f" only numbers or None: {val}"
+                    )
 
         # validate phs_in_radians
         if not isinstance(self.phs_in_radians, bool):

@@ -1,4 +1,7 @@
-from dataclasses import dataclass, field, fields
+from __future__ import annotations
+
+from collections.abc import Sequence
+from dataclasses import dataclass, fields
 from typing import Optional
 
 import nisarqa
@@ -17,6 +20,67 @@ from nisarqa.parameters.rslc_caltools_params import (
 )
 
 objects_to_skip = nisarqa.get_all(__name__)
+
+
+@dataclass(frozen=True)
+class GCOVHistogramParamGroup(HistogramParamGroup):
+    """
+    Parameters to generate GCOV Backscatter and Phase Histograms.
+
+    Parameters
+    ----------
+    decimation_ratio : pair of int, optional
+        The step size to decimate the input array for computing
+        the backscatter and phase histograms.
+        For example, (2,3) means every 2nd azimuth line and
+        every 3rd range sample will be used to compute the histograms.
+        Defaults to (8, 8).
+        Format: (<azimuth>, <range>)
+    phase_histogram_y_axis_range : None or pair of float or None, optional
+        The range for the phase histograms' y-axis.
+            Format: [<min of range>, <max of range>]
+            Example: None, [0.0, None], [None, 0.7], [-0.2, 1.2], [None, None]
+        If the min or max is set to None, then that limit is set dynamically
+        based on the range of phase histogram density values.
+        If None, this is equivalent to [None, None].
+        Defaults to [0.0, 1.0].
+    backscatter_histogram_bin_edges_range : pair of float, optional
+        The dB range for the backscatter histogram's bin edges. Endpoint will
+        be included. Defaults to [-80.0, 20.0].
+        Format: (<starting value>, <endpoint>)
+    phs_in_radians : bool, optional
+        True to compute phase in radians units, False for degrees units.
+        Defaults to True.
+        Note: If False, suggest setting `phase_histogram_y_axis_range`
+        to [0.0, 0.1] for RSLC/GSLC, or [0.0, 0.2] for GCOV.
+    tile_shape : iterable of int, optional
+        User-preferred tile shape for processing images by batches.
+        Actual tile shape may be modified by QA to be an integer
+        multiple of the number of looks for multilooking, of the
+        decimation ratio, etc.
+        Format: (num_rows, num_cols)
+        -1 to indicate all rows / all columns (respectively).
+
+    Attributes
+    ----------
+    backscatter_bin_edges : numpy.ndarray
+        The bin edges (including endpoint) to use when computing
+        the backscatter histograms. Will be set to 100 uniformly-spaced bins
+        in range `backscatter_histogram_bin_edges_range`, including endpoint.
+    phs_bin_edges : numpy.ndarray
+        The bin edges (including endpoint) to use when computing
+        the phase histograms.
+        If `phs_in_radians` is True, this will be set to 100
+        uniformly-spaced bins in range [-pi,pi], including endpoint.
+        If `phs_in_radians` is False, this will be set to 100
+        uniformly-spaced bins in range [-180,180], including endpoint.
+    """
+
+    phase_histogram_y_axis_range: None | Sequence[int | float | None] = (
+        nisarqa.HistogramParamGroup.get_field_with_updated_default(
+            param_name="phase_histogram_y_axis_range", default=(0.0, 1.0)
+        )
+    )
 
 
 @dataclass
@@ -43,7 +107,7 @@ class GCOVRootParamGroup(RootParamGroup):
         Validation Group parameters for QA
     backscatter_img : BackscatterImageParamGroup or None, optional
         Covariance Term Magnitude Image Group parameters for GCOV QA
-    histogram : HistogramParamGroup or None, optional
+    histogram : GCOVHistogramParamGroup or None, optional
         Histogram Group parameters for GCOV QA
     """
 
@@ -53,7 +117,7 @@ class GCOVRootParamGroup(RootParamGroup):
 
     # QA parameters
     backscatter_img: Optional[BackscatterImageParamGroup] = None
-    histogram: Optional[HistogramParamGroup] = None
+    histogram: Optional[GCOVHistogramParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -87,7 +151,7 @@ class GCOVRootParamGroup(RootParamGroup):
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="histogram",
-                param_grp_cls_obj=HistogramParamGroup,
+                param_grp_cls_obj=GCOVHistogramParamGroup,
             ),
         )
 
@@ -103,7 +167,7 @@ class GCOVRootParamGroup(RootParamGroup):
             WorkflowsParamGroup,
             ValidationGroupParamGroup,
             BackscatterImageParamGroup,
-            HistogramParamGroup,
+            GCOVHistogramParamGroup,
         )
 
 

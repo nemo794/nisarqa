@@ -326,7 +326,10 @@ class YamlParamGroup(ABC):
             The minimum or maximum allowed values (respectively) for each value in
             `param_value`. `param_value` may not be outside this range.
         none_is_valid_value : bool, optional
-            True if `None` is a valid value. Defaults to False.
+            True if `param_value` should be considered valid if it is `None`.
+            Note: This flag is for the entire value of the parameter; if the
+            parameter is set to e.g. `[None, 1.0]`, this flag not relevant.
+            Defaults to False.
         strictly_increasing : bool, optional
             True if `input_value[0]` must be less than `input_value[1]`.
             Defaults to False.
@@ -371,6 +374,49 @@ class YamlParamGroup(ABC):
                     f"{param_name}={param_value}; values must be"
                     " strictly increasing."
                 )
+
+    @classmethod
+    def get_field_with_updated_default(
+        cls, param_name: str, default: float
+    ) -> dataclasses.Field:
+        """
+        Return the Field object for a class parameter with an updated default.
+
+        Parameters
+        ----------
+        param_name : str
+            One of the class parameters of this class.
+        default : float
+            The desired default value for the parameter.
+
+        Returns
+        -------
+        updated_field : dataclasses.Field
+            A Field object with the updated default value. All other
+            aspects of `ThresholdParamGroup` class' version of the Field
+            object remain unchanged (for example, the `metadata` which contains
+            the description is unchanged).
+
+        Examples
+        --------
+        When subclassing, override the parent's parameter like this:
+        ```
+        nan_threshold: float = (
+            nisarqa.YamlParamGroup.get_field_with_updated_default(
+                param_name="nan_threshold", default=0
+            )
+        )
+        ```
+        """
+
+        for f in fields(cls):
+            if f.name == param_name:
+                metadata = f.metadata
+                return field(default=default, metadata=metadata)
+        else:
+            raise ValueError(
+                f"`{param_name=}`, must be a parameter in `{cls.__class__.__name__}`"
+            )
 
 
 class HDF5ParamGroup:
@@ -634,49 +680,6 @@ class ThresholdParamGroup(YamlParamGroup):
 
         if self.epsilon < 0:
             raise ValueError(f"`{self.epsilon=}`, must be >= 0.")
-
-    @classmethod
-    def get_field_with_updated_default(
-        self, param_name: str, default: float
-    ) -> dataclasses.Field:
-        """
-        Return the Field object for a class parameter with an updated default.
-
-        Parameters
-        ----------
-        param_name : str
-            One of the class parameters of `ThresholdParamGroup`.
-        default : float
-            The desired default value for the parameter.
-
-        Returns
-        -------
-        updated_field : dataclasses.Field
-            A Field object with the updated default value. All other
-            aspects of `ThresholdParamGroup` class' version of the Field
-            object remain unchanged (for example, the `metadata` which contains
-            the description is unchanged).
-
-        Examples
-        --------
-        When subclassing, override the parameter like this:
-        ```
-        nan_threshold: float = (
-            nisarqa.ThresholdParamGroup.get_field_with_updated_default(
-                param_name="nan_threshold", default=0
-            )
-        )
-        ```
-        """
-
-        for f in fields(self):
-            if f.name == param_name:
-                metadata = f.metadata
-                return field(default=default, metadata=metadata)
-        else:
-            raise ValueError(
-                f"`{param_name=}`, must be a parameter in `ThresholdParamGroup`"
-            )
 
 
 @dataclass(frozen=True)
