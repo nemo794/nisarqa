@@ -117,6 +117,14 @@ def identification_sanity_checks(
     data = _get_integer_dataset(ds_name=ds_name)
     if data is not None:
         passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+        if data > nisarqa.NUM_FRAMES:
+            log.error(
+                f"Dataset value is `{data}`, must be less than or equal to"
+                f" total number of frames, which is {nisarqa.NUM_FRAMES}."
+                f" Dataset: {_full_path(ds_name)}"
+            )
+            passes = False
+
     else:
         passes = False
 
