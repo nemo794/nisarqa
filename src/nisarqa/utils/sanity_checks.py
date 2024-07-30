@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 import h5py
 import numpy as np
@@ -81,8 +81,8 @@ def identification_sanity_checks(
             )
             return None
 
-    def _verify_greater_than_zero(value: int, ds_name: str) -> bool:
-        if value <= 0:
+    def _verify_greater_than_zero(value: int | None, ds_name: str) -> bool:
+        if (value is None) or (value <= 0):
             log.error(
                 f"Dataset value is {value}, must be greater than zero."
                 f" Dataset: {_full_path(ds_name)}"
@@ -90,68 +90,158 @@ def identification_sanity_checks(
             return False
         return True
 
-    passes = True
-
-    ds_name = "absoluteOrbitNumber"
-    data = _get_integer_dataset(ds_name=ds_name)
-    if data is not None:
-        passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
-    else:
-        passes = False
-
-    ds_name = "trackNumber"
-    data = _get_integer_dataset(ds_name=ds_name)
-    if data is not None:
-        passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
-        if data > nisarqa.NUM_TRACKS:
+    def _verify_bool(value: str | None, ds_name: str) -> bool:
+        if (value is None) or (value not in ("True", "False")):
             log.error(
-                f"Dataset value is {data}, must be less than or equal to"
-                f" total number of tracks, which is {nisarqa.NUM_TRACKS}."
+                f"Dataset value is {value!r}, must be 'True' or 'False'."
                 f" Dataset: {_full_path(ds_name)}"
             )
-            passes = False
-    else:
+            return False
+        return True
+
+    def _verify_data_in_list_of_strings(
+        value: str | None, list_of_valid_strings: Sequence[str], ds_name: str
+    ) -> bool:
+        if (value is None) or (value not in list_of_valid_strings):
+            log.error(
+                f"Dataset value is {value!r}, must be one of "
+                f" {list_of_valid_strings}. Dataset: {_full_path(ds_name)}"
+            )
+            return False
+        return True
+
+    passes = True
+
+    keys_checked = set()
+
+    ds_name = "absoluteOrbitNumber"
+    keys_checked.add(ds_name)
+    data = _get_integer_dataset(ds_name=ds_name)
+    passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+
+    ds_name = "trackNumber"
+    keys_checked.add(ds_name)
+    data = _get_integer_dataset(ds_name=ds_name)
+    passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+    if (data is None) or (data > nisarqa.NUM_TRACKS):
+        log.error(
+            f"Dataset value is {data}, must be less than or equal to"
+            f" total number of tracks, which is {nisarqa.NUM_TRACKS}."
+            f" Dataset: {_full_path(ds_name)}"
+        )
         passes = False
 
     ds_name = "frameNumber"
+    keys_checked.add(ds_name)
     data = _get_integer_dataset(ds_name=ds_name)
-    if data is not None:
-        passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
-        if data > nisarqa.NUM_FRAMES:
-            log.error(
-                f"Dataset value is `{data}`, must be less than or equal to"
-                f" total number of frames, which is {nisarqa.NUM_FRAMES}."
-                f" Dataset: {_full_path(ds_name)}"
-            )
-            passes = False
+    passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+    if (data is None) or (data > nisarqa.NUM_FRAMES):
+        log.error(
+            f"Dataset value is {data}, must be less than or equal to"
+            f" total number of frames, which is {nisarqa.NUM_FRAMES}."
+            f" Dataset: {_full_path(ds_name)}"
+        )
+        passes = False
 
-    else:
+    ds_name = "diagnosticModeFlag"
+    keys_checked.add(ds_name)
+    data = _get_integer_dataset(ds_name=ds_name)
+    if (data is None) or (data not in (0, 1, 2)):
+        log.error(
+            f"Dataset value is {data}, must be 0, 1, or 2."
+            f" Dataset: {_full_path(ds_name)}"
+        )
         passes = False
 
     ds_name = "productType"
+    keys_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    if data is not None:
-        if data != product_type.upper():
-            log.error(
-                f"Dataset value is {data!r}, must match the specified"
-                f" product type of {product_type.upper()}."
-                f" Dataset: {_full_path(ds_name)}"
-            )
-            passes = False
-    else:
+    if (data is None) or (data != product_type.upper()):
+        log.error(
+            f"Dataset value is {data}, must match the specified"
+            f" product type of {product_type.upper()}."
+            f" Dataset: {_full_path(ds_name)}"
+        )
         passes = False
 
     ds_name = "lookDirection"
+    keys_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    if data is not None:
-        if data not in ("Left", "Right"):
+    passes &= _verify_data_in_list_of_strings(
+        value=data, list_of_valid_strings=("Left", "Right"), ds_name=ds_name
+    )
+
+    ds_name = "productLevel"
+    keys_checked.add(ds_name)
+    data = _get_string_dataset(ds_name=ds_name)
+    passes &= _verify_data_in_list_of_strings(
+        value=data,
+        list_of_valid_strings=("L0A", "L0B", "L1", "L2"),
+        ds_name=ds_name,
+    )
+
+    ds_name = "radarBand"
+    keys_checked.add(ds_name)
+    data = _get_string_dataset(ds_name=ds_name)
+    passes &= _verify_data_in_list_of_strings(
+        value=data, list_of_valid_strings=("L", "S"), ds_name=ds_name
+    )
+
+    ds_name = "orbitPassDirection"
+    keys_checked.add(ds_name)
+    data = _get_string_dataset(ds_name=ds_name)
+    passes &= _verify_data_in_list_of_strings(
+        value=data,
+        list_of_valid_strings=("Ascending", "Descending"),
+        ds_name=ds_name,
+    )
+
+    ds_name = "processingType"
+    keys_checked.add(ds_name)
+    data = _get_string_dataset(ds_name=ds_name)
+    passes &= _verify_data_in_list_of_strings(
+        value=data,
+        list_of_valid_strings=("Nominal", "Urgent", "Custom", "Undefined"),
+        ds_name=ds_name,
+    )
+
+    for ds_name in (
+        "isDithered",
+        "isGeocoded",
+        "isMixedMode",
+        "isUrgentObservation",
+    ):
+        keys_checked.add(ds_name)
+        nisarqa.verify_isce3_boolean(ds=id_group[ds_name])
+        passes &= _verify_bool(data, ds_name=ds_name)
+
+    # These are datasets which need more-robust pattern-matching checks.
+    # For now, just check that they are being populated with a non-dummy value.
+    for ds_name in (
+        "compositeReleaseId",
+        "granuleId",
+        "missionId",
+        "plannedObservationId",
+        "processingCenter",
+    ):
+        keys_checked.add(ds_name)
+        data = _get_string_dataset(ds_name=ds_name)
+        if (data is None) or (data == "") or (data == "0"):
             log.error(
-                f"Dataset value is {data!r}, must be 'Left' or 'Right'."
+                f"Dataset value is {data!r}, which is not a valid value."
                 f" Dataset: {_full_path(ds_name)}"
             )
             passes = False
-    else:
-        passes = False
+
+    keys_in_product = set(id_group.keys())
+    log.error(
+        "Keys missing from product's `identification` group:"
+        f" {keys_checked - keys_in_product}"
+    )
+    log.error(
+        "Keys found in product's `identification` group but not checked:"
+        f" {keys_in_product - keys_checked}"
+    )
 
     summary = nisarqa.get_summary()
     if passes:

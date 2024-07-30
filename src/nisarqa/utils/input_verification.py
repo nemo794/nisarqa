@@ -10,7 +10,7 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(__name__)
 
 
-def verify_isce3_boolean(ds: h5py.Dataset) -> None:
+def verify_isce3_boolean(ds: h5py.Dataset) -> bool:
     """
     Verify if a boolean value uses the correct ISCE3 convention.
 
@@ -21,6 +21,11 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> None:
     ----------
     ds : h5py.Dataset
         Dataset to be verified. This should represent a boolean quantity.
+
+    Returns
+    -------
+    passes : bool
+        True if `ds` uses the correct ISCE3 convention, False otherwise.
     """
     log = nisarqa.get_logger()
 
@@ -35,9 +40,11 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> None:
             " b'True' or b'False'."
         )
         log.error(errmsg)
+        return False
+    return True
 
 
-def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
+def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> bool:
     """
     Verify that input dataset contains fixed-length byte string(s).
 
@@ -87,14 +94,14 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
         log.error(errmsg)
 
         # Return early; none of the other verification checks can be used
-        return
+        return False
 
     if ds.shape == ():
         # Dataset is a scalar string
-        verify_length_of_scalar_byte_string(ds)
+        return verify_length_of_scalar_byte_string(ds)
     elif len(ds.shape) == 1:
         # Dataset is a 1D array of strings
-        verify_1D_array_of_byte_strings(ds)
+        return verify_1D_array_of_byte_strings(ds)
     else:
         # multi-dimensional arrays of strings not currently supported.
         errmsg = (
@@ -102,6 +109,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> None:
             " generate arrays of strings with more than one dimension."
         )
         log.error(errmsg)
+        return False
 
 
 def verify_byte_string(my_string: np.bytes_) -> None:
