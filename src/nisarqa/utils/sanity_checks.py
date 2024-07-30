@@ -70,30 +70,17 @@ def identification_sanity_checks(
 
     def _get_string_dataset(ds_name: str) -> str | None:
         data = _get_dataset(ds_name=ds_name)
-        if isinstance(data, np.bytes_):
+        if (data is not None) and nisarqa.verify_str_meets_isce3_conventions(
+            ds=id_group[ds_name]
+        ):
             return nisarqa.byte_string_to_python_str(data)
-        elif data is None:
-            return data
         else:
-            log.error(
-                f"Dataset has dtype `{data.dtype}`, must be a NumPy"
-                f" byte string. Dataset: {_full_path(ds_name)}"
-            )
             return None
 
     def _verify_greater_than_zero(value: int | None, ds_name: str) -> bool:
         if (value is None) or (value <= 0):
             log.error(
                 f"Dataset value is {value}, must be greater than zero."
-                f" Dataset: {_full_path(ds_name)}"
-            )
-            return False
-        return True
-
-    def _verify_bool(value: str | None, ds_name: str) -> bool:
-        if (value is None) or (value not in ("True", "False")):
-            log.error(
-                f"Dataset value is {value!r}, must be 'True' or 'False'."
                 f" Dataset: {_full_path(ds_name)}"
             )
             return False
@@ -205,6 +192,7 @@ def identification_sanity_checks(
         ds_name=ds_name,
     )
 
+    # Verify Boolean Datasets
     for ds_name in (
         "isDithered",
         "isGeocoded",
@@ -212,8 +200,58 @@ def identification_sanity_checks(
         "isUrgentObservation",
     ):
         keys_checked.add(ds_name)
-        nisarqa.verify_isce3_boolean(ds=id_group[ds_name])
-        passes &= _verify_bool(data, ds_name=ds_name)
+        data = _get_string_dataset(ds_name=ds_name)
+        if data is not None:
+            passes &= nisarqa.verify_isce3_boolean(ds=id_group[ds_name])
+
+    # Verify "Version" Datasets (major, minor, patch)
+    for ds_name in (
+        "productVersion",
+        "productSpecificationVersion",
+    ):
+        keys_checked.add(ds_name)
+        data = _get_string_dataset(ds_name=ds_name)
+        if data is not None:
+            try:
+                nisarqa.Version.from_string(version_str=data)
+            except ValueError:
+                passes = False
+
+    # Verify datetime Datasets
+    # TODO: Confirm correct "processingDateTime" precision with ADT.
+    # (seconds, nanoseconds, microseconds, etc.)
+    ds_name = "processingDateTime"
+    keys_checked.add(ds_name)
+    data = _get_string_dataset(ds_name=ds_name)
+    if data is not None:
+        passes &= nisarqa.check_datetime_string(
+            datetime_str=data,
+            dataset_name=_full_path(ds_name),
+            precision="seconds",
+        )
+
+    if product_type.lower() in nisarqa.LIST_OF_INSAR_PRODUCTS:
+        dt_datasets = (
+            "referenceZeroDopplerStartTime",
+            "secondaryZeroDopplerStartTime",
+            "referenceZeroDopplerEndTime",
+            "secondaryZeroDopplerEndTime",
+        )
+    else:
+        dt_datasets = (
+            "zeroDopplerStartTime",
+            "zeroDopplerEndTime",
+        )
+
+    for ds_name in dt_datasets:
+        keys_checked.add(ds_name)
+        data = _get_string_dataset(ds_name=ds_name)
+        if data is not None:
+            passes &= nisarqa.check_datetime_string(
+                datetime_str=data,
+                dataset_name=_full_path(ds_name),
+                precision="nanoseconds",
+            )
 
     # These are datasets which need more-robust pattern-matching checks.
     # For now, just check that they are being populated with a non-dummy value.
@@ -223,25 +261,35 @@ def identification_sanity_checks(
         "missionId",
         "plannedObservationId",
         "processingCenter",
+        "listOfFrequencies",
+        "boundingPolygon",
+        "instrumentName",
+        "plannedDatatakeId",
     ):
         keys_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
-        if (data is None) or (data == "") or (data == "0"):
+        # TODO: Improve error message by adding another conditional for a string
+        # representation of a list of empty strings, e.g. "['' '' '' '' '']".
+        if (data is None) or (data == "") or (data == "0") or (data == "['0']"):
             log.error(
                 f"Dataset value is {data!r}, which is not a valid value."
                 f" Dataset: {_full_path(ds_name)}"
             )
             passes = False
+        else:
+            log.warn(
+                f"Dataset value is {data!r}, but it has not be automatically"
+                f" verified during checks. Dataset: {_full_path(ds_name)}"
+            )
 
+    # Log if any Datasets were not verified
     keys_in_product = set(id_group.keys())
-    log.error(
-        "Keys missing from product's `identification` group:"
-        f" {keys_checked - keys_in_product}"
-    )
-    log.error(
-        "Keys found in product's `identification` group but not checked:"
-        f" {keys_in_product - keys_checked}"
-    )
+    difference = keys_in_product - keys_checked
+    if len(difference) > 0:
+        log.error(
+            "Datasets found in product's `identification` group but not"
+            f" verified: {difference}"
+        )
 
     summary = nisarqa.get_summary()
     if passes:

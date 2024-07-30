@@ -1,5 +1,4 @@
 import os
-import warnings
 from datetime import datetime
 
 import h5py
@@ -29,14 +28,16 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> bool:
     """
     log = nisarqa.get_logger()
 
-    verify_str_meets_isce3_conventions(ds)
+    if not verify_str_meets_isce3_conventions(ds):
+        return False
 
-    data = nisarqa.byte_string_to_python_str(ds[()])
+    raw_data = ds[()]
+    data = nisarqa.byte_string_to_python_str(raw_data)
 
     if data not in ("True", "False"):
         errmsg = (
             f"Dataset `{ds.name}` represents a boolean but contains the value"
-            f" {ds[()]}. By ISCE3 convention it must be a byte string"
+            f" {raw_data!r}. By ISCE3 convention it must be a byte string"
             " b'True' or b'False'."
         )
         log.error(errmsg)
@@ -48,7 +49,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> bool:
     """
     Verify that input dataset contains fixed-length byte string(s).
 
-    If a dataset does not meet ISCE3 conventions, then a warning is raised.
+    If a dataset does not meet ISCE3 conventions, then an error is logged.
     This function also checks for correct string lengths and null terminator
     characters that do not meet ISCE3 conventions.
 
@@ -57,6 +58,11 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> bool:
     ds : h5py.Dataset
         A dataset whose value should be a fixed-length string or a 1D array
         of fixed-length byte strings.
+
+    Returns
+    -------
+    passes : bool
+        True if `ds` uses the correct ISCE3 convention, False otherwise.
 
     Notes
     -----
@@ -112,7 +118,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> bool:
         return False
 
 
-def verify_byte_string(my_string: np.bytes_) -> None:
+def verify_byte_string(my_string: np.bytes_) -> bool:
     """
     Verify if a byte string is, in fact, a byte string and not a Python string.
 
@@ -120,6 +126,11 @@ def verify_byte_string(my_string: np.bytes_) -> None:
     ----------
     my_string : numpy.bytes_
         Byte string to be verified.
+
+    Returns
+    -------
+    passes : bool
+        True if `my_string` uses the correct ISCE3 convention, False otherwise.
     """
     log = nisarqa.get_logger()
 
@@ -129,9 +140,11 @@ def verify_byte_string(my_string: np.bytes_) -> None:
             " instance of `numpy.bytes_` (i.e. a byte string)."
         )
         log.error(errmsg)
+        return False
+    return True
 
 
-def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
+def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> bool:
     """
     Verify the length of a scalar byte string matches its dtype.
 
@@ -144,11 +157,18 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
     ----------
     ds : h5py.Dataset
         Dataset to be verified. This should represent a scalar string.
+
+    Returns
+    -------
+    passes : bool
+        True if `ds` uses the correct ISCE3 convention, False otherwise.
     """
     log = nisarqa.get_logger()
 
     # This function can only check scalar byte strings.
-    verify_byte_string(ds[()])
+    if not verify_byte_string(ds[()]):
+        return False
+
     if not ds.shape == ():
         errmsg = f"Dataset `{ds.name}` must be a scalar dataset."
         raise ValueError(errmsg)
@@ -168,9 +188,11 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> None:
             f" dtype `{ds.dtype}`, but should have dtype `{ds[()].dtype}`."
         )
         log.error(errmsg)
+        return False
+    return True
 
 
-def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
+def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> bool:
     """
     Verify if a Dataset is properly formatted as a 1D array of byte strings.
 
@@ -179,6 +201,11 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
     ds : h5py.Dataset
         Dataset to be verified. This should represent a 1D array of byte
         strings.
+
+    Returns
+    -------
+    passes : bool
+        True if `ds` uses the correct ISCE3 convention, False otherwise.
     """
     # Verify input is a 1D array. (This function only supports 1D arrays.)
     if len(ds.shape) != 1:
@@ -189,6 +216,7 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
 
     # Check that the array only contains byte strings.
     arr = ds[()]
+    passes = True
     for idx in range(ds.shape[0]):
         my_string = arr[idx]
         if not my_string:
@@ -204,7 +232,7 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
             )
             log.warning(msg)
 
-        verify_byte_string(my_string)
+        passes &= verify_byte_string(my_string)
 
     # Check that the reported maximum string length is actually the length
     # of the longest string in the array.
@@ -218,6 +246,8 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> None:
             f" so the Dataset should have dtype `|S{max_strlen}`."
         )
         log.error(errmsg)
+        return False
+    return passes
 
 
 def verify_valid_percent(percent: float) -> None:

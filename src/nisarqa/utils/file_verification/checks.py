@@ -814,13 +814,13 @@ def check_datetime_template_string(
     return True
 
 
-def check_datetime_string(datetime_str: str, dataset_name: str) -> bool:
+# TODO: This function is redundant to nisarqa.verify_datetime_format().
+# Open an Issue to consolidate them into the same function.
+def check_datetime_string(
+    datetime_str: str, dataset_name: str, precision="seconds"
+) -> bool:
     """
     Compare a datetime string against the standard datetime format for NISAR.
-
-    The standard datetime format for NISAR is set by:
-        `nisarqa.NISAR_DATETIME_FORMAT_PYTHON`.
-    As of June 2024, this is: "%Y-%m-%dT%H:%M:%S"
 
     Parameters
     ----------
@@ -828,25 +828,58 @@ def check_datetime_string(datetime_str: str, dataset_name: str) -> bool:
         The datetime string, e.g. "2008-10-12T00:00:00"
     dataset_name : str
         Name of the dataset associated with `datatime_str`. (Used for logging.)
+    precision : str, optional
+        Precision for the datetime format. Options include:
+            "seconds"     : "%Y-%m-%dT%H:%M:%S"
+            "nanoseconds" : "%Y-%m-%dT%H:%M:%S.sssssssss"
 
     Returns
     -------
     passes : bool
         True if `datetime_str` conforms to the NISAR convention, False if not.
+
+    Notes
+    -----
+    Per NISAR ADT on 2024-07-25, the NISAR convention should be:
+        For the "epoch" Attributes, use integer seconds only, e.g.:
+            “seconds since YYYY-mm-ddTHH:MM:SS”
+        For time intervals like `zeroDopplerStartTime` and `zeroDopplerEndTime`,
+        use nanosecond precision.
     """
+    log = nisarqa.get_logger()
+
     strptime_format = nisarqa.NISAR_DATETIME_FORMAT_PYTHON
+
+    if precision == "seconds":
+        format_log_msg = strptime_format
+    elif precision == "nanoseconds":
+        format_log_msg = "%Y-%m-%dT%H:%M:%S.sssssssss"
+    else:
+        raise ValueError(f"{precision=}, must be 'seconds' or 'nanoseconds'.")
+
+    err_msg = (
+        f"HDF5 datetime string '{datetime_str}' does not conform to"
+        f" NISAR datetime format convention '{strptime_format}' -"
+        f" Dataset {dataset_name}"
+    )
+
+    if precision == "nanoseconds":
+        split_str = datetime_str.split(".")
+        nanosec = split_str[-1]
+        datetime_str = ".".join(split_str[:-1])
+
+        if (len(nanosec) != 9) or (not nanosec.isdigit()):
+            log.error(err_msg)
+            return False
 
     # Try to read the datetime string with the strptime format.
     # If this fails, then the format and the string don't match.
     try:
         datetime.strptime(datetime_str, strptime_format)
     except Exception:
-        nisarqa.get_logger().error(
-            f"HDF5 datetime string '{datetime_str}' does not conform to"
-            f" NISAR datetime format convention '{strptime_format}' -"
-            f" Dataset {dataset_name}"
-        )
+        log.error(err_msg)
         return False
+
     return True
 
 
