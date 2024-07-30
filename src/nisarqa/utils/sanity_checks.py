@@ -105,7 +105,7 @@ def identification_sanity_checks(
         passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
         if data > nisarqa.NUM_TRACKS:
             log.error(
-                f"Dataset value is `{data}`, must be less than or equal to"
+                f"Dataset value is {data}, must be less than or equal to"
                 f" total number of tracks, which is {nisarqa.NUM_TRACKS}."
                 f" Dataset: {_full_path(ds_name)}"
             )
@@ -125,7 +125,7 @@ def identification_sanity_checks(
     if data is not None:
         if data != product_type.upper():
             log.error(
-                f"Dataset value is {data}, must match the specified"
+                f"Dataset value is {data!r}, must match the specified"
                 f" product type of {product_type.upper()}."
                 f" Dataset: {_full_path(ds_name)}"
             )
