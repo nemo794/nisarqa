@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
@@ -814,8 +815,6 @@ def check_datetime_template_string(
     return True
 
 
-# TODO: This function is redundant to nisarqa.verify_datetime_format().
-# Open an Issue to consolidate them into the same function.
 def check_datetime_string(
     datetime_str: str, dataset_name: str, precision="seconds"
 ) -> bool:
@@ -841,45 +840,41 @@ def check_datetime_string(
     Notes
     -----
     Per NISAR ADT on 2024-07-25, the NISAR convention should be:
-        For time points that don't require sub-second precision, such as reference
-        epochs and processing datetimes, use integer seconds only, e.g.:
+        For time points that don't require sub-second precision (e.g. reference
+        epochs and processing datetimes) use integer seconds only, like this:
             “seconds since YYYY-mm-ddTHH:MM:SS”
-        For all other time points, like `zeroDopplerStartTime` and `zeroDopplerEndTime`,
-        use nanosecond precision.
+        For all other time points, like `zeroDopplerStartTime` and
+        `zeroDopplerEndTime`, use nanosecond precision.
     """
     log = nisarqa.get_logger()
 
-    strptime_format = nisarqa.NISAR_DATETIME_FORMAT_PYTHON
-
-    if precision == "seconds":
-        format_log_msg = strptime_format
-    elif precision == "nanoseconds":
-        format_log_msg = "YYYY-mm-ddTHH:MM:SS.sssssssss"
-    else:
-        raise ValueError(f"{precision=}, must be 'seconds' or 'nanoseconds'.")
-
     err_msg = (
         f"HDF5 datetime string '{datetime_str}' does not conform to"
-        f" NISAR datetime format convention '{format_log_msg}' -"
+        f" NISAR datetime format convention '%s' -"
         f" Dataset {dataset_name}"
     )
 
-    if precision == "nanoseconds":
-        import re
-        
+    if precision == "seconds":
+        strptime_format = nisarqa.NISAR_DATETIME_FORMAT_PYTHON
+
+        # Try to read the datetime string with the strptime format.
+        # If this fails, then the format and the string don't match.
+        try:
+            datetime.strptime(datetime_str, strptime_format)
+        except Exception:
+            log.error(err_msg % strptime_format)
+            return False
+
+    elif precision == "nanoseconds":
         # `strptime()` doesn't handle nanosecond precision, so use a regex.
         regex = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}$")
         if not regex.match(datetime_str):
-            log.error(err_msg)
+            nano_seconds_log_format = "YYYY-mm-ddTHH:MM:SS.sssssssss"
+            log.error(err_msg % nano_seconds_log_format)
             return False
 
-    # Try to read the datetime string with the strptime format.
-    # If this fails, then the format and the string don't match.
-    try:
-        datetime.strptime(datetime_str, strptime_format)
-    except Exception:
-        log.error(err_msg)
-        return False
+    else:
+        raise ValueError(f"{precision=}, must be 'seconds' or 'nanoseconds'.")
 
     return True
 
