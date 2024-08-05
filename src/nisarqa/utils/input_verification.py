@@ -130,7 +130,7 @@ def verify_byte_string(my_string: np.bytes_) -> bool:
     Returns
     -------
     passes : bool
-        True if `my_string` uses the correct ISCE3 convention, False otherwise.
+        True if `my_string` uses the correct ISCE3 convention; False otherwise.
     """
     log = nisarqa.get_logger()
 

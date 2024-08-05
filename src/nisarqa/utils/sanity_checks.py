@@ -87,7 +87,7 @@ def identification_sanity_checks(
         return True
 
     def _verify_data_in_list_of_strings(
-        value: str | None, list_of_valid_strings: Sequence[str], ds_name: str
+        value: str | None, list_of_valid_strings: Container[str], ds_name: str
     ) -> bool:
         if (value is None) or (value not in list_of_valid_strings):
             log.error(

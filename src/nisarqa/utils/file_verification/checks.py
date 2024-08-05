@@ -830,8 +830,8 @@ def check_datetime_string(
         Name of the dataset associated with `datatime_str`. (Used for logging.)
     precision : str, optional
         Precision for the datetime format. Options include:
-            "seconds"     : "%Y-%m-%dT%H:%M:%S"
-            "nanoseconds" : "%Y-%m-%dT%H:%M:%S.sssssssss"
+            "seconds"     : "YYYY-mm-ddTHH:MM:SS"
+            "nanoseconds" : "YYYY-mm-ddTHH:MM:SS.sssssssss"
 
     Returns
     -------
@@ -841,9 +841,10 @@ def check_datetime_string(
     Notes
     -----
     Per NISAR ADT on 2024-07-25, the NISAR convention should be:
-        For the "epoch" Attributes, use integer seconds only, e.g.:
+        For time points that don't require sub-second precision, such as reference
+        epochs and processing datetimes, use integer seconds only, e.g.:
             “seconds since YYYY-mm-ddTHH:MM:SS”
-        For time intervals like `zeroDopplerStartTime` and `zeroDopplerEndTime`,
+        For all other time points, like `zeroDopplerStartTime` and `zeroDopplerEndTime`,
         use nanosecond precision.
     """
     log = nisarqa.get_logger()
@@ -853,22 +854,22 @@ def check_datetime_string(
     if precision == "seconds":
         format_log_msg = strptime_format
     elif precision == "nanoseconds":
-        format_log_msg = "%Y-%m-%dT%H:%M:%S.sssssssss"
+        format_log_msg = "YYYY-mm-ddTHH:MM:SS.sssssssss"
     else:
         raise ValueError(f"{precision=}, must be 'seconds' or 'nanoseconds'.")
 
     err_msg = (
         f"HDF5 datetime string '{datetime_str}' does not conform to"
-        f" NISAR datetime format convention '{strptime_format}' -"
+        f" NISAR datetime format convention '{format_log_msg}' -"
         f" Dataset {dataset_name}"
     )
 
     if precision == "nanoseconds":
-        split_str = datetime_str.split(".")
-        nanosec = split_str[-1]
-        datetime_str = ".".join(split_str[:-1])
-
-        if (len(nanosec) != 9) or (not nanosec.isdigit()):
+        import re
+        
+        # `strptime()` doesn't handle nanosecond precision, so use a regex.
+        regex = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}$")
+        if not regex.match(datetime_str):
             log.error(err_msg)
             return False
 
