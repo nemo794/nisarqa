@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Container
 
 import h5py
 import numpy as np
@@ -99,6 +99,9 @@ def identification_sanity_checks(
 
     passes = True
 
+    # Track all of the keys that this function explicitly checks.
+    # That way, if/when ISCE3 adds new Datasets to the`identification` Group,
+    # we can log that they were not manually verified by this function.
     keys_checked = set()
 
     ds_name = "absoluteOrbitNumber"
@@ -218,8 +221,6 @@ def identification_sanity_checks(
                 passes = False
 
     # Verify datetime Datasets
-    # TODO: Confirm correct "processingDateTime" precision with ADT.
-    # (seconds, nanoseconds, microseconds, etc.)
     ds_name = "processingDateTime"
     keys_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
