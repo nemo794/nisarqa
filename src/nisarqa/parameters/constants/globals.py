@@ -68,14 +68,6 @@ NISAR_LAYERS = ("layer1", "layer2", "layer3")
 LIST_OF_INSAR_PRODUCTS = ["rifg", "roff", "runw", "goff", "gunw"]
 
 
-# As of Nov 2023, ADT agreed on the format: "%Y-%m-%dT%H:%M:%S",
-# which would be written in documentation as "YYYY-mm-ddTHH:MM:SS".
-# (Previously, there may or may not have been a "T", milliseconds, etc.)
-# Note that this does not conform to the ISO-8601 standard template for the
-# same datetime expression, which would be "YYYY-MM-DDThh:mm:ss".
-NISAR_DATETIME_FORMAT_PYTHON = "%Y-%m-%dT%H:%M:%S"
-NISAR_DATETIME_FORMAT_HUMAN = "YYYY-mm-ddTHH:MM:SS"
-
 # As of June 2023, baseline for GCOV NISAR products is to only include
 # on-diagonal terms. However, the ISCE3 GCOV processor is capable of processing
 # both on-diagonal and off-diagonal terms. There is an ongoing push from
@@ -206,8 +198,6 @@ __all__ = [
     "NUM_TRACKS",
     "NUM_FRAMES",
     "PRODUCT_SPECS_PATH",
-    "NISAR_DATETIME_FORMAT_PYTHON",
-    "NISAR_DATETIME_FORMAT_HUMAN",
     "STATISTICS_THRESHOLD_PERCENTAGE",
     "get_possible_pols",
     "GCOV_DIAG_POLS",

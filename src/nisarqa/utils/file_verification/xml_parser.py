@@ -359,15 +359,16 @@ def element_to_annotation(
                     )
 
                 # datetime template string check
-                prefix = "seconds since "
-                if xml_units.startswith(prefix):
-                    xml_datetime_template = xml_units.removeprefix(prefix)
-
+                xml_datetime_template = nisarqa.get_datetime_template_substring(
+                    input_str=xml_units, dataset_name=dataset_name
+                )
+                if xml_datetime_template:
                     # (This function logs if there is a discrepancy)
-                    nisarqa.check_datetime_template_string(
+                    nisarqa.verify_nisar_datetime_template_string(
                         datetime_template_string=xml_datetime_template,
                         dataset_name=dataset_name,
                     )
+
     # The "io" annotations are used to designate complex datasets.
     elif annotation_attribs["app"] != "io":
         log.error(

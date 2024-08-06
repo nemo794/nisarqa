@@ -698,13 +698,8 @@ def attribute_units_check(
     log = nisarqa.get_logger()
 
     flags = SingleAspectSingleInstanceFlags()
-
-    # Datetime strings in `units` fields are expected to start with
-    # the string "seconds since " - do special checks for these strings
-    # because the value of the datetime strings they contain will never match.
-    xml_units_has_dt_template_str = False
-    hdf5_units_has_dt_str = False
-    prefix = "seconds since "
+    xml_dt_template_string = None
+    hdf5_dt_string = None
 
     # Get value of 'units'; perform basic checks
     if "units" in xml_annotation.attributes:
@@ -712,8 +707,11 @@ def attribute_units_check(
         # Here, simply use those validated results.
         xml_units = str(xml_annotation.attributes["units"])
 
-        if xml_units.startswith(prefix):
-            xml_units_has_dt_template_str = True
+        # returns an empty string if no datetime string is found
+        xml_dt_template_string = nisarqa.get_datetime_template_substring(
+            xml_units, dataset_name=dataset_name
+        )
+
     else:
         xml_units = None
 
@@ -729,19 +727,10 @@ def attribute_units_check(
             )
 
         # datetime check for HDF5
-        if hdf5_units.startswith(prefix):
-            hdf5_units_has_dt_str = True
-            hdf5_datetime_str = hdf5_units.removeprefix(prefix)
-            if not check_datetime_string(
-                datetime_str=hdf5_datetime_str, dataset_name=dataset_name
-            ):
-                # The XML *should* provide the correct datetime template string,
-                # which should follow the NISAR format. So, if the HDF5 does
-                # not also follow that NISAR format, flag that here.
-                # Warning: Setting this flag introduces a risk of
-                # double-counting a problematic "units" attribute.
-                flags.hdf5_inconsistent_with_xml = True
-
+        # returns an empty string if no datetime string is found
+        hdf5_dt_string = nisarqa.get_datetime_value_substring(
+            input_str=hdf5_units, dataset_name=dataset_name
+        )
     else:
         hdf5_units = None
 
@@ -757,14 +746,23 @@ def attribute_units_check(
     elif (xml_units is not None) and (hdf5_units is None):
         flags.missing_in_hdf5 = True
         log_err()
-    elif xml_units_has_dt_template_str or hdf5_units_has_dt_str:
+    elif xml_dt_template_string or hdf5_dt_string:
         # "units" exists in both XML and HDF5, and one or both of the "units"
-        # begins with the prefix "seconds since ".
+        # contains a datetime string.
         # This is an edge case that we need to handle separately.
-        if xml_units_has_dt_template_str != hdf5_units_has_dt_str:
+        if xml_dt_template_string and hdf5_dt_string:
+            matches = nisarqa.verify_datetime_matches_template_with_addl_text(
+                dt_value_str=hdf5_units,
+                dt_template_str=xml_units,
+                dataset_name=dataset_name,
+            )
+        else:
+            matches = False
+
+        if not matches:
             log.error(
                 f"Differing format of `units` attributes detected for datasets;"
-                f" both should start with '{prefix}'. XML: "
+                f" inconsistent datetime formats and/or text. XML: "
                 f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
             )
             flags.hdf5_inconsistent_with_xml = True
@@ -775,108 +773,6 @@ def attribute_units_check(
         log_err()
 
     return flags
-
-
-def check_datetime_template_string(
-    datetime_template_string: str, dataset_name: str
-) -> bool:
-    """
-    Compare a string against the datetime template convention for NISAR.
-
-    Logs if there is a discrepancy.
-
-    The standard datetime template for NISAR XML products specs is set in QA by:
-        `nisarqa.NISAR_DATETIME_FORMAT_HUMAN`.
-    As of June 2024, this is: "YYYY-mm-ddTHH:MM:SS"
-
-    Parameters
-    ----------
-    datetime_template_string : str
-        The datetime template string to be checked.
-        Example: "YYYY-mm-ddTHH:MM:SS".
-    dataset_name : str
-        Name of dataset associated with `datetime_template_string`.
-        (Used for logging.)
-
-    Returns
-    -------
-    passes : bool
-         True if `datetime_template_string` matches the NISAR convention,
-         False if not.
-    """
-    standard_format = nisarqa.NISAR_DATETIME_FORMAT_HUMAN
-    if datetime_template_string != standard_format:
-        nisarqa.get_logger().error(
-            f"XML datetime template string '{datetime_template_string}' does"
-            f" not match NISAR datetime template convention '{standard_format}'"
-            f" - Dataset {dataset_name}"
-        )
-        return False
-    return True
-
-
-def check_datetime_string(
-    datetime_str: str, dataset_name: str, precision="seconds"
-) -> bool:
-    """
-    Compare a datetime string against the standard datetime format for NISAR.
-
-    Parameters
-    ----------
-    datetime_str : str
-        The datetime string, e.g. "2008-10-12T00:00:00"
-    dataset_name : str
-        Name of the dataset associated with `datatime_str`. (Used for logging.)
-    precision : str, optional
-        Precision for the datetime format. Options include:
-            "seconds"     : "YYYY-mm-ddTHH:MM:SS"
-            "nanoseconds" : "YYYY-mm-ddTHH:MM:SS.sssssssss"
-
-    Returns
-    -------
-    passes : bool
-        True if `datetime_str` conforms to the NISAR convention, False if not.
-
-    Notes
-    -----
-    Per NISAR ADT on 2024-07-25, the NISAR convention should be:
-        For time points that don't require sub-second precision (e.g. reference
-        epochs and processing datetimes) use integer seconds only, like this:
-            “seconds since YYYY-mm-ddTHH:MM:SS”
-        For all other time points, like `zeroDopplerStartTime` and
-        `zeroDopplerEndTime`, use nanosecond precision.
-    """
-    log = nisarqa.get_logger()
-
-    err_msg = (
-        f"HDF5 datetime string '{datetime_str}' does not conform to"
-        f" NISAR datetime format convention '%s' -"
-        f" Dataset {dataset_name}"
-    )
-
-    if precision == "seconds":
-        strptime_format = nisarqa.NISAR_DATETIME_FORMAT_PYTHON
-
-        # Try to read the datetime string with the strptime format.
-        # If this fails, then the format and the string don't match.
-        try:
-            datetime.strptime(datetime_str, strptime_format)
-        except Exception:
-            log.error(err_msg % strptime_format)
-            return False
-
-    elif precision == "nanoseconds":
-        # `strptime()` doesn't handle nanosecond precision, so use a regex.
-        regex = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{9}$")
-        if not regex.match(datetime_str):
-            nano_seconds_log_format = "YYYY-mm-ddTHH:MM:SS.sssssssss"
-            log.error(err_msg % nano_seconds_log_format)
-            return False
-
-    else:
-        raise ValueError(f"{precision=}, must be 'seconds' or 'nanoseconds'.")
-
-    return True
 
 
 def attribute_description_check(

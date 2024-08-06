@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -1378,26 +1379,24 @@ class NisarRadarProduct(NisarProduct):
         sec_since_epoch = nisarqa.byte_string_to_python_str(sec_since_epoch)
 
         # Datetime Format Validation check
-        try:
-            nisarqa.verify_datetime_format(
-                datetime_str=sec_since_epoch, prefix=prefix
-            )
-        except nisarqa.InvalidNISARProductError as e:
-            # Input string has nearly the correct datetime format, but
-            # is missing the 'T' between the date and the time.
-            # In this case, the string still contains useful information, so
-            # we should log the error, and still use the string.
-            log.error(f"{e} Source: `units` attribute of Dataset: {ds.name}")
-        except ValueError as e:
-            log.error(f"{e} Source: `units` attribute of Dataset: {ds.name}")
-            return "INVALID EPOCH"
+        dt_string = nisarqa.get_datetime_value_substring(
+            input_str=sec_since_epoch, dataset_name=ds.name
+        )
+        if dt_string:
+            return dt_string
         else:
-            log.info(
-                "Correct datetime format for epoch in `units` attribute of"
-                f" Dataset {ds.name}"
-            )
-
-        return sec_since_epoch.replace(prefix, "").strip()
+            # Older test data might be missing the "T" between the date and
+            # the time in the datetime string. This discrepancy will get
+            # logged during the file verification workflow.
+            # But, the string could still contain useful information,
+            # so attempt to extract that useful information.
+            regex = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
+            pattern = re.compile(regex)
+            match = pattern.search(sec_since_epoch)
+            if match is not None:
+                return match[0]
+            else:
+                return "INVALID EPOCH"
 
     @abstractmethod
     def _get_dataset_handle(

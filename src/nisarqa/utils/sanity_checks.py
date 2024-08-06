@@ -241,11 +241,12 @@ def identification_sanity_checks(
 
     # Verify datetime Datasets
     ds_name = "processingDateTime"
+
     ds_checked.add(ds_name)
     if _dataset_exists(ds_name):
         data = _get_string_dataset(ds_name=ds_name)
         if data is not None:
-            passes &= nisarqa.check_datetime_string(
+            passes &= nisarqa.verify_nisar_datetime_string_format(
                 datetime_str=data,
                 dataset_name=_full_path(ds_name),
                 precision="seconds",
@@ -271,7 +272,7 @@ def identification_sanity_checks(
         if _dataset_exists(ds_name):
             data = _get_string_dataset(ds_name=ds_name)
             if data is not None:
-                passes &= nisarqa.check_datetime_string(
+                passes &= nisarqa.verify_nisar_datetime_string_format(
                     datetime_str=data,
                     dataset_name=_full_path(ds_name),
                     precision="nanoseconds",
