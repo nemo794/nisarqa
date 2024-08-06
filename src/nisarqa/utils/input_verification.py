@@ -515,7 +515,7 @@ def get_datetime_template_substring(input_str: str, dataset_name: str) -> str:
         )
 
     # allow for optional one or more decimals
-    pattern = re.compile(f"{template_sec}(\.s+)?")
+    pattern = re.compile(f"{template_sec}(?:\.s+)?")
 
     match = pattern.search(input_str)
 
@@ -556,8 +556,8 @@ def get_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     """
     regex_int = _get_nisar_integer_seconds_regex()
 
-    # Include optional decimals in the regex
-    regex = re.compile(f"{regex_int}(\.\d+)?")
+    # Include optional decimals group in the regex
+    regex = re.compile(f"{regex_int}(?:\.\d+)?")
 
     matches = re.findall(regex, input_str)
 
@@ -572,8 +572,7 @@ def get_datetime_value_substring(input_str: str, dataset_name: str) -> str:
 
 
 def verify_datetime_string_matches_template(
-    dt_value_str: str,
-    dt_template_str: str,
+    dt_value_str: str, dt_template_str: str, dataset_name: str
 ) -> bool:
     """
     Compare the format of a datetime string against a datetime template string.
@@ -594,6 +593,8 @@ def verify_datetime_string_matches_template(
         Should contain at most one datetime template substring, with a
         format like "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DDTHH:MM:SS.sssssssss".
         (Any number of decimals is allowed.) Should not contain additional text.
+    dataset_name : str
+        Name of dataset associated with the input strings. (Used for logging.)
 
     Returns
     -------
@@ -631,8 +632,8 @@ def verify_datetime_string_matches_template(
         return True
     else:
         log.error(
-            f"{dt_value_str=}, must match the template format:"
-            f" '{dt_template_str}'."
+            f"Provided dateime string is {dt_value_str!r}, but must match the"
+            f" template format: '{dt_template_str}'. Dataset: {dataset_name}"
         )
         return False
 
@@ -700,7 +701,9 @@ def verify_datetime_matches_template_with_addl_text(
         for val, tmpl in zip(dt_val_split, dt_tmpl_split):
             if tmpl == dt_tmpl:
                 if not verify_datetime_string_matches_template(
-                    dt_value_str=val, dt_template_str=tmpl
+                    dt_value_str=val,
+                    dt_template_str=tmpl,
+                    dataset_name=dataset_name,
                 ):
                     return False
             elif val != tmpl:

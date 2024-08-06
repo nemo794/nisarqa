@@ -369,7 +369,7 @@ class MultipleAspectsMultipleInstancesSummary:
     Class to hold stats on all metadata aspects across all Datasets.
 
     Examples of a Dataset's metadata aspect: an Attribute, the dtype,
-    the description, the 'units' Attribute.
+    datetime formats, the description, the 'units' Attribute.
 
     Parameters
     ----------
@@ -377,6 +377,8 @@ class MultipleAspectsMultipleInstancesSummary:
         Stats on the "Attribute name" metadata aspect.
     dtype_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "dtype" metadata aspect.
+    datetime_stats : SingleAspectMultipleInstancesAccumulator
+        Stats on the "datetime format" metadata aspect.
     description_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "description" metadata aspect.
     units_stats : SingleAspectMultipleInstancesAccumulator
@@ -391,6 +393,11 @@ class MultipleAspectsMultipleInstancesSummary:
     dtype_stats: SingleAspectMultipleInstancesAccumulator = (
         SingleAspectMultipleInstancesAccumulator(
             name_of_metadata_aspect="dtype"
+        )
+    )
+    datetime_stats: SingleAspectMultipleInstancesAccumulator = (
+        SingleAspectMultipleInstancesAccumulator(
+            name_of_metadata_aspect="Datetime format"
         )
     )
     description_stats: SingleAspectMultipleInstancesAccumulator = (
@@ -410,6 +417,7 @@ class MultipleAspectsMultipleInstancesSummary:
         return MultipleAspectsMultipleInstancesSummary(
             attr_names_stats=self.attr_names_stats + other.attr_names_stats,
             dtype_stats=self.dtype_stats + other.dtype_stats,
+            datetime_stats=self.datetime_stats + other.datetime_stats,
             description_stats=self.description_stats + other.description_stats,
             units_stats=self.units_stats + other.units_stats,
         )
@@ -418,6 +426,7 @@ class MultipleAspectsMultipleInstancesSummary:
         """Record the current status of this instance in the log file."""
         self.attr_names_stats.print_to_log()
         self.dtype_stats.print_to_log()
+        self.datetime_stats.print_to_log()
         self.description_stats.print_to_log()
         self.units_stats.print_to_log()
 
@@ -453,6 +462,11 @@ def compare_hdf5_dataset_to_xml(
         name_of_metadata_aspect="dtype"
     )
     dtype_stats += compare_dtypes_xml_hdf5(xml_dataset, hdf5_dataset)
+
+    datetime_stats = SingleAspectMultipleInstancesAccumulator(
+        name_of_metadata_aspect="Datetime format"
+    )
+    datetime_stats += compare_datetime_hdf5_to_xml(xml_dataset, hdf5_dataset)
 
     name_of_attr_name_aspect = "Attribute names"
     attr_names_stats = SingleAspectMultipleInstancesAccumulator(
@@ -491,6 +505,7 @@ def compare_hdf5_dataset_to_xml(
     return MultipleAspectsMultipleInstancesSummary(
         attr_names_stats=attr_names_stats,
         dtype_stats=dtype_stats,
+        datetime_stats=datetime_stats,
         description_stats=descr_stats,
         units_stats=units_stats,
     )
@@ -531,7 +546,7 @@ def compare_dtypes_xml_hdf5(
     Returns
     -------
     flags : nisarqa.SingleAspectSingleInstanceFlags
-        Metrics for dtypes in `xml_annotation` and `hdf5_annotation`.
+        Metrics for dtypes in `xml_dataset` and `hdf5_dataset`.
     """
     log = nisarqa.get_logger()
     xml_dtype = xml_dataset.dtype
@@ -597,6 +612,77 @@ def compare_dtypes_xml_hdf5(
             f"HDF5: {stringify_dtype(hdf5_dtype)} - Dataset {xml_dataset.name}"
         )
         flags.hdf5_inconsistent_with_xml = True
+
+    return flags
+
+
+def compare_datetime_hdf5_to_xml(
+    xml_dataset: XMLDataset, hdf5_dataset: HDF5Dataset
+) -> SingleAspectSingleInstanceFlags:
+    """
+    Compare datetime string in HDF5 datasets vs. XML spec; log discrepancies.
+
+    This function only compares the dataset values to the description provided
+    in the XML; it does not check datetime strings in the "units" Attributes.
+
+    Parameters
+    ----------
+    xml_dataset : nisarqa.XMLDataset
+        The XML dataset to compare.
+    hdf5_dataset : nisarqa.HDF5Dataset
+        The HDF5 dataset to compare.
+
+    Returns
+    -------
+    flags : nisarqa.SingleAspectSingleInstanceFlags
+        Metrics for datetime strings in `xml_dataset` and `hdf5_dataset`.
+    """
+    log = nisarqa.get_logger()
+    flags = SingleAspectSingleInstanceFlags()
+
+    # only consider scalar, fixed-length byte string Datasets
+    if xml_dataset.dtype != str:
+        return flags
+
+    h5_string = hdf5_dataset.dataset[...]
+    if (not np.issubdtype(h5_string.dtype, np.bytes_)) and (
+        h5_string.ndim == 0
+    ):
+        return flags
+
+    # Check if the Dataset contains a datetime value
+    h5_str = nisarqa.byte_string_to_python_str(h5_string)
+
+    h5_dt_str = nisarqa.get_datetime_value_substring(
+        input_str=h5_str, dataset_name=hdf5_dataset.dataset.name
+    )
+    if not h5_dt_str:
+        return flags
+
+    # Dataset contains a datetime string, so make sure that
+    # the correct template format is included in the description.
+
+    # Get datetime string from the description
+    for ann in xml_dataset.annotations:
+        xml_dt_str = nisarqa.get_datetime_template_substring(
+            input_str=ann.description, dataset_name=hdf5_dataset.name
+        )
+
+        if xml_dt_str:
+            if not nisarqa.verify_datetime_string_matches_template(
+                dt_value_str=h5_dt_str,
+                dt_template_str=xml_dt_str,
+                dataset_name=hdf5_dataset.name,
+            ):
+                flags.hdf5_inconsistent_with_xml = True
+            break
+    else:
+        log.error(
+            f"HDF5 dataset contains a datetime string: '{h5_dt_str}',"
+            f" but the XML does not provide a datetime template format"
+            f" in the description. Dataset: {hdf5_dataset.name}"
+        )
+        flags.missing_in_xml = True
 
     return flags
 
