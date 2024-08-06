@@ -1372,11 +1372,14 @@ class NisarRadarProduct(NisarProduct):
             If input product is old, then the 'T' might instead be a space.
             If datetime could not be parsed, then "INVALID EPOCH" is returned.
         """
-        log = nisarqa.get_logger()
-        prefix = "seconds since "
-
         sec_since_epoch = ds.attrs["units"]
         sec_since_epoch = nisarqa.byte_string_to_python_str(sec_since_epoch)
+
+        if not sec_since_epoch.startswith("seconds since "):
+            nisarqa.get_logger().error(
+                f"epoch units string is {sec_since_epoch!r}, but should"
+                f" begin with 'seconds since '. Dataset: {ds.name}"
+            )
 
         # Datetime Format Validation check
         dt_string = nisarqa.get_datetime_value_substring(
