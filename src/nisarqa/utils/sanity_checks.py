@@ -99,18 +99,18 @@ def identification_sanity_checks(
 
     passes = True
 
-    # Track all of the keys that this function explicitly checks.
+    # Track all of the Datasets that this function explicitly checks.
     # That way, if/when ISCE3 adds new Datasets to the`identification` Group,
     # we can log that they were not manually verified by this function.
-    keys_checked = set()
+    ds_checked = set()
 
     ds_name = "absoluteOrbitNumber"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_integer_dataset(ds_name=ds_name)
     passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
 
     ds_name = "trackNumber"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_integer_dataset(ds_name=ds_name)
     passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
     if (data is None) or (data > nisarqa.NUM_TRACKS):
@@ -122,7 +122,7 @@ def identification_sanity_checks(
         passes = False
 
     ds_name = "frameNumber"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_integer_dataset(ds_name=ds_name)
     passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
     if (data is None) or (data > nisarqa.NUM_FRAMES):
@@ -134,7 +134,7 @@ def identification_sanity_checks(
         passes = False
 
     ds_name = "diagnosticModeFlag"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_integer_dataset(ds_name=ds_name)
     if (data is None) or (data not in (0, 1, 2)):
         log.error(
@@ -144,7 +144,7 @@ def identification_sanity_checks(
         passes = False
 
     ds_name = "productType"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
     if (data is None) or (data != product_type.upper()):
         log.error(
@@ -155,14 +155,14 @@ def identification_sanity_checks(
         passes = False
 
     ds_name = "lookDirection"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
     passes &= _verify_data_in_list_of_strings(
         value=data, list_of_valid_strings=("Left", "Right"), ds_name=ds_name
     )
 
     ds_name = "productLevel"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
     passes &= _verify_data_in_list_of_strings(
         value=data,
@@ -171,14 +171,14 @@ def identification_sanity_checks(
     )
 
     ds_name = "radarBand"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
     passes &= _verify_data_in_list_of_strings(
         value=data, list_of_valid_strings=("L", "S"), ds_name=ds_name
     )
 
     ds_name = "orbitPassDirection"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
     passes &= _verify_data_in_list_of_strings(
         value=data,
@@ -187,7 +187,7 @@ def identification_sanity_checks(
     )
 
     ds_name = "processingType"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
     passes &= _verify_data_in_list_of_strings(
         value=data,
@@ -202,7 +202,7 @@ def identification_sanity_checks(
         "isMixedMode",
         "isUrgentObservation",
     ):
-        keys_checked.add(ds_name)
+        ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
         if data is not None:
             passes &= nisarqa.verify_isce3_boolean(ds=id_group[ds_name])
@@ -212,7 +212,7 @@ def identification_sanity_checks(
         "productVersion",
         "productSpecificationVersion",
     ):
-        keys_checked.add(ds_name)
+        ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
         if data is not None:
             try:
@@ -222,7 +222,7 @@ def identification_sanity_checks(
 
     # Verify datetime Datasets
     ds_name = "processingDateTime"
-    keys_checked.add(ds_name)
+    ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
     if data is not None:
         passes &= nisarqa.check_datetime_string(
@@ -245,7 +245,7 @@ def identification_sanity_checks(
         )
 
     for ds_name in dt_datasets:
-        keys_checked.add(ds_name)
+        ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
         if data is not None:
             passes &= nisarqa.check_datetime_string(
@@ -267,7 +267,7 @@ def identification_sanity_checks(
         "instrumentName",
         "plannedDatatakeId",
     ):
-        keys_checked.add(ds_name)
+        ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
         # TODO: Improve error message by adding another conditional for a string
         # representation of a list of empty strings, e.g. "['' '' '' '' '']".
@@ -285,7 +285,7 @@ def identification_sanity_checks(
 
     # Log if any Datasets were not verified
     keys_in_product = set(id_group.keys())
-    difference = keys_in_product - keys_checked
+    difference = keys_in_product - ds_checked
     if len(difference) > 0:
         log.error(
             "Datasets found in product's `identification` group but not"
