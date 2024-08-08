@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Container
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import h5py
 import numpy as np
@@ -79,6 +79,15 @@ def identification_sanity_checks(
             return nisarqa.byte_string_to_python_str(data)
         else:
             return None
+
+    def _verify_not_None(value: Any | None, ds_name: str) -> bool:
+        if value is None:
+            log.error(
+                f"Dataset value is {value}, but must have a non-None value."
+                f" Dataset: {_full_path(ds_name)}"
+            )
+            return False
+        return True
 
     def _verify_greater_than_zero(value: int | None, ds_name: str) -> bool:
         if (value is None) or (value <= 0):
@@ -204,8 +213,10 @@ def identification_sanity_checks(
     ):
         ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
-        if data is not None:
+        if _verify_not_None(value=data, ds_name=ds_name):
             passes &= nisarqa.verify_isce3_boolean(ds=id_group[ds_name])
+        else:
+            passes = False
 
     # Verify "Version" Datasets (major, minor, patch)
     for ds_name in (
@@ -214,22 +225,26 @@ def identification_sanity_checks(
     ):
         ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
-        if data is not None:
+        if _verify_not_None(value=data, ds_name=ds_name):
             try:
                 nisarqa.Version.from_string(version_str=data)
             except ValueError:
                 passes = False
+        else:
+            passes = False
 
     # Verify datetime Datasets
     ds_name = "processingDateTime"
     ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    if data is not None:
+    if _verify_not_None(value=data, ds_name=ds_name):
         passes &= nisarqa.check_datetime_string(
             datetime_str=data,
             dataset_name=_full_path(ds_name),
             precision="seconds",
         )
+    else:
+        passes = False
 
     if product_type.lower() in nisarqa.LIST_OF_INSAR_PRODUCTS:
         dt_datasets = (
@@ -247,12 +262,14 @@ def identification_sanity_checks(
     for ds_name in dt_datasets:
         ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
-        if data is not None:
+        if _verify_not_None(value=data, ds_name=ds_name):
             passes &= nisarqa.check_datetime_string(
                 datetime_str=data,
                 dataset_name=_full_path(ds_name),
                 precision="nanoseconds",
             )
+        else:
+            passes = False
 
     # These are datasets which need more-robust pattern-matching checks.
     # For now, just check that they are being populated with a non-dummy value.
@@ -269,19 +286,22 @@ def identification_sanity_checks(
     ):
         ds_checked.add(ds_name)
         data = _get_string_dataset(ds_name=ds_name)
-        # TODO: Improve error message by adding another conditional for a string
-        # representation of a list of empty strings, e.g. "['' '' '' '' '']".
-        if (data is None) or (data == "") or (data == "0") or (data == "['0']"):
-            log.error(
-                f"Dataset value is {data!r}, which is not a valid value."
-                f" Dataset: {_full_path(ds_name)}"
-            )
-            passes = False
+        if _verify_not_None(value=data, ds_name=ds_name):
+            # TODO: Improve error message by adding another conditional for a string
+            # representation of a list of empty strings, e.g. "['' '' '' '' '']".
+            if data in ("", "0", "['0']", "['']", "['' '' '' '' '']"):
+                log.error(
+                    f"Dataset value is {data!r}, which is not a valid value."
+                    f" Dataset: {_full_path(ds_name)}"
+                )
+                passes = False
+            else:
+                log.warning(
+                    f"Dataset value is {data!r}, but it has not be automatically"
+                    f" verified during checks. Dataset: {_full_path(ds_name)}"
+                )
         else:
-            log.warning(
-                f"Dataset value is {data!r}, but it has not be automatically"
-                f" verified during checks. Dataset: {_full_path(ds_name)}"
-            )
+            passes = False
 
     # Log if any Datasets were not verified
     keys_in_product = set(id_group.keys())
