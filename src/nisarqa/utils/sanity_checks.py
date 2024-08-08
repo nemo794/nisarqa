@@ -52,17 +52,18 @@ def identification_sanity_checks(
     def _full_path(ds_name: str) -> str:
         return f"{id_group.name}/{ds_name}"
 
-    def _get_dataset(ds_name: str) -> np.ndarray | None:
-        try:
-            data = id_group[ds_name][()]
-        except KeyError:
+    def _dataset_exists(ds_name: str) -> bool:
+        if ds_name not in id_group:
             log.error(f"Missing dataset: {_full_path(ds_name)}")
-            return None
-        return data
+            return False
+        return True
+
+    def _get_dataset(ds_name: str) -> np.ndarray | np.bytes_:
+        return id_group[ds_name][()]
 
     def _get_integer_dataset(ds_name: str) -> int | None:
         data = _get_dataset(ds_name=ds_name)
-        if (data is None) or np.issubdtype(data.dtype, np.integer):
+        if np.issubdtype(data.dtype, np.integer):
             return data
         else:
             log.error(
@@ -73,21 +74,10 @@ def identification_sanity_checks(
 
     def _get_string_dataset(ds_name: str) -> str | None:
         data = _get_dataset(ds_name=ds_name)
-        if (data is not None) and nisarqa.verify_str_meets_isce3_conventions(
-            ds=id_group[ds_name]
-        ):
+        if nisarqa.verify_str_meets_isce3_conventions(ds=id_group[ds_name]):
             return nisarqa.byte_string_to_python_str(data)
         else:
             return None
-
-    def _verify_not_None(value: Any | None, ds_name: str) -> bool:
-        if value is None:
-            log.error(
-                f"Dataset value is {value}, but must have a non-None value."
-                f" Dataset: {_full_path(ds_name)}"
-            )
-            return False
-        return True
 
     def _verify_greater_than_zero(value: int | None, ds_name: str) -> bool:
         if (value is None) or (value <= 0):
@@ -118,91 +108,101 @@ def identification_sanity_checks(
 
     ds_name = "absoluteOrbitNumber"
     ds_checked.add(ds_name)
-    data = _get_integer_dataset(ds_name=ds_name)
-    passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+    if _dataset_exists(ds_name):
+        data = _get_integer_dataset(ds_name=ds_name)
+        passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
 
     ds_name = "trackNumber"
     ds_checked.add(ds_name)
-    data = _get_integer_dataset(ds_name=ds_name)
-    passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
-    if (data is None) or (data > nisarqa.NUM_TRACKS):
-        log.error(
-            f"Dataset value is {data}, must be less than or equal to"
-            f" total number of tracks, which is {nisarqa.NUM_TRACKS}."
-            f" Dataset: {_full_path(ds_name)}"
-        )
-        passes = False
+    if _dataset_exists(ds_name):
+        data = _get_integer_dataset(ds_name=ds_name)
+        passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+        if (data is None) or (data > nisarqa.NUM_TRACKS):
+            log.error(
+                f"Dataset value is {data}, must be less than or equal to"
+                f" total number of tracks, which is {nisarqa.NUM_TRACKS}."
+                f" Dataset: {_full_path(ds_name)}"
+            )
+            passes = False
 
     ds_name = "frameNumber"
     ds_checked.add(ds_name)
-    data = _get_integer_dataset(ds_name=ds_name)
-    passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
-    if (data is None) or (data > nisarqa.NUM_FRAMES):
-        log.error(
-            f"Dataset value is {data}, must be less than or equal to"
-            f" total number of frames, which is {nisarqa.NUM_FRAMES}."
-            f" Dataset: {_full_path(ds_name)}"
-        )
-        passes = False
+    if _dataset_exists(ds_name):
+        data = _get_integer_dataset(ds_name=ds_name)
+        passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+        if (data is None) or (data > nisarqa.NUM_FRAMES):
+            log.error(
+                f"Dataset value is {data}, must be less than or equal to"
+                f" total number of frames, which is {nisarqa.NUM_FRAMES}."
+                f" Dataset: {_full_path(ds_name)}"
+            )
+            passes = False
 
     ds_name = "diagnosticModeFlag"
     ds_checked.add(ds_name)
-    data = _get_integer_dataset(ds_name=ds_name)
-    passes &= _verify_data_is_in_list(
-        value=data, valid_options=(0, 1, 2), ds_name=ds_name
-    )
+    if _dataset_exists(ds_name):
+        data = _get_integer_dataset(ds_name=ds_name)
+        passes &= _verify_data_is_in_list(
+            value=data, valid_options=(0, 1, 2), ds_name=ds_name
+        )
 
     ds_name = "productType"
     ds_checked.add(ds_name)
-    data = _get_string_dataset(ds_name=ds_name)
-    if (data is None) or (data != product_type.upper()):
-        log.error(
-            f"Dataset value is {data}, must match the specified"
-            f" product type of {product_type.upper()}."
-            f" Dataset: {_full_path(ds_name)}"
-        )
-        passes = False
+    if _dataset_exists(ds_name):
+        data = _get_string_dataset(ds_name=ds_name)
+        if (data is None) or (data != product_type.upper()):
+            log.error(
+                f"Dataset value is {data}, must match the specified"
+                f" product type of {product_type.upper()}."
+                f" Dataset: {_full_path(ds_name)}"
+            )
+            passes = False
 
     ds_name = "lookDirection"
     ds_checked.add(ds_name)
-    data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_is_in_list(
-        value=data, valid_options=("Left", "Right"), ds_name=ds_name
-    )
+    if _dataset_exists(ds_name):
+        data = _get_string_dataset(ds_name=ds_name)
+        passes &= _verify_data_is_in_list(
+            value=data, valid_options=("Left", "Right"), ds_name=ds_name
+        )
 
     ds_name = "productLevel"
     ds_checked.add(ds_name)
-    data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_is_in_list(
-        value=data,
-        valid_options=("L0A", "L0B", "L1", "L2"),
-        ds_name=ds_name,
-    )
+    if _dataset_exists(ds_name):
+        data = _get_string_dataset(ds_name=ds_name)
+        passes &= _verify_data_is_in_list(
+            value=data,
+            valid_options=("L0A", "L0B", "L1", "L2"),
+            ds_name=ds_name,
+        )
 
     ds_name = "radarBand"
     ds_checked.add(ds_name)
-    data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_is_in_list(
-        value=data, valid_options=("L", "S"), ds_name=ds_name
-    )
+    if _dataset_exists(ds_name):
+        data = _get_string_dataset(ds_name=ds_name)
+        passes &= _verify_data_is_in_list(
+            value=data, valid_options=("L", "S"), ds_name=ds_name
+        )
 
     ds_name = "orbitPassDirection"
     ds_checked.add(ds_name)
-    data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_is_in_list(
-        value=data,
-        valid_options=("Ascending", "Descending"),
-        ds_name=ds_name,
-    )
+    if _dataset_exists(ds_name):
+        data = _get_string_dataset(ds_name=ds_name)
+        passes &= _verify_data_is_in_list(
+            value=data,
+            valid_options=("Ascending", "Descending"),
+            ds_name=ds_name,
+        )
 
     ds_name = "processingType"
     ds_checked.add(ds_name)
-    data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_is_in_list(
-        value=data,
-        valid_options=("Nominal", "Urgent", "Custom", "Undefined"),
-        ds_name=ds_name,
-    )
+    if _dataset_exists(ds_name):
+        data = _get_string_dataset(ds_name=ds_name)
+        passes &= _verify_data_is_in_list(
+            value=data,
+            valid_options=("Nominal", "Urgent", "Custom", "Undefined"),
+            ds_name=ds_name,
+        )
 
     # Verify Boolean Datasets
     for ds_name in (
@@ -212,11 +212,12 @@ def identification_sanity_checks(
         "isUrgentObservation",
     ):
         ds_checked.add(ds_name)
-        data = _get_string_dataset(ds_name=ds_name)
-        if _verify_not_None(value=data, ds_name=ds_name):
-            passes &= nisarqa.verify_isce3_boolean(ds=id_group[ds_name])
-        else:
-            passes = False
+        if _dataset_exists(ds_name):
+            data = _get_string_dataset(ds_name=ds_name)
+            if data is not None:
+                passes &= nisarqa.verify_isce3_boolean(ds=id_group[ds_name])
+            else:
+                passes = False
 
     # Verify "Version" Datasets (major, minor, patch)
     for ds_name in (
@@ -224,27 +225,29 @@ def identification_sanity_checks(
         "productSpecificationVersion",
     ):
         ds_checked.add(ds_name)
-        data = _get_string_dataset(ds_name=ds_name)
-        if _verify_not_None(value=data, ds_name=ds_name):
-            try:
-                nisarqa.Version.from_string(version_str=data)
-            except ValueError:
+        if _dataset_exists(ds_name):
+            data = _get_string_dataset(ds_name=ds_name)
+            if data is not None:
+                try:
+                    nisarqa.Version.from_string(version_str=data)
+                except ValueError:
+                    passes = False
+            else:
                 passes = False
-        else:
-            passes = False
 
     # Verify datetime Datasets
     ds_name = "processingDateTime"
     ds_checked.add(ds_name)
-    data = _get_string_dataset(ds_name=ds_name)
-    if _verify_not_None(value=data, ds_name=ds_name):
-        passes &= nisarqa.check_datetime_string(
-            datetime_str=data,
-            dataset_name=_full_path(ds_name),
-            precision="seconds",
-        )
-    else:
-        passes = False
+    if _dataset_exists(ds_name):
+        data = _get_string_dataset(ds_name=ds_name)
+        if data is not None:
+            passes &= nisarqa.check_datetime_string(
+                datetime_str=data,
+                dataset_name=_full_path(ds_name),
+                precision="seconds",
+            )
+        else:
+            passes = False
 
     if product_type.lower() in nisarqa.LIST_OF_INSAR_PRODUCTS:
         dt_datasets = (
@@ -261,15 +264,16 @@ def identification_sanity_checks(
 
     for ds_name in dt_datasets:
         ds_checked.add(ds_name)
-        data = _get_string_dataset(ds_name=ds_name)
-        if _verify_not_None(value=data, ds_name=ds_name):
-            passes &= nisarqa.check_datetime_string(
-                datetime_str=data,
-                dataset_name=_full_path(ds_name),
-                precision="nanoseconds",
-            )
-        else:
-            passes = False
+        if _dataset_exists(ds_name):
+            data = _get_string_dataset(ds_name=ds_name)
+            if data is not None:
+                passes &= nisarqa.check_datetime_string(
+                    datetime_str=data,
+                    dataset_name=_full_path(ds_name),
+                    precision="nanoseconds",
+                )
+            else:
+                passes = False
 
     # These are datasets which need more-robust pattern-matching checks.
     # For now, just check that they are being populated with a non-dummy value.
@@ -285,23 +289,24 @@ def identification_sanity_checks(
         "plannedDatatakeId",
     ):
         ds_checked.add(ds_name)
-        data = _get_string_dataset(ds_name=ds_name)
-        if _verify_not_None(value=data, ds_name=ds_name):
-            # TODO: Improve error message by adding another conditional for a string
-            # representation of a list of empty strings, e.g. "['' '' '' '' '']".
-            if data in ("", "0", "['0']", "['']", "['' '' '' '' '']"):
-                log.error(
-                    f"Dataset value is {data!r}, which is not a valid value."
-                    f" Dataset: {_full_path(ds_name)}"
-                )
-                passes = False
+        if _dataset_exists(ds_name):
+            data = _get_string_dataset(ds_name=ds_name)
+            if data is not None:
+                # TODO: Improve error message by adding another conditional for a string
+                # representation of a list of empty strings, e.g. "['' '' '' '' '']".
+                if data in ("", "0", "['0']", "['']", "['' '' '' '' '']"):
+                    log.error(
+                        f"Dataset value is {data!r}, which is not a valid value."
+                        f" Dataset: {_full_path(ds_name)}"
+                    )
+                    passes = False
+                else:
+                    log.warning(
+                        f"Dataset value is {data!r}, but it has not be automatically"
+                        f" verified during checks. Dataset: {_full_path(ds_name)}"
+                    )
             else:
-                log.warning(
-                    f"Dataset value is {data!r}, but it has not be automatically"
-                    f" verified during checks. Dataset: {_full_path(ds_name)}"
-                )
-        else:
-            passes = False
+                passes = False
 
     # Log if any Datasets were not verified
     keys_in_product = set(id_group.keys())
