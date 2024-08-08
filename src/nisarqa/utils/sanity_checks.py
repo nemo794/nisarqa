@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Container
+from typing import TypeVar
 
 import h5py
 import numpy as np
@@ -9,6 +10,8 @@ from numpy.typing import ArrayLike
 import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
+
+T = TypeVar("T")
 
 
 def dataset_sanity_checks(product: nisarqa.NisarProduct) -> None:
@@ -86,13 +89,13 @@ def identification_sanity_checks(
             return False
         return True
 
-    def _verify_data_in_list_of_strings(
-        value: str | None, list_of_valid_strings: Container[str], ds_name: str
+    def _verify_data_is_in_list(
+        value: T | None, valid_options: Container[T], ds_name: str
     ) -> bool:
-        if (value is None) or (value not in list_of_valid_strings):
+        if (value is None) or (value not in valid_options):
             log.error(
                 f"Dataset value is {value!r}, must be one of "
-                f" {list_of_valid_strings}. Dataset: {_full_path(ds_name)}"
+                f" {valid_options}. Dataset: {_full_path(ds_name)}"
             )
             return False
         return True
@@ -136,6 +139,9 @@ def identification_sanity_checks(
     ds_name = "diagnosticModeFlag"
     ds_checked.add(ds_name)
     data = _get_integer_dataset(ds_name=ds_name)
+    passes &= _verify_data_is_in_list(
+        value=data, valid_options=(0, 1, 2), ds_name=ds_name
+    )
     if (data is None) or (data not in (0, 1, 2)):
         log.error(
             f"Dataset value is {data}, must be 0, 1, or 2."
@@ -157,41 +163,41 @@ def identification_sanity_checks(
     ds_name = "lookDirection"
     ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_in_list_of_strings(
-        value=data, list_of_valid_strings=("Left", "Right"), ds_name=ds_name
+    passes &= _verify_data_is_in_list(
+        value=data, valid_options=("Left", "Right"), ds_name=ds_name
     )
 
     ds_name = "productLevel"
     ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_in_list_of_strings(
+    passes &= _verify_data_is_in_list(
         value=data,
-        list_of_valid_strings=("L0A", "L0B", "L1", "L2"),
+        valid_options=("L0A", "L0B", "L1", "L2"),
         ds_name=ds_name,
     )
 
     ds_name = "radarBand"
     ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_in_list_of_strings(
-        value=data, list_of_valid_strings=("L", "S"), ds_name=ds_name
+    passes &= _verify_data_is_in_list(
+        value=data, valid_options=("L", "S"), ds_name=ds_name
     )
 
     ds_name = "orbitPassDirection"
     ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_in_list_of_strings(
+    passes &= _verify_data_is_in_list(
         value=data,
-        list_of_valid_strings=("Ascending", "Descending"),
+        valid_options=("Ascending", "Descending"),
         ds_name=ds_name,
     )
 
     ds_name = "processingType"
     ds_checked.add(ds_name)
     data = _get_string_dataset(ds_name=ds_name)
-    passes &= _verify_data_in_list_of_strings(
+    passes &= _verify_data_is_in_list(
         value=data,
-        list_of_valid_strings=("Nominal", "Urgent", "Custom", "Undefined"),
+        valid_options=("Nominal", "Urgent", "Custom", "Undefined"),
         ds_name=ds_name,
     )
 
