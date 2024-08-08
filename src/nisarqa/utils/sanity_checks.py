@@ -142,12 +142,6 @@ def identification_sanity_checks(
     passes &= _verify_data_is_in_list(
         value=data, valid_options=(0, 1, 2), ds_name=ds_name
     )
-    if (data is None) or (data not in (0, 1, 2)):
-        log.error(
-            f"Dataset value is {data}, must be 0, 1, or 2."
-            f" Dataset: {_full_path(ds_name)}"
-        )
-        passes = False
 
     ds_name = "productType"
     ds_checked.add(ds_name)
@@ -284,7 +278,7 @@ def identification_sanity_checks(
             )
             passes = False
         else:
-            log.warn(
+            log.warning(
                 f"Dataset value is {data!r}, but it has not be automatically"
                 f" verified during checks. Dataset: {_full_path(ds_name)}"
             )
@@ -293,7 +287,7 @@ def identification_sanity_checks(
     keys_in_product = set(id_group.keys())
     difference = keys_in_product - ds_checked
     if len(difference) > 0:
-        log.error(
+        log.warning(
             "Datasets found in product's `identification` group but not"
             f" verified: {difference}"
         )

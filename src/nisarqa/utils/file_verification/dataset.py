@@ -273,7 +273,7 @@ class XMLDataset(DatasetDesc):
         # on an XML element describing an XMLDataset.
         # Warn of all others, if any are present.
         if len(attributes) > 0:
-            log.warn(
+            log.warning(
                 f"XML dataset contains unexpected attributes: {attributes} -"
                 f" XML Dataset {name}"
             )
