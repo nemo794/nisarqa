@@ -488,8 +488,8 @@ def contains_datetime_template_substring(input_str: str) -> bool:
     ----------
     input_str : str
         The string to be parsed, possibly containing a datetime
-        template substring like "YYYY-MM-DDTHH:MM:SS" or
-        "YYYY-MM-DDTHH:MM:SS.sssssssss". Any number of decimals is allowed,
+        template substring like "YYYY-mm-ddTHH:MM:SS" or
+        "YYYY-mm-ddTHH:MM:SS.sssssssss". Any number of decimals is allowed,
         and the "T" can be a space (" ").
 
     Returns
@@ -517,7 +517,7 @@ def extract_datetime_template_substring(
     """
     Extract a generic datetime template substring from input string.
 
-    The substring should consist of "YYYY-MM-DDTHH:MM:SS" at minimum, but
+    The substring should consist of "YYYY-mm-ddTHH:MM:SS" at minimum, but
     any number of decimal seconds (denoted by ".sss") are allowed.
     This function does not verify that the substring conforms to NISAR
     conventions.
@@ -526,8 +526,8 @@ def extract_datetime_template_substring(
     ----------
     input_str : str
         The string to be parsed. Must contain exactly one datetime
-        template substring, with a format like "YYYY-MM-DDTHH:MM:SS" or
-        "YYYY-MM-DDTHH:MM:SS.sssssssss". (Any number of decimals is allowed,
+        template substring, with a format like "YYYY-mm-ddTHH:MM:SS" or
+        "YYYY-mm-ddTHH:MM:SS.sssssssss". (Any number of decimals is allowed,
         and the "T" can be a space (" ").)
     dataset_name : str
         Name of the dataset associated with `input_str`. (Used for logging.)
@@ -576,8 +576,8 @@ def contains_datetime_value_substring(input_str: str) -> bool:
     ----------
     input_str : str
         The string to be parsed, possibly containing a datetime
-        template substring that follows the format like "YYYY-MM-DDTHH:MM:SS"
-        or "YYYY-MM-DDTHH:MM:SS.sssssssss". Any number of decimals is allowed,
+        template substring that follows the format like "YYYY-mm-ddTHH:MM:SS"
+        or "YYYY-mm-ddTHH:MM:SS.sssssssss". Any number of decimals is allowed,
         and the "T" can be a space (" ").
         Example: "seconds since 2023-10-31T11:59:32.123"
         Example: "seconds since 2023-10-31 11:59:32"
@@ -603,7 +603,7 @@ def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     """
     Extract a generic datetime substring from input string.
 
-    This should follow the format "YYYY-MM-DDTHH:MM:SS" at minimum, but
+    This should follow the format "YYYY-mm-ddTHH:MM:SS" at minimum, but
     any number of decimal seconds are allowed and the "T" can be a space (" ").
     This function does not verify that the substring conforms to NISAR
     conventions.
@@ -612,7 +612,7 @@ def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     ----------
     input_str : str
         The string to be parsed. Must contain exactly one substring in a
-        format like "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DDTHH:MM:SS.sssssssss".
+        format like "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss".
         (Any number of decimals is allowed, and the "T" can be a space (" ").)
         Example: "seconds since 2023-10-31T11:59:32.123"
     dataset_name : str
@@ -656,7 +656,7 @@ def verify_datetime_string_matches_template(
     Compare the format of a datetime string against a datetime template string.
 
     This is a generic function; the template string should contain
-    "YYYY-MM-DDTHH:MM:SS" at minimum, but any number of decimal seconds
+    "YYYY-mm-ddTHH:MM:SS" at minimum, but any number of decimal seconds
     (denoted by ".sss") are allowed.
     This function does not verify conformance to NISAR conventions.
 
@@ -669,7 +669,7 @@ def verify_datetime_string_matches_template(
     dt_template_str : str
         Datetime template string.
         Should contain at most one datetime template substring, with a
-        format like "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DDTHH:MM:SS.sssssssss".
+        format like "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss".
         (Any number of decimals is allowed.) Should not contain additional text.
     dataset_name : str
         Name of dataset associated with the input strings. (Used for logging.)
