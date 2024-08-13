@@ -397,7 +397,7 @@ class MultipleAspectsMultipleInstancesSummary:
     )
     datetime_stats: SingleAspectMultipleInstancesAccumulator = (
         SingleAspectMultipleInstancesAccumulator(
-            name_of_metadata_aspect="Datetime format"
+            name_of_metadata_aspect="datetime Dataset format"
         )
     )
     description_stats: SingleAspectMultipleInstancesAccumulator = (
@@ -464,7 +464,7 @@ def compare_hdf5_dataset_to_xml(
     dtype_stats += compare_dtypes_xml_hdf5(xml_dataset, hdf5_dataset)
 
     datetime_stats = SingleAspectMultipleInstancesAccumulator(
-        name_of_metadata_aspect="Datetime format"
+        name_of_metadata_aspect="datetime Dataset format"
     )
     datetime_stats += compare_datetime_hdf5_to_xml(xml_dataset, hdf5_dataset)
 
@@ -784,8 +784,8 @@ def attribute_units_check(
     log = nisarqa.get_logger()
 
     flags = SingleAspectSingleInstanceFlags()
-    xml_dt_template_string = None
-    hdf5_dt_string = None
+    xml_dt_template_string = ""
+    hdf5_dt_string = ""
 
     # Get value of 'units'; perform basic checks
     if "units" in xml_annotation.attributes:
