@@ -231,6 +231,10 @@ def identification_sanity_checks(
                 try:
                     nisarqa.Version.from_string(version_str=data)
                 except ValueError:
+                    log.error(
+                        f"Dataset value is {data}, must follow version format"
+                        f" MAJOR.MINOR.PATCH. Dataset: {_full_path(ds_name)}"
+                    )
                     passes = False
             else:
                 passes = False
