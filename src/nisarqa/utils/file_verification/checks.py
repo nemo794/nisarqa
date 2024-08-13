@@ -378,7 +378,8 @@ class MultipleAspectsMultipleInstancesSummary:
     dtype_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "dtype" metadata aspect.
     datetime_stats : SingleAspectMultipleInstancesAccumulator
-        Stats on the "datetime format" metadata aspect.
+        Stats on the "datetime Dataset format" metadata aspect. (Does not
+        include stats on datetime strings found in units nor descriptions.)
     description_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "description" metadata aspect.
     units_stats : SingleAspectMultipleInstancesAccumulator
@@ -652,9 +653,10 @@ def compare_datetime_hdf5_to_xml(
 
     # Check if the Dataset contains a datetime value
     h5_str = nisarqa.byte_string_to_python_str(h5_string)
+    h5_name = hdf5_dataset.dataset.name
 
     h5_dt_str = nisarqa.get_datetime_value_substring(
-        input_str=h5_str, dataset_name=hdf5_dataset.dataset.name
+        input_str=h5_str, dataset_name=h5_name
     )
     if not h5_dt_str:
         return flags
@@ -665,14 +667,14 @@ def compare_datetime_hdf5_to_xml(
     # Get datetime string from the description
     for ann in xml_dataset.annotations:
         xml_dt_str = nisarqa.get_datetime_template_substring(
-            input_str=ann.description, dataset_name=hdf5_dataset.name
+            input_str=ann.description, dataset_name=h5_name
         )
 
         if xml_dt_str:
             if not nisarqa.verify_datetime_string_matches_template(
                 dt_value_str=h5_dt_str,
                 dt_template_str=xml_dt_str,
-                dataset_name=hdf5_dataset.name,
+                dataset_name=h5_name,
             ):
                 flags.hdf5_inconsistent_with_xml = True
             break
@@ -680,7 +682,7 @@ def compare_datetime_hdf5_to_xml(
         log.error(
             f"HDF5 dataset contains a datetime string: '{h5_dt_str}',"
             f" but the XML does not provide a datetime template format"
-            f" in the description. Dataset: {hdf5_dataset.name}"
+            f" in the description. Dataset: {h5_name}"
         )
         flags.missing_in_xml = True
 
@@ -836,22 +838,22 @@ def attribute_units_check(
         # "units" exists in both XML and HDF5, and one or both of the "units"
         # contains a datetime string.
         # This is an edge case that we need to handle separately.
-        if xml_dt_template_string and hdf5_dt_string:
-            matches = nisarqa.verify_datetime_matches_template_with_addl_text(
-                dt_value_str=hdf5_units,
-                dt_template_str=xml_units,
-                dataset_name=dataset_name,
-            )
+        if (
+            xml_dt_template_string and hdf5_dt_string
+        ) and nisarqa.verify_datetime_matches_template_with_addl_text(
+            dt_value_str=hdf5_units,
+            dt_template_str=xml_units,
+            dataset_name=dataset_name,
+        ):
+            pass
         else:
-            matches = False
-
-        if not matches:
             log.error(
                 f"Differing format of `units` attributes detected for datasets;"
                 f" inconsistent datetime formats and/or text. XML: "
                 f'"{xml_units}", HDF5: "{hdf5_units}": Dataset {dataset_name}'
             )
             flags.hdf5_inconsistent_with_xml = True
+
     elif xml_units != hdf5_units:
         # "units" exists in both XML and HDF5, but they are inconsistent.
         # (The datetime edge case was handled above.)
