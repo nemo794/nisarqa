@@ -651,40 +651,60 @@ def compare_datetime_hdf5_to_xml(
     ):
         return flags
 
-    # Check if the Dataset contains a datetime value
+    # Check if the HDF5 Dataset contains a datetime value
     h5_str = nisarqa.byte_string_to_python_str(h5_string)
     h5_name = hdf5_dataset.dataset.name
 
-    h5_dt_str = nisarqa.get_datetime_value_substring(
-        input_str=h5_str, dataset_name=h5_name
-    )
-    if not h5_dt_str:
-        return flags
+    if nisarqa.contains_datetime_value_substring(input_str=h5_str):
+        try:
+            h5_dt_str = nisarqa.extract_datetime_value_substring(
+                input_str=h5_str, dataset_name=h5_name
+            )
+        except ValueError:
+            if "runConfigurationContents" in h5_name:
+                # known edge case which contains multiple datetime strings.
+                # In this edge case, we do not need verify against the XML.
+                h5_dt_str = None
+            else:
+                raise
 
-    # Dataset contains a datetime string, so make sure that
-    # the correct template format is included in the description.
+    else:
+        h5_dt_str = None
 
-    # Get datetime string from the description
+    # Check if the XML description contains a datetime value
     for ann in xml_dataset.annotations:
-        xml_dt_str = nisarqa.get_datetime_template_substring(
-            input_str=ann.description, dataset_name=h5_name
-        )
-
-        if xml_dt_str:
-            if not nisarqa.verify_datetime_string_matches_template(
-                dt_value_str=h5_dt_str,
-                dt_template_str=xml_dt_str,
-                dataset_name=h5_name,
-            ):
-                flags.hdf5_inconsistent_with_xml = True
+        if nisarqa.contains_datetime_template_substring(
+            input_str=ann.description
+        ):
+            xml_dt_str = nisarqa.extract_datetime_template_substring(
+                input_str=ann.description, dataset_name=h5_name
+            )
             break
     else:
+        xml_dt_str = None
+
+    if (h5_dt_str is None) and (xml_dt_str is None):
+        # neither contain a datetime string. Great!
+        return flags
+    elif (h5_dt_str is None) and (xml_dt_str is not None):
+        flags.missing_in_hdf5 = True
+        return flags
+    elif (h5_dt_str is not None) and (xml_dt_str is None):
         log.error(
             f"HDF5 dataset contains a datetime string: '{h5_dt_str}',"
             f" but the XML does not provide a datetime template format"
             f" in the description. Dataset: {h5_name}"
         )
         flags.missing_in_xml = True
+        return flags
+
+    else:
+        if not nisarqa.verify_datetime_string_matches_template(
+            dt_value_str=h5_dt_str,
+            dt_template_str=xml_dt_str,
+            dataset_name=h5_name,
+        ):
+            flags.hdf5_inconsistent_with_xml = True
 
     return flags
 
@@ -795,10 +815,11 @@ def attribute_units_check(
         # Here, simply use those validated results.
         xml_units = str(xml_annotation.attributes["units"])
 
-        # returns an empty string if no datetime string is found
-        xml_dt_template_string = nisarqa.get_datetime_template_substring(
-            xml_units, dataset_name=dataset_name
-        )
+        # if available, extract the datetime string
+        if nisarqa.contains_datetime_template_substring(input_str=xml_units):
+            hdf5_dt_string = nisarqa.extract_datetime_template_substring(
+                input_str=xml_units, dataset_name=dataset_name
+            )
 
     else:
         xml_units = None
@@ -814,11 +835,11 @@ def attribute_units_check(
                 f'Empty "units" attribute in HDF5: Dataset {dataset_name}'
             )
 
-        # datetime check for HDF5
-        # returns an empty string if no datetime string is found
-        hdf5_dt_string = nisarqa.get_datetime_value_substring(
-            input_str=hdf5_units, dataset_name=dataset_name
-        )
+        # if available, extract the datetime string
+        if nisarqa.contains_datetime_value_substring(input_str=hdf5_units):
+            hdf5_dt_string = nisarqa.extract_datetime_value_substring(
+                input_str=hdf5_units, dataset_name=dataset_name
+            )
     else:
         hdf5_units = None
 

@@ -310,13 +310,18 @@ def validate_is_file(filepath, parameter_name, extension=None):
 
 def _get_nisar_integer_seconds_template() -> str:
     """Return integer-seconds datetime template string per NISAR conventions."""
+    # NISAR conventions require the "T"
     return "YYYY-mm-ddTHH:MM:SS"
 
 
-def _get_nisar_integer_seconds_regex() -> str:
+def _get_nisar_integer_seconds_regex(require_t: bool = True) -> str:
     """Return integer-seconds datetime regex string, per NISAR conventions."""
     # use a raw string because of the colon characters
-    return r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
+    if require_t:
+        # NISAR conventions require the "T"
+        return r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
+    else:
+        return r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}"
 
 
 def get_nisar_datetime_format_conventions(precision: str) -> str:
@@ -355,9 +360,8 @@ def get_nisar_datetime_format_conventions(precision: str) -> str:
         `zeroDopplerEndTime`, use nanosecond precision.
     """
 
-    template_integer_sec = _get_nisar_integer_seconds_template()
-    # use a raw string because of the colon characters
-    regex_integer_sec = _get_nisar_integer_seconds_regex()
+    template_integer_sec = _get_nisar_integer_seconds_template()  # includes T
+    regex_integer_sec = _get_nisar_integer_seconds_regex(require_t=True)
 
     if precision == "seconds":
         template = template_integer_sec
@@ -473,7 +477,43 @@ def verify_nisar_datetime_string_format(
     return True
 
 
-def get_datetime_template_substring(input_str: str, dataset_name: str) -> str:
+def contains_datetime_template_substring(input_str: str) -> bool:
+    """
+    Check if input string contains a generic datetime template substring.
+
+    This function does not require that the substring conforms to NISAR
+    conventions.
+
+    Parameters
+    ----------
+    input_str : str
+        The string to be parsed, possibly containing a datetime
+        template substring like "YYYY-MM-DDTHH:MM:SS" or
+        "YYYY-MM-DDTHH:MM:SS.sssssssss". Any number of decimals is allowed,
+        and the "T" can be a space (" ").
+
+    Returns
+    -------
+    contains_dt : bool
+        True if there is at least one datetime template substring contained
+        in the input string. False if not.
+    """
+
+    template_sec = _get_nisar_integer_seconds_template()
+
+    # convert to a regex to make the T optional...
+    regex = template_sec.replace("T", "[T ]")
+    # ...and allow for (optional) decimals (decimals denoted by lowercase "s"s)
+    pattern = re.compile(f"{regex}(?:\.s+)?")
+
+    match = pattern.search(input_str)
+
+    return False if match is None else True
+
+
+def extract_datetime_template_substring(
+    input_str: str, dataset_name: str
+) -> str:
     """
     Extract a generic datetime template substring from input string.
 
@@ -485,9 +525,10 @@ def get_datetime_template_substring(input_str: str, dataset_name: str) -> str:
     Parameters
     ----------
     input_str : str
-        The string to be parsed. Should contain at most one datetime
+        The string to be parsed. Must contain exactly one datetime
         template substring, with a format like "YYYY-MM-DDTHH:MM:SS" or
-        "YYYY-MM-DDTHH:MM:SS.sssssssss". (Any number of decimals is allowed.)
+        "YYYY-MM-DDTHH:MM:SS.sssssssss". (Any number of decimals is allowed,
+        and the "T" can be a space (" ").)
     dataset_name : str
         Name of the dataset associated with `input_str`. (Used for logging.)
 
@@ -495,47 +536,84 @@ def get_datetime_template_substring(input_str: str, dataset_name: str) -> str:
     -------
     datetime_str : str
         The datetime template substring contained in the input string.
-        Returns an empty string if no datetime template substring is found.
 
     Raises
     ------
     ValueError
-        If `input_str` contains multiple datetime strings. As of July 2024,
-        NISAR product specs contain no fields with multiple datetime strings
-        handling these edge cases would cause unncessary code complexity.
+        If `input_str` contains zero or more than one datetime strings.
+        As of July 2024, NISAR product specs contain no fields
+        with multiple datetime strings; handling these edge cases would
+        cause unncessary code complexity.
     """
 
     template_sec = _get_nisar_integer_seconds_template()
 
-    # Check for multiple occurances of a template datetime string.
-    if input_str.find(template_sec) != input_str.rfind(template_sec):
+    # convert to a regex to make the T optional...
+    regex = template_sec.replace("T", "[T ]")
+    # ...and allow for (optional) decimals (decimals denoted by lowercase "s"s)
+    pattern = re.compile(f"{regex}(?:\.s+)?")
+
+    matches = re.findall(pattern, input_str)
+
+    # input string should contain exactly one instance of a datetime template
+    if len(matches) > 1 or len(matches) == 0:
         raise ValueError(
-            f"{input_str=}, but should contain at most one datetime string."
-            f" Dataset: {dataset_name}"
+            f"{input_str=}, but must contain exactly one datetime template"
+            f" string. Dataset: {dataset_name}"
         )
 
-    # allow for optional one or more decimals
-    pattern = re.compile(f"{template_sec}(?:\.s+)?")
-
-    match = pattern.search(input_str)
-
-    return "" if (match is None) else match[0]
+    return matches[0]
 
 
-def get_datetime_value_substring(input_str: str, dataset_name: str) -> str:
+def contains_datetime_value_substring(input_str: str) -> bool:
+    """
+    Check if input string contains a datetime substring.
+
+    This function does not require that the substring conforms to NISAR
+    conventions.
+
+    Parameters
+    ----------
+    input_str : str
+        The string to be parsed, possibly containing a datetime
+        template substring that follows the format like "YYYY-MM-DDTHH:MM:SS"
+        or "YYYY-MM-DDTHH:MM:SS.sssssssss". Any number of decimals is allowed,
+        and the "T" can be a space (" ").
+        Example: "seconds since 2023-10-31T11:59:32.123"
+        Example: "seconds since 2023-10-31 11:59:32"
+
+    Returns
+    -------
+    contains_dt : bool
+        True if there is at least one datetime substring contained in the
+        input string. False if not.
+    """
+
+    regex_int = _get_nisar_integer_seconds_regex(require_t=False)
+
+    # Include optional decimals group in the regex
+    regex = re.compile(f"{regex_int}(?:\.\d+)?")
+
+    matches = re.findall(regex, input_str)
+
+    return True if len(matches) > 0 else False
+
+
+def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     """
     Extract a generic datetime substring from input string.
 
     This should follow the format "YYYY-MM-DDTHH:MM:SS" at minimum, but
-    any number of decimal seconds are allowed.
+    any number of decimal seconds are allowed and the "T" can be a space (" ").
     This function does not verify that the substring conforms to NISAR
     conventions.
 
     Parameters
     ----------
     input_str : str
-        The string to be parsed. Should contain at most one substring in the
-        format "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DDTHH:MM:SS.sssssssss".
+        The string to be parsed. Must contain exactly one substring in a
+        format like "YYYY-MM-DDTHH:MM:SS" or "YYYY-MM-DDTHH:MM:SS.sssssssss".
+        (Any number of decimals is allowed, and the "T" can be a space (" ").)
         Example: "seconds since 2023-10-31T11:59:32.123"
     dataset_name : str
         Name of the dataset associated with `input_str`. (Used for logging.)
@@ -545,30 +623,30 @@ def get_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     datetime_str : str
         The datetime substring contained in the input string,
         e.g. "2023-10-31T11:59:32".
-        Returns an empty string if no datetime substring is found.
 
     Raises
     ------
     ValueError
-        If `input_str` contains multiple datetime strings. As of July 2024,
-        NISAR product specs contain no fields with multiple datetime strings
-        handling these edge cases would cause unncessary code complexity.
+        If `input_str` contains zero or multiple datetime strings.
+        As of July 2024, NISAR product specs contain no fields
+        with multiple datetime strings; handling these edge cases would
+        cause unncessary code complexity.
     """
-    regex_int = _get_nisar_integer_seconds_regex()
+    regex_int = _get_nisar_integer_seconds_regex(require_t=False)
 
     # Include optional decimals group in the regex
     regex = re.compile(f"{regex_int}(?:\.\d+)?")
 
     matches = re.findall(regex, input_str)
 
-    # input string should contain at most one instance of a datetime string
-    if len(matches) > 1:
+    # input string should contain exactly one instance of a datetime string
+    if len(matches) > 1 or len(matches) == 0:
         raise ValueError(
-            f"{input_str=}, but should contain at most one datetime string."
+            f"{input_str=}, but should contain exactly one datetime string."
             f" Dataset: {dataset_name}"
         )
 
-    return "" if (len(matches) == 0) else matches[0]
+    return matches[0]
 
 
 def verify_datetime_string_matches_template(
@@ -650,12 +728,12 @@ def verify_datetime_matches_template_with_addl_text(
     Parameters
     ----------
     dt_value_str : str
-        String which must contain a datetime substring. Ideally, it should
+        String which must contain one datetime substring. Ideally, it should
         the format of `dt_template_str` (including prefix and suffix).
             Example 1: "seconds since 2023-10-31T11:59:32"
             Example 2: "2023-10-31T11:59:32.123456789"
     dt_template_str : str
-        String containing a datetime template substring. May contain prefix
+        String containing one datetime template substring. May contain prefix
         or suffix to the datetime. Must contain the substring
         "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss".
             Example 1: "seconds since YYYY-mm-ddTHH:MM:SS"
@@ -672,11 +750,11 @@ def verify_datetime_matches_template_with_addl_text(
         suffixes to the datetime portion are identical.
         False otherwise.
     """
-    dt_val = get_datetime_value_substring(
+    dt_val = extract_datetime_value_substring(
         input_str=dt_value_str, dataset_name=dataset_name
     )
 
-    dt_tmpl = get_datetime_template_substring(
+    dt_tmpl = extract_datetime_template_substring(
         input_str=dt_template_str, dataset_name=dataset_name
     )
     if not dt_val:

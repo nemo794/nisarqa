@@ -1368,38 +1368,44 @@ class NisarRadarProduct(NisarProduct):
         Returns
         -------
         datetime_str : str
-            A string following the format 'YYYY-mm-ddTHH:MM:SS'.
-            If input product is old, then the 'T' might instead be a space.
+            A string following the format like 'YYYY-mm-ddTHH:MM:SS'.
+            (The "T" and any decimal seconds are optional; this function
+            does not enforce strict NISAR conventions for datetime strings.)
             If datetime could not be parsed, then "INVALID EPOCH" is returned.
         """
+        log = nisarqa.get_logger()
+
         sec_since_epoch = ds.attrs["units"]
         sec_since_epoch = nisarqa.byte_string_to_python_str(sec_since_epoch)
 
         if not sec_since_epoch.startswith("seconds since "):
-            nisarqa.get_logger().error(
+            log.error(
                 f"epoch units string is {sec_since_epoch!r}, but should"
                 f" begin with 'seconds since '. Dataset: {ds.name}"
             )
 
         # Datetime Format Validation check
-        dt_string = nisarqa.get_datetime_value_substring(
-            input_str=sec_since_epoch, dataset_name=ds.name
-        )
-        if dt_string:
-            return dt_string
+        if nisarqa.contains_datetime_value_substring(input_str=sec_since_epoch):
+            dt_str = nisarqa.extract_datetime_value_substring(
+                input_str=sec_since_epoch, dataset_name=ds.name
+            )
+
+            if not nisarqa.verify_nisar_datetime_string_format(
+                datetime_str=dt_str, precision="seconds"
+            ):
+                log.error(
+                    f"epoch units string is {sec_since_epoch!r}, but must"
+                    f" use a datetime string in format 'YYYY-mm-ddTHH:MM:SS'."
+                    f" Dataset: {ds.name}"
+                )
+            return dt_str
+
         else:
-            # Older test data might be missing the "T" between the date and
-            # the time in the datetime string. This discrepancy will get
-            # logged during the file verification workflow.
-            # But, the string could still contain useful information,
-            # so attempt to extract that useful information.
-            regex = r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}"
-            pattern = re.compile(regex)
-            match = pattern.search(sec_since_epoch)
-            if match is not None:
-                return match[0]
-            else:
-                return "INVALID EPOCH"
+            log.error(
+                f"epoch units string is {sec_since_epoch!r}, but should"
+                f" contain a datetime string. Dataset: {ds.name}"
+            )
+            return "INVALID EPOCH"
 
     @abstractmethod
     def _get_dataset_handle(

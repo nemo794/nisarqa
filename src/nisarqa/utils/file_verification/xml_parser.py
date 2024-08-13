@@ -359,10 +359,14 @@ def element_to_annotation(
                     )
 
                 # datetime template string check
-                xml_datetime_template = nisarqa.get_datetime_template_substring(
-                    input_str=xml_units, dataset_name=dataset_name
-                )
-                if xml_datetime_template:
+                if nisarqa.contains_datetime_template_substring(
+                    input_str=xml_units
+                ):
+                    xml_datetime_template = (
+                        nisarqa.extract_datetime_template_substring(
+                            input_str=xml_units, dataset_name=dataset_name
+                        )
+                    )
                     # (This function logs if there is a discrepancy)
                     nisarqa.verify_nisar_datetime_template_string(
                         datetime_template_string=xml_datetime_template,
