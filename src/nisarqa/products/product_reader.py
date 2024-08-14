@@ -1384,7 +1384,7 @@ class NisarRadarProduct(NisarProduct):
                 f" begin with 'seconds since '. Dataset: {ds.name}"
             )
 
-        # Datetime Format Validation check
+        # Datetime format validation check
         if nisarqa.contains_datetime_value_substring(input_str=sec_since_epoch):
             dt_str = nisarqa.extract_datetime_value_substring(
                 input_str=sec_since_epoch, dataset_name=ds.name

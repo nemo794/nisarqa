@@ -685,10 +685,14 @@ def compare_datetime_hdf5_to_xml(
 
     if (h5_dt_str is None) and (xml_dt_str is None):
         # neither contain a datetime string. Great!
-        return flags
+        pass
     elif (h5_dt_str is None) and (xml_dt_str is not None):
+        log.error(
+            f"XML contains the datetime template string '{xml_dt_str}'"
+            " in its description Attribute, but the HDF5 Dataset does not"
+            f" contain a datetime string. Dataset: {h5_name}"
+        )
         flags.missing_in_hdf5 = True
-        return flags
     elif (h5_dt_str is not None) and (xml_dt_str is None):
         log.error(
             f"HDF5 dataset contains a datetime string: '{h5_dt_str}',"
@@ -696,7 +700,6 @@ def compare_datetime_hdf5_to_xml(
             f" in the description. Dataset: {h5_name}"
         )
         flags.missing_in_xml = True
-        return flags
     else:
         if not nisarqa.verify_datetime_string_matches_template(
             dt_value_str=h5_dt_str,
