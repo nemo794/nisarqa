@@ -1368,7 +1368,7 @@ class NisarRadarProduct(NisarProduct):
         Returns
         -------
         datetime_str : str
-            A string following the format like 'YYYY-mm-ddTHH:MM:SS'.
+            A string following a format like 'YYYY-mm-ddTHH:MM:SS'.
             (The "T" and any decimal seconds are optional; this function
             does not enforce strict NISAR conventions for datetime strings.)
             If datetime could not be parsed, then "INVALID EPOCH" is returned.

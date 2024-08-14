@@ -364,12 +364,11 @@ def get_nisar_datetime_format_conventions(precision: str) -> tuple[str, re.Patte
 
     if precision == "seconds":
         template = template_integer_sec
-        exclude_decimals = "(?!\.\d)"
-        regex = f"^{regex_integer_sec}{exclude_decimals}$"
+        regex = f"^{regex_integer_sec}$"
 
     elif precision == "nanoseconds":
         template = f"{template_integer_sec}.sssssssss"
-        require_decimals = "\.\d{9}"
+        require_decimals = r"\.\d{9}"
         regex = f"^{regex_integer_sec}{require_decimals}$"
     else:
         raise ValueError(f"{precision=}, must be 'seconds' or 'nanoseconds'.")
@@ -502,11 +501,11 @@ def contains_datetime_template_substring(input_str: str) -> bool:
     # convert to a regex to make the T optional...
     regex = template_sec.replace("T", "[T ]")
     # ...and allow for (optional) decimals (decimals denoted by lowercase "s"s)
-    pattern = re.compile(f"{regex}(?:\.s+)?")
+    pattern = re.compile(rf"{regex}(?:\.s+)?")
 
     match = pattern.search(input_str)
 
-    return False if match is None else True
+    return match is not None
 
 
 def extract_datetime_template_substring(
@@ -549,14 +548,14 @@ def extract_datetime_template_substring(
     # convert to a regex to make the T optional...
     regex = template_sec.replace("T", "[T ]")
     # ...and allow for (optional) decimals (decimals denoted by lowercase "s"s)
-    pattern = re.compile(f"{regex}(?:\.s+)?")
+    pattern = re.compile(rf"{regex}(?:\.s+)?")
 
-    matches = re.findall(pattern, input_str)
+    matches = pattern.findall(input_str)
 
     # input string should contain exactly one instance of a datetime template
-    if len(matches) > 1 or len(matches) == 0:
+    if len(matches) != 1:
         raise ValueError(
-            f"{input_str=}, but must contain exactly one datetime template"
+            f"{input_str=!r}, but must contain exactly one datetime template"
             f" string. Dataset: {dataset_name}"
         )
 
@@ -590,11 +589,11 @@ def contains_datetime_value_substring(input_str: str) -> bool:
     regex_int = _get_nisar_integer_seconds_regex(require_t=False)
 
     # Include optional decimals group in the regex
-    regex = re.compile(f"{regex_int}(?:\.\d+)?")
+    regex = re.compile(rf"{regex_int}(?:\.\d+)?")
 
-    matches = re.findall(regex, input_str)
+    match = regex.search(input_str)
 
-    return True if len(matches) > 0 else False
+    return match is not None
 
 
 def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
@@ -633,12 +632,12 @@ def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     regex_int = _get_nisar_integer_seconds_regex(require_t=False)
 
     # Include optional decimals group in the regex
-    regex = re.compile(f"{regex_int}(?:\.\d+)?")
+    regex = re.compile(rf"{regex_int}(?:\.\d+)?")
 
-    matches = re.findall(regex, input_str)
+    matches = regex.findall(input_str)
 
     # input string should contain exactly one instance of a datetime string
-    if len(matches) > 1 or len(matches) == 0:
+    if len(matches) != 1:
         raise ValueError(
             f"{input_str=!r}, but should contain exactly one datetime string."
             f" Dataset: {dataset_name}"
@@ -687,9 +686,9 @@ def verify_datetime_string_matches_template(
 
     # Compute number of decimals in template string
     template_sec = _get_nisar_integer_seconds_template()
-    pattern = f"^{template_sec}(\.s+)?$"
+    pattern = re.compile(rf"^{template_sec}(\.s+)?$")
 
-    template_match = re.search(pattern, dt_template_str)
+    template_match = pattern.search(dt_template_str)
     if template_match is None:
         raise ValueError(
             f"{dt_template_str=}, must contain this pattern: '{pattern}'."
@@ -699,7 +698,7 @@ def verify_datetime_string_matches_template(
 
     # Check that the value string uses the same format as the template string
     regex_sec = _get_nisar_integer_seconds_regex()
-    pattern = f"^{regex_sec}\.\d{{{n_decimals}}}$"
+    pattern = rf"^{regex_sec}\.\d{{{n_decimals}}}$"
 
     val_match = re.search(pattern, dt_value_str)
 
