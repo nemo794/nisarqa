@@ -296,8 +296,7 @@ def identification_sanity_checks(
         if _dataset_exists(ds_name):
             data = _get_string_dataset(ds_name=ds_name)
             if data is not None:
-                # TODO: Improve error message by adding another conditional for a string
-                # representation of a list of empty strings, e.g. "['' '' '' '' '']".
+                # TODO: Use a regex for more flexible pattern matching.
                 if data in ("", "0", "['0']", "['']", "['' '' '' '' '']"):
                     log.error(
                         f"Dataset value is {data!r}, which is not a valid value."
