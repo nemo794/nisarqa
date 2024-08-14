@@ -702,14 +702,13 @@ def verify_datetime_string_matches_template(
 
     val_match = re.search(pattern, dt_value_str)
 
-    if val_match is not None:
-        return True
-    else:
+    if val_match is None:
         log.error(
             f"Provided dateime string is {dt_value_str!r}, but must match the"
             f" template format: '{dt_template_str}'. Dataset: {dataset_name}"
         )
         return False
+    return True
 
 
 def verify_datetime_matches_template_with_addl_text(
@@ -754,37 +753,19 @@ def verify_datetime_matches_template_with_addl_text(
     dt_tmpl = extract_datetime_template_substring(
         input_str=dt_template_str, dataset_name=dataset_name
     )
-    if not dt_val:
-        raise ValueError(
-            f"{dt_value_str=}, must contain a datetime string."
-            f" Dataset: {dataset_name}"
-        )
-
-    if not dt_tmpl:
-        raise ValueError(
-            f"{dt_template_str=}, must contain a datetime template string."
-            f" Dataset: {dataset_name}"
-        )
 
     # Split strings into (ideally) prefix, datetime, and suffix
     dt_val_split = dt_value_str.split(dt_val)
     dt_tmpl_split = dt_template_str.split(dt_tmpl)
 
-    if len(dt_val_split) != len(dt_tmpl_split):
+    if dt_val_split != dt_tmpl_split:
         return False
-    else:
-        for val, tmpl in zip(dt_val_split, dt_tmpl_split):
-            if tmpl == dt_tmpl:
-                if not verify_datetime_string_matches_template(
-                    dt_value_str=val,
-                    dt_template_str=tmpl,
-                    dataset_name=dataset_name,
-                ):
-                    return False
-            elif val != tmpl:
-                return False
 
-    return True
+    return verify_datetime_string_matches_template(
+        dt_value_str=dt_val,
+        dt_template_str=dt_tmpl,
+        dataset_name=dataset_name,
+    )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
