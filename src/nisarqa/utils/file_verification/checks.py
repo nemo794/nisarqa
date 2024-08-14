@@ -378,7 +378,7 @@ class MultipleAspectsMultipleInstancesSummary:
     dtype_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "dtype" metadata aspect.
     datetime_stats : SingleAspectMultipleInstancesAccumulator
-        Stats on the "datetime Dataset format" metadata aspect. (Does not
+        Stats on the format of Datasets whose contents are datetime strings. (Does not
         include stats on datetime strings found in units nor descriptions.)
     description_stats : SingleAspectMultipleInstancesAccumulator
         Stats on the "description" metadata aspect.
@@ -662,7 +662,7 @@ def compare_datetime_hdf5_to_xml(
             )
         except ValueError:
             if "runConfigurationContents" in h5_name:
-                # known edge case which contains multiple datetime strings.
+                # Known edge case which contains multiple datetime strings.
                 # In this edge case, we do not need verify against the XML.
                 h5_dt_str = None
             else:
@@ -697,7 +697,6 @@ def compare_datetime_hdf5_to_xml(
         )
         flags.missing_in_xml = True
         return flags
-
     else:
         if not nisarqa.verify_datetime_string_matches_template(
             dt_value_str=h5_dt_str,
