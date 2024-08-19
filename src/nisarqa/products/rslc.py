@@ -1998,7 +1998,7 @@ def _get_units_hz_or_mhz(mhz: bool) -> tuple[str, str]:
     Parameters
     ----------
     mhz : bool
-        True for MHz units, False for Hz units.
+        True for MHz units; False for Hz units.
 
     Returns
     -------

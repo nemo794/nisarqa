@@ -249,7 +249,7 @@ class NisarProduct(ABC):
     @property
     @abstractmethod
     def is_geocoded(self) -> bool:
-        """True if product is geocoded, False if range Doppler grid."""
+        """True if product is geocoded; False if range Doppler grid."""
         pass
 
     @abstractmethod

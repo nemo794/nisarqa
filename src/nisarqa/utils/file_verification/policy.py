@@ -235,7 +235,7 @@ def ignore_annotation(app: str) -> bool:
     Returns
     -------
     bool
-        True if ignore, False otherwise.
+        True if ignore; False otherwise.
     """
     # Annotations whose "app" attribute is "io" describe, at most, some aspect
     # of the data. They are not generally checkable against HDF5 because they

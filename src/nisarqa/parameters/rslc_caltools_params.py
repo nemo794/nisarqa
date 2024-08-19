@@ -151,7 +151,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     Parameters
     ----------
     linear_units : bool, optional
-        True to compute backscatter image in linear units, False for decibel units.
+        True to compute backscatter image in linear units; False for decibel units.
         Defaults to True.
     nlooks_freqa, nlooks_freqb : iterable of int, None, optional
         Number of looks along each axis of the input array
@@ -485,7 +485,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         be included. Defaults to [-80.0, 20.0].
         Format: (<starting value>, <endpoint>)
     phs_in_radians : bool, optional
-        True to compute phase in radians units, False for degrees units.
+        True to compute phase in radians units; False for degrees units.
         Defaults to True.
     tile_shape : iterable of int, optional
         User-preferred tile shape for processing images by batches.

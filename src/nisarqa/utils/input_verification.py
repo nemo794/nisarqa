@@ -27,7 +27,7 @@ def verify_isce3_boolean(ds: h5py.Dataset) -> bool:
     Returns
     -------
     passes : bool
-        True if `ds` uses the correct ISCE3 convention, False otherwise.
+        True if `ds` uses the correct ISCE3 convention; False otherwise.
     """
     log = nisarqa.get_logger()
 
@@ -65,7 +65,7 @@ def verify_str_meets_isce3_conventions(ds: h5py.Dataset) -> bool:
     Returns
     -------
     passes : bool
-        True if `ds` uses the correct ISCE3 convention, False otherwise.
+        True if `ds` uses the correct ISCE3 convention; False otherwise.
 
     Notes
     -----
@@ -164,7 +164,7 @@ def verify_length_of_scalar_byte_string(ds: h5py.Dataset) -> bool:
     Returns
     -------
     passes : bool
-        True if `ds` uses the correct ISCE3 convention, False otherwise.
+        True if `ds` uses the correct ISCE3 convention; False otherwise.
     """
     log = nisarqa.get_logger()
 
@@ -208,7 +208,7 @@ def verify_1D_array_of_byte_strings(ds: h5py.Dataset) -> bool:
     Returns
     -------
     passes : bool
-        True if `ds` uses the correct ISCE3 convention, False otherwise.
+        True if `ds` uses the correct ISCE3 convention; False otherwise.
     """
     # Verify input is a 1D array. (This function only supports 1D arrays.)
     if len(ds.shape) != 1:
@@ -323,7 +323,9 @@ def _get_nisar_integer_seconds_regex(require_t: bool = True) -> str:
         return r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}"
 
 
-def get_nisar_datetime_format_conventions(precision: str) -> tuple[str, re.Pattern]:
+def get_nisar_datetime_format_conventions(
+    precision: str,
+) -> tuple[str, re.Pattern]:
     """
     Return the datetime template string and regex Pattern for a given precision.
 
@@ -347,7 +349,7 @@ def get_nisar_datetime_format_conventions(precision: str) -> tuple[str, re.Patte
         the patterns noted in `template_string` docstring.
         The Pattern will require that there are no additional characters
         before or after the datetime string itself.
-        If `precision` is "seconds", the Pattern enforces no decimel values.
+        If `precision` is "seconds", the Pattern enforces no decimal values.
 
     Notes
     -----
@@ -365,13 +367,12 @@ def get_nisar_datetime_format_conventions(precision: str) -> tuple[str, re.Patte
     if precision == "seconds":
         template = template_integer_sec
         regex = f"^{regex_integer_sec}$"
-
     elif precision == "nanoseconds":
         template = f"{template_integer_sec}.sssssssss"
         require_decimals = r"\.\d{9}"
         regex = f"^{regex_integer_sec}{require_decimals}$"
     else:
-        raise ValueError(f"{precision=}, must be 'seconds' or 'nanoseconds'.")
+        raise ValueError(f"{precision=!r}, must be 'seconds' or 'nanoseconds'.")
 
     return template, re.compile(regex)
 
@@ -437,7 +438,7 @@ def verify_nisar_datetime_template_string(
 
 
 def verify_nisar_datetime_string_format(
-    datetime_str: str, precision: str, dataset_name: str
+    datetime_str: str, dataset_name: str, precision: str
 ) -> bool:
     """
     Verify that a string is a datetime string and matches NISAR conventions.
@@ -450,11 +451,11 @@ def verify_nisar_datetime_string_format(
         The datetime string to be checked. Should not contain additional text.
         Example that passes: "2023-10-31T11:59:32".
         Example that fails: "seconds since 2023-10-31T11:59:32".
+    dataset_name : str
+        Name of the dataset associated with `datetime_str`. (Used for logging.)
     precision : str
         Expected precision of the datetime string.
         Must be one of: "seconds" or "nanoseconds".
-    dataset_name : str
-        Name of the dataset associated with `datatime_str`. (Used for logging.)
 
     Returns
     -------
@@ -486,8 +487,8 @@ def contains_datetime_template_substring(input_str: str) -> bool:
     input_str : str
         The string to be parsed, possibly containing a datetime
         template substring like "YYYY-mm-ddTHH:MM:SS" or
-        "YYYY-mm-ddTHH:MM:SS.sssssssss". Any number of decimals is allowed,
-        and the "T" can be a space (" ").
+        "YYYY-mm-ddTHH:MM:SS.sssssssss". Any number of decimal digits is
+        allowed, and the "T" can be a space (" ").
 
     Returns
     -------
@@ -500,7 +501,7 @@ def contains_datetime_template_substring(input_str: str) -> bool:
 
     # convert to a regex to make the T optional...
     regex = template_sec.replace("T", "[T ]")
-    # ...and allow for (optional) decimals (decimals denoted by lowercase "s"s)
+    # ...and allow for optional decimal digits (denoted by lowercase "s"s)
     pattern = re.compile(rf"{regex}(?:\.s+)?")
 
     match = pattern.search(input_str)
@@ -524,8 +525,8 @@ def extract_datetime_template_substring(
     input_str : str
         The string to be parsed. Must contain exactly one datetime
         template substring, with a format like "YYYY-mm-ddTHH:MM:SS" or
-        "YYYY-mm-ddTHH:MM:SS.sssssssss". (Any number of decimal digits is allowed,
-        and the "T" can be a space (" ").)
+        "YYYY-mm-ddTHH:MM:SS.sssssssss". (Any number of decimal digits is
+        allowed, and the "T" can be a space (" ").)
     dataset_name : str
         Name of the dataset associated with `input_str`. (Used for logging.)
 
@@ -547,7 +548,7 @@ def extract_datetime_template_substring(
 
     # convert to a regex to make the T optional...
     regex = template_sec.replace("T", "[T ]")
-    # ...and allow for (optional) decimals (decimals denoted by lowercase "s"s)
+    # ...and allow for optional decimal digits (denoted by lowercase "s"s)
     pattern = re.compile(rf"{regex}(?:\.s+)?")
 
     matches = pattern.findall(input_str)
@@ -574,8 +575,8 @@ def contains_datetime_value_substring(input_str: str) -> bool:
     input_str : str
         The string to be parsed, possibly containing a datetime
         substring that follows the format like "YYYY-mm-ddTHH:MM:SS"
-        or "YYYY-mm-ddTHH:MM:SS.sssssssss". Any number of decimal digits is allowed,
-        and the "T" can be a space (" ").
+        or "YYYY-mm-ddTHH:MM:SS.sssssssss". Any number of decimal digits is
+        allowed, and the "T" can be a space (" ").
         Example: "seconds since 2023-10-31T11:59:32.123"
         Example: "seconds since 2023-10-31 11:59:32"
 
@@ -588,7 +589,7 @@ def contains_datetime_value_substring(input_str: str) -> bool:
 
     regex_int = _get_nisar_integer_seconds_regex(require_t=False)
 
-    # Include optional decimals group in the regex
+    # Include optional decimal digits group in the regex
     regex = re.compile(rf"{regex_int}(?:\.\d+)?")
 
     match = regex.search(input_str)
@@ -610,7 +611,7 @@ def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     input_str : str
         The string to be parsed. Must contain exactly one substring in a
         format like "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        (Any number of decimal digits is allowed, and the "T" can be a space (" ").)
+        Any number of decimal digits is allowed; the "T" can be a space (" ").
         Example: "seconds since 2023-10-31T11:59:32.123"
     dataset_name : str
         Name of the dataset associated with `input_str`. (Used for logging.)
@@ -631,7 +632,7 @@ def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     """
     regex_int = _get_nisar_integer_seconds_regex(require_t=False)
 
-    # Include optional decimals group in the regex
+    # Include optional decimal digits group in the regex
     regex = re.compile(rf"{regex_int}(?:\.\d+)?")
 
     matches = regex.findall(input_str)
@@ -664,9 +665,10 @@ def verify_datetime_string_matches_template(
         Should not contain additional text.
         Examples: "2023-10-31T11:59:32" or "2023-10-31T11:59:32.123456789".
     dt_template_str : str
-        Datetime template string, with a
-        format like "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        (Any number of decimal digits is allowed.) Should not contain additional text.
+        Datetime template string, with a format like "YYYY-mm-ddTHH:MM:SS"
+        or "YYYY-mm-ddTHH:MM:SS.sssssssss".
+        Any number of decimal digits is allowed; the "T" can be a space (" ").
+        Should not contain additional text.
     dataset_name : str
         Name of dataset associated with the input strings. (Used for logging.)
 
@@ -684,19 +686,28 @@ def verify_datetime_string_matches_template(
     """
     log = nisarqa.get_logger()
 
-    # Compute number of decimals in template string
+    # Step 1: Compute number of decimal digits in template string
+    # Get the canonical template string (should be "YYYY-mm-ddTHH:MM:SS")
     template_sec = _get_nisar_integer_seconds_template()
-    pattern = re.compile(rf"^{template_sec}(\.s+)?$")
 
+    # convert to a regex to make the T optional and use a capturing group
+    # to capture the decimal digits
+    regex = rf"^{template_sec.replace('T', '[T ]')}(\.(?P<decimals>s+))?$"
+
+    pattern = re.compile(regex)
     template_match = pattern.search(dt_template_str)
+
     if template_match is None:
         raise ValueError(
-            f"{dt_template_str=}, must contain this pattern: '{pattern}'."
+            f"{dt_template_str=!r}, must contain this pattern: '{pattern}'."
         )
 
-    n_decimals = len(template_match[0].lstrip(template_sec + "."))
+    if template_match["decimals"] is None:
+        n_decimals = 0
+    else:
+        n_decimals = len(template_match["decimals"])
 
-    # Check that the value string uses the same format as the template string
+    # Step 2: Check that the value string uses the same format as the template string
     regex_sec = _get_nisar_integer_seconds_regex()
     pattern = rf"^{regex_sec}\.\d{{{n_decimals}}}$"
 
@@ -723,15 +734,17 @@ def verify_datetime_matches_template_with_addl_text(
     Parameters
     ----------
     dt_value_str : str
-        String which must contain exactly one datetime substring. Ideally, it should
-        conform to the format of `dt_template_str` (including prefix and suffix).
+        String which must contain exactly one datetime substring.
+        Ideally, it should conform to the format of `dt_template_str`,
+        including prefix and suffix.
             Example 1: "seconds since 2023-10-31T11:59:32"
             Example 2: "2023-10-31T11:59:32.123456789"
     dt_template_str : str
-        String containing exactly one datetime template substring. May contain prefix
-        or suffix to the datetime. Must contain the substring
+        String containing exactly one datetime template substring. May contain
+        prefix or suffix to the datetime. Must contain the substring
         "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss"
-        (Any number of decimal digits is allowed, and the "T" can be a space (" ").)
+        Any number of decimal digits is allowed; the "T" can be a space (" ").
+
             Example 1: "seconds since YYYY-mm-ddTHH:MM:SS"
             Example 2: "YYYY-mm-ddTHH:MM:SS.sssssssss"
     dataset_name : str

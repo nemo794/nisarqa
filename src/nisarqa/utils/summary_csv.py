@@ -93,7 +93,7 @@ class _SummaryCSV:
     """
 
     def is_setup(self) -> bool:
-        """Return True if summary CSV is already setup, False otherwise."""
+        """Return True if summary CSV is already setup; False otherwise."""
         sum_logger = self._get_summary_logger()
 
         # If any handlers exist, this means it was previously set up.

@@ -33,7 +33,7 @@ def path_contains_substrings(
     Returns
     -------
     contains_substring: bool
-        True if accepted, False if rejected.
+        True if accepted; False if rejected.
     """
     if not set(valid_options).issubset(all_options):
         raise ValueError(
@@ -52,7 +52,7 @@ def find_substrings_in_path(
 ) -> str | None:
     """
     Find substrings in a path and return a valid substring if it is found.
-    
+
     This function assumes that only one instance of any valid substring is
     possible within the parent string, and will raise an error if this is
     not the case.
@@ -81,9 +81,11 @@ def find_substrings_in_path(
     ValueError
         If multiple instances of `all_options` are found as a substring of `path`.
     """
-    
+
     if not set(valid_options).issubset(all_options):
-        raise ValueError(f"{valid_options=} must be a subset of {all_options=}.")
+        raise ValueError(
+            f"{valid_options=} must be a subset of {all_options=}."
+        )
 
     found_valid_substr = set()
     found_invalid_substr = set()
@@ -161,7 +163,7 @@ def check_path_by_freq_pol(
                 f"Polarization set {valid_freq_pols[freq]=} for"
                 f" frequency{freq} must be a subset of {all_pols=}."
             )
-    
+
     valid_freqs = _prepend_frequency_to_items(valid_freq_pols.keys())
     all_freqs = _prepend_frequency_to_items(all_freqs)
     check_result = find_substrings_in_path(
@@ -224,7 +226,7 @@ def check_path(
         A set of all possible subswath datasets for this product.
     valid_freq_pols : Mapping[str, Iterable[str]]
         Dict of the expected frequency + polarization combinations that the input
-        NISAR product says it contains. 
+        NISAR product says it contains.
         e.g., { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
     valid_layers : Iterable[str] | None, optional
         A set of all valid layer groups for this product,
@@ -241,7 +243,7 @@ def check_path(
     Returns
     -------
     accepted : bool
-        True if the path is accepted within the rules, False if not.
+        True if the path is accepted within the rules; False if not.
     """
     if rule_exceptions is None:
         rule_exceptions = []
@@ -298,7 +300,7 @@ def check_paths(
         The set of paths to check.
     valid_freq_pols : Mapping[str, Iterable[str]]
         Dict of the expected frequency + polarization combinations that the input
-        NISAR product says it contains. 
+        NISAR product says it contains.
         e.g., { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
     all_freqs : Iterable[str]
         A set containing all possible frequencies for this product.
@@ -337,7 +339,7 @@ def check_paths(
             f"Valid layer set {valid_layers=} must be a subset of"
             f" {all_layers=}."
         )
-    
+
     if (valid_subswaths is not None) and not (
         set(valid_subswaths).issubset(all_subswaths)
     ):
@@ -345,7 +347,7 @@ def check_paths(
             f"Valid subswath set {valid_subswaths=} must be a subset of"
             f" {all_subswaths=}."
         )
-    
+
     if not set(valid_freq_pols.keys()).issubset(all_freqs):
         raise ValueError(
             f"Frequency set {valid_freq_pols.keys()=} must be a subset of"
@@ -367,17 +369,21 @@ def check_paths(
     rejected = set()
 
     for path in paths:
-        accepted.add(path) if check_path(
-            path=path,
-            all_freqs=all_freqs,
-            all_pols=all_pols,
-            all_layers=all_layers,
-            all_subswaths=all_subswaths,
-            valid_freq_pols=valid_freq_pols,
-            valid_layers=valid_layers,
-            valid_subswaths=valid_subswaths,
-            rule_exceptions=rule_exceptions,
-        ) else rejected.add(path)
+        (
+            accepted.add(path)
+            if check_path(
+                path=path,
+                all_freqs=all_freqs,
+                all_pols=all_pols,
+                all_layers=all_layers,
+                all_subswaths=all_subswaths,
+                valid_freq_pols=valid_freq_pols,
+                valid_layers=valid_layers,
+                valid_subswaths=valid_subswaths,
+                rule_exceptions=rule_exceptions,
+            )
+            else rejected.add(path)
+        )
 
     return accepted, rejected
 
@@ -402,7 +408,7 @@ def process_excepted_paths(
     ----------
     valid_freq_pols : Mapping[str, Iterable[str]]
         Dict of the expected frequency + polarization combinations that the input
-        NISAR product says it contains. 
+        NISAR product says it contains.
         e.g., { "A" : ["HH", "HV], "B" : ["VV", "VH"] }
     unprocessed_rule_exceptions : Iterable[Template]
         The set of unprocessed rule exception templates to format.

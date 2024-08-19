@@ -1078,7 +1078,7 @@ def make_hsi_as_rgb_img(
     # So, create a temporary mask of all NaN pixels, do the computation,
     # and then set those pixels back to NaN for the final image.
 
-    # nan_mask: True where pixels are non-finite, False where pixels are finite
+    # nan_mask: True where pixels are non-finite; False where pixels are finite
     nan_mask = ~np.isfinite(phase_img) | ~np.isfinite(coh_mag)
 
     # For the HSI-> RGB conversion, replace all non-finite values with 0

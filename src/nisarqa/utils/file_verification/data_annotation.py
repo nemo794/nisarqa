@@ -35,7 +35,7 @@ class XMLAnnotation(DataAnnotation):
     @property
     def is_complex_marker(self) -> bool:
         """
-        True if this annotation marks a dataset as complex, False otherwise.
+        True if this annotation marks a dataset as complex; False otherwise.
         """
         if self.attributes["app"] != "io":
             return False
@@ -46,7 +46,7 @@ class XMLAnnotation(DataAnnotation):
     @property
     def is_bool_marker(self) -> bool:
         """
-        True if this annotation marks a Dataset as a boolean, False otherwise.
+        True if this annotation marks a Dataset as a boolean; False otherwise.
 
         Hacky method of figuring out if an annotation describes a
         boolean-valued dataset. Look for the terms "True" and "False" or

@@ -268,7 +268,7 @@ def verify_metadata_cubes(
 
 def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
     """
-    Return True if the Dataset is GDAL-friendly, False if not.
+    Return True if the Dataset is GDAL-friendly; False if not.
 
     This function uses GDAL to open the file and test if the specified
     Dataset is georeferenced in a way that GDAL can read. For example, this
@@ -285,7 +285,7 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
     Returns
     -------
     passes : bool
-        True if the Dataset at `ds_path` is GDAL-friendly, False if GDAL
+        True if the Dataset at `ds_path` is GDAL-friendly; False if GDAL
         cannot successfully georeference the Dataset.
     """
 
