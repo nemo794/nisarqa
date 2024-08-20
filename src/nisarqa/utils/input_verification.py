@@ -488,7 +488,7 @@ def contains_datetime_template_substring(input_str: str) -> bool:
         The string to be parsed, possibly containing a datetime
         template substring like "YYYY-mm-ddTHH:MM:SS" or
         "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        Any number of decimal digits is allowed; the "T" can be a space (" ").
+        Any number of decimal digits is allowed. The "T" can be a space (" ").
         Characters must be capitalized according to the given format.
 
     Returns
@@ -527,7 +527,7 @@ def extract_datetime_template_substring(
         The string to be parsed. Must contain exactly one datetime
         template substring, with a format like "YYYY-mm-ddTHH:MM:SS" or
         "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        Any number of decimal digits is allowed; the "T" can be a space (" ").
+        Any number of decimal digits is allowed. The "T" can be a space (" ").
         Characters must be capitalized according to the given format.
     dataset_name : str
         Name of the dataset associated with `input_str`. (Used for logging.)
@@ -578,8 +578,7 @@ def contains_datetime_value_substring(input_str: str) -> bool:
         The string to be parsed, possibly containing a datetime
         substring that follows the format like "YYYY-mm-ddTHH:MM:SS"
         or "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        Any number of decimal digits is allowed; the "T" can be a space (" ").
-        Characters must be capitalized according to the given format.
+        Any number of decimal digits is allowed. The "T" can be a space (" ").
         Example: "seconds since 2023-10-31T11:59:32.123"
         Example: "seconds since 2023-10-31 11:59:32"
 
@@ -614,7 +613,7 @@ def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     input_str : str
         The string to be parsed. Must contain exactly one substring in a
         format like "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        Any number of decimal digits is allowed; the "T" can be a space (" ").
+        Any number of decimal digits is allowed. The "T" can be a space (" ").
         Example: "seconds since 2023-10-31T11:59:32.123"
     dataset_name : str
         Name of the dataset associated with `input_str`. (Used for logging.)
@@ -672,7 +671,7 @@ def verify_datetime_string_matches_template(
     dt_template_str : str
         Datetime template string, with a format like "YYYY-mm-ddTHH:MM:SS"
         or "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        Any number of decimal digits is allowed; the "T" can be a space (" ").
+        Any number of decimal digits is allowed. The "T" can be a space (" ").
         Characters must be capitalized according to the given format.
         Should not contain additional text.
     dataset_name : str
@@ -696,7 +695,7 @@ def verify_datetime_string_matches_template(
     # Get the canonical template string (should be "YYYY-mm-ddTHH:MM:SS")
     template_sec = _get_nisar_integer_seconds_template()
 
-    # convert to a regex to make the T optional and use a named capturing group
+    # Convert to a regex to make the T optional and use a named capturing group
     # to capture the decimal digits
     regex_tmpl = rf"^{template_sec.replace('T', '[T ]')}(\.(?P<decimals>s+))?$"
 
@@ -705,7 +704,7 @@ def verify_datetime_string_matches_template(
 
     if template_match is None:
         raise ValueError(
-            f"{dt_template_str=!r}, must contain this pattern: '{tmpl_pattern}'."
+            f"{dt_template_str=!r}, must match this pattern: '{tmpl_pattern}'."
         )
 
     if template_match["decimals"] is None:
@@ -724,7 +723,7 @@ def verify_datetime_string_matches_template(
 
     # Account for integer seconds vs. decimal point w/ decimal digits
     if n_decimals == 0:
-        val_pattern = rf"^{regex_sec}$"
+        val_pattern = f"^{regex_sec}$"
     else:
         val_pattern = rf"^{regex_sec}\.\d{{{n_decimals}}}$"
 
@@ -752,6 +751,8 @@ def verify_datetime_matches_template_with_addl_text(
     digits and the date-time separator ("T" or " "), but otherwise assumes
     that the input datetime value string follows normal ISO 8601 conventions
     (dash-separated date component and colon-separated time component).
+    
+    This function is generic; does not verify conformance to NISAR conventions.
 
     Parameters
     ----------

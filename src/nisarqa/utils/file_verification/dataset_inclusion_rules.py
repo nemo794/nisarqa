@@ -369,21 +369,20 @@ def check_paths(
     rejected = set()
 
     for path in paths:
-        (
+        if check_path(
+            path=path,
+            all_freqs=all_freqs,
+            all_pols=all_pols,
+            all_layers=all_layers,
+            all_subswaths=all_subswaths,
+            valid_freq_pols=valid_freq_pols,
+            valid_layers=valid_layers,
+            valid_subswaths=valid_subswaths,
+            rule_exceptions=rule_exceptions,
+        ):
             accepted.add(path)
-            if check_path(
-                path=path,
-                all_freqs=all_freqs,
-                all_pols=all_pols,
-                all_layers=all_layers,
-                all_subswaths=all_subswaths,
-                valid_freq_pols=valid_freq_pols,
-                valid_layers=valid_layers,
-                valid_subswaths=valid_subswaths,
-                rule_exceptions=rule_exceptions,
-            )
-            else rejected.add(path)
-        )
+        else:
+            rejected.add(path)
 
     return accepted, rejected
 
