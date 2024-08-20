@@ -819,8 +819,10 @@ def attribute_units_check(
 
         # if available, extract the datetime string
         if nisarqa.contains_datetime_template_substring(input_str=xml_units):
-            hdf5_dt_string = nisarqa.extract_datetime_template_substring(
-                input_str=xml_units, dataset_name=dataset_name
+            xml_dt_template_string = (
+                nisarqa.extract_datetime_template_substring(
+                    input_str=xml_units, dataset_name=dataset_name
+                )
             )
 
     else:
