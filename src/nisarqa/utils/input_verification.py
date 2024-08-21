@@ -592,9 +592,9 @@ def contains_datetime_value_substring(input_str: str) -> bool:
     regex_int = _get_nisar_integer_seconds_regex(require_t=False)
 
     # Include optional decimal digits group in the regex
-    regex = re.compile(rf"{regex_int}(?:\.\d+)?")
+    pattern = re.compile(rf"{regex_int}(?:\.\d+)?")
 
-    match = regex.search(input_str)
+    match = pattern.search(input_str)
 
     return match is not None
 
@@ -635,9 +635,9 @@ def extract_datetime_value_substring(input_str: str, dataset_name: str) -> str:
     regex_int = _get_nisar_integer_seconds_regex(require_t=False)
 
     # Include optional decimal digits group in the regex
-    regex = re.compile(rf"{regex_int}(?:\.\d+)?")
+    pattern = re.compile(rf"{regex_int}(?:\.\d+)?")
 
-    matches = regex.findall(input_str)
+    matches = pattern.findall(input_str)
 
     # input string should contain exactly one instance of a datetime string
     if len(matches) != 1:
@@ -719,7 +719,7 @@ def verify_datetime_string_matches_template(
     # we cannot allow it to be optional for this check.
     regex_sec = _get_nisar_integer_seconds_regex(require_t=True)
     if "T" not in dt_template_str:
-        regex_sec = regex_sec.replace("T", "[ ]")
+        regex_sec = regex_sec.replace("T", " ")
 
     # Account for integer seconds vs. decimal point w/ decimal digits
     if n_decimals == 0:
@@ -751,7 +751,7 @@ def verify_datetime_matches_template_with_addl_text(
     digits and the date-time separator ("T" or " "), but otherwise assumes
     that the input datetime value string follows normal ISO 8601 conventions
     (dash-separated date component and colon-separated time component).
-    
+
     This function is generic; does not verify conformance to NISAR conventions.
 
     Parameters
@@ -766,7 +766,7 @@ def verify_datetime_matches_template_with_addl_text(
         String containing exactly one datetime template substring. May contain
         prefix or suffix to the datetime. Must contain a substring following
         the format "YYYY-mm-ddTHH:MM:SS" or "YYYY-mm-ddTHH:MM:SS.sssssssss".
-        Any number of decimal digits is allowed; the "T" can be a space (" ").
+        Any number of decimal digits is allowed. The "T" can be a space (" ").
         Characters must be capitalized according to the given format.
             Example 1: "seconds since YYYY-mm-ddTHH:MM:SS"
             Example 2: "YYYY-mm-dd HH:MM:SS.sssssssss"

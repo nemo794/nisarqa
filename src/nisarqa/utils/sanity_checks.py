@@ -241,7 +241,6 @@ def identification_sanity_checks(
 
     # Verify datetime Datasets
     ds_name = "processingDateTime"
-
     ds_checked.add(ds_name)
     if _dataset_exists(ds_name):
         data = _get_string_dataset(ds_name=ds_name)
