@@ -43,7 +43,7 @@ class GCOVHistogramParamGroup(HistogramParamGroup):
         If the min or max is set to None, then that limit is set dynamically
         based on the range of phase histogram density values.
         If None, this is equivalent to [None, None].
-        Defaults to [0.0, 1.0].
+        Defaults to None.
     backscatter_histogram_bin_edges_range : pair of float, optional
         The dB range for the backscatter histogram's bin edges. Endpoint will
         be included. Defaults to [-80.0, 20.0].
@@ -78,7 +78,7 @@ class GCOVHistogramParamGroup(HistogramParamGroup):
 
     phase_histogram_y_axis_range: None | Sequence[int | float | None] = (
         nisarqa.HistogramParamGroup.get_field_with_updated_default(
-            param_name="phase_histogram_y_axis_range", default=(0.0, 1.0)
+            param_name="phase_histogram_y_axis_range", default=None
         )
     )
 

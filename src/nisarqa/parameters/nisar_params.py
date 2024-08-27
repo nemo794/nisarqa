@@ -377,7 +377,7 @@ class YamlParamGroup(ABC):
 
     @classmethod
     def get_field_with_updated_default(
-        cls, param_name: str, default: float
+        cls, param_name: str, default: Any
     ) -> dataclasses.Field:
         """
         Return the Field object for a class parameter with an updated default.
@@ -386,7 +386,7 @@ class YamlParamGroup(ABC):
         ----------
         param_name : str
             One of the class parameters of this class.
-        default : float
+        default : object
             The desired default value for the parameter.
 
         Returns
@@ -415,7 +415,7 @@ class YamlParamGroup(ABC):
                 return field(default=default, metadata=metadata)
         else:
             raise ValueError(
-                f"`{param_name=}`, must be a parameter in `{cls.__class__.__name__}`"
+                f"`{param_name=}`, must be a parameter in `{cls.__name__}`"
             )
 
 

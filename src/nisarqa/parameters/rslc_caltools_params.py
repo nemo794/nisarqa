@@ -576,8 +576,8 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
                 name="phs_in_radians",
                 descr="""True to compute phase histogram in radians units,
                 False for degrees units.
-                Note: If False, suggest setting `phase_histogram_y_axis_range`
-                to [0.0, 0.1] for RSLC/GSLC, or [0.0, 0.2] for GCOV..""",
+                Note: If False, suggest adjusting `phase_histogram_y_axis_range`
+                appropriately for degrees rather than radians.""",
             )
         },
     )
@@ -671,7 +671,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
 
         # Validate phase_histogram_y_axis_range
         val = self.phase_histogram_y_axis_range
-        if self.phase_histogram_y_axis_range is None:
+        if val is None:
             pass
         elif all(x is not None for x in val):
             # phase histogram y axis range is a pair of numeric
@@ -686,8 +686,8 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         else:
             # Check that format is like: [None, <number>], [<number>, None],
             # or [None, None]
-            if not len(val) == 2:
-                raise TypeError(
+            if len(val) != 2:
+                raise ValueError(
                     f"`phase_histogram_y_axis_range` must be length two: {val}"
                 )
             for x in val:

@@ -1539,10 +1539,7 @@ def generate_phase_histogram_single_freq(
         ax.legend(loc="upper right")
         ax.set_xlabel(f"Phase ({phs_units})")
         ax.set_ylabel(f"Density (1/{phs_units})")
-        if params.phase_histogram_y_axis_range is None:
-            # Let both xlim and ylim be set dynamically by Matplotlib
-            pass
-        else:
+        if params.phase_histogram_y_axis_range is not None:
             # Fix bottom and/or top of y axis interval
             kwargs = {}
             if params.phase_histogram_y_axis_range[0] is not None:
