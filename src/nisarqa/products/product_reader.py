@@ -1391,7 +1391,7 @@ class NisarRadarProduct(NisarProduct):
             )
 
             if not nisarqa.verify_nisar_datetime_string_format(
-                datetime_str=dt_str, precision="seconds", dataset_name=ds.name
+                datetime_str=dt_str, dataset_name=ds.name, precision="seconds"
             ):
                 log.error(
                     f"epoch units string is {sec_since_epoch!r}, but must"
