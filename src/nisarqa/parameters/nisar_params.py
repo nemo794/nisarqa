@@ -306,7 +306,7 @@ class YamlParamGroup(ABC):
 
     @staticmethod
     def _validate_pair_of_numeric(
-        param_value: Optional[Sequence[int]],
+        param_value: Optional[Sequence[int | float]],
         param_name: str,
         min: Optional[int | float] = None,
         max: Optional[int | float] = None,

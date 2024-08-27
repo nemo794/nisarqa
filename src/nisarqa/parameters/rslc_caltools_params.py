@@ -495,8 +495,8 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
     phs_in_radians : bool, optional
         True to compute phase in radians units; False for degrees units.
         Defaults to True.
-        Note: If False, suggest setting `phase_histogram_y_axis_range`
-        to [0.0, 0.1] for RSLC/GSLC, or [0.0, 0.2] for GCOV.
+        Note: If False, suggest adjusting `phase_histogram_y_axis_range`
+        appropriately for degrees rather than radians.
     tile_shape : iterable of int, optional
         User-preferred tile shape for processing images by batches.
         Actual tile shape may be modified by QA to be an integer
