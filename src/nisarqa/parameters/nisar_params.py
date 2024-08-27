@@ -79,6 +79,7 @@ class HDF5Attrs:
     group_path: str
 
 
+@dataclass(frozen=True)
 class YamlParamGroup(ABC):
     """Abstract Base Class for creating *Params dataclasses."""
 
