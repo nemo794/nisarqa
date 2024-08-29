@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Optional
-
 import h5py
 
 import nisarqa
@@ -536,7 +533,7 @@ def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
     if stat not in stat_opts:
         raise ValueError(f"{stat=}, must be one of {stat_opts}.")
 
-    if component not in ("real", "imag", None):
+    if (component is not None) and (component not in ("real", "imag")):
         raise ValueError(f"`{component=!r}, must be 'real', 'imag', or None.")
 
     if component is None:
@@ -557,6 +554,7 @@ def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
         short_name = "real"
         long_name = "real"
     else:
+        assert component == "imag"
         short_name = "imag"
         long_name = "imaginary"
 

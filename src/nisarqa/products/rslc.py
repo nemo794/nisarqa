@@ -2034,16 +2034,16 @@ def copy_non_insar_imagery_metrics(
     product: nisarqa.NonInsarProduct, stats_h5: h5py.File
 ) -> None:
     """
-    Copy min/max/mean/std metrics of primary freq+pol imagery layers to QA HDF5.
+    Copy min/max/mean/std metrics of freq+pol imagery layers to QA HDF5.
 
     This function accommodates both real or complex datasets.
 
     Parameters
     ----------
-    product : nisarqa.NisarProduct
+    product : nisarqa.NonInsarProduct
         Input NISAR product
     stats_h5 : h5py.File
-        Handle to an h5 file where the metrics should be saved
+        Handle to an HDF5 file where the metrics should be saved
     """
     log = nisarqa.get_logger()
 
