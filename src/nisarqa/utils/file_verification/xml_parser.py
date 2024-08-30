@@ -184,7 +184,15 @@ def elements_to_datasets(
             xml_element=element,
             shapes=shapes,
         )
-        datasets[dataset.name] = dataset
+
+        # Check for duplicate occurrences of the same dataset in the XML
+        if dataset.name in datasets:
+            nisarqa.get_logger().error(
+                "XML contains multiple occurrences of the same Dataset."
+                f" Using the first occurrence. Dataset: {dataset.name}"
+            )
+        else:
+            datasets[dataset.name] = dataset
 
     return datasets
 
