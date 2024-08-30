@@ -2055,39 +2055,38 @@ def copy_non_insar_imagery_metrics(
                     f"/{pol}"
                 )
 
-                # Build dict of metrics attributes which should be in the
-                # input product
-                metric_attrs = {}
                 for m in ("min", "max", "mean", "std"):
+                    metrics = []
                     if np.issubdtype(img.data.dtype, np.complexfloating):
                         for component in ("real", "imag"):
-                            metric_name, metric_descr = (
-                                nisarqa.get_stats_name_descr(
-                                    stat=m, component=component
-                                )
+                            # get tuple of (val, name, descr)
+                            val_name_descr = img.get_stat_val_name_descr(
+                                stat=m, component=component
                             )
-                            metric_attrs[metric_name] = metric_descr
+                            metrics.append(val_name_descr)
                     else:
                         assert np.issubdtype(img.data.dtype, np.floating)
-                        metric_name, metric_descr = (
-                            nisarqa.get_stats_name_descr(stat=m, component=None)
+                        # get tuple of (val, name, descr)
+                        val_name_descr = img.get_stat_val_name_descr(
+                            stat=m, component=None
                         )
-                        metric_attrs[metric_name] = metric_descr
+                        metrics.append(val_name_descr)
 
-                for name, descr in metric_attrs.items():
-                    if name in img.data.attrs:
-                        nisarqa.create_dataset_in_h5group(
-                            h5_file=stats_h5,
-                            grp_path=dest_path,
-                            ds_name=name,
-                            ds_data=img.data.attrs[name],
-                            ds_description=descr,
-                            ds_units=img.units,
-                        )
-                    else:
-                        log.error(
-                            f"Missing attribute `{name}`. Dataset: {img.name}"
-                        )
+                    for val, name, descr in metrics:
+                        if val is not None:
+                            nisarqa.create_dataset_in_h5group(
+                                h5_file=stats_h5,
+                                grp_path=dest_path,
+                                ds_name=name,
+                                ds_data=val,
+                                ds_description=descr,
+                                ds_units=img.units,
+                            )
+                        else:
+                            log.error(
+                                f"Attribute `{name}` is missing or has no"
+                                f" value. Dataset: {img.name}"
+                            )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

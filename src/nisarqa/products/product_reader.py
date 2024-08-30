@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import os
-import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from pathlib import Path
+from typing import overload
 
 import h5py
 import isce3
@@ -216,6 +216,86 @@ def _get_paths_in_h5(h5_file: h5py.File, name: str) -> list[str]:
     h5_file.visit(get_path)
 
     return paths
+
+
+def _parse_dataset_stats_from_h5(
+    ds,
+) -> nisarqa.RasterStats | nisarqa.ComplexRasterStats:
+    """
+    Return the statistics from a Dataset in the input file.
+
+    Parameters
+    ----------
+    ds : h5py.Dataset
+        Handle to HDF5 Dataset. Should contain min/max/mean/std Atttributes,
+        with Attribute names corresponding to the naming conventions in
+        `nisarqa.get_stats_name_descr()`.
+
+    Returns
+    -------
+    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
+        Statistics for the input Dataset, parsed from that Dataset's Attributes.
+        If a particular statistic is not found, it will be set to None.
+        If `ds`'s raster is real-valued, a RadarStats is returned.
+        If the raster is complex-valued, a ComplexRadarStats is returned.
+    """
+
+    def _get_attribute_val(attr_val: str) -> float | None:
+        if attr_val in ds.attrs:
+            return ds.attrs[attr_val]
+        else:
+            nisarqa.get_logger().warning(
+                f"Attribute `{attr_val}` not found in the dataset {ds.name}"
+            )
+            return None
+
+    @overload
+    def _get_stats_object(component: None) -> nisarqa.RasterStats:
+        pass
+
+    @overload
+    def _get_stats_object(component: str) -> nisarqa.ComplexRasterStats:
+        pass
+
+    def _get_stats_object(component):
+        stat_name, _ = nisarqa.get_stats_name_descr(
+            stat="min", component=component
+        )
+        minimum = _get_attribute_val(attr_val=stat_name)
+
+        stat_name, _ = nisarqa.get_stats_name_descr(
+            stat="max", component=component
+        )
+        maximum = _get_attribute_val(attr_val=stat_name)
+
+        stat_name, _ = nisarqa.get_stats_name_descr(
+            stat="mean", component=component
+        )
+        mean = _get_attribute_val(attr_val=stat_name)
+
+        stat_name, _ = nisarqa.get_stats_name_descr(
+            stat="std", component=component
+        )
+        stddev = _get_attribute_val(attr_val=stat_name)
+
+        return nisarqa.RasterStats(
+            min_value=minimum,
+            max_value=maximum,
+            mean_value=mean,
+            stddev_value=stddev,
+        )
+
+    if np.issubdtype(ds.dtype, np.complexfloating):
+        real_stats = _get_stats_object(component="real")
+        imag_stats = _get_stats_object(component="imag")
+        raster_stats = nisarqa.ComplexRasterStats(
+            real=real_stats, imag=imag_stats
+        )
+    else:
+        assert np.issubdtype(ds.dtype, np.floating)
+        raster_stats = _get_stats_object(component=None)
+
+    return raster_stats
 
 
 @dataclass
@@ -1415,6 +1495,9 @@ class NisarRadarProduct(NisarProduct):
         # Construct Name
         name = self._get_raster_name(raster_path)
 
+        # Construct Stats
+        raster_stats = _parse_dataset_stats_from_h5(ds=h5_file[raster_path])
+
         return nisarqa.RadarRaster(
             data=dataset,
             units=units,
@@ -1423,6 +1506,7 @@ class NisarRadarProduct(NisarProduct):
             stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
             band=self.band,
             freq="A" if "frequencyA" in raster_path else "B",
+            stats=raster_stats,
             ground_az_spacing=ground_az_spacing,
             az_start=az_start,
             az_stop=az_stop,
@@ -1695,6 +1779,9 @@ class NisarGeoProduct(NisarProduct):
         # Construct Name
         name = self._get_raster_name(raster_path)
 
+        # Construct Stats
+        raster_stats = _parse_dataset_stats_from_h5(ds=h5_file[raster_path])
+
         return nisarqa.GeoRaster(
             data=dataset,
             units=units,
@@ -1703,6 +1790,7 @@ class NisarGeoProduct(NisarProduct):
             stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
             band=self.band,
             freq="A" if ("frequencyA" in raster_path) else "B",
+            stats=raster_stats,
             x_spacing=x_spacing,
             x_start=x_start,
             x_stop=x_stop,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numbers
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
@@ -127,6 +128,64 @@ class ComplexFloat16Decoder(object):
 
 
 @dataclass
+class RasterStats:
+    """TODO: DOCSTRING!"""
+
+    min_value: float | None
+    max_value: float | None
+    mean_value: float | None
+    stddev_value: float | None
+
+
+@dataclass
+class ComplexRasterStats:
+    """TODO: DOCSTRING!"""
+
+    real: RasterStats
+    imag: RasterStats
+
+    def min_value(self, component: str) -> float:
+        if component == "real":
+            return self.real.min_value
+        elif component == "imag":
+            return self.imag.min_value
+        else:
+            raise ValueError(
+                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
+            )
+
+    def max_value(self, component: str) -> float:
+        if component == "real":
+            return self.real.max_value
+        elif component == "imag":
+            return self.imag.max_value
+        else:
+            raise ValueError(
+                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
+            )
+
+    def mean_value(self, component: str) -> float:
+        if component == "real":
+            return self.real.mean_value
+        elif component == "imag":
+            return self.imag.mean_value
+        else:
+            raise ValueError(
+                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
+            )
+
+    def stddev_value(self, component: str) -> float:
+        if component == "real":
+            return self.real.stddev_value
+        elif component == "imag":
+            return self.imag.stddev_value
+        else:
+            raise ValueError(
+                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
+            )
+
+
+@dataclass
 class Raster:
     """
     Raster image dataset base class.
@@ -170,8 +229,129 @@ class Raster:
     band: str
     freq: str
 
+    stats: RasterStats | ComplexRasterStats
 
-# TODO - move to raster.py
+    def __post_init__(self) -> None:
+        if np.issubdtype(self.data.dtype, np.complexfloating):
+            if not isinstance(self.stats, ComplexRasterStats):
+                raise TypeError(
+                    f"`data` provided is complex-valued, so `stats` must"
+                    f" be an instance of ComplexRasterStats. Dataset: {self.name}"
+                )
+        else:
+            assert np.issubdtype(self.data.dtype, np.floating)
+            if not isinstance(self.stats, RasterStats):
+                raise TypeError(
+                    f"`data` provided is real-valued, so `stats` must"
+                    " be an instance of RasterStats."
+                )
+
+    def get_stat(self, stat: str, component: str | None = None) -> float:
+        """
+        Return value for a min/max/mean/std metric.
+
+        Parameters
+        ----------
+        stat : str
+            One of {"min", "max", "mean", "std"}.
+        component : str or None, optional
+            One of "real", "imag", or None.
+            Per ISCE3 convention, statistics for complex-valued data should be
+            computed independently for the real and imaginary components.
+            If the raster is real-valued, set this to None.
+            If the raster is complex-valued, set to "real" or "imag" for the
+            real or imaginery component's metric (respectively).
+            Defaults to None.
+
+        Returns
+        -------
+        statistic : float
+            The value of the requested statistic.
+        """
+        stat_opts = ("min", "max", "mean", "std")
+        if stat not in stat_opts:
+            raise ValueError(f"{stat=}, must be one of {stat_opts}.")
+
+        data_is_complex = np.issubdtype(self.data.dtype, np.complexfloating)
+
+        if data_is_complex:
+            if component not in ("real", "imag"):
+                raise ValueError(
+                    f"{component=!r}, but Raster is complex-valued. Set to"
+                    " either 'real' or 'imag'."
+                )
+        else:
+            if component is not None:
+                raise ValueError(
+                    f"{component=!r}, but Raster is real-valued. Set to None."
+                )
+
+        if component is None:
+            if stat == "min":
+                return self.stats.min_value
+            if stat == "max":
+                return self.stats.max_value
+            if stat == "mean":
+                return self.stats.mean_value
+            if stat == "std":
+                return self.stats.stddev_value
+
+        # Complex data
+        elif component == "real":
+            if stat == "min":
+                return self.stats.real.min_value
+            if stat == "max":
+                return self.stats.real.max_value
+            if stat == "mean":
+                return self.stats.real.mean_value
+            if stat == "std":
+                return self.stats.real.stddev_value
+        else:
+            assert component == "imag"
+            if stat == "min":
+                return self.stats.imag.min_value
+            if stat == "max":
+                return self.stats.imag.max_value
+            if stat == "mean":
+                return self.stats.imag.mean_value
+            if stat == "std":
+                return self.stats.imag.stddev_value
+
+    def get_stat_val_name_descr(
+        self, stat: str, component: str | None = None
+    ) -> float:
+        """
+        Return value, name, and description for a min/max/mean/std metric.
+
+        The name and value will follow the NISAR conventions for
+        min/max/mean/std metrics.
+
+        Parameters
+        ----------
+        stat : str
+            One of {"min", "max", "mean", "std"}.
+        component : str or None, optional
+            One of "real", "imag", or None.
+            Per ISCE3 convention, statistics for complex-valued data should be
+            computed independently for the real and imaginary components.
+            If the raster is real-valued, set this to None.
+            If the raster is complex-valued, set to "real" or "imag" for the
+            real or imaginery component's metric (respectively).
+            Defaults to None.
+
+        Returns
+        -------
+        val, name, descr : float, str, str
+            The value, name, and description of the requested statistic.
+        """
+
+        val = self.get_stat(stat=stat, component=component)
+        name, descr = nisarqa.get_stats_name_descr(
+            stat=stat, component=component
+        )
+        return val, name, descr
+
+
 @dataclass
 class SARRaster(ABC, Raster):
     """Abstract Base Class for SAR Raster dataclasses."""
