@@ -7,6 +7,7 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
+from pathlib import Path
 
 import h5py
 import isce3
@@ -272,6 +273,21 @@ class NisarProduct(ABC):
         with h5py.File(self.filepath) as f:
             wkt = f[id_group]["boundingPolygon"][()]
             return nisarqa.byte_string_to_python_str(wkt)
+
+    @cached_property
+    def granule_id(self) -> str:
+        """Granule ID (or the base filename if granule ID is not present)."""
+        id_group = self.identification_path
+        with h5py.File(self.filepath) as f:
+            try:
+                granule_id = f[id_group]["granuleId"][()]
+            except KeyError:
+                nisarqa.get_logger().error(
+                    "`granuleId` Dataset missing from input product's"
+                    "`identification` group."
+                )
+                return Path(self.filepath).name
+            return nisarqa.byte_string_to_python_str(granule_id)
 
     @cached_property
     def look_direction(self) -> str:
