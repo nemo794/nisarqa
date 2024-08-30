@@ -75,6 +75,7 @@ def process_ionosphere_phase_screen(
                     iono_raster=iono_phs,
                     iono_uncertainty_raster=iono_uncertainty,
                     report_pdf=report_pdf,
+                    granule_id=product.granule_id,
                 )
 
                 # TODO - Process histograms
@@ -100,6 +101,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster,
     iono_uncertainty_raster,
     report_pdf,
+    granule_id: str | None = None,
 ):
     """
     Create and append plots of ionosphere phase screen and uncertainty to PDF.
@@ -118,6 +120,9 @@ def plot_ionosphere_phase_screen_to_pdf(
         correspond to `iono_raster`.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
+    granule_id : str or None, optional
+        Unique identifier for the input product; will be used in the title.
+        If None, no granule ID will be added to the title. Defaults to None.
 
     Notes
     -----
@@ -143,6 +148,8 @@ def plot_ionosphere_phase_screen_to_pdf(
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(iono_raster.name.split("_")[:-1])
     title = f"Ionosphere Phase Screen\n{name}"
+    if granule_id is not None:
+        title = f"{granule_id}\n{title}"
     fig.suptitle(title)
 
     # Plot the ionosphere phase screen raster on the left-side plot.
@@ -270,7 +277,10 @@ def process_phase_image_unwrapped(
 
                 # Plot phase image
                 plot_unwrapped_phase_image_to_pdf(
-                    phs_raster=img, report_pdf=report_pdf, rewrap=params.rewrap
+                    phs_raster=img,
+                    report_pdf=report_pdf,
+                    rewrap=params.rewrap,
+                    granule_id=product.granule_id,
                 )
 
                 # TODO: Plot Histogram
@@ -280,6 +290,7 @@ def plot_unwrapped_phase_image_to_pdf(
     phs_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     report_pdf: PdfPages,
     rewrap: Optional[float] = None,
+    granule_id: str | None = None,
 ) -> None:
     """
     Plot the unwrapped phase image to PDF.
@@ -300,6 +311,9 @@ def plot_unwrapped_phase_image_to_pdf(
         the HSI image(s). If None, no rewrapped phase image will be plotted.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
         Defaults to None.
+    granule_id : str or None, optional
+        Unique identifier for the input product; will be used in the title.
+        If None, no granule ID will be added to the title. Defaults to None.
     """
     # Overview: If no re-wrapping is requested, simply make one plot.
     # If re-wrapping is requested, make the plot on the left the original
@@ -322,6 +336,8 @@ def plot_unwrapped_phase_image_to_pdf(
         )
 
     title = f"Unwrapped Phase Image\n{phs_raster.name}"
+    if granule_id is not None:
+        title = f"{granule_id}\n{title}"
     fig.suptitle(title)
 
     # Plot the "left" plot (fully unwrapped interferogram)
@@ -459,6 +475,7 @@ def process_phase_image_wrapped(
                     complex_raster=complex_img,
                     coh_raster=coh_img,
                     report_pdf=report_pdf,
+                    granule_id=product.granule_id,
                 )
 
                 # TODO: Plot Histogram
@@ -484,6 +501,7 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster,
     coh_raster,
     report_pdf,
+    granule_id: str | None = None,
 ):
     """
     Plot a complex raster and coherence magnitude layers side-by-side on PDF.
@@ -498,6 +516,9 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
         `complex_raster`.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         Output PDF file to append the phase and coherence magnitude plots to.
+    granule_id : str or None, optional
+        Unique identifier for the input product; will be used in the title.
+        If None, no granule ID will be added to the title. Defaults to None.
     """
 
     # Validate that the pertinent metadata in the rasters is equal.
@@ -534,6 +555,8 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     # remove the final layer name of e.g. "_wrappedInterferogram".)
     name = "_".join(complex_raster.name.split("_")[:-1])
     title = f"Wrapped Phase Image Group\n{name}"
+    if granule_id is not None:
+        title = f"{granule_id}\n{title}"
     fig.suptitle(title)
 
     # Add the wrapped phase image plot
