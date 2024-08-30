@@ -158,6 +158,9 @@ def verify_gcov(
             root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band
             )
+            nisarqa.rslc.copy_runconfig_to_stats_h5(
+                runcfg=user_rncfg, band=product.band, stats_h5=stats_h5
+            )
             log.info(f"QA Processing Parameters saved to {stats_file}")
 
             nisarqa.rslc.copy_identification_group_to_stats_h5(

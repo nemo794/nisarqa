@@ -216,7 +216,8 @@ def create_dataset_in_h5group(
             - If values are numeric but dimensionless (e.g. ratios),
               set `ds_units` to "1" (the string "1").
             - If values are inherently descriptive and have no units
-              (e.g. a file name, or a list of frequency names like: ['A', 'B']),
+              (e.g. a file name, or a list of frequency names like: ['A', 'B'],
+              or data which is categorical in nature),
               then set `ds_units` to None so that no units attribute
               is created.
         Defaults to None (no units attribute will be created)
