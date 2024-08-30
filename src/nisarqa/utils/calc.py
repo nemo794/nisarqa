@@ -276,7 +276,9 @@ def compute_and_save_basic_statistics(
     # Step 1: Compute min/max/mean/STD
     # TODO: refactor aka redesign this code chunk.
 
-    def _compute_min_max_mean_std(arr: np.ndarray, data_type: str) -> None:
+    def _compute_min_max_mean_std(
+        arr: np.ndarray, component: str | None
+    ) -> None:
         """
         Compute min, max, mean, and samples standard deviation; save to HDF5.
 
@@ -288,9 +290,15 @@ def compute_and_save_basic_statistics(
             and `arr.imag` parts separately. Unfortunately, h5py.Dataset
             instances do not allow access to these parts using that syntax,
             so to be safe, please pass in a Numpy array.
-        data_type : str
-            The type data being passed in.
-            One of: "float", "real_comp", or "imag_comp".
+        component : str or None
+            One of "real", "imag", or None.
+            Per ISCE3 convention, for complex-valued data, the statistics
+            should be computed independently for the real component and
+            for the imaginary component of the data.
+            If the source dataset is real-valued, set this to None.
+            If the source dataset is complex-valued, set this to "real" for the
+            real-valued component's name and description, or set to "imag"
+            for the imaginary component's name and description.
 
         Notes
         -----
@@ -300,6 +308,10 @@ def compute_and_save_basic_statistics(
         For expediency, for R4, all InSAR products will use this function,
         so this information can live here.
         """
+        if (component is not None) and (component not in ("real", "imag")):
+            raise ValueError(
+                f"`{component=!r}, must be 'real', 'imag', or None."
+            )
 
         # Fill all invalid pixels in array with NaN, to easily compute metrics
         arr_copy = np.where(
@@ -313,17 +325,6 @@ def compute_and_save_basic_statistics(
             ("mean", np.nanmean),
             ("std", lambda x: np.nanstd(x, ddof=1)),
         ]:
-            data_t = "real" if data_type == "float" else "complex"
-            if data_type == "float":
-                component = None
-            elif data_type == "real_comp":
-                component = "real"
-            elif data_type == "imag_comp":
-                component = "imag"
-            else:
-                raise ValueError(
-                    f"`{data_type=}`, must be one of 'float', 'real_comp', or 'imag_comp'."
-                )
 
             name, descr = nisarqa.get_stats_name_descr(
                 stat=key, component=component
@@ -341,10 +342,10 @@ def compute_and_save_basic_statistics(
     if np.issubdtype(arr, np.complexfloating):
         # HDF5 Datasets cannot access .real nor .imag, so we need
         # to read the array into a numpy array in memory first.
-        _compute_min_max_mean_std(arr[()].real, "real_comp")
-        _compute_min_max_mean_std(arr[()].imag, "imag_comp")
+        _compute_min_max_mean_std(arr[()].real, "real")
+        _compute_min_max_mean_std(arr[()].imag, "imag")
     else:
-        _compute_min_max_mean_std(arr[()], "float")
+        _compute_min_max_mean_std(arr[()], None)
 
     # Step 2: Compute % NaN, % Inf, % Fill, % near-zero, % invalid
     compute_percentage_metrics(
