@@ -4,6 +4,7 @@ import collections
 import dataclasses
 import os
 import sys
+import tempfile
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
@@ -157,8 +158,66 @@ class YamlParamGroup(ABC):
                 f"{attribute_name=} is not an attribute in {cls.__name__}"
             )
 
+    def populate_user_runcfg(
+        self, runconfig_cm: CommentedMap, indent: int = 4
+    ) -> None:
+        """
+        Add this instance's final runconfig parameters to a commented map.
+
+        Update the provided ruamel.yaml object with select attributes
+        (parameters) of this dataclass instance for use in a NISAR product
+        QA runconfig file
+
+        Parameters
+        ----------
+        runconfig_cm : ruamel.yaml.comments.CommentedMap
+            The base commented map; will be updated with the attributes
+            from this class instance that are in the QA runconfig file.
+        indent : int, optional
+            Number of spaces per indent. Default: 4.
+
+        Notes
+        -----
+        Reference: https://stackoverflow.com/questions/56471040/add-a-comment-in-list-element-in-ruamel-yaml
+
+        See Also
+        --------
+        populate_default_runcfg :
+            Class method to populate a commented map with only default
+            runconfig parameters.
+        """
+        # build yaml params group
+        params_cm = CommentedMap()
+
+        # Add all attributes from this dataclass to the group
+        for field in fields(self):
+            if "yaml_attrs" in field.metadata:
+                if field.default == dataclasses.MISSING:
+                    msg = "REQUIRED"
+                else:
+                    msg = f"Default: {field.default}"
+
+                yaml_attrs = field.metadata["yaml_attrs"]
+                self.add_param_to_cm(
+                    params_cm=params_cm,
+                    name=yaml_attrs.name,
+                    val=getattr(self, field.name),
+                    comment=f"\n{yaml_attrs.descr}\n{msg}",
+                    indent=indent,
+                )
+
+        if not params_cm:  # No attributes were added
+            nisarqa.get_logger().warning(
+                f"{self.__name__} is a subclass of YamlParamGroup"
+                " but does not have any attributes whose"
+                ' dataclasses.field metadata contains "yaml_attrs"'
+            )
+        else:
+            # Add the new parameter group to the runconfig
+            self.add_param_group_to_runconfig(runconfig_cm, params_cm)
+
     @classmethod
-    def populate_runcfg(cls, runconfig_cm, indent=4):
+    def populate_default_runcfg(cls, runconfig_cm, indent=4):
         """
         Update the provided ruamel.yaml object with select attributes
         (parameters) of this dataclass object for use in a NISAR product
@@ -177,6 +236,12 @@ class YamlParamGroup(ABC):
         Notes
         -----
         Reference: https://stackoverflow.com/questions/56471040/add-a-comment-in-list-element-in-ruamel-yaml
+
+        See Also
+        --------
+        populate_user_runcfg :
+            Instance method to populate a commented map with the final user
+            runconfig parameters.
         """
         # build yaml params group
         params_cm = CommentedMap()
@@ -1132,6 +1197,61 @@ class RootParamGroup(ABC):
         """
         pass
 
+    def get_final_user_runconfig(self) -> str:
+        """
+        Get the final QA runconfig with complete processing parameters.
+
+        Returns
+        -------
+        user_runconfig : str
+            Copy of the runconfig with final parameters used for QA processing.
+            Includes comments. Can be saved into a txt file and used
+            to re-run the QA SAS.
+
+        See Also
+        --------
+        dump_runconfig_template :
+            Class method to dump the default runconfig template to stdout.
+        """
+        # Build a ruamel yaml object that contains the runconfig structure
+        yaml = YAML()
+
+        # Here, the `mapping` parameter sets the size of an indent for the
+        # mapping keys (aka the variable names) in the output yaml file. But,
+        # it does not set the indent for the in-line comments in the output
+        # yaml file; the indent spacing for inline comments will need to be
+        # set later while creating the commented maps.
+        # Re: `sequence` and `offset` parameters -- At the time of writing,
+        # the current QA implementation of `add_param_to_cm` specifies that
+        # lists should always be dumped inline, which means that these
+        # `sequence` and `offset` parameters are a moot point. However,
+        # should that underlying implementation change, settings sequence=4,
+        # offset=2 results in nicely-indented yaml files.
+        # Ref: https://yaml.readthedocs.io/en/latest/detail.html#indentation-of-block-sequences
+        indent = 4
+        yaml.indent(mapping=indent, sequence=indent, offset=max(indent - 2, 0))
+
+        usr_runconfig_cm = CommentedMap()
+
+        # Populate the yaml object. This order determines the order
+        # the groups will appear in the runconfig.
+        param_group_class_objects = self.get_order_of_groups_in_yaml()
+
+        for param_grp in param_group_class_objects:
+
+            # Fetch this instance's version of that class object
+            for field in fields(self):
+                item = getattr(self, field.name)
+                if isinstance(item, param_grp):
+                    item.populate_user_runcfg(usr_runconfig_cm, indent=indent)
+                    break
+
+        # return as a string
+        with tempfile.TemporaryFile() as fp:
+            yaml.dump(usr_runconfig_cm, fp)
+            fp.seek(0)
+            return fp.read()
+
     @classmethod
     def dump_runconfig_template(cls, indent=4):
         """Output the runconfig template (with default values) to stdout.
@@ -1140,6 +1260,11 @@ class RootParamGroup(ABC):
         ----------
         indent : int, optional
             Number of spaces of an indent. Defaults to 4.
+
+        See Also
+        --------
+        get_final_user_runconfig :
+            Instance method to return the final user runconfig to str.
         """
 
         # Build a ruamel yaml object that contains the runconfig structure
@@ -1166,7 +1291,7 @@ class RootParamGroup(ABC):
         param_group_class_objects = cls.get_order_of_groups_in_yaml()
 
         for param_grp in param_group_class_objects:
-            param_grp.populate_runcfg(runconfig_cm, indent=indent)
+            param_grp.populate_default_runcfg(runconfig_cm, indent=indent)
 
         # output to console. Let user stream that into a file.
         yaml.dump(runconfig_cm, sys.stdout)
@@ -1203,6 +1328,17 @@ class RootParamGroup(ABC):
             ds_name="QASoftwareVersion",
             ds_data=nisarqa.__version__,
             ds_description="QA software version used for processing",
+            ds_units=None,
+        )
+
+        # Save final runconfig parameters to HDF5
+        nisarqa.create_dataset_in_h5group(
+            h5_file=h5_file,
+            grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP % band,
+            ds_name="runConfigurationContents",
+            ds_data=self.get_final_user_runconfig(),
+            ds_description="Contents of the run configuration file "
+            "with parameters used for processing",
             ds_units=None,
         )
 

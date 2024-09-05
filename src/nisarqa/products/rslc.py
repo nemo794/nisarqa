@@ -150,10 +150,6 @@ def verify_rslc(
             root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band
             )
-
-            copy_runconfig_to_stats_h5(
-                runcfg=user_rncfg, band=product.band, stats_h5=stats_h5
-            )
             log.info(f"QA Processing Parameters saved to {stats_file}")
 
             copy_identification_group_to_stats_h5(
@@ -362,41 +358,6 @@ def copy_identification_group_to_stats_h5(
         else:
             # Copy entire identification metadata from input file to stats.h5
             in_file.copy(in_file[src_grp_path], stats_h5, dest_grp_path)
-
-
-def copy_runconfig_to_stats_h5(
-    runcfg: Mapping[str, Mapping], band: str, stats_h5: h5py.File
-) -> None:
-    """
-    Copy the runconfig verbatim into the STATS HDF5 file.
-
-    This function copies the runconfig verbatim. It will not add in missing
-    parameters with default values.
-
-    Parameters
-    ----------
-    runcfg : Mapping[str, Mapping
-        The input runconfig contents.
-    band : str
-        The band of the input product, e.g. "L" or "S".
-    stats_h5 : h5py.File
-        Handle to an HDF5 file where the identification metadata
-        should be saved.
-    """
-
-    grp_path = f"{nisarqa.STATS_H5_QA_PROCESSING_GROUP % band}/"
-    ds_descr = (
-        "Contents of the run configuration file with parameters used for"
-        " processing"
-    )
-    nisarqa.create_dataset_in_h5group(
-        h5_file=stats_h5,
-        grp_path=grp_path,
-        ds_name="runConfigurationContents",
-        ds_data=str(runcfg),
-        ds_description=ds_descr,
-        ds_units=None,
-    )
 
 
 def copy_rfi_metadata_to_stats_h5(
