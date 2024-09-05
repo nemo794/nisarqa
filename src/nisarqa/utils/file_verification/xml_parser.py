@@ -191,8 +191,9 @@ def elements_to_datasets(
                 "XML contains multiple occurrences of the same Dataset."
                 f" Using the first occurrence. Dataset: {dataset.name}"
             )
-        else:
-            datasets[dataset.name] = dataset
+            continue
+        
+        datasets[dataset.name] = dataset
 
     return datasets
 
