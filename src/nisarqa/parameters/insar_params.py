@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
+from pathlib import Path
 from typing import ClassVar, Optional
 
 import nisarqa
@@ -175,12 +176,12 @@ class InSARProductPathGroupParamGroup(ProductPathGroupParamGroup):
 
     Parameters
     ----------
-    qa_output_dir : str, optional
+    qa_output_dir : os.PathLike, optional
         Filepath to the output directory to store NISAR QA output files.
         Defaults to './qa'.
     """
 
-    qa_output_dir: str = field(
+    qa_output_dir: os.PathLike = field(
         default="./qa",
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -203,7 +204,7 @@ class RIFGProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
     def __post_init__(self):
         # append subdirectory for the insar product to store its outputs
         object.__setattr__(
-            self, "qa_output_dir", os.path.join(self.qa_output_dir, "rifg")
+            self, "qa_output_dir", Path(self.qa_output_dir, "rifg")
         )
 
         super().__post_init__()
@@ -214,7 +215,7 @@ class RUNWProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
     def __post_init__(self):
         # append subdirectory for the insar product to store its outputs
         object.__setattr__(
-            self, "qa_output_dir", os.path.join(self.qa_output_dir, "runw")
+            self, "qa_output_dir", Path(self.qa_output_dir, "runw")
         )
 
         super().__post_init__()
@@ -225,7 +226,7 @@ class GUNWProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
     def __post_init__(self):
         # append subdirectory for the insar product to store its outputs
         object.__setattr__(
-            self, "qa_output_dir", os.path.join(self.qa_output_dir, "gunw")
+            self, "qa_output_dir", Path(self.qa_output_dir, "gunw")
         )
 
         super().__post_init__()
@@ -236,7 +237,7 @@ class ROFFProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
     def __post_init__(self):
         # append subdirectory for the insar product to store its outputs
         object.__setattr__(
-            self, "qa_output_dir", os.path.join(self.qa_output_dir, "roff")
+            self, "qa_output_dir", Path(self.qa_output_dir, "roff")
         )
 
         super().__post_init__()
@@ -247,7 +248,7 @@ class GOFFProductPathGroupParamGroup(InSARProductPathGroupParamGroup):
     def __post_init__(self):
         # append subdirectory for the insar product to store its outputs
         object.__setattr__(
-            self, "qa_output_dir", os.path.join(self.qa_output_dir, "goff")
+            self, "qa_output_dir", Path(self.qa_output_dir, "goff")
         )
 
         super().__post_init__()

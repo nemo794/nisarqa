@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import textwrap
 from dataclasses import dataclass
+from pathlib import Path
 
 import isce3
 import numpy as np
@@ -115,7 +116,7 @@ def write_latlonquad_to_kml(
         </kml>
         """
     ).strip()
-    with open(os.path.join(output_dir, kml_filename), "w") as f:
+    with open(Path(output_dir, kml_filename), "w") as f:
         f.write(kml_file)
 
 

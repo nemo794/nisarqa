@@ -943,12 +943,12 @@ class ProductPathGroupParamGroup(YamlParamGroup):
 
     Parameters
     ----------
-    qa_output_dir : str, optional
+    qa_output_dir : os.PathLike, optional
         Filepath to the output directory to store NISAR QA output files.
         Defaults to './qa'
     """
 
-    qa_output_dir: str = field(
+    qa_output_dir: os.PathLike = field(
         default="./qa",
         metadata={
             "yaml_attrs": YamlAttrs(
@@ -961,8 +961,8 @@ class ProductPathGroupParamGroup(YamlParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
-        if not isinstance(self.qa_output_dir, str):
-            raise TypeError(f"`qa_output_dir` must be a str")
+        if not isinstance(self.qa_output_dir, (str, os.PathLike)):
+            raise TypeError(f"`qa_output_dir` must be os.PathLike")
 
         # If this directory does not exist, make it.
         if not os.path.isdir(self.qa_output_dir):
