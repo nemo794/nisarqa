@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import io
 import os
 import sys
 import tempfile
@@ -1237,25 +1238,42 @@ class RootParamGroup(ABC):
         # the groups will appear in the runconfig.
         param_group_class_objects = self.get_order_of_groups_in_yaml()
 
-        # We're trying to loop over all fields in `self` (each field corresponds to a
-        # group in the runconfig) but in the particular order specified by
+        # We're trying to loop over all fields in `self` (each field corresponds
+        # to a group in the runconfig) but in the particular order specified by
         # `self.get_order_of_groups_in_yaml()`.
-        # We assume that each field has a unique type so that, for each group type,
-        # we can get the field corresponding to that type using `isinstance()`.
-        for param_grp in param_group_class_objects:
+        # We assume that each field has a unique type so that,
+        # for each group type, we can get the field corresponding to that type
+        # using `isinstance()`.
+        for next_param_grp in param_group_class_objects:
 
             # Fetch this instance's version of that class object
             for field in fields(self):
                 item = getattr(self, field.name)
-                if isinstance(item, param_grp):
+                if isinstance(item, next_param_grp):
                     item.populate_user_runcfg(usr_runconfig_cm, indent=indent)
                     break
+            else:
+                # Because this function is for a particular instance of
+                # *RootParamGroup, some parameters might be set to
+                # their default of "None". (This is ok!)
+                # For example, if the user set the "pta" workflow to False
+                # (meaning, the user did not want to run the PTA tool),
+                # then this instance's `pta` parameter would be set to "None".
+                # This function should only save what was actually used to
+                # produce the QA outputs, so it's okay to skip including
+                # parameters that are "None".
+                if item is not None:
+                    raise ValueError(
+                        f"The field `{field.name}` with type `{type(item)}` in"
+                        " this object's instance of does not match any of the"
+                        " types listed in its `get_order_of_groups_in_yaml()`"
+                        f" implementation, which are: {param_group_class_objects}"
+                    )
 
         # return as a string
-        with tempfile.TemporaryFile() as fp:
-            yaml.dump(usr_runconfig_cm, fp)
-            fp.seek(0)
-            return fp.read()
+        output = io.StringIO()
+        yaml.dump(usr_runconfig_cm, output)
+        return output.getvalue()
 
     @classmethod
     def dump_runconfig_template(cls, indent=4):
