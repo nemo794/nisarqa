@@ -208,7 +208,7 @@ class YamlParamGroup(ABC):
 
         if not params_cm:  # No attributes were added
             nisarqa.get_logger().warning(
-                f"{self.__name__} is a subclass of YamlParamGroup"
+                f"{type(self).__name__} is a subclass of YamlParamGroup"
                 " but does not have any attributes whose"
                 ' dataclasses.field metadata contains "yaml_attrs"'
             )
@@ -1237,6 +1237,11 @@ class RootParamGroup(ABC):
         # the groups will appear in the runconfig.
         param_group_class_objects = self.get_order_of_groups_in_yaml()
 
+        # We're trying to loop over all fields in `self` (each field corresponds to a
+        # group in the runconfig) but in the particular order specified by
+        # `self.get_order_of_groups_in_yaml()`.
+        # We assume that each field has a unique type so that, for each group type,
+        # we can get the field corresponding to that type using `isinstance()`.
         for param_grp in param_group_class_objects:
 
             # Fetch this instance's version of that class object
@@ -1337,8 +1342,10 @@ class RootParamGroup(ABC):
             grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP % band,
             ds_name="runConfigurationContents",
             ds_data=self.get_final_user_runconfig(),
-            ds_description="Contents of the run configuration file "
-            "with parameters used for processing",
+            ds_description=(
+                "Contents of the run configuration file with parameters used"
+                " for processing"
+            ),
             ds_units=None,
         )
 
