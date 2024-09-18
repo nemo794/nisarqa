@@ -176,12 +176,12 @@ class InSARProductPathGroupParamGroup(ProductPathGroupParamGroup):
 
     Parameters
     ----------
-    qa_output_dir : os.PathLike, optional
+    qa_output_dir : path-like, optional
         Filepath to the output directory to store NISAR QA output files.
         Defaults to './qa'.
     """
 
-    qa_output_dir: os.PathLike = field(
+    qa_output_dir: str | os.PathLike = field(
         default="./qa",
         metadata={
             "yaml_attrs": YamlAttrs(
