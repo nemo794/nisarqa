@@ -5,7 +5,6 @@ import dataclasses
 import io
 import os
 import sys
-import tempfile
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field, fields
@@ -1265,7 +1264,7 @@ class RootParamGroup(ABC):
                 if item is not None:
                     raise ValueError(
                         f"The field `{field.name}` with type `{type(item)}` in"
-                        " this object's instance of does not match any of the"
+                        " this object's instance does not match any of the"
                         " types listed in its `get_order_of_groups_in_yaml()`"
                         f" implementation, which are: {param_group_class_objects}"
                     )
