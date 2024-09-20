@@ -1147,6 +1147,69 @@ class NisarProduct(ABC):
                 # Newer products should have complete metadata
                 raise
 
+    @cached_property
+    def _processing_info_metadata_group_path(self) -> str:
+        """
+        Path in the input file to the `../metadata/processingInformation` Group.
+
+        Returns
+        -------
+        path : str
+            Path in input file to the ../metadata/processingInformation Group.
+        """
+        return "/".join([self._metadata_group_path, "processingInformation"])
+
+    @cached_property
+    def _algorithms_metadata_group_path(self) -> str:
+        """
+        Path in input file to `../processingInformation/algorithms` Group.
+
+        Returns
+        -------
+        path : str
+            Path in input file to the ../processingInformation/algorithms Group.
+        """
+        return "/".join(
+            [self._processing_info_metadata_group_path, "algorithms"]
+        )
+
+    @cached_property
+    def software_version(self) -> str:
+        """
+        The software version used to generate the input HDF5 granule.
+
+        For NISAR at JPL, this will typically be the version of ISCE3 used to
+        generate the input granule.
+
+        Returns
+        -------
+        software version : str
+            The software version used to generate the input HDF5 granule.
+        """
+        log = nisarqa.get_logger()
+
+        path = f"{self._algorithms_metadata_group_path}/softwareVersion"
+
+        try:
+            with h5py.File(self.filepath) as in_f:
+                isce3_version = in_f[path][()]
+        except KeyError:
+            return_val = "not available"
+            msg = (
+                f"Returning placeholder software version of {return_val!r}"
+                f" `softwareVersion` does not exist at path: {path}"
+            )
+            spec = nisarqa.Version.from_string(self.product_spec_version)
+            if spec < nisarqa.Version(1, 1, 0):
+                log.warning(
+                    f"Input product generated with an old product spec. {msg}"
+                )
+            else:
+                log.error(msg)
+            return return_val
+
+        return nisarqa.byte_string_to_python_str(isce3_version)
+
 
 @dataclass
 class NisarRadarProduct(NisarProduct):

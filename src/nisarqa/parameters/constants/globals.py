@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+from functools import cache
 from itertools import product
 from pathlib import Path
 
@@ -33,6 +35,15 @@ CUSTOM_CYCLER = (
     )
     + cycler(lw=np.linspace(3, 1, 6))
 )
+
+
+# Use a cache so that this is constant for the duration of the processing.
+@cache
+def _get_qa_processing_datetime() -> str:
+    return str(datetime.now(timezone.utc).isoformat())[:19]
+
+
+QA_PROCESSING_DATETIME = _get_qa_processing_datetime()
 
 FIG_SIZE_ONE_PLOT_PER_PAGE = (6.4, 4.8)
 FIG_SIZE_TWO_PLOTS_PER_PAGE = (10.0, 4.8)
@@ -191,6 +202,7 @@ __all__ = [
     "NISAR_BANDS",
     "NISAR_FREQS",
     "NISAR_LAYERS",
+    "QA_PROCESSING_DATETIME",
     "FIG_SIZE_ONE_PLOT_PER_PAGE",
     "FIG_SIZE_TWO_PLOTS_PER_PAGE",
     "FIG_SIZE_THREE_PLOTS_PER_PAGE_STACKED",

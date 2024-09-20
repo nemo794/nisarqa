@@ -4,6 +4,7 @@ import functools
 import os
 from collections.abc import Callable, Sequence
 from dataclasses import replace
+from datetime import datetime
 from fractions import Fraction
 from typing import Optional, overload
 
@@ -21,6 +22,133 @@ import nisarqa
 # List of objects from the import statements that
 # should not be included when importing this module
 objects_to_skip = nisarqa.get_all(name=__name__)
+
+
+def setup_report_pdf(
+    product: nisarqa.NisarProduct, report_pdf: PdfPages
+) -> None:
+    """
+    Setup the report PDF with PDF metadata and a title page.
+
+    Parameters
+    ----------
+    product : nisarqa.NisarProduct
+        Input NISAR product.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to set the global attributes for and append the
+        PDF title page to.
+    """
+    product_type = product.product_type.upper()
+    # Set the PDF file's metadata via the PdfPages object:
+    d = report_pdf.infodict()
+    d["Title"] = f"NISAR Quality Assurance Report"
+    d["Author"] = "nisar-sds-ops@jpl.nasa.gov"
+    d["Subject"] = (
+        f"NISAR Quality Assurance Report on {product_type} HDF5 Product"
+        f" with Granule ID {product.granule_id}"
+    )
+    d["Keywords"] = (
+        f"NASA JPL NISAR Mission Quality Assurance QA {product_type}"
+    )
+    # A datetime object is required. (Not a string.)
+    d["CreationDate"] = datetime.fromisoformat(nisarqa.QA_PROCESSING_DATETIME)
+    d["ModDate"] = datetime.fromisoformat(nisarqa.QA_PROCESSING_DATETIME)
+
+    # Construct page title
+    # granule IDs are very long. Split into two lines.
+    gran_id = product.granule_id.split("_")
+    gran_id_final = "_".join(gran_id[:11])
+    if len(gran_id_final) < 40:
+        # For e.g. GCOV, if the granule ID was not constructed it gets saved
+        # as something like "(NOT SPECIFIED)", which is very short.
+        table_pos_top = 0.9
+    else:
+        if product.product_type.lower() in nisarqa.LIST_OF_INSAR_PRODUCTS:
+            gran_id_final += f"\n_{'_'.join(gran_id[11:13])}"
+            gran_id_final += f"\n_{'_'.join(gran_id[13:15])}"
+            gran_id_final += f"\n_{'_'.join(gran_id[15:])}"
+            table_pos_top = 0.87
+        else:
+            gran_id_final += f"\n_{'_'.join(gran_id[11:])}"
+            table_pos_top = 0.9
+
+    subtitle = (
+        f"Input {product_type} HDF5 Granule ID:\n{gran_id_final}\n\n"
+        f"QA Software Version: {nisarqa.__version__}\n"
+        f"QA Processing Date: {nisarqa.QA_PROCESSING_DATETIME} UTC"
+    )
+
+    # Collect the metadata to be printed in the table on the title page.
+    # As of Python 3.7, dictionaries guarantee insertion order.
+    metadata = {}
+
+    with h5py.File(product.filepath, "r") as in_f:
+
+        metadata["Processing Software Version"] = product.software_version
+
+        id_group = in_f[product.identification_path]
+        for key, val in id_group.items():
+            # convert val to a string
+            v = val[()]
+            if np.issubdtype(v.dtype, np.bytes_):
+                v = nisarqa.byte_string_to_python_str(v)
+            else:
+                # numeric, etc dtype
+                v = str(v)
+
+            if len(v) > 30:
+                # Value is too long for a visually-appealing table.
+                # Length of 30 looks ok (empirical testing), and nanosecond
+                # precision datetime strings have length 29; if a "Z" is
+                # appended to the datetimes, we're still ok.
+                # (Matplotlib dynamically adjusts the fontsize based on the
+                # lengths of the table's values. If any one of the values is
+                # too long, it makes all of the text imperceptably small. Ugh.)
+                # Examples that will be skipped: boundingPolygon, granuleId.
+                continue
+            metadata[key] = v
+
+            # Include the list of polarizations after the list of frequencies
+            if key == "listOfFrequencies":
+                # Add lists of polarizations
+                for f in nisarqa.NISAR_FREQS:
+                    try:
+                        pols = product.get_list_of_polarizations(freq=f)
+                    except nisarqa.DatasetNotFoundError:
+                        pols_val = "n/a"
+                    else:
+                        pols_val = f"{list(pols)!r}"
+                    metadata[f"Frequency {f} listOfPolarizations"] = pols_val
+
+    fig = plt.figure(figsize=nisarqa.FIG_SIZE_THREE_PLOTS_PER_PAGE_STACKED)
+
+    fig.suptitle(
+        f"NISAR Quality Assurance (QA) Report",
+        fontsize=15,
+        fontweight="bold",
+    )
+
+    ax = plt.subplot(111)
+    ax.set_title(subtitle, fontsize=10, y=table_pos_top + 0.02)
+    ax.axis("off")
+    ax.table(
+        cellText=np.hstack(
+            [
+                np.expand_dims(np.array(list(metadata.keys())), axis=1),
+                np.expand_dims(np.array(list(metadata.values())), axis=1),
+            ]
+        ),
+        cellLoc="left",
+        colLabels=[
+            f"Input {product_type} HDF5 Metadata",
+            "Value",
+        ],
+        colLoc="center",
+        colColours=["lightgray", "lightgray"],
+        bbox=[0, 0, 1, table_pos_top],
+    )
+    report_pdf.savefig(fig)
+    plt.close()
 
 
 def process_ionosphere_phase_screen(
@@ -75,7 +203,6 @@ def process_ionosphere_phase_screen(
                     iono_raster=iono_phs,
                     iono_uncertainty_raster=iono_uncertainty,
                     report_pdf=report_pdf,
-                    granule_id=product.granule_id,
                 )
 
                 # TODO - Process histograms
@@ -101,7 +228,6 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster,
     iono_uncertainty_raster,
     report_pdf,
-    granule_id: str | None = None,
 ):
     """
     Create and append plots of ionosphere phase screen and uncertainty to PDF.
@@ -120,9 +246,6 @@ def plot_ionosphere_phase_screen_to_pdf(
         correspond to `iono_raster`.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
-    granule_id : str or None, optional
-        Unique identifier for the input product; will be used in the title.
-        If None, no granule ID will be added to the title. Defaults to None.
 
     Notes
     -----
@@ -148,8 +271,6 @@ def plot_ionosphere_phase_screen_to_pdf(
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(iono_raster.name.split("_")[:-1])
     title = f"Ionosphere Phase Screen\n{name}"
-    if granule_id is not None:
-        title = f"{granule_id}\n{title}"
     fig.suptitle(title)
 
     # Plot the ionosphere phase screen raster on the left-side plot.
@@ -280,7 +401,6 @@ def process_phase_image_unwrapped(
                     phs_raster=img,
                     report_pdf=report_pdf,
                     rewrap=params.rewrap,
-                    granule_id=product.granule_id,
                 )
 
                 # TODO: Plot Histogram
@@ -290,7 +410,6 @@ def plot_unwrapped_phase_image_to_pdf(
     phs_raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
     report_pdf: PdfPages,
     rewrap: Optional[float] = None,
-    granule_id: str | None = None,
 ) -> None:
     """
     Plot the unwrapped phase image to PDF.
@@ -311,9 +430,6 @@ def plot_unwrapped_phase_image_to_pdf(
         the HSI image(s). If None, no rewrapped phase image will be plotted.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
         Defaults to None.
-    granule_id : str or None, optional
-        Unique identifier for the input product; will be used in the title.
-        If None, no granule ID will be added to the title. Defaults to None.
     """
     # Overview: If no re-wrapping is requested, simply make one plot.
     # If re-wrapping is requested, make the plot on the left the original
@@ -336,8 +452,6 @@ def plot_unwrapped_phase_image_to_pdf(
         )
 
     title = f"Unwrapped Phase Image\n{phs_raster.name}"
-    if granule_id is not None:
-        title = f"{granule_id}\n{title}"
     fig.suptitle(title)
 
     # Plot the "left" plot (fully unwrapped interferogram)
@@ -475,7 +589,6 @@ def process_phase_image_wrapped(
                     complex_raster=complex_img,
                     coh_raster=coh_img,
                     report_pdf=report_pdf,
-                    granule_id=product.granule_id,
                 )
 
                 # TODO: Plot Histogram
@@ -501,7 +614,6 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     complex_raster,
     coh_raster,
     report_pdf,
-    granule_id: str | None = None,
 ):
     """
     Plot a complex raster and coherence magnitude layers side-by-side on PDF.
@@ -516,9 +628,6 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
         `complex_raster`.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         Output PDF file to append the phase and coherence magnitude plots to.
-    granule_id : str or None, optional
-        Unique identifier for the input product; will be used in the title.
-        If None, no granule ID will be added to the title. Defaults to None.
     """
 
     # Validate that the pertinent metadata in the rasters is equal.
@@ -555,8 +664,6 @@ def plot_wrapped_phase_image_and_coh_mag_to_pdf(
     # remove the final layer name of e.g. "_wrappedInterferogram".)
     name = "_".join(complex_raster.name.split("_")[:-1])
     title = f"Wrapped Phase Image Group\n{name}"
-    if granule_id is not None:
-        title = f"{granule_id}\n{title}"
     fig.suptitle(title)
 
     # Add the wrapped phase image plot

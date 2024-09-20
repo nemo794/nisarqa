@@ -154,6 +154,8 @@ def verify_offset(
             h5py.File(stats_file, mode="w") as stats_h5,
             PdfPages(report_file) as report_pdf,
         ):
+            nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
+
             # Save the processing parameters to the stats.h5 file
             root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band

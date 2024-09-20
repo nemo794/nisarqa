@@ -168,6 +168,8 @@ def verify_rslc(
     # steps. The file is automatically deleted upon closing if nothing was
     # written to it.
     with PdfPages(report_file, keep_empty=False) as report_pdf:
+        nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
+
         if root_params.workflows.qa_reports:
             log.info(f"Beginning `qa_reports` processing...")
 
@@ -532,7 +534,6 @@ def process_backscatter_imgs_and_browse(
                 # Label and Save Backscatter Image to PDF
                 with product.get_raster(freq=freq, pol=pol) as img:
                     title = (
-                        f"{product.granule_id}\n"
                         f"{plot_title_prefix}\n"
                         f"(scale={params.backscatter_units}%s)\n{img.name}"
                     )
@@ -1401,7 +1402,6 @@ def generate_backscatter_image_histogram_single_freq(
 
     # Label the backscatter histogram Figure
     title = (
-        f"{product.granule_id}\n"
         f"{plot_title_prefix} Histograms\n{product.band}-band Frequency {freq}"
     )
     ax.set_title(title)
@@ -1537,9 +1537,7 @@ def generate_phase_histogram_single_freq(
 
     # Label and output the Phase Histogram Figure
     if save_phase_histogram:
-        ax.set_title(
-            f"{product.granule_id}\n{band} Frequency {freq} Phase Histograms"
-        )
+        ax.set_title(f"{band}SAR Frequency {freq} Phase Histograms")
         ax.legend(loc="upper right")
         ax.set_xlabel(f"Phase ({phs_units})")
         ax.set_ylabel(f"Density (1/{phs_units})")
@@ -1749,9 +1747,7 @@ def generate_range_spectra_single_freq(
             ax.plot(fft_freqs, rng_spectrum, label=pol)
 
     # Label the Plot
-    ax.set_title(
-        f"{product.granule_id}\nRange Power Spectra for Frequency {freq}\n"
-    )
+    ax.set_title(f"Range Power Spectra for Frequency {freq}\n")
     ax.set_xlabel(f"Frequency rel. {proc_center_freq} {abbreviated_units}")
 
     ax.set_ylabel(f"Power Spectral Density ({rng_spec_units_pdf})")
@@ -1902,9 +1898,7 @@ def generate_az_spectra_single_freq(
 
     ax_near, ax_mid, ax_far = all_axes
 
-    fig.suptitle(
-        f"{product.granule_id}\nAzimuth Power Spectra for Frequency {freq}"
-    )
+    fig.suptitle(f"Azimuth Power Spectra for Frequency {freq}")
 
     # Use custom cycler for accessibility
     for ax in all_axes:
