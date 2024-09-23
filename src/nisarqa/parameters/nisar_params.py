@@ -313,6 +313,9 @@ class YamlParamGroup(ABC):
             for item in val:
                 seq.append(item)
             val = seq
+        elif isinstance(val, os.PathLike):
+            # ruamel.yaml cannot represent Path objects. Convert to string.
+            val = str(val)
 
         # Add parameter to the group
         params_cm[name] = val
