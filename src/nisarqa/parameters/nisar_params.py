@@ -313,7 +313,7 @@ class YamlParamGroup(ABC):
             for item in val:
                 seq.append(item)
             val = seq
-        elif isinstance(val, os.PathLike):
+        elif isinstance(val, Path):
             # ruamel.yaml cannot represent Path objects. Convert to string.
             val = str(val)
 
