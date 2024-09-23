@@ -6,10 +6,10 @@ import io
 import os
 import sys
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import Any, ClassVar, Optional, Union
 
 import h5py
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
@@ -17,6 +17,9 @@ from ruamel.yaml import YAML, CommentedMap, CommentedSeq
 import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
+
+SerializableItem = Union[bool, int, float, str, None]
+Serializable = Union[SerializableItem, list[SerializableItem]]
 
 
 @dataclass
@@ -280,7 +283,14 @@ class YamlParamGroup(ABC):
             cls.add_param_group_to_runconfig(runconfig_cm, params_cm)
 
     @classmethod
-    def add_param_to_cm(cls, params_cm, name, val, comment=None, indent=4):
+    def add_param_to_cm(
+        cls,
+        params_cm: CommentedMap,
+        name: str,
+        val: Any,
+        comment: str | None = None,
+        indent: int = 4,
+    ) -> None:
         """
         Add a new attribute to a Commented Map.
 
@@ -292,9 +302,9 @@ class YamlParamGroup(ABC):
             Commented Map for a parameter group in the runconfig.
             Will be updated to include `param_attr`.
         name : str
-            Parameter name, as it should appear in `params_cm`
+            Parameter name, as it should appear in `params_cm`.
         val : Any
-            Parameter value, as it should appear in `params_cm`
+            Parameter value, as it should appear in `params_cm`.
         comment : str or None, optional
             Parameter comment (description), as it should appear in `params_cm`.
             If None, then no comment will be added. Defaults to None.
@@ -304,21 +314,37 @@ class YamlParamGroup(ABC):
         # set indentation for displaying the comments correctly in the yaml
         comment_indent = len(cls.get_path_to_group_in_runconfig()) * indent
 
+        # Prep the value to be type(s) that can be represented by ruamel.yaml
+        def _yaml_encode(obj: Any) -> Serializable:
+            if isinstance(obj, (bool, int, float, str)) or (obj is None):
+                return obj
+            elif isinstance(obj, os.PathLike):
+                # ruamel.yaml cannot represent Path objects, and it poorly
+                # displays bytes objects. Convert to string via `os.fsdecode()`.
+                # (`os.fspath()` returns bytes objects as-is; not ok for yaml.)
+                return os.fsdecode(obj)
+            elif isinstance(obj, Iterable):
+                return [_yaml_encode(item) for item in obj]
+            raise NotImplementedError(
+                f"{obj=} with type {type(obj)=}, which is not a supported type."
+            )
+
+        yaml_val = _yaml_encode(val)
+
         # To have ruamel.yaml display list values as a list in the runconfig,
         # use CommentedSeq
         # https://stackoverflow.com/questions/56937691/making-yaml-ruamel-yaml-always-dump-lists-inline
-        if isinstance(val, (list, tuple)):
+        if isinstance(yaml_val, (list, tuple)):
             seq = CommentedSeq()
             seq.fa.set_flow_style()
-            for item in val:
+            for item in yaml_val:
+                if isinstance(item, (list, tuple)):
+                    raise NotImplementedError("Nested lists not supported.")
                 seq.append(item)
-            val = seq
-        elif isinstance(val, Path):
-            # ruamel.yaml cannot represent Path objects. Convert to string.
-            val = str(val)
+            yaml_val = seq
 
         # Add parameter to the group
-        params_cm[name] = val
+        params_cm[name] = yaml_val
 
         # If provided, add comment
         if comment is not None:
