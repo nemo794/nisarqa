@@ -334,11 +334,11 @@ class YamlParamGroup(ABC):
         # To have ruamel.yaml display list values as a list in the runconfig,
         # use CommentedSeq
         # https://stackoverflow.com/questions/56937691/making-yaml-ruamel-yaml-always-dump-lists-inline
-        if isinstance(yaml_val, (list, tuple)):
+        if isinstance(yaml_val, list):
             seq = CommentedSeq()
             seq.fa.set_flow_style()
             for item in yaml_val:
-                if isinstance(item, (list, tuple)):
+                if isinstance(item, list):
                     raise NotImplementedError("Nested lists not supported.")
                 seq.append(item)
             yaml_val = seq
