@@ -292,7 +292,7 @@ def _parse_dataset_stats_from_h5(
             real=real_stats, imag=imag_stats
         )
     else:
-        assert np.issubdtype(ds.dtype, np.floating)
+        assert nisarqa.has_integer_or_float_dtype(ds)
         raster_stats = _get_stats_object(component=None)
 
     return raster_stats

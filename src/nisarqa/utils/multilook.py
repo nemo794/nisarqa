@@ -43,7 +43,7 @@ def multilook(arr, nlooks):
     # Step 1: Prepare and validate the inputs
     if arr.ndim not in (1, 2):
         raise ValueError(f"Input array has {arr.ndim} but must be 1D or 2D.")
-    nisarqa.verify_real_or_complex_dtype(arr)
+    nisarqa.verify_float_or_complex_dtype(arr)
     nlooks = normalize_nlooks(nlooks, arr)
 
     with nisarqa.ignore_runtime_warnings():

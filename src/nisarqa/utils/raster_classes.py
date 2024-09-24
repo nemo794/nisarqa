@@ -239,7 +239,7 @@ class Raster:
                     f" be an instance of ComplexRasterStats. Dataset: {self.name}"
                 )
         else:
-            assert np.issubdtype(self.data.dtype, np.floating)
+            assert nisarqa.has_integer_or_float_dtype(self.data)
             if not isinstance(self.stats, RasterStats):
                 raise TypeError(
                     f"`data` provided is real-valued, so `stats` must"
@@ -669,6 +669,9 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
                     f" {raster2.stats_h5_group_path=}. Consider checking if"
                     " these base paths should match."
                 )
+        elif r1.name == "stats":
+            # min/max/mean/std will almost never match for two different rasters
+            pass
         elif isinstance(r1_val, str):
             if r1_val != r2_val:
                 raise ValueError(

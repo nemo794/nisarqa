@@ -6,6 +6,7 @@ from datetime import datetime
 
 import h5py
 import numpy as np
+from numpy.typing import ArrayLike
 
 import nisarqa
 
@@ -267,7 +268,14 @@ def verify_complex_dtype(arr):
         )
 
 
-def verify_real_or_complex_dtype(arr):
+def has_integer_or_float_dtype(arr: ArrayLike) -> None:
+    """True if input array has an integer or float dtype; False otherwise."""
+    is_int = np.issubdtype(arr.dtype, np.integer)
+    is_float = np.issubdtype(arr.dtype, np.floating)
+    return is_int or is_float
+
+
+def verify_float_or_complex_dtype(arr):
     """Check that input array has a float or complex-float datatype"""
     if not (
         np.issubdtype(arr.dtype, np.floating)
