@@ -120,6 +120,40 @@ def setup_report_pdf(
                         pols_val = f"{list(pols)!r}"
                     metadata[f"Frequency {f} listOfPolarizations"] = pols_val
 
+                # Add lists of terms for GCOV
+                if isinstance(product, nisarqa.GCOV):
+                    for f in nisarqa.NISAR_FREQS:
+                        try:
+                            terms = product.get_list_of_covariance_terms(freq=f)
+                        except nisarqa.DatasetNotFoundError:
+                            terms_val = "n/a"
+                        else:
+                            # Baseline on-diagnoal GCOV processing generates
+                            # up to 5 terms. Typical on- and off- diagonal
+                            # processing for quad-pol generates 10 terms.
+                            # <=5 terms fits nicely on 1 line in the PDF,
+                            # <=10 terms needs to have a newline inserted.
+                            # Handle these cases.
+
+                            if len(terms) > 10:
+                                # There are more terms than simply the e.g.
+                                # upper diagonal elements.
+                                # This causes the text to be too small to read
+                                # in the PDF, so skip including this metadata.
+                                continue
+
+                            terms_val = f"{list(terms)!r}"  # <= 5 terms
+                            if len(terms) > 5:
+                                terms_val = terms_val.split(",")
+                                terms_val = (
+                                    ",".join(terms_val[:5])
+                                    + "\n"
+                                    + ",".join(terms_val[5:])
+                                )
+                        metadata[f"Frequency {f} listOfCovarianceTerms"] = (
+                            terms_val
+                        )
+
     fig = plt.figure(figsize=nisarqa.FIG_SIZE_THREE_PLOTS_PER_PAGE_STACKED)
 
     fig.suptitle(
