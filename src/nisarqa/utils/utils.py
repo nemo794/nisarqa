@@ -261,7 +261,7 @@ def create_dataset_in_h5group(
             data = np.bytes_(data)
         elif isinstance(data, np.ndarray) and (
             np.issubdtype(data.dtype, np.object_)
-            or np.issubdtype(data.dtype, np.unicode_)
+            or np.issubdtype(data.dtype, np.str_)
         ):
             raise NotImplementedError(
                 f"`{data=}` and has dtype `{data.dtype}`, which is not"
@@ -343,9 +343,9 @@ def m2km(m):
 
 def byte_string_to_python_str(byte_str: np.bytes_) -> str:
     """Convert Numpy byte string to Python string object."""
-    # Step 1: Use .astype(np.unicode_) to cast from numpy byte string
+    # Step 1: Use .astype(np.str_) to cast from numpy byte string
     # to numpy unicode (UTF-32)
-    out = byte_str.astype(np.unicode_)
+    out = byte_str.astype(np.str_)
 
     # Step 2: Use str(...) to cast from numpy string to normal python string
     out = str(out)
