@@ -219,7 +219,7 @@ def _get_paths_in_h5(h5_file: h5py.File, name: str) -> list[str]:
 
 
 def _parse_dataset_stats_from_h5(
-    ds,
+    ds: h5py.Dataset,
 ) -> nisarqa.RasterStats | nisarqa.ComplexRasterStats:
     """
     Return the statistics from a Dataset in the input file.
@@ -240,15 +240,18 @@ def _parse_dataset_stats_from_h5(
         If the raster is complex-valued, a ComplexRadarStats is returned.
     """
 
-    def _get_attribute_val(attr_val: str) -> float | None:
-        if attr_val in ds.attrs:
-            return ds.attrs[attr_val]
+    # Helper function to get the value from a Dataset's Attribute
+    def _get_attribute_val(attr_name: str) -> float | None:
+        if attr_name in ds.attrs:
+            return ds.attrs[attr_name]
         else:
             nisarqa.get_logger().warning(
-                f"Attribute `{attr_val}` not found in the dataset {ds.name}"
+                f"Attribute `{attr_name}` not found in the dataset {ds.name}"
             )
             return None
 
+    # Helper function to construct a RasterStats or ComplexRasterStats object
+    # for the input Dataset
     @overload
     def _get_stats_object(component: None) -> nisarqa.RasterStats:
         pass
@@ -258,33 +261,21 @@ def _parse_dataset_stats_from_h5(
         pass
 
     def _get_stats_object(component):
-        stat_name, _ = nisarqa.get_stats_name_descr(
-            stat="min", component=component
-        )
-        minimum = _get_attribute_val(attr_val=stat_name)
-
-        stat_name, _ = nisarqa.get_stats_name_descr(
-            stat="max", component=component
-        )
-        maximum = _get_attribute_val(attr_val=stat_name)
-
-        stat_name, _ = nisarqa.get_stats_name_descr(
-            stat="mean", component=component
-        )
-        mean = _get_attribute_val(attr_val=stat_name)
-
-        stat_name, _ = nisarqa.get_stats_name_descr(
-            stat="std", component=component
-        )
-        stddev = _get_attribute_val(attr_val=stat_name)
+        values = {}
+        for stat in ("min", "max", "mean", "std"):
+            stat_name, _ = nisarqa.get_stats_name_descr(
+                stat=stat, component=component
+            )
+            values[stat] = _get_attribute_val(attr_name=stat_name)
 
         return nisarqa.RasterStats(
-            min_value=minimum,
-            max_value=maximum,
-            mean_value=mean,
-            stddev_value=stddev,
+            min_value=values["min"],
+            max_value=values["max"],
+            mean_value=values["mean"],
+            stddev_value=values["std"],
         )
 
+    # Based on the dtype, construct the *RasterStats for the input Dataset
     if np.issubdtype(ds.dtype, np.complexfloating):
         real_stats = _get_stats_object(component="real")
         imag_stats = _get_stats_object(component="imag")
