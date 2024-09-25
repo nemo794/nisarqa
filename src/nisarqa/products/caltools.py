@@ -229,7 +229,7 @@ def populate_abscal_hdf5_output(
             " velocity components are provided in local ENU coordinates with"
             " respect to the WGS 84 reference ellipsoid."
         ),
-        ds_dtype=np.float_,
+        ds_dtype=np.float64,
         ds_units="meters per second",
     )
 
@@ -251,7 +251,7 @@ def populate_abscal_hdf5_output(
             " boresight, increasing toward the far-range direction and"
             " decreasing (becoming negative) toward the near-range direction."
         ),
-        ds_dtype=np.float_,
+        ds_dtype=np.float64,
         ds_units="radians",
     )
 
@@ -263,7 +263,7 @@ def populate_abscal_hdf5_output(
             " reflector (the ratio of the measured RCS to the predicted RCS),"
             " in linear units."
         ),
-        ds_dtype=np.float_,
+        ds_dtype=np.float64,
         ds_units="1",
     )
 
@@ -552,7 +552,7 @@ def populate_pta_hdf5_output(
             " velocity components are provided in local ENU coordinates with"
             " respect to the WGS 84 reference ellipsoid."
         ),
-        ds_dtype=np.float_,
+        ds_dtype=np.float64,
         ds_units="meters per second",
     )
 
@@ -561,7 +561,7 @@ def populate_pta_hdf5_output(
         grp_path=grp_path,
         ds_name="peakMagnitude",
         ds_descr="The peak magnitude of the impulse response.",
-        ds_dtype=np.float_,
+        ds_dtype=np.float64,
         ds_units="1",
     )
 
@@ -570,7 +570,7 @@ def populate_pta_hdf5_output(
         grp_path=grp_path,
         ds_name="peakPhase",
         ds_descr="The phase at the peak location, in radians.",
-        ds_dtype=np.float_,
+        ds_dtype=np.float64,
         ds_units="radians",
     )
 
@@ -583,7 +583,7 @@ def populate_pta_hdf5_output(
             " boresight, increasing toward the far-range direction and"
             " decreasing (becoming negative) toward the near-range direction."
         ),
-        ds_dtype=np.float_,
+        ds_dtype=np.float64,
         ds_units="radians",
     )
 
@@ -602,7 +602,7 @@ def populate_pta_hdf5_output(
                 " energy in the remaining sidelobes to the energy in the main"
                 " lobe + first sidelobe."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="1",
         )
 
@@ -616,7 +616,7 @@ def populate_pta_hdf5_output(
                 " decibels (dB). A measure of the ratio of peak sidelobe power"
                 " to the peak main lobe power."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="1",
         )
 
@@ -630,7 +630,7 @@ def populate_pta_hdf5_output(
                 " estimated peak location of the IRF within the RSLC image"
                 " grid."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="samples",
         )
 
@@ -646,7 +646,7 @@ def populate_pta_hdf5_output(
                 " the predicted location of the peak based on the surveyed"
                 " corner reflector location."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="samples",
         )
 
@@ -659,7 +659,7 @@ def populate_pta_hdf5_output(
                 f"The estimated {direction} phase slope at the target location,"
                 " in radians per sample."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="radians per sample",
         )
 
@@ -671,7 +671,7 @@ def populate_pta_hdf5_output(
             ds_descr=(
                 f"The measured 3dB width of the {direction} IRF, in samples."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="samples",
         )
 
@@ -684,7 +684,7 @@ def populate_pta_hdf5_output(
                 f"The {direction} sample indices of the magnitude and phase cut"
                 " values."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="samples",
         )
 
@@ -697,7 +697,7 @@ def populate_pta_hdf5_output(
                 "The magnitude of the (upsampled) impulse response function in"
                 f" {direction}."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="1",
         )
 
@@ -710,7 +710,7 @@ def populate_pta_hdf5_output(
                 "The phase of the (upsampled) impulse response function in"
                 f" {direction}."
             ),
-            ds_dtype=np.float_,
+            ds_dtype=np.float64,
             ds_units="radians",
         )
 
@@ -980,8 +980,8 @@ def get_ipr_cut_data(group: h5py.Group) -> Iterator[CornerReflectorIPRCuts]:
         Azimuth and range cuts for a single corner reflector.
     """
     # Get 1-D array of corner reflector IDs and decode from
-    # np.bytes_ -> np.unicode_.
-    ids = group["cornerReflectorId"][()].astype(np.unicode_)
+    # np.bytes_ -> np.str_.
+    ids = group["cornerReflectorId"][()].astype(np.str_)
 
     # Total number of corner reflectors.
     num_corners = len(ids)
