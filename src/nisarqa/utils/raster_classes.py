@@ -145,44 +145,28 @@ class ComplexRasterStats:
     imag: RasterStats
 
     def min_value(self, component: str) -> float:
-        if component == "real":
-            return self.real.min_value
-        elif component == "imag":
-            return self.imag.min_value
-        else:
-            raise ValueError(
-                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
-            )
+        """
+        Get the minimum of the requested component (either "real" or "imag").
+        """
+        return getattr(self, component).min_value
 
     def max_value(self, component: str) -> float:
-        if component == "real":
-            return self.real.max_value
-        elif component == "imag":
-            return self.imag.max_value
-        else:
-            raise ValueError(
-                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
-            )
+        """
+        Get the maximum of the requested component (either "real" or "imag").
+        """
+        return getattr(self, component).max_value
 
     def mean_value(self, component: str) -> float:
-        if component == "real":
-            return self.real.mean_value
-        elif component == "imag":
-            return self.imag.mean_value
-        else:
-            raise ValueError(
-                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
-            )
+        """
+        Get the mean value of the requested component (either "real" or "imag").
+        """
+        return getattr(self, component).mean_value
 
     def stddev_value(self, component: str) -> float:
-        if component == "real":
-            return self.real.stddev_value
-        elif component == "imag":
-            return self.imag.stddev_value
-        else:
-            raise ValueError(
-                f"{component=!r}, but Raster is complex-valued. Set to either 'real' or 'imag'."
-            )
+        """
+        Get the standard deviation of the requested component (either "real" or "imag").
+        """
+        return getattr(self, component).stddev_value
 
 
 @dataclass
