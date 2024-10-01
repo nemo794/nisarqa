@@ -174,7 +174,7 @@ def verify_gcov(
             )
 
             # Copy imagery metrics into stats.h5
-            nisarqa.rslc.copy_non_insar_imagery_metrics(
+            nisarqa.copy_non_insar_imagery_metrics(
                 product=product, stats_h5=stats_h5
             )
             log.info(f"Input file imagery metrics copied to {stats_file}")

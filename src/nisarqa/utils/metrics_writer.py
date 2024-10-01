@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import h5py
+import numpy as np
 
 import nisarqa
 
@@ -590,6 +591,65 @@ def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
                 " of the numeric data points"
             ),
         )
+
+
+def copy_non_insar_imagery_metrics(
+    product: nisarqa.NonInsarProduct, stats_h5: h5py.File
+) -> None:
+    """
+    Copy min/max/mean/std metrics of freq+pol imagery layers to QA HDF5.
+
+    This function accommodates both real and complex datasets.
+
+    Parameters
+    ----------
+    product : nisarqa.NonInsarProduct
+        Input NISAR product.
+    stats_h5 : h5py.File
+        Handle to an HDF5 file where the metrics should be saved.
+    """
+    log = nisarqa.get_logger()
+
+    for freq in product.freqs:
+        for pol in product.get_pols(freq=freq):
+            with product.get_raster(freq=freq, pol=pol) as img:
+                dest_path = (
+                    f"{nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq)}"
+                    f"/{pol}"
+                )
+
+                for m in ("min", "max", "mean", "std"):
+                    metrics = []
+                    if np.issubdtype(img.data.dtype, np.complexfloating):
+                        for component in ("real", "imag"):
+                            # get tuple of (val, name, descr)
+                            val_name_descr = img.get_stat_val_name_descr(
+                                stat=m, component=component
+                            )
+                            metrics.append(val_name_descr)
+                    else:
+                        assert np.issubdtype(img.data.dtype, np.floating)
+                        # get tuple of (val, name, descr)
+                        val_name_descr = img.get_stat_val_name_descr(
+                            stat=m, component=None
+                        )
+                        metrics.append(val_name_descr)
+
+                    for val, name, descr in metrics:
+                        if val is not None:
+                            nisarqa.create_dataset_in_h5group(
+                                h5_file=stats_h5,
+                                grp_path=dest_path,
+                                ds_name=name,
+                                ds_data=val,
+                                ds_description=descr,
+                                ds_units=img.units,
+                            )
+                        else:
+                            log.error(
+                                f"Attribute `{name}` is missing or has no"
+                                f" value. Dataset: {img.name}"
+                            )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
