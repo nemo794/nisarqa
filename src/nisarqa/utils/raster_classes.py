@@ -129,7 +129,16 @@ class ComplexFloat16Decoder(object):
 
 @dataclass
 class RasterStats:
-    """TODO: DOCSTRING!"""
+    """
+    A set of Min/Max/Mean/STD statistics for a raster.
+
+    Parameters
+    ----------
+    min_value, max_value, mean_value, stddev_value : float or None
+        Minimum, maximum, mean, and sample standard deviation values
+        (respectively) for a raster image.
+        None if a value could not be provided.
+    """
 
     min_value: float | None
     max_value: float | None
@@ -139,7 +148,18 @@ class RasterStats:
 
 @dataclass
 class ComplexRasterStats:
-    """TODO: DOCSTRING!"""
+    """
+    Min/Max/Mean/STD statistics for a complex-valued raster.
+
+    Parameters
+    ----------
+    real, imag : RasterStats
+        Per ISCE3 convention, for complex-valued data, the statistics
+        should be computed independently for the real component and
+        for the imaginary component of the data.
+        `real` contains the real components' statistics, and `imag` contains
+        the imaginary components' statistics.
+    """
 
     real: RasterStats
     imag: RasterStats
