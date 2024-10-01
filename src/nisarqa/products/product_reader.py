@@ -227,7 +227,7 @@ def _parse_dataset_stats_from_h5(
     Parameters
     ----------
     ds : h5py.Dataset
-        Handle to HDF5 Dataset. Should contain min/max/mean/std Atttributes,
+        Handle to HDF5 Dataset. Should contain min/max/mean/std Attributes,
         with Attribute names corresponding to the naming conventions in
         `nisarqa.get_stats_name_descr()`.
 
