@@ -268,7 +268,7 @@ def verify_complex_dtype(arr):
         )
 
 
-def has_integer_or_float_dtype(arr: ArrayLike) -> bool:
+def has_integer_or_float_dtype(arr: np.ndarray) -> bool:
     """True if input array has an integer or float dtype; False otherwise."""
     is_int = np.issubdtype(arr.dtype, np.integer)
     is_float = np.issubdtype(arr.dtype, np.floating)
