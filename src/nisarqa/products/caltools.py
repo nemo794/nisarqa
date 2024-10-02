@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import json
 import os
-from collections.abc import Iterable, Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from tempfile import NamedTemporaryFile
 from typing import Any
@@ -11,11 +11,12 @@ from typing import Any
 import h5py
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.colors import to_rgba
 from matplotlib.figure import Figure
 from nisar.workflows import estimate_abscal_factor, point_target_analysis
-from numpy.typing import DTypeLike
+from numpy.typing import ArrayLike, DTypeLike
 
 import nisarqa
 from nisarqa import (
@@ -1230,42 +1231,140 @@ def add_pta_plots_to_report(stats_h5: h5py.File, report_pdf: PdfPages) -> None:
                 plt.close(fig)
 
 
-def make_cr_offsets_plot(
-    xy_offsets: Iterable[tuple[float, float]],
-    *,
-    title: str,
-    xlabel: str,
-    ylabel: str,
-) -> Figure:
+@dataclass
+class CRPlotAxisAttrs:
     """
-    Make a plot of corner reflector position errors.
+    Descriptive metadata used for labeling plots of corner reflector offsets.
+
+    Each `CRPlotAxisAttrs` describes a single axis of a raster image in a NISAR
+    product.
+
+    Attributes
+    ----------
+    name : str
+        The name of the axis (e.g. 'Easting', 'Northing', for geocoded images or
+        'Slant Range', 'Azimuth' for range-Doppler images).
+    spacing : float
+        The signed pixel spacing of the image axis, in units described by the
+        `units` attribute. (Note that North-up raster images in geodetic or
+        projected coordinates typically have negative-valued y-spacing.)
+    units : str
+        The units of the image axis coordinate space (e.g. 'meters',
+        'seconds').
+
+    See Also
+    --------
+    get_cr_plot_axis_attrs
+    """
+
+    name: str
+    spacing: float
+    units: str
+
+    def __post_init__(self) -> None:
+        if self.spacing == 0.0:
+            raise ValueError(
+                f"pixel spacing must be nonzero; got {self.spacing}"
+            )
+
+
+def get_cr_plot_axis_attrs(
+    slc: nisarqa.RSLC | nisarqa.GSLC,
+    freq: str,
+    pol: str,
+) -> tuple[CRPlotAxisAttrs, CRPlotAxisAttrs]:
+    """
+    Get metadata describing each axis of a raster image.
 
     Parameters
     ----------
-    xy_offsets : iterable of (float, float)
-        Iterable of x & y (or range & azimuth) position offsets for each corner
-        reflector w.r.t. the expected corner locations.
-    title : str
-        The figure title.
-    xlabel, ylabel : str
-        The x-axis and y-axis labels.
+    slc : RSLC or GSLC
+        The product containing the raster image dataset.
+    freq : str
+        The frequency sub-band of the raster image (e.g. 'A', 'B').
+    pol : str
+        The polarization of the raster image (e.g. 'HH', 'HV').
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        The created figure.
+    x_attrs, y_attrs : CRPlotAxisAttrs
+        Descriptive metadata corresponding to the X & Y axes of the raster
+        image.
     """
-    # Make a figure with a single sub-plot.
-    fig, ax = plt.subplots(
-        ncols=1,
-        nrows=1,
-        constrained_layout="tight",
-        figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
-    )
+    if isinstance(slc, nisarqa.RSLC):
+        x_attrs = CRPlotAxisAttrs(
+            name="Slant Range",
+            spacing=slc.get_slant_range_spacing(freq),
+            units="meters",
+        )
+        y_attrs = CRPlotAxisAttrs(
+            name="Azimuth",
+            spacing=1e6 * slc.get_zero_doppler_time_spacing(),
+            units="microsec.",
+        )
+    elif isinstance(slc, nisarqa.GSLC):
+        with slc.get_raster(freq, pol) as raster:
+            x_attrs = CRPlotAxisAttrs(
+                name="Easting",
+                spacing=raster.x_spacing,
+                units="meters",
+            )
+            y_attrs = CRPlotAxisAttrs(
+                name="Northing",
+                spacing=raster.y_spacing,
+                units="meters",
+            )
+    else:
+        raise TypeError(
+            "input slc must be of type `nisarqa.RSLC` or `nisarqa.GSLC`; got"
+            f" `{type(slc)}`"
+        )
+
+    return x_attrs, y_attrs
+
+
+def make_cr_offsets_scatterplot(
+    ax: Axes,
+    x_offsets: ArrayLike,
+    y_offsets: ArrayLike,
+    x_attrs: CRPlotAxisAttrs,
+    y_attrs: CRPlotAxisAttrs,
+) -> None:
+    """
+    Create a scatterplot of corner reflector offsets.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes to add the plot to.
+    x_offsets, y_offsets : (N,) array_like
+        Arrays of X & Y (for geocoded datasets) or slant range & azimuth (for
+        range-Doppler datasets) position offsets of each corner reflector w.r.t.
+        the expected locations, in pixels. Must be 1-D arrays with length equal
+        to the number of corner reflectors.
+    x_attrs, y_attrs : CRPlotAxisAttrs
+        Descriptive metadata corresponding to the X & Y axes of the raster image
+        that the corner reflector measurements were derived from. Used for
+        labeling the plot.
+    """
+    x_offsets = np.asanyarray(x_offsets)
+    y_offsets = np.asanyarray(y_offsets)
+
+    if (x_offsets.ndim != 1) or (y_offsets.ndim != 1):
+        raise ValueError(
+            f"x_offsets and y_offsets must be 1-D arrays; got {x_offsets.ndim=}"
+            f" and {y_offsets.ndim=}"
+        )
+
+    if len(x_offsets) != len(y_offsets):
+        raise ValueError(
+            "size mismatch: x_offsets and y_offsets must have the same size;"
+            f" got {len(x_offsets)=} and {len(y_offsets)=}"
+        )
 
     # Plot x & y (range & azimuth) offsets.
     colors = itertools.cycle(nisarqa.SEABORN_COLORBLIND)
-    for x_offset, y_offset in xy_offsets:
+    for x_offset, y_offset in zip(x_offsets, y_offsets):
         ax.scatter(
             x=x_offset,
             y=y_offset,
@@ -1274,8 +1373,8 @@ def make_cr_offsets_plot(
             color=next(colors),
         )
 
-    # We want to center the subplot axes (like crosshairs). Move the left and bottom
-    # spines to x=0 and y=0, respectively. Hide the top and right spines.
+    # We want to center the subplot axes (like crosshairs). Move the left and
+    # bottom spines to x=0 and y=0, respectively. Hide the top and right spines.
     ax.spines["left"].set_position(("data", 0.0))
     ax.spines["bottom"].set_position(("data", 0.0))
     ax.spines["top"].set_visible(False)
@@ -1313,24 +1412,166 @@ def make_cr_offsets_plot(
         )
         ax.add_patch(circle)
 
-    # Add title and axis labels.
-    fig.suptitle(title)
+    # Add axis labels.
+    # Depending on the orientation of the image, x-spacing or y-spacing
+    # may be negative (e.g. y-spacing is negative in a North-up image)
+    # so take the absolute value to get the magnitude of the spacing.
+    xlabel = (
+        f"{x_attrs.name}, pixels\n"
+        f"1 pixel = {abs(x_attrs.spacing):.4g} {x_attrs.units}"
+    )
+    ylabel = (
+        f"{y_attrs.name}, pixels\n"
+        f"1 pixel = {abs(y_attrs.spacing):.4g} {y_attrs.units}"
+    )
     ax.set_xlabel(xlabel, loc="right")
     ax.set_ylabel(ylabel, loc="top", rotation=0.0, verticalalignment="top")
+
+
+def make_cr_offsets_stats_table(
+    ax: Axes, offsets: ArrayLike, attrs: CRPlotAxisAttrs
+) -> None:
+    """
+    Make a table of corner reflector offsets statistics.
+
+    Compute summary statistics (mean, standard deviation, min, and max) of the
+    corner reflector offsets corresponding to a single image axis. Make a table
+    containing the results and add it to the specified axis.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes to add the table to.
+    offsets : array_like
+        Array of position offsets of each corner reflector w.r.t. the expected
+        locations along a single axis of the image, in pixels. Must be a 1-D
+        array with length equal to the number of corner reflectors.
+    attrs : CRPlotAxisAttrs
+        Metadata describing the axis of the raster image that the `offsets`
+        measurements were derived from.
+    """
+    # Row & column headers.
+    row_labels = ["Mean", "Std. Dev.", "Min", "Max"]
+    col_labels = ["in pixels", f"in {attrs.units}"]
+
+    # Get CR offsets in pixels and in real time/space coordinates.
+    offsets = np.asanyarray(offsets)
+    offsets = np.vstack([offsets, attrs.spacing * offsets])
+
+    # Get CR offset statistics.
+    # Note that we don't expect NaN values -- `offsets` should only contain
+    # valid CR measurements. We deliberately don't use e.g. `np.nanmean()` to
+    # avoid hiding NaN values in the PDF report.
+    stats = np.vstack(
+        [
+            np.mean(offsets, axis=1),
+            np.std(offsets, axis=1),
+            np.min(offsets, axis=1),
+            np.max(offsets, axis=1),
+        ]
+    )
+
+    # Add the table to the specified axes.
+    ax.table(
+        cellText=stats,
+        rowLabels=row_labels,
+        rowColours=["lightgray"] * len(row_labels),
+        colLabels=col_labels,
+        colColours=["lightgray"] * len(col_labels),
+        loc="center",
+    )
+
+    # Hide the axis itself.
+    ax.axis("off")
+
+    # Add table title.
+    # XXX: There doesn't seem to be a good way to dynamically position the title
+    # at the top of the table, so the y-position is hard-coded based on the
+    # table size and may need to be adjusted if the table contents change.
+    ax.set_title(f"{attrs.name} CR Offsets", y=0.75)
+
+
+def make_cr_offsets_figure(
+    x_offsets: ArrayLike,
+    y_offsets: ArrayLike,
+    x_attrs: CRPlotAxisAttrs,
+    y_attrs: CRPlotAxisAttrs,
+    freq: str,
+    pol: str,
+) -> Figure:
+    """
+    Make a plot of corner reflector position errors.
+
+    Parameters
+    ----------
+    x_offsets, y_offsets : (N,) array_like
+        Arrays of X & Y (for geocoded datasets) or slant range & azimuth (for
+        range-Doppler datasets) position offsets of each corner reflector w.r.t.
+        the expected locations, in pixels. Must be 1-D arrays with length equal
+        to the number of corner reflectors.
+    x_attrs, y_attrs : CRPlotAxisAttrs
+        Descriptive metadata corresponding to the X & Y axes of the raster image
+        that the corner reflector measurements were derived from. Used for
+        labeling the plot.
+    freq : str
+        The frequency sub-band of the raster image that corner reflector
+        measurements were derived from (e.g. 'A', 'B').
+    pol : str
+        The polarization of the raster image that corner reflector measurements
+        were derived from (e.g. 'HH', 'HV').
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The created figure.
+    """
+    # Make a figure with 3 sub-plots: a scatterplot of corner reflector offsets
+    # on the left, and two vertically stacked tables of summary statistics on
+    # the right.
+    fig, axes = plt.subplot_mosaic(
+        [
+            ["offsets_plot", "y_stats_table"],
+            ["offsets_plot", "x_stats_table"],
+        ],
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+    )
+
+    # Add the corner reflector offsets scatterplot.
+    make_cr_offsets_scatterplot(
+        ax=axes["offsets_plot"],
+        x_offsets=x_offsets,
+        y_offsets=y_offsets,
+        x_attrs=x_attrs,
+        y_attrs=y_attrs,
+    )
+
+    # Add tables of corner reflector offset statistics to the figure.
+    make_cr_offsets_stats_table(axes["y_stats_table"], y_offsets, y_attrs)
+    make_cr_offsets_stats_table(axes["x_stats_table"], x_offsets, x_attrs)
+
+    # Add figure title.
+    title = (
+        f"Corner Reflector (CR) {x_attrs.name}/{y_attrs.name} Position Error\n"
+        f"freq={freq!r}, pol={pol!r}"
+    )
+    fig.suptitle(title)
+
+    # Update figure layout to increase margins around the borders.
+    fig.tight_layout(pad=2.0)
 
     return fig
 
 
 def plot_rslc_cr_offsets_to_pdf(
-    stats_h5: h5py.File, report_pdf: PdfPages
+    rslc: nisarqa.RSLC, stats_h5: h5py.File, report_pdf: PdfPages
 ) -> None:
     """
     Plot corner reflector azimuth/range position errors to PDF.
 
     Extract the Point Target Analysis (PTA) results from `stats_h5`, use them to
     generate plots of azimuth & range peak offsets for each corner reflector
-    in the scene and add them to QA PDF report. A single figure is generate for each
-    available frequency/polarization pair.
+    in the scene and add them to QA PDF report. A single figure is generated for
+    each available frequency/polarization pair.
 
     This function has no effect if the input STATS.h5 file did not contain a PTA
     data group (for example, in the case where the RSLC product did not contain
@@ -1338,6 +1579,8 @@ def plot_rslc_cr_offsets_to_pdf(
 
     Parameters
     ----------
+    rslc : RSLC
+        The RSLC product that the PTA results were generated from.
     stats_h5 : h5py.File
         The input RSLC QA STATS.h5 file.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
@@ -1392,16 +1635,19 @@ def plot_rslc_cr_offsets_to_pdf(
                     f" instead got {az_offsets.shape=} and {rg_offsets.shape=}"
                 )
 
+            # Get descriptive metadata corresponding to the X & Y axes of the
+            # raster image.
+            x_attrs, y_attrs = get_cr_plot_axis_attrs(rslc, freq, pol)
+
             # Make a plot of corner reflector position offsets for the current
             # freq/pol and append it to the PDF report.
-            fig = make_cr_offsets_plot(
-                xy_offsets=zip(rg_offsets, az_offsets),
-                title=(
-                    "Corner Reflector Azimuth/Range Position Error (pixels)"
-                    f"\nfreq={freq!r}, pol={pol!r}"
-                ),
-                xlabel="Range Offset\n(pixels)",
-                ylabel="Azimuth Offset\n(pixels)",
+            fig = make_cr_offsets_figure(
+                x_offsets=rg_offsets,
+                y_offsets=az_offsets,
+                x_attrs=x_attrs,
+                y_attrs=y_attrs,
+                freq=freq,
+                pol=pol,
             )
             report_pdf.savefig(fig)
 

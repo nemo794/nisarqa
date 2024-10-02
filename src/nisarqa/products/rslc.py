@@ -307,7 +307,7 @@ def verify_rslc(
             # azimuth/range cuts, and add them to the PDF report.
             with h5py.File(stats_file, mode="r") as stats_h5:
                 nisarqa.caltools.plot_rslc_cr_offsets_to_pdf(
-                    stats_h5, report_pdf
+                    product, stats_h5, report_pdf
                 )
                 nisarqa.caltools.add_pta_plots_to_report(stats_h5, report_pdf)
             log.info(
