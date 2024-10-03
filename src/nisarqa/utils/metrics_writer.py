@@ -620,7 +620,7 @@ def copy_non_insar_imagery_metrics(
 
                 for m in ("min", "max", "mean", "std"):
                     metrics = []
-                    if np.issubdtype(img.data.dtype, np.complexfloating):
+                    if img.is_complex:
                         for component in ("real", "imag"):
                             # get tuple of (val, name, descr)
                             val_name_descr = img.get_stat_val_name_descr(

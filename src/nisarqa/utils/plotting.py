@@ -1349,7 +1349,7 @@ def get_phase_array(
 
     phs_img = phs_or_complex_raster.data[...]
 
-    if np.issubdtype(phs_img.dtype, np.complexfloating):
+    if phs_or_complex_raster.is_complex:
         # complex data; take the phase angle.
         phs_img = np.angle(phs_img.data)
 

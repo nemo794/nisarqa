@@ -339,7 +339,7 @@ def compute_and_save_basic_statistics(
                 ds_description=descr,
             )
 
-    if np.issubdtype(arr, np.complexfloating):
+    if raster.is_complex:
         # HDF5 Datasets cannot access .real nor .imag, so we need
         # to read the array into a numpy array in memory first.
         _compute_min_max_mean_std(arr[()].real, "real")

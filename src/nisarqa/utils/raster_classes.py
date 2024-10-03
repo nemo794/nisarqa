@@ -4,6 +4,7 @@ import numbers
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
+from functools import cached_property
 from typing import Any, Optional, overload
 
 import h5py
@@ -135,7 +136,7 @@ class RasterStats:
     Parameters
     ----------
     min_value, max_value, mean_value, stddev_value : float or None
-        Minimum, maximum, mean, and sample standard deviation values
+        Minimum, maximum, mean, and standard deviation values
         (respectively) for a raster image.
         None if a value could not be provided.
     """
@@ -157,8 +158,8 @@ class ComplexRasterStats:
         Per ISCE3 convention, for complex-valued data, the statistics
         should be computed independently for the real component and
         for the imaginary component of the data.
-        `real` contains the real components' statistics, and `imag` contains
-        the imaginary components' statistics.
+        `real` contains the real component's statistics, and `imag` contains
+        the imaginary component's statistics.
     """
 
     real: RasterStats
@@ -184,7 +185,7 @@ class ComplexRasterStats:
 
     def stddev_value(self, component: str) -> float:
         """
-        Get the standard deviation of the requested component (either "real" or "imag").
+        Get the std. deviation of requested component (either "real" or "imag").
         """
         return getattr(self, component).stddev_value
 
@@ -233,127 +234,34 @@ class Raster:
     band: str
     freq: str
 
-    stats: RasterStats | ComplexRasterStats
-
-    def __post_init__(self) -> None:
-        if np.issubdtype(self.data.dtype, np.complexfloating):
-            if not isinstance(self.stats, ComplexRasterStats):
-                raise TypeError(
-                    f"`data` provided is complex-valued, so `stats` must"
-                    f" be an instance of ComplexRasterStats. Dataset: {self.name}"
-                )
-        else:
-            assert nisarqa.has_integer_or_float_dtype(self.data)
-            if not isinstance(self.stats, RasterStats):
-                raise TypeError(
-                    f"`data` provided is real-valued, so `stats` must"
-                    " be an instance of RasterStats."
-                )
-
-    def get_stat(self, stat: str, component: str | None = None) -> float:
+    @cached_property
+    def is_complex(self) -> bool:
         """
-        Return value for a min/max/mean/std metric.
-
-        Parameters
-        ----------
-        stat : str
-            One of {"min", "max", "mean", "std"}.
-        component : str or None, optional
-            One of "real", "imag", or None.
-            Per ISCE3 convention, statistics for complex-valued data should be
-            computed independently for the real and imaginary components.
-            If the raster is real-valued, set this to None.
-            If the raster is complex-valued, set to "real" or "imag" for the
-            real or imaginery component's metric (respectively).
-            Defaults to None.
+        True if raster data is complex-valued; False otherwise.
 
         Returns
         -------
-        statistic : float
-            The value of the requested statistic.
+        is_complex_dtype : bool
+            True if raster data is complex-valued; False otherwise.
+
+        Warnings
+        --------
+        If `data` does not have a `dtype` attribute, it will be copied
+        into a numpy array to get the dtype. Depending on the size of the
+        raster, this could be an expensive operation.
         """
-        stat_opts = ("min", "max", "mean", "std")
-        if stat not in stat_opts:
-            raise ValueError(f"{stat=}, must be one of {stat_opts}.")
+        try:
+            arr_dtype = self.data.dtype
+        except AttributeError:
+            # Convert input data to a NumPy array only if it isn't already one.
+            # If the input is already an ndarray (or a subclass), it returns
+            # the input as is, without making a copy.
+            arr = np.asanyarray(self.data)
+            arr_dtype = arr.dtype
 
-        data_is_complex = np.issubdtype(self.data.dtype, np.complexfloating)
-
-        if data_is_complex:
-            if component not in ("real", "imag"):
-                raise ValueError(
-                    f"{component=!r}, but Raster is complex-valued. Set to"
-                    " either 'real' or 'imag'."
-                )
-        else:
-            if component is not None:
-                raise ValueError(
-                    f"{component=!r}, but Raster is real-valued. Set to None."
-                )
-
-        if component is None:
-            if stat == "min":
-                return self.stats.min_value
-            if stat == "max":
-                return self.stats.max_value
-            if stat == "mean":
-                return self.stats.mean_value
-            if stat == "std":
-                return self.stats.stddev_value
-
-        # Complex data
-        elif component == "real":
-            if stat == "min":
-                return self.stats.real.min_value
-            if stat == "max":
-                return self.stats.real.max_value
-            if stat == "mean":
-                return self.stats.real.mean_value
-            if stat == "std":
-                return self.stats.real.stddev_value
-        else:
-            assert component == "imag"
-            if stat == "min":
-                return self.stats.imag.min_value
-            if stat == "max":
-                return self.stats.imag.max_value
-            if stat == "mean":
-                return self.stats.imag.mean_value
-            if stat == "std":
-                return self.stats.imag.stddev_value
-
-    def get_stat_val_name_descr(
-        self, stat: str, component: str | None = None
-    ) -> float:
-        """
-        Return value, name, and description for a min/max/mean/std metric.
-
-        The name and value will follow the NISAR conventions for
-        min/max/mean/std metrics.
-
-        Parameters
-        ----------
-        stat : str
-            One of {"min", "max", "mean", "std"}.
-        component : str or None, optional
-            One of "real", "imag", or None.
-            Per ISCE3 convention, statistics for complex-valued data should be
-            computed independently for the real and imaginary components.
-            If the raster is real-valued, set this to None.
-            If the raster is complex-valued, set to "real" or "imag" for the
-            real or imaginery component's metric (respectively).
-            Defaults to None.
-
-        Returns
-        -------
-        val, name, descr : float, str, str
-            The value, name, and description of the requested statistic.
-        """
-
-        val = self.get_stat(stat=stat, component=component)
-        name, descr = nisarqa.get_stats_name_descr(
-            stat=stat, component=component
-        )
-        return val, name, descr
+        # Note: Need to use `np.issubdtype` instead of `np.iscomplexobj`
+        # due to e.g. RSLC and GSLC datasets of type ComplexFloat16Decoder.
+        return np.issubdtype(arr_dtype, np.complexfloating)
 
 
 @dataclass
@@ -605,7 +513,8 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
     Parameters
     ----------
     raster1, raster2 : nisarqa.RadarRaster | nisarqa.GeoRaster
-        *Raster to compare. `raster1` and `raster2` must have the same type.
+        *Raster to compare. `raster1` and `raster2` must either both be
+        instances of RadarRasters or both be instances of GeoRasters.
     almost_identical : bool, optional
         True if the two inputs rasters are expected to have identical metadata
         (except for the layer name).
@@ -631,22 +540,33 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
             f" {type(raster1)}, Type of `raster2`: {type(raster2)}."
         )
 
-    for r1, r2 in zip(fields(raster1), fields(raster2)):
-        r1_val = getattr(raster1, r1.name)
-        r2_val = getattr(raster2, r2.name)
+    # This function only compares fields in instances of the RadarRaster or
+    # GeoRaster base classes. Child classes have additional fields, which we
+    # need to ignore when comparing the metadata of the two input *Rasters.
+    if isinstance(raster1, nisarqa.RadarRaster):
+        raster_class = nisarqa.RadarRaster
+    elif isinstance(raster1, nisarqa.GeoRaster):
+        raster_class = nisarqa.GeoRaster
+    else:
+        raise TypeError(
+            f"{type(raster1)=}, must be an instance of RadarRaster or GeoRaster."
+        )
 
-        assert r1.name == r2.name
+    for f in fields(raster_class):
+        field_name = f.name
+        r1_val = getattr(raster1, field_name)
+        r2_val = getattr(raster2, field_name)
 
         log = nisarqa.get_logger()
 
-        if r1.name == "data":
+        if field_name == "data":
             # raster data layers should have the same shape
             if np.shape(r1_val) != np.shape(r2_val):
                 raise ValueError(
                     f"Values do not match: {np.shape(raster1.data)=} but"
                     f" {np.shape(raster2.data)=}."
                 )
-        elif r1.name == "units":
+        elif field_name == "units":
             if not almost_identical:
                 if raster1.units != raster2.units:
                     log.warning(
@@ -656,7 +576,7 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
                         f" `{raster2.units}`. Please confirm these two rasters"
                         " are ok to have different units."
                     )
-        elif r1.name == "name":
+        elif field_name == "name":
             # "name" dataclass attributes should be the same
             # except for the final layer name
             if r1_val.split("_")[:-1] != r2_val.split("_")[:-1]:
@@ -664,7 +584,7 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
                     f"{raster1.name=} but {raster2.name=}. Consider checking if"
                     " their band, frequency, polarization, etc. should match."
                 )
-        elif r1.name == "stats_h5_group_path":
+        elif field_name == "stats_h5_group_path":
             # "stats_h5_group_path" dataclass attributes should be the same
             # except for the final layer name
             if r1_val.split("/")[:-1] != r2_val.split("/")[:-1]:
@@ -673,20 +593,17 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
                     f" {raster2.stats_h5_group_path=}. Consider checking if"
                     " these base paths should match."
                 )
-        elif r1.name == "stats":
-            # min/max/mean/std will almost never match for two different rasters
-            pass
         elif isinstance(r1_val, str):
             if r1_val != r2_val:
                 raise ValueError(
-                    f"Values do not match for `{r1.name}` field. `raster1` has"
-                    f" value {r1_val}, but `raster2` has value {r2_val}."
+                    f"Values do not match for `{field_name}` field. `raster1`"
+                    f" has value {r1_val}, but `raster2` has value {r2_val}."
                 )
         else:
             if np.abs(r1_val - r2_val) > 1e-6:
                 raise ValueError(
-                    f"Values do not match for `{r1.name}` field. `raster1` has"
-                    f" value {r1_val}, but `raster2` has value {r2_val}."
+                    f"Values do not match for `{field_name}` field. `raster1`"
+                    f" has value {r1_val}, but `raster2` has value {r2_val}."
                 )
 
 
@@ -722,6 +639,140 @@ def decimate_raster_array_to_square_pixels(
 
     # Decimate to square pixels.
     return arr[::ky, ::kx]
+
+
+@dataclass
+class StatsForRaster(Raster):
+    """
+    TODO
+    """
+
+    stats: RasterStats | ComplexRasterStats
+
+    def __post_init__(self) -> None:
+
+        if self.is_complex:
+            if not isinstance(self.stats, ComplexRasterStats):
+                raise TypeError(
+                    f"`data` provided is complex-valued, so `stats` must"
+                    f" be an instance of ComplexRasterStats. Dataset: {self.name}"
+                )
+        else:
+            assert nisarqa.has_integer_or_float_dtype(self.data)
+            if not isinstance(self.stats, RasterStats):
+                raise TypeError(
+                    f"`data` provided is real-valued, so `stats` must"
+                    " be an instance of RasterStats."
+                )
+
+    def get_stat(self, stat: str, component: str | None = None) -> float:
+        """
+        Return value for a min/max/mean/std metric.
+
+        Parameters
+        ----------
+        stat : str
+            One of {"min", "max", "mean", "std"}.
+        component : str or None, optional
+            One of "real", "imag", or None.
+            Per ISCE3 convention, statistics for complex-valued data should be
+            computed independently for the real and imaginary components.
+            If the raster is real-valued, set this to None.
+            If the raster is complex-valued, set to "real" or "imag" for the
+            real or imaginery component's metric (respectively).
+            Defaults to None.
+
+        Returns
+        -------
+        statistic : float
+            The value of the requested statistic.
+        """
+        stat_opts = ("min", "max", "mean", "std")
+        if stat not in stat_opts:
+            raise ValueError(f"{stat=}, must be one of {stat_opts}.")
+
+        if self.is_complex:
+            if component not in ("real", "imag"):
+                raise ValueError(
+                    f"{component=!r}, but Raster is complex-valued. Set to"
+                    " either 'real' or 'imag'."
+                )
+
+            if stat == "min":
+                return self.stats.min_value(component)
+            if stat == "max":
+                return self.stats.max_value(component)
+            if stat == "mean":
+                return self.stats.mean_value(component)
+            if stat == "std":
+                return self.stats.stddev_value(component)
+
+        else:
+            if component is not None:
+                raise ValueError(
+                    f"{component=!r}, but Raster is real-valued. Set to None."
+                )
+
+            if stat == "min":
+                return self.stats.min_value
+            if stat == "max":
+                return self.stats.max_value
+            if stat == "mean":
+                return self.stats.mean_value
+            if stat == "std":
+                return self.stats.stddev_value
+
+    def get_stat_val_name_descr(
+        self, stat: str, component: str | None = None
+    ) -> float:
+        """
+        Return value, name, and description for a min/max/mean/std metric.
+
+        The name and description returned follow the NISAR conventions for
+        saving min/max/mean/std metrics in NISAR L1/L2 HDF5 metadata.
+
+        Parameters
+        ----------
+        stat : str
+            One of {"min", "max", "mean", "std"}.
+        component : str or None, optional
+            One of "real", "imag", or None.
+            Per ISCE3 convention, statistics for complex-valued data should be
+            computed independently for the real and imaginary components.
+            If the raster is real-valued, set this to None.
+            If the raster is complex-valued, set to "real" or "imag" for the
+            real or imaginery component's metric (respectively).
+            Defaults to None.
+
+        Returns
+        -------
+        val, name, descr : float, str, str
+            The value, name, and description of the requested statistic.
+        """
+
+        val = self.get_stat(stat=stat, component=component)
+        name, descr = nisarqa.get_stats_name_descr(
+            stat=stat, component=component
+        )
+        return val, name, descr
+
+
+@dataclass
+class RadarRasterWithStats(RadarRaster, StatsForRaster):
+    """pass"""
+
+    # TODO: update product reader:
+    #   * raster constructors need to constructor these *StatsRaster child types
+    #   * getters to return these *StatsRaster types instead
+
+
+@dataclass
+class GeoRasterWithStats(GeoRaster, StatsForRaster):
+    """pass"""
+
+    # TODO: update product reader:
+    #   * raster constructors need to constructor these *StatsRaster child types
+    #   * getters to return these *StatsRaster types instead
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

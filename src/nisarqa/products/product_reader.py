@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from pathlib import Path
-from typing import overload
+from typing import Any, overload
 
 import h5py
 import isce3
@@ -1082,8 +1082,13 @@ class NisarProduct(ABC):
 
     @abstractmethod
     def _get_raster_from_path(
-        self, h5_file: h5py.File, raster_path: str
-    ) -> nisarqa.RadarRaster | nisarqa.GeoRaster:
+        self, h5_file: h5py.File, raster_path: str, parse_stats: bool
+    ) -> (
+        nisarqa.RadarRaster
+        | nisarqa.RadarRasterWithStats
+        | nisarqa.GeoRaster
+        | nisarqa.GeoRasterWithStats
+    ):
         """
         Generate a *Raster for the raster at `raster_path`.
 
@@ -1096,10 +1101,16 @@ class NisarProduct(ABC):
             Examples:
                 "/science/LSAR/RSLC/swaths/frequencyA/HH"
                 "/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
+        parse_stats : bool
+            If True, the min/max/mean/std statistics are parsed from the
+            HDF5 attributes of the raster and a *RasterWithStats instance is
+            returned.
+            If False, a RadarRaster or GeoRaster instance is returned.
 
         Returns
         -------
-        raster : nisarqa.RadarRaster | nisarqa.GeoRaster
+        raster : nisarqa.RadarRaster or nisarqa.RadarRasterWithStats
+                    or nisarqa.GeoRaster or nisarqa.GeoRasterWithStats
             *Raster of the given dataset.
 
         Raises
@@ -1382,10 +1393,10 @@ class NisarRadarProduct(NisarProduct):
         return geo_corners
 
     def _get_raster_from_path(
-        self, h5_file: h5py.File, raster_path: str
-    ) -> nisarqa.RadarRaster:
+        self, h5_file: h5py.File, raster_path: str, parse_stats: bool
+    ) -> nisarqa.RadarRaster | nisarqa.RadarRasterWithStats:
         """
-        Generate a RadarRaster for the raster at `raster_path`.
+        Generate a RadarRaster* for the raster at `raster_path`.
 
         NISAR product type must be one of: 'RSLC', 'SLC', 'RIFG', 'RUNW', 'ROFF'
         If the raster dtype is complex float 16, then the image dataset
@@ -1401,11 +1412,16 @@ class NisarRadarProduct(NisarProduct):
             Examples:
                 "/science/LSAR/RSLC/swaths/frequencyA/HH"
                 "/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
+        parse_stats : bool
+            If True, the min/max/mean/std statistics are parsed from the
+            HDF5 attributes of the raster and a nisarqa.RadarRasterWithStats
+            instance is returned.
+            If False, a nisarqa.RadarRaster instance is returned (no stats).
 
         Returns
         -------
-        raster : nisarqa.RadarRaster
-            RadarRaster of the given dataset.
+        raster : nisarqa.RadarRaster or nisarqa.RadarRasterWithStats
+            RadarRaster* of the given dataset, as determined by `parse_stats`.
 
         Raises
         ------
@@ -1429,11 +1445,14 @@ class NisarRadarProduct(NisarProduct):
             errmsg = f"Input file does not contain raster {raster_path}"
             raise nisarqa.DatasetNotFoundError(errmsg)
 
+        kwargs = {}
+
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
+        kwargs["data"] = dataset
 
-        units = _get_units(dataset)
-        fill_value = _get_fill_value(dataset)
+        kwargs["units"] = _get_units(dataset)
+        kwargs["fill_value"] = _get_fill_value(dataset)
 
         # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
         # 'Nominal along track spacing in meters between consecutive lines
@@ -1444,6 +1463,7 @@ class NisarRadarProduct(NisarProduct):
             dataset_to_find="sceneCenterAlongTrackSpacing",
         )
         ground_az_spacing = h5_file[path][...]
+        kwargs["ground_az_spacing"] = ground_az_spacing
 
         # Get Azimuth (y-axis) tick range + label
         # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
@@ -1455,11 +1475,11 @@ class NisarRadarProduct(NisarProduct):
             starting_path=raster_path,
             dataset_to_find="zeroDopplerTime",
         )
-        az_start = float(h5_file[path][0]) - 0.5 * ground_az_spacing
-        az_stop = float(h5_file[path][-1]) + 0.5 * ground_az_spacing
+        kwargs["az_start"] = float(h5_file[path][0]) - 0.5 * ground_az_spacing
+        kwargs["az_stop"] = float(h5_file[path][-1]) + 0.5 * ground_az_spacing
 
         # Use zeroDopplerTime's units attribute to get the epoch.
-        epoch = self._get_epoch(ds=h5_file[path])
+        kwargs["epoch"] = self._get_epoch(ds=h5_file[path])
 
         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
         # 'Nominal ground range spacing in meters between consecutive pixels
@@ -1470,6 +1490,7 @@ class NisarRadarProduct(NisarProduct):
             dataset_to_find="sceneCenterGroundRangeSpacing",
         )
         ground_range_spacing = h5_file[path][...]
+        kwargs["ground_range_spacing"] = ground_range_spacing
 
         # Range in meters (units are specified as meters in the product spec)
         # For NISAR, radar-domain grids are referenced by the center of the
@@ -1480,32 +1501,31 @@ class NisarRadarProduct(NisarProduct):
             starting_path=raster_path,
             dataset_to_find="slantRange",
         )
-        rng_start = float(h5_file[path][0]) - 0.5 * ground_range_spacing
-        rng_stop = float(h5_file[path][-1]) + 0.5 * ground_range_spacing
+        kwargs["rng_start"] = (
+            float(h5_file[path][0]) - 0.5 * ground_range_spacing
+        )
+        kwargs["rng_stop"] = (
+            float(h5_file[path][-1]) + 0.5 * ground_range_spacing
+        )
 
         # Construct Name
-        name = self._get_raster_name(raster_path)
+        kwargs["name"] = self._get_raster_name(raster_path)
 
-        # Construct Stats
-        raster_stats = _parse_dataset_stats_from_h5(ds=h5_file[raster_path])
-
-        return nisarqa.RadarRaster(
-            data=dataset,
-            units=units,
-            fill_value=fill_value,
-            name=name,
-            stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
-            band=self.band,
-            freq="A" if "frequencyA" in raster_path else "B",
-            stats=raster_stats,
-            ground_az_spacing=ground_az_spacing,
-            az_start=az_start,
-            az_stop=az_stop,
-            ground_range_spacing=ground_range_spacing,
-            rng_start=rng_start,
-            rng_stop=rng_stop,
-            epoch=epoch,
+        kwargs["stats_h5_group_path"] = self._get_stats_h5_group_path(
+            raster_path
         )
+
+        kwargs["band"] = self.band
+        kwargs["freq"] = "A" if "frequencyA" in raster_path else "B"
+
+        if parse_stats:
+            # Construct Stats
+            kwargs["stats"] = _parse_dataset_stats_from_h5(
+                ds=h5_file[raster_path]
+            )
+            return nisarqa.RadarRasterWithStats(**kwargs)
+        else:
+            return nisarqa.RadarRaster(**kwargs)
 
     @staticmethod
     def _get_epoch(ds: h5py.Dataset) -> str:
@@ -1675,10 +1695,10 @@ class NisarGeoProduct(NisarProduct):
         pass
 
     def _get_raster_from_path(
-        self, h5_file: h5py.File, raster_path: str
-    ) -> nisarqa.GeoRaster:
+        self, h5_file: h5py.File, raster_path: str, parse_stats: bool
+    ) -> nisarqa.GeoRaster | nisarqa.GeoRasterWithStats:
         """
-        Get the GeoRaster for the raster at `raster_path`.
+        Get the GeoRaster* for the raster at `raster_path`.
 
         NISAR product type must be one of: 'GSLC', 'GCOV', 'GUNW', 'GOFF'.
 
@@ -1691,11 +1711,16 @@ class NisarGeoProduct(NisarProduct):
             Examples:
                 "/science/LSAR/GSLC/grids/frequencyA/HH"
                 "/science/LSAR/GUNW/grids/frequencyA/interferogram/HH/unwrappedPhase"
+        parse_stats : bool
+            If True, the min/max/mean/std statistics are parsed from the
+            HDF5 attributes of the raster and a nisarqa.GeoRasterWithStats
+            instance is returned.
+            If False, a nisarqa.GeoRaster instance is returned (no stats).
 
         Returns
         -------
-        raster : nisarqa.GeoRaster
-            GeoRaster of the given dataset.
+        raster : nisarqa.GeoRaster or nisarqa.GeoRasterWithStats
+            GeoRaster* of the given dataset, as determined by `parse_stats`.
 
         Raises
         ------
@@ -1719,11 +1744,14 @@ class NisarGeoProduct(NisarProduct):
             errmsg = f"Input file does not contain raster {raster_path}"
             raise nisarqa.DatasetNotFoundError(errmsg)
 
+        kwargs = {}
+
         # Get dataset object and check for correct dtype
         dataset = self._get_dataset_handle(h5_file, raster_path)
+        kwargs["data"] = dataset
 
-        units = _get_units(dataset)
-        fill_value = _get_fill_value(dataset)
+        kwargs["units"] = _get_units(dataset)
+        kwargs["fill_value"] = _get_fill_value(dataset)
 
         # From the xml Product Spec, xCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive pixels'
@@ -1733,6 +1761,7 @@ class NisarGeoProduct(NisarProduct):
             dataset_to_find="xCoordinateSpacing",
         )
         x_spacing = float(h5_file[path][...])
+        kwargs["x_spacing"] = x_spacing
 
         # X in meters (units are specified as meters in the product spec)
         # For NISAR, geocoded grids are referenced by the upper-left corner
@@ -1743,8 +1772,8 @@ class NisarGeoProduct(NisarProduct):
             starting_path=raster_path,
             dataset_to_find="xCoordinates",
         )
-        x_start = float(h5_file[path][0])
-        x_stop = float(h5_file[path][-1]) + x_spacing
+        kwargs["x_start"] = float(h5_file[path][0])
+        kwargs["x_stop"] = float(h5_file[path][-1]) + x_spacing
 
         # From the xml Product Spec, yCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive lines'
@@ -1754,6 +1783,7 @@ class NisarGeoProduct(NisarProduct):
             dataset_to_find="yCoordinateSpacing",
         )
         y_spacing = float(h5_file[path][...])
+        kwargs["y_spacing"] = y_spacing
 
         # Y in meters (units are specified as meters in the product spec)
         # For NISAR, geocoded grids are referenced by the upper-left corner
@@ -1764,31 +1794,26 @@ class NisarGeoProduct(NisarProduct):
             starting_path=raster_path,
             dataset_to_find="yCoordinates",
         )
-        y_start = float(h5_file[path][0])
-        y_stop = float(h5_file[path][-1]) + y_spacing
+        kwargs["y_start"] = float(h5_file[path][0])
+        kwargs["y_stop"] = float(h5_file[path][-1]) + y_spacing
 
         # Construct Name
-        name = self._get_raster_name(raster_path)
+        kwargs["name"] = self._get_raster_name(raster_path)
 
-        # Construct Stats
-        raster_stats = _parse_dataset_stats_from_h5(ds=h5_file[raster_path])
-
-        return nisarqa.GeoRaster(
-            data=dataset,
-            units=units,
-            fill_value=fill_value,
-            name=name,
-            stats_h5_group_path=self._get_stats_h5_group_path(raster_path),
-            band=self.band,
-            freq="A" if ("frequencyA" in raster_path) else "B",
-            stats=raster_stats,
-            x_spacing=x_spacing,
-            x_start=x_start,
-            x_stop=x_stop,
-            y_spacing=y_spacing,
-            y_start=y_start,
-            y_stop=y_stop,
+        kwargs["stats_h5_group_path"] = self._get_stats_h5_group_path(
+            raster_path
         )
+
+        kwargs["band"] = self.band
+        kwargs["freq"] = "A" if "frequencyA" in raster_path else "B"
+
+        if parse_stats:
+            kwargs["stats"] = _parse_dataset_stats_from_h5(
+                ds=h5_file[raster_path]
+            )
+            return nisarqa.GeoRasterWithStats(**kwargs)
+        else:
+            return nisarqa.GeoRaster(**kwargs)
 
     @abstractmethod
     def _get_dataset_handle(
@@ -1964,9 +1989,9 @@ class NonInsarProduct(NisarProduct):
     @contextmanager
     def get_raster(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Context Manager for a RadarRaster or GeoRaster for the specified raster.
+        Context Manager for a *RasterWithStats for the specified imagery raster.
 
         Parameters
         ----------
@@ -1979,8 +2004,8 @@ class NonInsarProduct(NisarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
             Warning: the input NISAR file cannot be opened by ISCE3 until
             this context manager is exited.
 
@@ -2006,7 +2031,9 @@ class NonInsarProduct(NisarProduct):
             if path not in in_file:
                 errmsg = f"Input file does not contain raster {path}"
                 raise nisarqa.DatasetNotFoundError(errmsg)
-            yield self._get_raster_from_path(h5_file=in_file, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=in_file, raster_path=path, parse_stats=True
+            )
 
     def _get_raster_name(self, raster_path: str) -> str:
         """
@@ -3598,14 +3625,16 @@ class WrappedGroup(InsarProduct):
         self._check_dtype(path=path, expected_dtype=np.complex64)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=False
+            )
 
     @contextmanager
     def get_wrapped_coh_mag(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the wrapped coherence magnitude *Raster.
+        Get the wrapped coherence magnitude *RasterWithStats.
 
         Parameters
         ----------
@@ -3614,15 +3643,17 @@ class WrappedGroup(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._wrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/coherenceMagnitude"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
 
 class UnwrappedGroup(InsarProduct):
@@ -3645,9 +3676,9 @@ class UnwrappedGroup(InsarProduct):
     @contextmanager
     def get_unwrapped_phase(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the unwrapped phase image *Raster.
+        Get the unwrapped phase image *RasterWithStats.
 
         Parameters
         ----------
@@ -3656,15 +3687,17 @@ class UnwrappedGroup(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._unwrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/unwrappedPhase"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_connected_components(
@@ -3688,14 +3721,16 @@ class UnwrappedGroup(InsarProduct):
         self._check_dtype(path=path, expected_dtype=np.uint32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=False
+            )
 
     @contextmanager
     def get_unwrapped_coh_mag(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the unwrapped coherence magnitude *Raster.
+        Get the unwrapped coherence magnitude *RasterWithStats.
 
         Parameters
         ----------
@@ -3704,22 +3739,24 @@ class UnwrappedGroup(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._unwrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/coherenceMagnitude"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_ionosphere_phase_screen(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the ionosphere phase screen *Raster.
+        Get the ionosphere phase screen *RasterWithStats.
 
         Parameters
         ----------
@@ -3728,22 +3765,24 @@ class UnwrappedGroup(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._unwrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/ionospherePhaseScreen"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_ionosphere_phase_screen_uncertainty(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the ionosphere phase screen uncertainty *Raster.
+        Get the ionosphere phase screen uncertainty *RasterWithStats.
 
         Parameters
         ----------
@@ -3752,15 +3791,17 @@ class UnwrappedGroup(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._unwrapped_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/ionospherePhaseScreenUncertainty"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
 
 class IgramOffsetsGroup(InsarProduct):
@@ -3793,9 +3834,9 @@ class IgramOffsetsGroup(InsarProduct):
     @contextmanager
     def get_along_track_offset(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the along track offsets image *Raster.
+        Get the along track offsets image *RasterWithStats.
 
         Parameters
         ----------
@@ -3804,22 +3845,24 @@ class IgramOffsetsGroup(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._igram_offsets_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/alongTrackOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_slant_range_offset(
         self, freq: str, pol: str
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the slant range offsets image *Raster.
+        Get the slant range offsets image *RasterWithStats.
 
         Parameters
         ----------
@@ -3828,15 +3871,17 @@ class IgramOffsetsGroup(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._igram_offsets_group_path(freq=freq, pol=pol)
         path = f"{parent_path}/slantRangeOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
 
 @dataclass
@@ -4139,9 +4184,9 @@ class OffsetProduct(InsarProduct):
     @contextmanager
     def get_along_track_offset(
         self, freq: str, pol: str, layer_num: int
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the along track offset *Raster.
+        Get the along track offset *RasterWithStats.
 
         Parameters
         ----------
@@ -4153,22 +4198,24 @@ class OffsetProduct(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/alongTrackOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_slant_range_offset(
         self, freq: str, pol: str, layer_num: int
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the slant range offset *Raster.
+        Get the slant range offset *RasterWithStats.
 
         Parameters
         ----------
@@ -4180,22 +4227,24 @@ class OffsetProduct(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/slantRangeOffset"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_along_track_offset_variance(
         self, freq: str, pol: str, layer_num: int
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the along track offset variance *Raster.
+        Get the along track offset variance *RasterWithStats.
 
         Parameters
         ----------
@@ -4207,22 +4256,24 @@ class OffsetProduct(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/alongTrackOffsetVariance"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_slant_range_offset_variance(
         self, freq: str, pol: str, layer_num: int
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the slant range offset variance *Raster.
+        Get the slant range offset variance *RasterWithStats.
 
         Parameters
         ----------
@@ -4234,22 +4285,24 @@ class OffsetProduct(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/slantRangeOffsetVariance"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_cross_offset_variance(
         self, freq: str, pol: str, layer_num: int
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the cross offset variance *Raster.
+        Get the cross offset variance *RasterWithStats.
 
         Parameters
         ----------
@@ -4261,22 +4314,24 @@ class OffsetProduct(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/crossOffsetVariance"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
     @contextmanager
     def get_correlation_surface_peak(
         self, freq: str, pol: str, layer_num: int
-    ) -> Iterator[nisarqa.RadarRaster | nisarqa.GeoRaster]:
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
         """
-        Get the correlation surface peak *Raster.
+        Get the correlation surface peak *RasterWithStats.
 
         Parameters
         ----------
@@ -4288,15 +4343,17 @@ class OffsetProduct(InsarProduct):
 
         Yields
         ------
-        raster : RadarRaster or GeoRaster
-            Generated *Raster for the requested dataset.
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
         """
         parent_path = self._numbered_layer_group_path(freq, pol, layer_num)
         path = f"{parent_path}/correlationSurfacePeak"
         self._check_dtype(path=path, expected_dtype=np.float32)
 
         with h5py.File(self.filepath) as f:
-            yield self._get_raster_from_path(h5_file=f, raster_path=path)
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
 
 
 @dataclass
