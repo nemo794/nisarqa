@@ -219,7 +219,16 @@ def numeric_dtype_should_not_have_units() -> set[str]:
         The set dataset basenames that have numeric dtype but should NOT
         have a units attribute.
     """
-    return {"epsg", "projection", "diagnosticModeFlag"}
+    return {
+        "epsg",
+        "projection",
+        "diagnosticModeFlag",
+        "absoluteOrbitNumber",
+        "referenceAbsoluteOrbitNumber",
+        "secondaryAbsoluteOrbitNumber",
+        "frameNumber",
+        "trackNumber",
+    }
 
 
 def ignore_annotation(app: str) -> bool:
