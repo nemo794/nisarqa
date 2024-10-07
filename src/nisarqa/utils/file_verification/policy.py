@@ -228,6 +228,7 @@ def numeric_dtype_should_not_have_units() -> set[str]:
         "secondaryAbsoluteOrbitNumber",
         "frameNumber",
         "trackNumber",
+        "mask",
     }
 
 
