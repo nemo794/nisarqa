@@ -110,7 +110,19 @@ def add_title_page_to_report_pdf(
             # convert val to a string
             v = val[()]
             if np.issubdtype(v.dtype, np.bytes_):
-                v = nisarqa.byte_string_to_python_str(v)
+                if val.shape == ():
+                    # dataset is scalar, not a list
+                    v = nisarqa.byte_string_to_python_str(v)
+                else:
+                    # list of byte strings
+                    # Step 1: Format as a list that prints with commas
+                    v = [
+                        nisarqa.byte_string_to_python_str(my_str)
+                        for my_str in v
+                    ]
+                    # Step 2: Put into its string representation
+                    v = str(v)
+
             else:
                 # numeric, etc dtype
                 v = str(v)
