@@ -37,13 +37,9 @@ CUSTOM_CYCLER = (
 )
 
 
-# Use a cache so that this is constant for the duration of the processing.
-@cache
-def _get_qa_processing_datetime() -> str:
-    return str(datetime.now(timezone.utc).isoformat())[:19]
-
-
-QA_PROCESSING_DATETIME = _get_qa_processing_datetime()
+#: The UTC time at which this module was first loaded, in ISO 8601 format with
+#: integer seconds precision.
+QA_PROCESSING_DATETIME = datetime.now(timezone.utc).isoformat()[:19]
 
 FIG_SIZE_ONE_PLOT_PER_PAGE = (6.4, 4.8)
 FIG_SIZE_TWO_PLOTS_PER_PAGE = (10.0, 4.8)

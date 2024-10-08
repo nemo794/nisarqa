@@ -282,6 +282,9 @@ class NisarProduct(ABC):
             try:
                 granule_id = f[id_group]["granuleId"][()]
             except KeyError:
+                # During NISAR development, we often encounter legacy products that
+                # are named according to NISAR conventions but are missing granule
+                # ID metadata, so this bandaid is sometimes useful.
                 nisarqa.get_logger().error(
                     "`granuleId` Dataset missing from input product's"
                     "`identification` group."
@@ -1176,15 +1179,15 @@ class NisarProduct(ABC):
     @cached_property
     def software_version(self) -> str:
         """
-        The software version used to generate the input HDF5 granule.
+        The software version used to generate the HDF5 granule.
 
         For NISAR at JPL, this will typically be the version of ISCE3 used to
-        generate the input granule.
+        generate the granule.
 
         Returns
         -------
-        software version : str
-            The software version used to generate the input HDF5 granule.
+        software_version : str
+            The software version used to generate the HDF5 granule.
         """
         log = nisarqa.get_logger()
 
@@ -1196,7 +1199,7 @@ class NisarProduct(ABC):
         except KeyError:
             return_val = "not available"
             msg = (
-                f"Returning placeholder software version of {return_val!r}"
+                f"Returning placeholder software version of {return_val!r}."
                 f" `softwareVersion` does not exist at path: {path}"
             )
             spec = nisarqa.Version.from_string(self.product_spec_version)

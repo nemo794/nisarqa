@@ -41,7 +41,7 @@ def setup_report_pdf(
     product_type = product.product_type.upper()
     # Set the PDF file's metadata via the PdfPages object:
     d = report_pdf.infodict()
-    d["Title"] = f"NISAR Quality Assurance Report"
+    d["Title"] = "NISAR Quality Assurance Report"
     d["Author"] = "nisar-sds-ops@jpl.nasa.gov"
     d["Subject"] = (
         f"NISAR Quality Assurance Report on {product_type} HDF5 Product"
@@ -63,7 +63,7 @@ def setup_report_pdf(
         # as something like "(NOT SPECIFIED)", which is very short.
         table_pos_top = 0.9
     else:
-        if product.product_type.lower() in nisarqa.LIST_OF_INSAR_PRODUCTS:
+        if isinstance(product, nisarqa.InsarProduct):
             gran_id_final += f"\n_{'_'.join(gran_id[11:13])}"
             gran_id_final += f"\n_{'_'.join(gran_id[13:15])}"
             gran_id_final += f"\n_{'_'.join(gran_id[15:])}"
@@ -73,9 +73,9 @@ def setup_report_pdf(
             table_pos_top = 0.9
 
     subtitle = (
-        f"Input {product_type} HDF5 Granule ID:\n{gran_id_final}\n\n"
-        f"QA Software Version: {nisarqa.__version__}\n"
-        f"QA Processing Date: {nisarqa.QA_PROCESSING_DATETIME} UTC"
+        f"$\\bf{{Input\ {product_type}\ HDF5\ Granule\ ID:}}$\n{gran_id_final}\n\n"
+        f"$\\bf{{QA\ Software\ Version:}}$ {nisarqa.__version__}\n"
+        f"$\\bf{{QA\ Processing\ Date:}}$ {nisarqa.QA_PROCESSING_DATETIME} UTC"
     )
 
     # Collect the metadata to be printed in the table on the title page.
@@ -84,7 +84,7 @@ def setup_report_pdf(
 
     with h5py.File(product.filepath, "r") as in_f:
 
-        metadata["Processing Software Version"] = product.software_version
+        metadata["softwareVersion"] = product.software_version
 
         id_group = in_f[product.identification_path]
         for key, val in id_group.items():
@@ -118,7 +118,7 @@ def setup_report_pdf(
                         pols_val = "n/a"
                     else:
                         pols_val = f"{list(pols)!r}"
-                    metadata[f"Frequency {f} listOfPolarizations"] = pols_val
+                    metadata[f"listOfPolarizations (frequency {f})"] = pols_val
 
                 # Add lists of terms for GCOV
                 if isinstance(product, nisarqa.GCOV):
@@ -128,8 +128,8 @@ def setup_report_pdf(
                         except nisarqa.DatasetNotFoundError:
                             terms_val = "n/a"
                         else:
-                            # Baseline on-diagnoal GCOV processing generates
-                            # up to 5 terms. Typical on- and off- diagonal
+                            # Baseline on-diagonal GCOV processing generates
+                            # up to 4 terms. Typical on- and off- diagonal
                             # processing for quad-pol generates 10 terms.
                             # <=5 terms fits nicely on 1 line in the PDF,
                             # <=10 terms needs to have a newline inserted.
@@ -150,7 +150,7 @@ def setup_report_pdf(
                                     + "\n"
                                     + ",".join(terms_val[5:])
                                 )
-                        metadata[f"Frequency {f} listOfCovarianceTerms"] = (
+                        metadata[f"listOfCovarianceTerms (frequency {f})"] = (
                             terms_val
                         )
 
