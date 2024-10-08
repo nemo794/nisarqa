@@ -325,10 +325,6 @@ class RadarRaster(SARRaster):
         have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str
         Name for the dataset
-    band : str
-        name of the band for `img`, e.g. 'LSAR'
-    freq : str
-        name of the frequency for `img`, e.g. 'A' or 'B'
     stats_h5_group_path : str
         Path in the STATS.h5 file for the group where all metrics and
         statistics re: this raster should be saved.
@@ -336,6 +332,10 @@ class RadarRaster(SARRaster):
             RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
             RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
             ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    band : str
+        name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        name of the frequency for `img`, e.g. 'A' or 'B'
     ground_az_spacing : float
         Azimuth spacing of pixels of input array
         Units: meters
@@ -419,10 +419,6 @@ class GeoRaster(SARRaster):
         have a `_FillValue` attribute. The exception might be RSLC (tbd).
     name : str
         Name for the dataset
-    band : str
-        name of the band for `data`, e.g. 'LSAR'
-    freq : str
-        name of the frequency for `data`, e.g. 'A' or 'B'
     stats_h5_group_path : str
         Path in the STATS.h5 file for the group where all metrics and
         statistics re: this raster should be saved.
@@ -430,6 +426,10 @@ class GeoRaster(SARRaster):
             RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
             RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
             ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    band : str
+        name of the band for `data`, e.g. 'LSAR'
+    freq : str
+        name of the frequency for `data`, e.g. 'A' or 'B'
     x_spacing : float
         X spacing of pixels (in meters) of input array.
     x_start : float
@@ -644,7 +644,33 @@ def decimate_raster_array_to_square_pixels(
 @dataclass
 class StatsForRaster(Raster):
     """
-    TODO
+    Statistics of the raster.
+
+    Parameters
+    ----------
+    data : array_like
+        Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
+    units : str
+        The units of the data. If `data` is numeric but unitless (e.g ratios),
+        by NISAR convention please use the string "1".
+    fill_value : int, float, complex, or None
+        The fill value for the dataset. In general, all imagery datasets should
+        have a `_FillValue` attribute. The exception might be RSLC (tbd).
+    name : str
+        Name for the dataset
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    band : str
+        Name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        Name of the frequency for `img`, e.g. 'A' or 'B'
+    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
+        Statistics of the `data` array.
     """
 
     stats: RasterStats | ComplexRasterStats
@@ -759,20 +785,113 @@ class StatsForRaster(Raster):
 
 @dataclass
 class RadarRasterWithStats(RadarRaster, StatsForRaster):
-    """pass"""
+    """
+    A RadarRaster with statistics.
 
-    # TODO: update product reader:
-    #   * raster constructors need to constructor these *StatsRaster child types
-    #   * getters to return these *StatsRaster types instead
+    Parameters
+    ----------
+    data : array_like
+        Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
+    units : str
+        The units of the data. If `data` is numeric but unitless (e.g ratios),
+        by NISAR convention please use the string "1".
+    fill_value : int, float, complex, or None
+        The fill value for the dataset. In general, all imagery datasets should
+        have a `_FillValue` attribute. The exception might be RSLC (tbd).
+    name : str
+        Name for the dataset
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    band : str
+        Name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        Name of the frequency for `img`, e.g. 'A' or 'B'
+    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
+        Statistics of the `data` array.
+    ground_az_spacing : float
+        Azimuth spacing of pixels of input array
+        Units: meters
+    az_start : float
+        The start time of the observation for this RSLC Raster.
+        This corresponds to the upper edge of the top pixels.
+        Units: seconds since epoch
+    az_stop : float
+        The stopping time of the observation for this RSLC Raster.
+        This corresponds to the lower side of the bottom pixels.
+        Units: seconds since epoch
+    ground_range_spacing : float
+        Range spacing of pixels of input array.
+        Units: meters
+    rng_start : float
+        Start (near) distance of the range of input array
+        This corresponds to the left side of the left-most pixels.
+        Units: meters
+    rng_stop : float
+        End (far) distance of the range of input array
+        This corresponds to the right side of the right-most pixels.
+        Units: meters
+    epoch : str
+        The start of the epoch for this observation,
+        in the format 'YYYY-MM-DD HH:MM:SS'
+    """
+
+    ...
 
 
 @dataclass
 class GeoRasterWithStats(GeoRaster, StatsForRaster):
-    """pass"""
+    """
+    A GeoRaster with statistics.
 
-    # TODO: update product reader:
-    #   * raster constructors need to constructor these *StatsRaster child types
-    #   * getters to return these *StatsRaster types instead
+    Parameters
+    ----------
+    data : array_like
+        Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
+    units : str
+        The units of the data. If `data` is numeric but unitless (e.g ratios),
+        by NISAR convention please use the string "1".
+    fill_value : int, float, complex, or None
+        The fill value for the dataset. In general, all imagery datasets should
+        have a `_FillValue` attribute. The exception might be RSLC (tbd).
+    name : str
+        Name for the dataset
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    band : str
+        Name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        Name of the frequency for `img`, e.g. 'A' or 'B'
+    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
+        Statistics of the `data` array.
+    x_spacing : float
+        X spacing of pixels (in meters) of input array.
+    x_start : float
+        The starting (West) X position of the input array
+        This corresponds to the left side of the left-most pixels.
+    x_stop : float
+        The stopping (East) X position of the input array
+        This corresponds to the right side of the right-most pixels.
+    y_spacing : float
+        Y spacing of pixels (in meters) of input array
+    y_start : float
+        The starting (North) Y position of the input array
+        This corresponds to the upper edge of the top pixels.
+    y_stop : float
+        The stopping (South) Y position of the input array
+        This corresponds to the lower side of the bottom pixels.
+    """
+
+    ...
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
