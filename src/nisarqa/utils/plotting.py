@@ -24,21 +24,21 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def setup_report_pdf(
+def add_metadata_to_report_pdf(
     product: nisarqa.NisarProduct, report_pdf: PdfPages
 ) -> None:
     """
-    Setup the report PDF with PDF metadata and a title page.
+    Add global PDF metadata to the report PDF.
 
     Parameters
     ----------
     product : nisarqa.NisarProduct
         Input NISAR product.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
-        The output PDF file to set the global attributes for and append the
-        PDF title page to.
+        The output PDF file to set the global metadata for.
     """
     product_type = product.product_type.upper()
+
     # Set the PDF file's metadata via the PdfPages object:
     d = report_pdf.infodict()
     d["Title"] = "NISAR Quality Assurance Report"
@@ -54,6 +54,21 @@ def setup_report_pdf(
     d["CreationDate"] = datetime.fromisoformat(nisarqa.QA_PROCESSING_DATETIME)
     d["ModDate"] = datetime.fromisoformat(nisarqa.QA_PROCESSING_DATETIME)
 
+
+def add_title_page_to_report_pdf(
+    product: nisarqa.NisarProduct, report_pdf: PdfPages
+) -> None:
+    """
+    Add a title page with identificaiton information to the report PDF.
+
+    Parameters
+    ----------
+    product : nisarqa.NisarProduct
+        Input NISAR product.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the PDF title page to.
+    """
+    product_type = product.product_type.upper()
     # Construct page title
     # granule IDs are very long. Split into two lines.
     gran_id = product.granule_id.split("_")
@@ -183,6 +198,24 @@ def setup_report_pdf(
     )
     report_pdf.savefig(fig)
     plt.close()
+
+
+def setup_report_pdf(
+    product: nisarqa.NisarProduct, report_pdf: PdfPages
+) -> None:
+    """
+    Setup the report PDF with PDF metadata and a title page.
+
+    Parameters
+    ----------
+    product : nisarqa.NisarProduct
+        Input NISAR product.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to set the global attributes for and append the
+        PDF title page to.
+    """
+    add_metadata_to_report_pdf(product=product, report_pdf=report_pdf)
+    add_title_page_to_report_pdf(product=product, report_pdf=report_pdf)
 
 
 def process_ionosphere_phase_screen(
