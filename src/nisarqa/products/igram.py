@@ -154,6 +154,7 @@ def verify_igram(
             h5py.File(stats_file, mode="w") as stats_h5,
             PdfPages(report_file) as report_pdf,
         ):
+            # Add file metadata and title page to report PDF.
             nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
 
             # Save the processing parameters to the stats.h5 file

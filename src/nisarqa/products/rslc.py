@@ -168,6 +168,8 @@ def verify_rslc(
     # steps. The file is automatically deleted upon closing if nothing was
     # written to it.
     with PdfPages(report_file, keep_empty=False) as report_pdf:
+
+        # Add file metadata and title page to report PDF.
         nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
 
         if root_params.workflows.qa_reports:
