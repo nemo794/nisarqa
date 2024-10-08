@@ -229,6 +229,11 @@ def numeric_dtype_should_not_have_units() -> set[str]:
         "frameNumber",
         "trackNumber",
         "mask",
+        "validSamplesSubSwath1",
+        "validSamplesSubSwath2",
+        "validSamplesSubSwath3",
+        "validSamplesSubSwath4",
+        "validSamplesSubSwath5",
     }
 
 
