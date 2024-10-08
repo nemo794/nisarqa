@@ -103,6 +103,10 @@ def add_title_page_to_report_pdf(
 
         id_group = in_f[product.identification_path]
         for key, val in id_group.items():
+            if key == "granuleId":
+                # granule ID is part of the title; do not repeat in the table
+                continue
+
             # convert val to a string
             v = val[()]
             if np.issubdtype(v.dtype, np.bytes_):
