@@ -59,7 +59,7 @@ def add_title_page_to_report_pdf(
     product: nisarqa.NisarProduct, report_pdf: PdfPages
 ) -> None:
     """
-    Add a title page with identificaiton information to the report PDF.
+    Add a title page with identification information to the report PDF.
 
     Parameters
     ----------
