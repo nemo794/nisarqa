@@ -261,19 +261,14 @@ def _parse_dataset_stats_from_h5(
         pass
 
     def _get_stats_object(component):
-        values = {}
-        for stat in ("min", "max", "mean", "std"):
-            stat_name, _ = nisarqa.get_stats_name_descr(
-                stat=stat, component=component
+        kwargs = {
+            f"{stat}_value": _get_attribute_val(
+                nisarqa.get_stats_name_descr(stat=stat, component=component)[0]
             )
-            values[stat] = _get_attribute_val(attr_name=stat_name)
+            for stat in ("min", "max", "mean", "std")
+        }
 
-        return nisarqa.RasterStats(
-            min_value=values["min"],
-            max_value=values["max"],
-            mean_value=values["mean"],
-            std_value=values["std"],
-        )
+        return nisarqa.RasterStats(**kwargs)
 
     # Based on the dtype, construct the *RasterStats for the input Dataset
     if np.issubdtype(ds.dtype, np.complexfloating):
@@ -286,6 +281,7 @@ def _parse_dataset_stats_from_h5(
         assert nisarqa.has_integer_or_float_dtype(ds)
         raster_stats = _get_stats_object(component=None)
 
+    print("lala: ", raster_stats)
     return raster_stats
 
 
