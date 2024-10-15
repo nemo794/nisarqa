@@ -728,30 +728,14 @@ class StatsForRaster(Raster):
                     f"{component=!r}, but Raster is complex-valued. Set to"
                     " either 'real' or 'imag'."
                 )
-
-            if stat == "min":
-                return self.stats.min_value(component)
-            if stat == "max":
-                return self.stats.max_value(component)
-            if stat == "mean":
-                return self.stats.mean_value(component)
-            if stat == "std":
-                return self.stats.std_value(component)
+            return getattr(getattr(self.stats, component), f"{stat}_value")
 
         else:
             if component is not None:
                 raise ValueError(
                     f"{component=!r}, but Raster is real-valued. Set to None."
                 )
-
-            if stat == "min":
-                return self.stats.min_value
-            if stat == "max":
-                return self.stats.max_value
-            if stat == "mean":
-                return self.stats.mean_value
-            if stat == "std":
-                return self.stats.std_value
+            return getattr(self.stats, f"{stat}_value")
 
     def get_stat_val_name_descr(
         self, stat: str, component: str | None = None
