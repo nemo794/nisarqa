@@ -2198,24 +2198,23 @@ class NonInsarProduct(NisarProduct):
         log = nisarqa.get_logger()
         spec = nisarqa.Version.from_string(self.product_spec_version)
 
-        path = f"{self._calibration_metadata_path}/frequency{freq}/%s"
 
         with h5py.File(self.filepath, "r") as f:
-            if path % "noiseEquivalentBackscatter" in f:
-                yield f[path % "noiseEquivalentBackscatter"]
-            elif path % "nes0" in f:
+            grp = f[f"{self._calibration_metadata_path}/frequency{freq}"]
+            if "noiseEquivalentBackscatter" in grp:
+                yield grp["noiseEquivalentBackscatter"]
+            elif "nes0" in grp:
                 if spec >= nisarqa.Version(1, 2, 0):
                     nisarqa.get_logger().error(
                         "Input product has product specification version"
                         f" {spec} and contains a `nes0` Group. As of"
                         " product specification version 1.2.0, this should"
-                        " instead be named `noiseEqivalentBackscatter`."
+                        " instead be named `noiseEquivalentBackscatter`."
                     )
-                my_path = path % "nes0"
-                yield f[my_path]
+                yield grp["nes0"]
             else:
                 # product does not contain a "nes0" group (old spec)
-                # nor a "noiseEquivalentBackscatter" group. Log, re-raise.
+                # nor a "noiseEquivalentBackscatter" group. Log and fail.
                 msg = (
                     f"For frequency {freq}, product does not contain a"
                     " Group with noise equivalent backscatter information"

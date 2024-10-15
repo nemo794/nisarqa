@@ -283,7 +283,7 @@ def verify_rslc(
 
         if root_params.workflows.neb:
             log.info(
-                "Beginning Noise Equivalent Backscatter (NEB) Tool CalTool..."
+                "Beginning Noise Equivalent Backscatter CalTool..."
             )
 
             # Run NEB tool
@@ -291,8 +291,8 @@ def verify_rslc(
                 rslc=product,
                 stats_filename=stats_file,
             )
-            log.info(f"NEB CalTool results saved to {stats_file}.")
-            msg = "Noise Equivalent Backscatter (NEB) CalTool complete."
+            log.info(f"Noise Equivalent Backscatter CalTool results saved to {stats_file}.")
+            msg = "Noise Equivalent Backscatter CalTool complete."
             log.info(msg)
             if not verbose:
                 print(msg)

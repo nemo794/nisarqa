@@ -67,9 +67,9 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         default=WorkflowsParamGroup._default_val,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="neb",
+                name="noise_equivalent_backscatter",
                 descr=WorkflowsParamGroup._descr
-                % "Noise Equivalent Backscatter Tool (NEB) Tool calibration tool",
+                % "Noise Equivalent Backscatter calibration tool",
             )
         },
     )
