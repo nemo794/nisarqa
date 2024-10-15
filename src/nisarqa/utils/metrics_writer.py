@@ -532,7 +532,7 @@ def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
 
     stat_opts = ("min", "max", "mean", "std")
     if stat not in stat_opts:
-        raise ValueError(f"{stat=}, must be one of {stat_opts}.")
+        raise ValueError(f"{stat=!r}, must be one of {stat_opts}.")
 
     if (component is not None) and (component not in ("real", "imag")):
         raise ValueError(f"`{component=!r}, must be 'real', 'imag', or None.")
@@ -547,7 +547,7 @@ def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
         if stat == "std":
             return (
                 "sample_stddev",
-                "Sample standard deviation of the numeric data points",
+                "Standard deviation of the numeric data points",
             )
 
     # Complex data
@@ -587,7 +587,7 @@ def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
         return (
             f"sample_stddev_{short_name}",
             (
-                f"Sample standard deviation of the {long_name} component"
+                f"Standard deviation of the {long_name} component"
                 " of the numeric data points"
             ),
         )
@@ -628,15 +628,18 @@ def copy_non_insar_imagery_metrics(
                             )
                             metrics.append(val_name_descr)
                     else:
-                        assert np.issubdtype(img.data.dtype, np.floating)
                         # get tuple of (val, name, descr)
                         val_name_descr = img.get_stat_val_name_descr(
-                            stat=m, component=None
+                            stat=m
                         )
                         metrics.append(val_name_descr)
 
                     for val, name, descr in metrics:
                         if val is not None:
+                            # XXX: This will create a dataset with a snake_case name,
+                            # which differs from the usual camelCase naming convention,
+                            # but matches the name of the attribute in the input
+                            # product.
                             nisarqa.create_dataset_in_h5group(
                                 h5_file=stats_h5,
                                 grp_path=dest_path,

@@ -1744,6 +1744,7 @@ class NisarGeoProduct(NisarProduct):
             errmsg = f"Input file does not contain raster {raster_path}"
             raise nisarqa.DatasetNotFoundError(errmsg)
 
+        # Arguments to pass to the constructor of `GeoRaster` or `GeoRasterWithStats`
         kwargs = {}
 
         # Get dataset object and check for correct dtype

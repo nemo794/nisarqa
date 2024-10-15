@@ -247,7 +247,7 @@ class Raster:
         Warnings
         --------
         If `data` does not have a `dtype` attribute, it will be copied
-        into a numpy array to get the dtype. Depending on the size of the
+        into a NumPy array to get the dtype. Depending on the size of the
         raster, this could be an expensive operation.
         """
         try:
@@ -715,7 +715,7 @@ class StatsForRaster(Raster):
         """
         stat_opts = ("min", "max", "mean", "std")
         if stat not in stat_opts:
-            raise ValueError(f"{stat=}, must be one of {stat_opts}.")
+            raise ValueError(f"{stat=!r}, must be one of {stat_opts}.")
 
         if self.is_complex:
             if component not in ("real", "imag"):
@@ -750,7 +750,7 @@ class StatsForRaster(Raster):
 
     def get_stat_val_name_descr(
         self, stat: str, component: str | None = None
-    ) -> float:
+    ) -> tuple[float, str, str]:
         """
         Return value, name, and description for a min/max/mean/std metric.
 
