@@ -135,7 +135,7 @@ class RasterStats:
 
     Parameters
     ----------
-    min_value, max_value, mean_value, stddev_value : float or None
+    min_value, max_value, mean_value, std_value : float or None
         Minimum, maximum, mean, and standard deviation values
         (respectively) for a raster image.
         None if a value could not be provided.
@@ -144,7 +144,7 @@ class RasterStats:
     min_value: float | None
     max_value: float | None
     mean_value: float | None
-    stddev_value: float | None
+    std_value: float | None
 
 
 @dataclass
@@ -183,11 +183,11 @@ class ComplexRasterStats:
         """
         return getattr(self, component).mean_value
 
-    def stddev_value(self, component: str) -> float:
+    def std_value(self, component: str) -> float:
         """
         Get the std. deviation of requested component (either "real" or "imag").
         """
-        return getattr(self, component).stddev_value
+        return getattr(self, component).std_value
 
 
 @dataclass
@@ -731,7 +731,7 @@ class StatsForRaster(Raster):
             if stat == "mean":
                 return self.stats.mean_value(component)
             if stat == "std":
-                return self.stats.stddev_value(component)
+                return self.stats.std_value(component)
 
         else:
             if component is not None:
@@ -746,7 +746,7 @@ class StatsForRaster(Raster):
             if stat == "mean":
                 return self.stats.mean_value
             if stat == "std":
-                return self.stats.stddev_value
+                return self.stats.std_value
 
     def get_stat_val_name_descr(
         self, stat: str, component: str | None = None

@@ -272,7 +272,7 @@ def _parse_dataset_stats_from_h5(
             min_value=values["min"],
             max_value=values["max"],
             mean_value=values["mean"],
-            stddev_value=values["std"],
+            std_value=values["std"],
         )
 
     # Based on the dtype, construct the *RasterStats for the input Dataset
