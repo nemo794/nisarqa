@@ -18,6 +18,15 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
+@dataclass
+class IsComplex(ABC):
+    @property
+    @abstractmethod
+    def is_complex(self) -> bool:
+        """True if dataset is complex-valued; False if real-valued."""
+        pass
+
+
 def is_complex32(dataset: h5py.Dataset) -> bool:
     """
     Check if the input dataset is half-precision complex ("complex32").
@@ -191,7 +200,7 @@ class ComplexRasterStats:
 
 
 @dataclass
-class Raster:
+class Raster(IsComplex):
     """
     Raster image dataset base class.
 
@@ -265,7 +274,7 @@ class Raster:
 
 
 @dataclass
-class SARRaster(ABC, Raster):
+class SARRaster(Raster, ABC):
     """Abstract Base Class for SAR Raster dataclasses."""
 
     @property
@@ -639,33 +648,12 @@ def decimate_raster_array_to_square_pixels(
 
 
 @dataclass
-class StatsForRaster(Raster):
+class StatsMixin(IsComplex):
     """
-    Statistics of the raster.
+    A mixin type providing access to dataset statistics (Min/Max/Mean/STD).
 
     Parameters
     ----------
-    data : array_like
-        Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
-    units : str
-        The units of the data. If `data` is numeric but unitless (e.g ratios),
-        by NISAR convention please use the string "1".
-    fill_value : int, float, complex, or None
-        The fill value for the dataset. In general, all imagery datasets should
-        have a `_FillValue` attribute. The exception might be RSLC (tbd).
-    name : str
-        Name for the dataset
-    stats_h5_group_path : str
-        Path in the STATS.h5 file for the group where all metrics and
-        statistics re: this raster should be saved.
-        Examples:
-            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
-            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
-            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-    band : str
-        Name of the band for `img`, e.g. 'LSAR'
-    freq : str
-        Name of the frequency for `img`, e.g. 'A' or 'B'
     stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
         Statistics of the `data` array.
     """
@@ -681,12 +669,13 @@ class StatsForRaster(Raster):
                     f" be an instance of ComplexRasterStats. Dataset: {self.name}"
                 )
         else:
-            if not nisarqa.has_integer_or_float_dtype(self.data):
-                raise TypeError(
-                    "Raster stats only applicable for integer or floating-point"
-                    " datatype, but dtype of `data` is"
-                    f" {np.asanyarray(self.data).dtype}"
-                )
+            # print(self.data)
+            # if not nisarqa.has_integer_or_float_dtype(self.data):
+            #     raise TypeError(
+            #         "Raster stats only applicable for integer or floating-point"
+            #         " datatype, but dtype of `data` is"
+            #         f" {np.asanyarray(self.data).dtype}"
+            #     )
             if not isinstance(self.stats, RasterStats):
                 raise TypeError(
                     f"`data` provided is real-valued, so `stats` must"
@@ -770,7 +759,7 @@ class StatsForRaster(Raster):
 
 
 @dataclass
-class RadarRasterWithStats(RadarRaster, StatsForRaster):
+class RadarRasterWithStats(RadarRaster, StatsMixin):
     """
     A RadarRaster with statistics.
 
@@ -797,8 +786,6 @@ class RadarRasterWithStats(RadarRaster, StatsForRaster):
         Name of the band for `img`, e.g. 'LSAR'
     freq : str
         Name of the frequency for `img`, e.g. 'A' or 'B'
-    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
-        Statistics of the `data` array.
     ground_az_spacing : float
         Azimuth spacing of pixels of input array
         Units: meters
@@ -824,13 +811,15 @@ class RadarRasterWithStats(RadarRaster, StatsForRaster):
     epoch : str
         The start of the epoch for this observation,
         in the format 'YYYY-MM-DD HH:MM:SS'
+    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
+        Statistics of the `data` array.
     """
 
     ...
 
 
 @dataclass
-class GeoRasterWithStats(GeoRaster, StatsForRaster):
+class GeoRasterWithStats(GeoRaster, StatsMixin):
     """
     A GeoRaster with statistics.
 
@@ -857,8 +846,6 @@ class GeoRasterWithStats(GeoRaster, StatsForRaster):
         Name of the band for `img`, e.g. 'LSAR'
     freq : str
         Name of the frequency for `img`, e.g. 'A' or 'B'
-    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
-        Statistics of the `data` array.
     x_spacing : float
         X spacing of pixels (in meters) of input array.
     x_start : float
@@ -875,6 +862,8 @@ class GeoRasterWithStats(GeoRaster, StatsForRaster):
     y_stop : float
         The stopping (South) Y position of the input array
         This corresponds to the lower side of the bottom pixels.
+    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
+        Statistics of the `data` array.
     """
 
     ...
