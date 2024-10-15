@@ -4,6 +4,7 @@ import itertools
 import json
 import os
 from collections.abc import Iterator, Mapping, Sequence
+from contextlib import ExitStack
 from dataclasses import asdict, dataclass
 from tempfile import NamedTemporaryFile
 from typing import Any
@@ -340,36 +341,31 @@ def run_neb_tool(
         Filename (with path) for output STATS.h5 file. This is where
         outputs from the CalTool should be stored.
     """
-    log = nisarqa.get_logger()
+    with ExitStack() as stack:
+        stats_file = stack.enter_context(h5py.File(stats_filename, "a"))
 
-    # Step 1: Copy NEB data from input RSLC to outputs STATS.h5
-    for freq in rslc.freqs:
-        try:
-            with (
-                rslc.get_noise_eq_group(freq=freq) as src_grp,
-                h5py.File(stats_filename, "a") as stats_file,
-            ):
-                dest_grp_path = (
-                    f"{nisarqa.STATS_H5_NEB_DATA_GROUP % rslc.band}"
-                    f"/frequency{freq}"
+        for freq in rslc.freqs:
+            try:
+                src_grp = stack.enter_context(
+                    rslc.get_noise_eq_group(freq=freq)
                 )
+            except nisarqa.InvalidNISARProductError:
+                nisarqa.get_logger().error(
+                    "Input RSLC product is missing noise equivalent backscatter"
+                    f" data for frequency {freq}. Skipping copying of data"
+                    " to STATS HDF5 and skipping creating plots."
+                )
+                # Return early
+                return
 
-                # Copy entire NEB metadata group from input file to stats.h5
-                src_grp.copy(src_grp, stats_file, dest_grp_path)
+            # Step 1: Copy NEB data from input RSLC to outputs STATS.h5
+            dest_grp_path = (
+                f"{nisarqa.STATS_H5_NEB_DATA_GROUP % rslc.band}"
+                f"/frequency{freq}"
+            )
+            src_grp.copy(src_grp, stats_file, dest_grp_path)
 
             # TODO: Step 2: create plots
-
-        except nisarqa.InvalidNISARProductError:
-            msg = (
-                "Input RSLC product is missing noise equivalent backscatter"
-                f" data for frequency {freq}."
-            )
-            log.error(f"Cannot copy noise equivalent backscatter Group. {msg}")
-            log.error(
-                f"Cannot plot noise equivalent backscatter metadata. {msg}"
-            )
-            # Return early, because we cannot create plots
-            return
 
 
 def run_pta_single_freq_pol(
