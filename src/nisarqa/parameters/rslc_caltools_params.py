@@ -45,8 +45,8 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     abs_cal : bool, optional
         True to run the Absolute Radiometric Calibration Factor CalTool workflow
         Default: True
-    nes0 : bool, optional
-        True to run the Noise Equivalent Sigma 0 Tool (nes0) workflow.
+    neb : bool, optional
+        True to run the Noise Equivalent Backscatter Tool (NEB) workflow.
         Default: True.
     point_target : bool, optional
         True to run the Point Target Analyzer (PTA) workflow. Default: True
@@ -63,13 +63,13 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         },
     )
 
-    nes0: bool = field(
+    neb: bool = field(
         default=WorkflowsParamGroup._default_val,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="nes0",
+                name="neb",
                 descr=WorkflowsParamGroup._descr
-                % "Noise Equivalent Sigma 0 Tool (nes0) Tool calibration tool",
+                % "Noise Equivalent Backscatter Tool (NEB) Tool calibration tool",
             )
         },
     )
@@ -89,7 +89,7 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         # VALIDATE INPUTS
         super().__post_init__()
         self._check_workflows_arg("abs_cal", self.abs_cal)
-        self._check_workflows_arg("nes0", self.nes0)
+        self._check_workflows_arg("neb", self.neb)
         self._check_workflows_arg("point_target", self.point_target)
 
 

@@ -1850,11 +1850,11 @@ class NisarGeoProduct(NisarProduct):
 class NonInsarProduct(NisarProduct):
     """Common functionality for RSLC, GLSC, and GCOV products."""
 
-    def nes0_metadata_cubes(
-        self, freq: str
-    ) -> Iterator[nisarqa.MetadataCube2D]:
+    def neb_metadata_cubes(self, freq: str) -> Iterator[nisarqa.MetadataCube2D]:
         """
-        Generator for all metadata cubes in nes0 calibration information Group.
+        Generator for all metadata cubes in noise equivalent backscatter Group.
+
+        These are located under the `calibrationInformation` Group.
 
         Parameters
         ----------
@@ -1865,15 +1865,16 @@ class NonInsarProduct(NisarProduct):
         ------
         cube : nisarqa.MetadataCube2D
             The next MetadataCube2D in this Group:
-            `../metadata/calibrationInformation/frequency<freq>/nes0`
+            `../metadata/calibrationInformation/frequency<freq>/noiseEquivalentBackscatter`
         """
-        with h5py.File(self.filepath, "r") as f:
-            grp_path = self.get_nes0_group_path(freq)
-            grp = f[grp_path]
-            for ds_arr in grp.values():
+        with (
+            h5py.File(self.filepath, "r") as f,
+            self.get_noise_eq_group(freq) as neb_grp,
+        ):
+            for ds_arr in neb_grp.values():
                 if isinstance(ds_arr, h5py.Group):
                     raise TypeError(
-                        f"unexpected HDF5 Group found in {grp_path}."
+                        f"Unexpected HDF5 Group found in {neb_grp.name}."
                         " Metadata cubes Groups should only contain Datasets."
                     )
                 ds_path = ds_arr.name
@@ -1884,9 +1885,9 @@ class NonInsarProduct(NisarProduct):
                     pass
                 elif n_dim != 2:
                     raise ValueError(
-                        f"The nes0 metadata group should only contain 1D"
-                        f" or 2D Datasets. Dataset contains {n_dim}"
-                        f" dimensions: {ds_path}"
+                        "The `noiseEquivalentBackscatter` metadata group"
+                        " should only contain 1D or 2D Datasets. Dataset"
+                        f" contains {n_dim} dimensions: {ds_path}"
                     )
                 else:
                     yield self._build_metadata_cube(f=f, ds_arr=ds_arr)
@@ -2148,58 +2149,87 @@ class NonInsarProduct(NisarProduct):
         """
         return "/".join([self._metadata_group_path, "calibrationInformation"])
 
-    def get_nes0_group_path(self, freq: str) -> str:
+    @contextmanager
+    def get_noise_eq_group(self, freq: str) -> Iterator[h5py.Group]:
         """
-        Get the path to the NES0 h5py Group.
+        Get the `noiseEquivalentBackscatter` h5py Group.
 
         Parameters
         ----------
         freq : {'A', 'B'}
             The frequency sub-band. Must be a valid sub-band in the product.
 
-        Returns
-        -------
-        nes0_grp_path : str
-            Path in the input product to the Noise Equivalent Sigma 0 (NES0)
-            Group for the given `freq`.
+        Yields
+        ------
+        neb_grp : h5py.Group
+            Noise Equivalent Backscatter (NEB) Group in the input product for
+            the given `freq`.
+
+        Raises
+        ------
+        nisarqa.InvalidNISARProductError
+            The returned `neb_grp` will be correct for products generated with
+            ISCE3 R4 and later, but is not guaranteed for earlier test datasets.
+            If QA cannot find this Group at a known path, this error is raised.
 
         Warnings
         --------
-        Older test data (e.g. UAVSAR) has a different product specification
-        structure for storing the nes0 metadata. For simplicity, let's only
-        only support data products with the newer structure (e.g. >= ISCE3 R4).
-        Unfortunately, that release does not correspond directly to product
-        specification version number. Product Specification v1.1.0 and later
-        definitely should have this dataset, but it's messy to algorithmically
-        handle the products generated prior to that.
-        The returned `nes0_grp_path` will be correct for products generated
-        with ISCE3 R4 and later, but might not exist in earlier test datasets.
-        The calling function should handle this case accordingly.
+        ISCE3 products generated for R4 with product specification version
+        1.1.0 to <1.2.0 should contain a group called `nes0`. Some products
+        generated with product specifications <1.1.0 also contain a `nes0`
+        group, but this cannot be guaranteed, or the nes0 data might follow
+        an entirely different specification structure.
+        ISCE3 products generated for R4.0.4 or later with product specification
+        version >=1.2.0 should contain an equivalent group called
+        `noiseEquivalentBackscatter`. (For R4.0.4, `nes0` was renamed.)
+        Unfortunately, the official ISCE3 releases do not perfectly align
+        with updates to the product specification version, so some products
+        will have out-of-sync product spec version numbers and dataset names.
 
-        See Also
-        --------
-        run_nes0_tool :
-            Copies NES0 Group from the input product to STATS.h5.
+        For simplicity, QA should only support data products with the
+        newer NEB structure (>= ISCE3 R4).
 
         Notes
         -----
-        Typically, QA product reader returns a actual values, and not a path
-        to an h5py.Group. However, this path is only being used by
-        `run_nes0_tool()`, which needs to wholesale copy the Group and its
-        contents recursively. Returning the path to the Group allows updates in
-        subsequent ISCE3 releases to be automatically copied as well.
+        Typically, QA product reader returns a actual values, and not an
+        h5py.Group. However, this function is being used by `run_neb_tool()`,
+        which needs to wholesale copy the Group and its contents recursively.
         """
-
-        path = f"{self._calibration_metadata_path}/frequency{freq}/nes0"
-
+        log = nisarqa.get_logger()
         spec = nisarqa.Version.from_string(self.product_spec_version)
-        if spec < nisarqa.Version(1, 1, 0):
-            nisarqa.get_logger().warning(
-                "Input product was generated with an older product spec; `nes0`"
-                f" Group might not exist for frequency {freq}. Path: {path}"
-            )
 
-        return path
+        path = f"{self._calibration_metadata_path}/frequency{freq}/%s"
+
+        with h5py.File(self.filepath, "r") as f:
+            if path % "noiseEquivalentBackscatter" in f:
+                yield f[path % "noiseEquivalentBackscatter"]
+            elif path % "nes0" in f:
+                if spec >= nisarqa.Version(1, 2, 0):
+                    nisarqa.get_logger().error(
+                        "Input product has product specification version"
+                        f" {spec} and contains a `nes0` Group. As of"
+                        " product specification version 1.2.0, this should"
+                        " instead be named `noiseEqivalentBackscatter`."
+                    )
+                my_path = path % "nes0"
+                yield f[my_path]
+            else:
+                # product does not contain a "nes0" group (old spec)
+                # nor a "noiseEquivalentBackscatter" group. Log, re-raise.
+                msg = (
+                    f"For frequency {freq}, product does not contain a"
+                    " Group with noise equivalent backscatter information"
+                    " at a known path."
+                )
+
+                if spec < nisarqa.Version(1, 1, 0):
+                    log.error(
+                        "Input product was generated with an older product"
+                        " spec. " + msg
+                    )
+                else:
+                    log.error(msg)
+                raise nisarqa.InvalidNISARProductError(msg)
 
 
 @dataclass

@@ -325,12 +325,12 @@ def run_abscal_tool(
                     )
 
 
-def run_nes0_tool(
+def run_neb_tool(
     rslc: nisarqa.RSLC,
     stats_filename: str | os.PathLike,
 ) -> None:
     """
-    Run the Noise Equivalent Sigma 0 (nes0) Tool workflow.
+    Run the Noise Equivalent Backscatter (NEB) Tool workflow.
 
     Parameters
     ----------
@@ -340,38 +340,36 @@ def run_nes0_tool(
         Filename (with path) for output STATS.h5 file. This is where
         outputs from the CalTool should be stored.
     """
-    # Step 1: Copy nes0 data from input RSLC to outputs STATS.h5
-    with (
-        h5py.File(rslc.filepath, "r") as in_file,
-        h5py.File(stats_filename, "a") as stats_file,
-    ):
-        for freq in rslc.freqs:
-            src_grp_path = rslc.get_nes0_group_path(freq=freq)
-            dest_grp_path = (
-                f"{nisarqa.STATS_H5_NES0_DATA_GROUP % rslc.band}"
-                f"/frequency{freq}"
+    log = nisarqa.get_logger()
+
+    # Step 1: Copy NEB data from input RSLC to outputs STATS.h5
+    for freq in rslc.freqs:
+        try:
+            with (
+                rslc.get_noise_eq_group(freq=freq) as src_grp,
+                h5py.File(stats_filename, "a") as stats_file,
+            ):
+                dest_grp_path = (
+                    f"{nisarqa.STATS_H5_NEB_DATA_GROUP % rslc.band}"
+                    f"/frequency{freq}"
+                )
+
+                # Copy entire NEB metadata group from input file to stats.h5
+                src_grp.copy(src_grp, stats_file, dest_grp_path)
+
+            # TODO: Step 2: create plots
+
+        except nisarqa.InvalidNISARProductError:
+            msg = (
+                "Input RSLC product is missing noise equivalent backscatter"
+                f" data for frequency {freq}."
             )
-
-            try:
-                # Copy entire nes0 metadata group from input file to stats.h5
-                in_file.copy(src_grp_path, stats_file, dest_grp_path)
-            except RuntimeError:
-                # h5py.File.copy() raises this error if `src_grp_path`
-                # does not exist:
-                #       RuntimeError: Unable to synchronously copy object
-                #       (component not found)
-                nisarqa.get_logger().error(
-                    "Cannot copy `nes0` Group. Input RSLC product is"
-                    f" missing `nes0` for frequency {freq} at {src_grp_path}"
-                )
-                nisarqa.get_logger().error(
-                    "Cannot plot `nes0` metadata. Input RSLC product is"
-                    f" missing `nes0` for frequency {freq} at {src_grp_path}"
-                )
-                # Return early, because we cannot create plots
-                return
-
-    # TODO: Step 2: create plots
+            log.error(f"Cannot copy noise equivalent backscatter Group. {msg}")
+            log.error(
+                f"Cannot plot noise equivalent backscatter metadata. {msg}"
+            )
+            # Return early, because we cannot create plots
+            return
 
 
 def run_pta_single_freq_pol(

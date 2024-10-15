@@ -137,7 +137,7 @@ def verify_rslc(
     if (
         root_params.workflows.qa_reports
         or root_params.workflows.abs_cal
-        or root_params.workflows.nes0
+        or root_params.workflows.neb
         or root_params.workflows.point_target
     ):
         # This is the first time opening the STATS.h5 file for RSLC
@@ -281,18 +281,18 @@ def verify_rslc(
             if not verbose:
                 print(msg)
 
-        if root_params.workflows.nes0:
+        if root_params.workflows.neb:
             log.info(
-                "Beginning Noise Equivalent Sigma 0 (nes0) Tool CalTool..."
+                "Beginning Noise Equivalent Backscatter (NEB) Tool CalTool..."
             )
 
-            # Run NET tool
-            nisarqa.caltools.run_nes0_tool(
+            # Run NEB tool
+            nisarqa.caltools.run_neb_tool(
                 rslc=product,
                 stats_filename=stats_file,
             )
-            log.info(f"nes0 CalTool results saved to {stats_file}.")
-            msg = "Noise Equivalent Sigma 0 (nes0) CalTool complete."
+            log.info(f"NEB CalTool results saved to {stats_file}.")
+            msg = "Noise Equivalent Backscatter (NEB) CalTool complete."
             log.info(msg)
             if not verbose:
                 print(msg)

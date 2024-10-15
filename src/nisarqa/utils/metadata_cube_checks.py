@@ -224,7 +224,7 @@ def verify_metadata_cubes(
             for freq in product.freqs:
 
                 if spec >= nisarqa.Version(1, 1, 0):
-                    for cube in product.nes0_metadata_cubes(freq):
+                    for cube in product.neb_metadata_cubes(freq):
                         has_finite &= _metadata_cube_has_finite_pixels(cube)
                         passes &= has_finite
                         passes &= _metadata_cube_has_finite_pixels(cube)
