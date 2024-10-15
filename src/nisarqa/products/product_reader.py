@@ -278,10 +278,13 @@ def _parse_dataset_stats_from_h5(
             real=real_stats, imag=imag_stats
         )
     else:
-        assert nisarqa.has_integer_or_float_dtype(ds)
+        if not nisarqa.has_integer_or_float_dtype(ds):
+            raise TypeError(
+                f"Dataset has type {type(ds)}, but must be either real-valued"
+                f" or complex-valued. Dataset: {ds.name}"
+            )
         raster_stats = _get_stats_object(component=None)
 
-    print("lala: ", raster_stats)
     return raster_stats
 
 
@@ -1078,7 +1081,7 @@ class NisarProduct(ABC):
 
     @abstractmethod
     def _get_raster_from_path(
-        self, h5_file: h5py.File, raster_path: str, parse_stats: bool
+        self, h5_file: h5py.File, raster_path: str, *, parse_stats: bool
     ) -> (
         nisarqa.RadarRaster
         | nisarqa.RadarRasterWithStats
@@ -1389,7 +1392,7 @@ class NisarRadarProduct(NisarProduct):
         return geo_corners
 
     def _get_raster_from_path(
-        self, h5_file: h5py.File, raster_path: str, parse_stats: bool
+        self, h5_file: h5py.File, raster_path: str, *, parse_stats: bool
     ) -> nisarqa.RadarRaster | nisarqa.RadarRasterWithStats:
         """
         Generate a RadarRaster* for the raster at `raster_path`.
@@ -1691,7 +1694,7 @@ class NisarGeoProduct(NisarProduct):
         pass
 
     def _get_raster_from_path(
-        self, h5_file: h5py.File, raster_path: str, parse_stats: bool
+        self, h5_file: h5py.File, raster_path: str, *, parse_stats: bool
     ) -> nisarqa.GeoRaster | nisarqa.GeoRasterWithStats:
         """
         Get the GeoRaster* for the raster at `raster_path`.
