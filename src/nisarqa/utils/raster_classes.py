@@ -18,7 +18,6 @@ import nisarqa
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-@dataclass
 class IsComplex(ABC):
     @property
     @abstractmethod
@@ -669,13 +668,6 @@ class StatsMixin(IsComplex):
                     f" be an instance of ComplexRasterStats. Dataset: {self.name}"
                 )
         else:
-            # print(self.data)
-            # if not nisarqa.has_integer_or_float_dtype(self.data):
-            #     raise TypeError(
-            #         "Raster stats only applicable for integer or floating-point"
-            #         " datatype, but dtype of `data` is"
-            #         f" {np.asanyarray(self.data).dtype}"
-            #     )
             if not isinstance(self.stats, RasterStats):
                 raise TypeError(
                     f"`data` provided is real-valued, so `stats` must"
