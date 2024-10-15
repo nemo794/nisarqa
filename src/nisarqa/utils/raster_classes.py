@@ -534,22 +534,19 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
     ValueError
         If metadata does not match
     """
-    if type(raster1) != type(raster1):
-        raise TypeError(
-            "Input *Rasters must have same type. Type of `raster1`:"
-            f" {type(raster1)}, Type of `raster2`: {type(raster2)}."
-        )
-
     # This function only compares fields in instances of the RadarRaster or
     # GeoRaster base classes. Child classes have additional fields, which we
     # need to ignore when comparing the metadata of the two input *Rasters.
-    if isinstance(raster1, nisarqa.RadarRaster):
-        raster_class = nisarqa.RadarRaster
-    elif isinstance(raster1, nisarqa.GeoRaster):
-        raster_class = nisarqa.GeoRaster
+    r_raster = nisarqa.RadarRaster
+    g_raster = nisarqa.GeoRaster
+    if isinstance(raster1, r_raster) and isinstance(raster2, r_raster):
+        raster_class = r_raster
+    elif isinstance(raster1, g_raster) and isinstance(raster2, g_raster):
+        raster_class = g_raster
     else:
         raise TypeError(
-            f"{type(raster1)=}, must be an instance of RadarRaster or GeoRaster."
+            f"{type(raster1)=} and {type(raster2)=}, must both be instances"
+            " of either RadarRaster or of GeoRaster."
         )
 
     for f in fields(raster_class):
