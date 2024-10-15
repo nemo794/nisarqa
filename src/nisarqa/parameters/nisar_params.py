@@ -4,6 +4,7 @@ import collections
 import dataclasses
 import io
 import os
+import re
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
@@ -1269,34 +1270,50 @@ class RootParamGroup(ABC):
         # We're trying to loop over all fields in `self` (each field corresponds
         # to a group in the runconfig) but in the particular order specified by
         # `self.get_order_of_groups_in_yaml()`.
-        # We assume that each field has a unique type so that,
-        # for each group type, we can get the field corresponding to that type
-        # using `isinstance()`.
-        for next_param_grp in param_group_class_objects:
+        # We assume that each field in `self` has a unique type so that,
+        # for each group type, we can locate the corresponding instance field.
+        # However, per a comment in https://stackoverflow.com/a/51946806,
+        # "if you are not on 3.10 and use `from __future__ import
+        # annotations`, the `type` field will be the str representation
+        # of the type, not the type itself."
+        # So, instead of using `isinstance()`, we'll use string comparison
+        # to perform this matching of group types to instance field types.
 
+        for next_param_grp in param_group_class_objects:
             # Fetch this instance's version of that class object
-            for field in fields(self):
-                item = getattr(self, field.name)
-                if isinstance(item, next_param_grp):
+            for instance_field in fields(self):
+
+                # Currently, the *RootParameterGroups have type annotations
+                # that use Optional and have at most one non-None type.
+                # Example patterns of the type annotations:
+                #    Yes: Optional[BackscatterImageParamGroup]
+                #    Yes: BackscatterImageParamGroup
+                #    No:  BackscatterImageParamGroup | HistogramParamGroup
+                #    No:  BackscatterImageParamGroup | None
+                # This function is implemented for the first two cases,
+                # and will raise the ValueError (below) in the second two cases.
+                match = re.search(r"Optional\[(.*?)\]", instance_field.type)
+                field_type = match.group(1) if match else instance_field.type
+
+                if field_type in str(next_param_grp):
+                    # Awesome! We found this instance's attribute that
+                    # corresponds to `next_param_grp`.
+                    item = getattr(self, instance_field.name)
+                    if item is None:
+                        # This instance's attribute which matches to
+                        # `next_param_grp` was set to None, so do
+                        # not add it to the runconfig.
+                        break
                     item.populate_user_runcfg(usr_runconfig_cm, indent=indent)
                     break
             else:
-                # Because this function is for a particular instance of
-                # *RootParamGroup, some parameters might be set to
-                # their default of "None". (This is ok!)
-                # For example, if the user set the "pta" workflow to False
-                # (meaning, the user did not want to run the PTA tool),
-                # then this instance's `pta` parameter would be set to "None".
-                # This function should only save what was actually used to
-                # produce the QA outputs, so it's okay to skip including
-                # parameters that are "None".
-                if item is not None:
-                    raise ValueError(
-                        f"The field `{field.name}` with type `{type(item)}` in"
-                        " this object's instance does not match any of the"
-                        " types listed in its `get_order_of_groups_in_yaml()`"
-                        f" implementation, which are: {param_group_class_objects}"
-                    )
+                raise ValueError(
+                    f"This instance of {type(self)} does not contain an"
+                    f" attribute with type {next_param_grp}, but it should"
+                    " according to the types listed in its"
+                    " `get_order_of_groups_in_yaml()` implementation,"
+                    f" which are: {param_group_class_objects}"
+                )
 
         # return as a string
         output = io.StringIO()
