@@ -225,6 +225,13 @@ def verify_igram(
                 stats_h5=stats_h5,
             )
 
+            nisarqa.process_surface_peak(
+                product=product,
+                params_surface_peak=root_params.corr_surface_peak,
+                report_pdf=report_pdf,
+                stats_h5=stats_h5,
+            )
+
             # Save HSI Plots to PDF
             if product_type == "rifg":
                 nisarqa.hsi_images_to_pdf_wrapped(

@@ -2889,6 +2889,182 @@ def plot_range_and_az_offsets_variances_to_pdf(
     plt.close(fig)
 
 
+def process_surface_peak(
+    product: nisarqa.IgramOffsetsGroup,
+    params_surface_peak: nisarqa.ThresholdParamGroup,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None:
+    """
+    Process correlation surface peak layers for interferogram products.
+
+    This function takes the correlation surface peak layers, and:
+        * Plots them to PDF
+        * Computes statistics for these layers
+
+    This function is for use with nisarqa.IgramOffsetsGroup products (RIFG,
+    RUNW, GUNW).
+    It it not compatible with nisarqa.OffsetProduct products (ROFF, GOFF).
+
+    Parameters
+    ----------
+    product : nisarqa.IgramOffsetsGroup
+        Input NISAR product.
+    params_surface_peak : nisarqa.ThresholdParamGroup
+        A structure containing processing parameters to generate the
+        correlation surface peak layer plots.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output pdf file to append the plot to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    """
+    for freq in product.freqs:
+        for pol in product.get_pols(freq):
+            with (
+                product.get_correlation_surface_peak(
+                    freq=freq, pol=pol
+                ) as surface_peak,
+            ):
+                # Compute Statistics first, in case of malformed layers
+                nisarqa.compute_and_save_basic_statistics(
+                    raster=surface_peak,
+                    params=params_surface_peak,
+                    stats_h5=stats_h5,
+                )
+
+                plot_corr_surface_peak_to_pdf(
+                    corr_surf_peak=surface_peak,
+                    report_pdf=report_pdf,
+                )
+
+                # TODO Compute histograms
+
+
+def add_corr_surface_peak_to_axes(
+    corr_surf_peak: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    ax: mpl.Axes,
+    *,
+    include_y_axes_labels: bool = True,
+    include_axes_title: bool = True,
+) -> None:
+    """
+    Add plot of correlation surface peak layer on a Matplotlib Axes.
+
+    Parameters
+    ----------
+    corr_surf_peak : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Correlation Surface Peak layer to be plotted.
+    ax : matplotlib.Axes
+        Axes object. The window extent and other properties of this axes
+        will be used to compute the downsampling factor for the image array.
+    include_y_axes_labels : bool, optional
+        True to include the y-axis label and y-axis tick mark labels; False to
+        exclude. (The tick marks will still appear, but will be unlabeled.)
+    include_axes_title : bool, optional
+        True to include a title on the axes itself; False to exclude it.
+    """
+    # Prepare and plot the correlation surface peak on the right sub-plot
+    surf_peak = nisarqa.decimate_raster_array_to_square_pixels(corr_surf_peak)
+
+    # Decimate to fit nicely on the figure.
+    surf_peak = downsample_img_to_size_of_axes(
+        ax=ax, arr=surf_peak, mode="decimate"
+    )
+
+    # Correlation surface peak should always be in range [0, 1]
+    if np.any(surf_peak < 0.0) or np.any(surf_peak > 1.0):
+        nisarqa.get_logger().error(
+            f"{corr_surf_peak.name} contains elements outside of expected range"
+            " of [0, 1]."
+        )
+
+    # Add the slant range offsets variance plot (right plot)
+    im2 = ax.imshow(
+        surf_peak,
+        aspect="equal",
+        cmap="gray",
+        interpolation="none",
+        vmin=0.0,
+        vmax=1.0,
+    )
+
+    if include_axes_title:
+        ax_title = corr_surf_peak.name.split("_")[-1]
+    else:
+        ax_title = None
+
+    if include_y_axes_labels:
+        ylim = corr_surf_peak.y_axis_limits
+        ylabel = corr_surf_peak.y_axis_label
+    else:
+        ylim = None
+        ylabel = None
+
+    nisarqa.rslc.format_axes_ticks_and_labels(
+        ax=ax,
+        xlim=corr_surf_peak.x_axis_limits,
+        ylim=ylim,
+        img_arr_shape=np.shape(surf_peak),
+        xlabel=corr_surf_peak.x_axis_label,
+        ylabel=ylabel,
+        title=ax_title,
+    )
+
+    # Add a colorbar to the surface peak plot
+    fig = ax.get_figure()
+    cax1 = fig.colorbar(im2, ax=ax)
+    cax1.ax.set_ylabel(
+        ylabel="Normalized correlation peak (unitless)",
+        rotation=270,
+        labelpad=10.0,
+    )
+
+
+def plot_corr_surface_peak_to_pdf(
+    corr_surf_peak: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    report_pdf: PdfPages,
+) -> None:
+    """
+    Plot correlation surface peak layers on a single PDF page.
+
+    Parameters
+    ----------
+    corr_surf_peak : nisarqa.RadarRaster or nisarqa.GeoRaster
+        Correlation Surface Peak layer to be plotted.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the offsets plots to.
+    """
+    # Setup the PDF page
+    fig, ax = plt.subplots(
+        ncols=1,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
+    )
+
+    # Construct title for the overall PDF page. (`*raster.name` has a format
+    # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
+    # remove the final layer name of e.g. "_slantRangeOffset".)
+    title = f"Correlation Surface Peak (unitless)\n{corr_surf_peak.name}"
+    fig.suptitle(title)
+
+    # Construct the correlation surface peak plot on the axes
+    # This is on a single PDF page, so  include y-axis labels, but no need to
+    # add a dedicated axes label (info would be redundant to the suptitle).
+    add_corr_surface_peak_to_axes(
+        corr_surf_peak=corr_surf_peak,
+        ax=ax,
+        include_y_axes_labels=True,
+        include_axes_title=False,
+    )
+
+    # Append figure to the output PDF
+    report_pdf.savefig(fig)
+
+    # Close the plot
+    plt.close(fig)
+
+
 def process_cross_variance_and_surface_peak(
     product: nisarqa.OffsetProduct,
     params_cross_offset: nisarqa.CrossOffsetVarianceLayerParamGroup,
@@ -3097,46 +3273,13 @@ def plot_cross_offset_variances_and_corr_surface_peak_to_pdf(
         labelpad=10.0,
     )
 
-    # Prepare and plot the correlation surface peak on the right sub-plot
-    surf_peak = nisarqa.decimate_raster_array_to_square_pixels(corr_surf_peak)
-
-    # Decimate to fit nicely on the figure.
-    surf_peak = downsample_img_to_size_of_axes(
-        ax=ax2, arr=surf_peak, mode="decimate"
-    )
-
-    # Correlation surface peak should always be in range [0, 1]
-    if np.any(surf_peak < 0.0) or np.any(surf_peak > 1.0):
-        nisarqa.get_logger().error(
-            f"{corr_surf_peak.name} contains elements outside of expected range"
-            " of [0, 1]."
-        )
-
-    # Add the slant range offsets variance plot (right plot)
-    im2 = ax2.imshow(
-        surf_peak,
-        aspect="equal",
-        cmap="gray",
-        interpolation="none",
-        vmin=0.0,
-        vmax=1.0,
-    )
-
+    # Construct the correlation surface peak plot on `ax2` with axes title.
     # No y-axis label nor ticks. This is the right side plot; y-axis is shared.
-    nisarqa.rslc.format_axes_ticks_and_labels(
+    add_corr_surface_peak_to_axes(
+        corr_surf_peak=corr_surf_peak,
         ax=ax2,
-        xlim=corr_surf_peak.x_axis_limits,
-        img_arr_shape=np.shape(surf_peak),
-        xlabel=corr_surf_peak.x_axis_label,
-        title=corr_surf_peak.name.split("_")[-1],
-    )
-
-    # Add a colorbar to the surface peak plot
-    cax1 = fig.colorbar(im2, ax=ax2)
-    cax1.ax.set_ylabel(
-        ylabel="Normalized correlation peak (unitless)",
-        rotation=270,
-        labelpad=10.0,
+        include_y_axes_labels=False,
+        include_axes_title=True,
     )
 
     # Append figure to the output PDF

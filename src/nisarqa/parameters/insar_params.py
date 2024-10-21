@@ -1420,6 +1420,48 @@ class GOFFCorrSurfacePeakLayerParamGroup(Threshold99ParamGroup):
 
 
 @dataclass(frozen=True)
+class RIFGCorrSurfacePeakLayerParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "rifg",
+            "qa_reports",
+            "correlation_surface_peak",
+        ]
+
+
+@dataclass(frozen=True)
+class RUNWCorrSurfacePeakLayerParamGroup(ThresholdParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "runw",
+            "qa_reports",
+            "correlation_surface_peak",
+        ]
+
+
+@dataclass(frozen=True)
+class GUNWCorrSurfacePeakLayerParamGroup(Threshold99ParamGroup):
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return [
+            "runconfig",
+            "groups",
+            "qa",
+            "gunw",
+            "qa_reports",
+            "correlation_surface_peak",
+        ]
+
+
+@dataclass(frozen=True)
 class ConnectedComponentsParamGroup(ThresholdParamGroup):
     """
     Parameters to run QA on Connected Components Layers for RUNW and GUNW.
@@ -1605,6 +1647,8 @@ class RIFGRootParamGroup(RootParamGroup):
         Coherence Magnitude Layer Group parameters.
     az_rng_offsets : RIFGAzAndRangeOffsetsParamGroup or None, optional
         Along track and slant range offsets layers Groups parameters.
+    corr_surface_peak : RIFGCorrSurfacePeakLayerParamGroup or None, optional
+        Parameters for correlation surface peak layer plots.
     browse : RIFGIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
     """
@@ -1619,6 +1663,7 @@ class RIFGRootParamGroup(RootParamGroup):
     wrapped_igram: Optional[RIFGWrappedIgramParamGroup] = None
     coh_mag: Optional[RIFGCohMagLayerParamGroup] = None
     az_rng_offsets: Optional[RIFGAzAndRangeOffsetsParamGroup] = None
+    corr_surface_peak: Optional[RIFGCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[RIFGIgramBrowseParamGroup] = None
 
     @staticmethod
@@ -1662,6 +1707,11 @@ class RIFGRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="corr_surface_peak",
+                param_grp_cls_obj=RIFGCorrSurfacePeakLayerParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RIFGIgramBrowseParamGroup,
             ),
@@ -1681,6 +1731,7 @@ class RIFGRootParamGroup(RootParamGroup):
             RIFGWrappedIgramParamGroup,
             RIFGCohMagLayerParamGroup,
             RIFGAzAndRangeOffsetsParamGroup,
+            RIFGCorrSurfacePeakLayerParamGroup,
             RIFGIgramBrowseParamGroup,
         )
 
@@ -1719,6 +1770,8 @@ class RUNWRootParamGroup(RootParamGroup):
         Ionosphere Phase Screen Uncertainty Layer Group parameters.
     az_rng_offsets : RUNWAzAndRangeOffsetsParamGroup or None, optional
         Along track and slant range offsets layers Groups parameters.
+    corr_surface_peak : RUNWCorrSurfacePeakLayerParamGroup or None, optional
+        Parameters for correlation surface peak layer plots.
     browse : RUNWIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
     """
@@ -1735,6 +1788,7 @@ class RUNWRootParamGroup(RootParamGroup):
     iono_phs_screen: Optional[RUNWIonoPhaseScreenParamGroup] = None
     iono_phs_uncert: Optional[RUNWIonoPhaseUncertaintyParamGroup] = None
     az_rng_offsets: Optional[RUNWAzAndRangeOffsetsParamGroup] = None
+    corr_surface_peak: Optional[RUNWCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[RUNWIgramBrowseParamGroup] = None
 
     @staticmethod
@@ -1793,6 +1847,11 @@ class RUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="corr_surface_peak",
+                param_grp_cls_obj=RUNWCorrSurfacePeakLayerParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RUNWIgramBrowseParamGroup,
             ),
@@ -1815,6 +1874,7 @@ class RUNWRootParamGroup(RootParamGroup):
             RUNWIonoPhaseScreenParamGroup,
             RUNWIonoPhaseUncertaintyParamGroup,
             RUNWAzAndRangeOffsetsParamGroup,
+            RUNWCorrSurfacePeakLayerParamGroup,
             RUNWIgramBrowseParamGroup,
         )
 
@@ -1857,6 +1917,8 @@ class GUNWRootParamGroup(RootParamGroup):
         Ionosphere Phase Screen Uncertainty Layer Group parameters.
     az_rng_offsets : GUNWAzAndRangeOffsetsParamGroup or None, optional
         Along track and slant range offsets layers Groups parameters.
+    corr_surface_peak : GUNWCorrSurfacePeakLayerParamGroup or None, optional
+        Parameters for correlation surface peak layer plots.
     browse : GUNWIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
     """
@@ -1875,6 +1937,7 @@ class GUNWRootParamGroup(RootParamGroup):
     iono_phs_screen: Optional[GUNWIonoPhaseScreenParamGroup] = None
     iono_phs_uncert: Optional[GUNWIonoPhaseUncertaintyParamGroup] = None
     az_rng_offsets: Optional[GUNWAzAndRangeOffsetsParamGroup] = None
+    corr_surface_peak: Optional[GUNWCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[GUNWIgramBrowseParamGroup] = None
 
     @staticmethod
@@ -1938,6 +2001,11 @@ class GUNWRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="corr_surface_peak",
+                param_grp_cls_obj=GUNWCorrSurfacePeakLayerParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=GUNWIgramBrowseParamGroup,
             ),
@@ -1961,6 +2029,7 @@ class GUNWRootParamGroup(RootParamGroup):
             GUNWIonoPhaseScreenParamGroup,
             GUNWIonoPhaseUncertaintyParamGroup,
             GUNWAzAndRangeOffsetsParamGroup,
+            GUNWCorrSurfacePeakLayerParamGroup,
             GUNWIgramBrowseParamGroup,
         )
 

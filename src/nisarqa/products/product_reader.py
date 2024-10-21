@@ -3885,6 +3885,32 @@ class IgramOffsetsGroup(InsarProduct):
                 h5_file=f, raster_path=path, parse_stats=True
             )
 
+    @contextmanager
+    def get_correlation_surface_peak(
+        self, freq: str, pol: str
+    ) -> Iterator[nisarqa.RadarRasterWithStats | nisarqa.GeoRasterWithStats]:
+        """
+        Get the correlation surface peak image *RasterWithStats.
+
+        Parameters
+        ----------
+        freq, pol : str
+            Frequency and polarization (respectively) for the desired raster.
+
+        Yields
+        ------
+        raster : RadarRasterWithStats or GeoRasterWithStats
+            Generated *RasterWithStats for the requested dataset.
+        """
+        parent_path = self._igram_offsets_group_path(freq=freq, pol=pol)
+        path = f"{parent_path}/correlationSurfacePeak"
+        self._check_dtype(path=path, expected_dtype=np.float32)
+
+        with h5py.File(self.filepath) as f:
+            yield self._get_raster_from_path(
+                h5_file=f, raster_path=path, parse_stats=True
+            )
+
 
 @dataclass
 class RIFG(WrappedGroup, IgramOffsetsGroup, NisarRadarProduct):
