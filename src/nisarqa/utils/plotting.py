@@ -288,7 +288,7 @@ def process_ionosphere_phase_screen(
                     report_pdf=report_pdf,
                 )
 
-                # Plot Histogram
+                # Plot Histograms
                 process_two_histograms(
                     raster1=iono_phs,
                     raster2=iono_uncertainty,
@@ -690,7 +690,16 @@ def process_phase_image_wrapped(
                     report_pdf=report_pdf,
                 )
 
-                # TODO: Plot Histogram
+                # Plot Histograms
+                process_two_histograms(
+                    raster1=complex_img,
+                    raster2=coh_img,
+                    r1_xlabel="InSAR Phase",
+                    r2_xlabel="Coherence Magnitude",
+                    name_of_histogram_pair="Wrapped Phase Image Group",
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                )
 
 
 @overload
@@ -1995,7 +2004,16 @@ def process_range_and_az_offsets(
         az_offset=az_offset, rg_offset=rg_offset, report_pdf=report_pdf
     )
 
-    # TODO Plot Histograms
+    # Plot Histograms
+    process_two_histograms(
+        raster1=az_offset,
+        raster2=rg_offset,
+        r1_xlabel="Displacement",
+        r2_xlabel="Displacement",
+        name_of_histogram_pair="Along Track and Slant Range Offsets",
+        report_pdf=report_pdf,
+        stats_h5=stats_h5,
+    )
 
 
 @overload
@@ -2757,7 +2775,16 @@ def process_az_and_slant_rg_variances_from_offset_product(
                         cbar_min_max=params.cbar_min_max,
                     )
 
-                    # TODO Compute histograms
+                    # Plot Histograms
+                    process_two_histograms(
+                        raster1=az_off_var,
+                        raster2=rg_off_var,
+                        r1_xlabel="Standard Deviation",
+                        r2_xlabel="Standard Deviation",
+                        name_of_histogram_pair="Azimuth and Slant Range Offsets StdDev.",
+                        report_pdf=report_pdf,
+                        stats_h5=stats_h5,
+                    )
 
 
 @overload
@@ -3146,7 +3173,16 @@ def process_cross_variance_and_surface_peak(
                         percentile_for_clipping=params_cross_offset.percentile_for_clipping,
                     )
 
-                    # TODO Compute histograms
+                    # Plot Histograms
+                    process_two_histograms(
+                        raster1=cross_off_var,
+                        raster2=surface_peak,
+                        r1_xlabel="Covariance",
+                        r2_xlabel="Normalized Correlation Peak",
+                        name_of_histogram_pair="Cross Offset Covariance and Correlation Surface Peak",
+                        report_pdf=report_pdf,
+                        stats_h5=stats_h5,
+                    )
 
 
 @overload
@@ -3550,6 +3586,15 @@ def process_unw_coh_mag(
                     coh_raster=coh_mag, report_pdf=report_pdf
                 )
 
+                # Plot Histogram
+                process_single_histogram(
+                    raster=coh_mag,
+                    xlabel="Coherence Magnitude",
+                    name_of_histogram="Coherence Magnitude (Unwrapped Group)",
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                )
+
 
 def plot_unwrapped_coh_mag_to_pdf(
     coh_raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
@@ -3626,7 +3671,8 @@ def generate_histogram_to_axes_and_h5(
     Parameters
     ----------
     raster : nisarqa.RadarRaster or nisarqa.GeoRaster
-        *Raster to create the histogram for.
+        *Raster to generate the histogram for. If a *Raster has complex data,
+        its histogram will be computed on the phase angle of the data values.
     ax : matplotlib.Axes
         Axes object. The window extent and other properties of this axes
         will be used to compute the downsampling factor for the image array.
@@ -3641,6 +3687,9 @@ def generate_histogram_to_axes_and_h5(
     # Get histogram probability density
     arr = raster.data[()]
     arr = arr[~np.isnan(arr)]
+    if raster.is_complex:
+        # complex data; take the phase angle.
+        arr = np.angle(arr)
     density, bin_edges = np.histogram(arr, bins="auto", density=True)
 
     # Append to Axes
@@ -3716,6 +3765,8 @@ def add_histogram_to_axes(
 
     if axes_title is not None:
         ax.set_title(axes_title)
+    if units == "1":
+        units = "unitless"
     ax.set_xlabel(f"{xlabel} ({units})")
     ax.set_ylabel(f"Density (1/{units})")
 
@@ -3857,7 +3908,8 @@ def process_two_histograms(
     Parameters
     ----------
     raster1, raster2 : nisarqa.GeoRaster | nisarqa.RadarRaster
-        *Rasters to generate the histograms for.
+        *Rasters to generate the histograms for. If a *Raster has complex data,
+        its histogram will be computed on the phase angle of the data values.
     r1_xlabel, r2_xlabel : str
         Label to use for the x-axis histogram bins for `raster1` and `raster2`
         (respectively), not including units.
