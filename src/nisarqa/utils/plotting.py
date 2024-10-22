@@ -3690,7 +3690,8 @@ def generate_histogram_to_axes_and_h5(
     if raster.is_complex:
         # complex data; take the phase angle.
         arr = np.angle(arr)
-    density, bin_edges = np.histogram(arr, bins="auto", density=True)
+    # Fix the number of bins to keep the output file size small
+    density, bin_edges = np.histogram(arr, bins=200, density=True)
 
     # Append to Axes
     if include_axes_title:
