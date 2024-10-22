@@ -1599,7 +1599,9 @@ def generate_phase_histogram_single_freq(
     log.debug(f"Histograms for Frequency {freq} complete.")
 
 
-def add_hist_to_axis(axis, counts, edges, label):
+def add_hist_to_axis(
+    axis: Axes, counts: np.ndarray, edges: np.ndarray, label: str | None = None
+) -> None:
     """Add the plot of the given counts and edges to the
     axis object. Points will be centered in each bin,
     and the plot will be denoted `label` in the legend.

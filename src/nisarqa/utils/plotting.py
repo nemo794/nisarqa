@@ -288,7 +288,16 @@ def process_ionosphere_phase_screen(
                     report_pdf=report_pdf,
                 )
 
-                # TODO - Process histograms
+                # Plot Histogram
+                process_two_histograms(
+                    raster1=iono_phs,
+                    raster2=iono_uncertainty,
+                    r1_xlabel="Ionosphere Phase Screen",
+                    r2_xlabel="Ionosphere Phase Screen STD",
+                    name_of_histogram_pair="Ionosphere Phase Screen",
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                )
 
 
 @overload
@@ -486,7 +495,14 @@ def process_phase_image_unwrapped(
                     rewrap=params.rewrap,
                 )
 
-                # TODO: Plot Histogram
+                # Plot Histogram
+                process_single_histogram(
+                    raster=img,
+                    xlabel="InSAR Phase",
+                    name_of_histogram="Unwrapped Phase Image",
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                )
 
 
 def plot_unwrapped_phase_image_to_pdf(
@@ -3593,6 +3609,309 @@ def plot_unwrapped_coh_mag_to_pdf(
     # Append figure to the output PDF
     report_pdf.savefig(fig)
 
+    plt.close(fig)
+
+
+def generate_histogram_to_axes_and_h5(
+    raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    ax: mpl.Axes,
+    stats_h5: h5py.File,
+    *,
+    xlabel=str,
+    include_axes_title: bool = True,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Add plot of correlation surface peak layer on a Matplotlib Axes.
+
+    Parameters
+    ----------
+    raster : nisarqa.RadarRaster or nisarqa.GeoRaster
+        *Raster to create the histogram for.
+    ax : matplotlib.Axes
+        Axes object. The window extent and other properties of this axes
+        will be used to compute the downsampling factor for the image array.
+    xlabel : str
+        Label to use for the x-axis histogram bins, not including units.
+            Correct: "InSAR Phase"
+            Wrong: "InSAR Phase (radians)"
+        The units for this label will be set per `raster.units`.
+    include_axes_title : bool, optional
+        True to include a title on the axes itself; False to exclude it.
+    """
+    # Get histogram probability density
+    arr = raster.data[()]
+    arr = arr[~np.isnan(arr)]
+    density, bin_edges = np.histogram(arr, bins="auto", density=True)
+
+    # Append to Axes
+    if include_axes_title:
+        # Get the layer's polarizations. (`*raster.name` has a format
+        # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
+        # get the polarization, e.g. "slantRangeOffset".)
+        ax_title = raster.name.split("_")[-1]
+    else:
+        ax_title = None
+
+    add_histogram_to_axes(
+        ax=ax,
+        density=density,
+        bin_edges=bin_edges,
+        xlabel=xlabel,
+        units=raster.units,
+        axes_title=ax_title,
+    )
+
+    # Save to stats HDF5
+    add_histogram_data_to_h5(
+        stats_h5=stats_h5,
+        stats_h5_group_path=raster.stats_h5_group_path,
+        density=density,
+        bin_edges=bin_edges,
+        units=raster.units,
+    )
+
+
+def add_histogram_to_axes(
+    ax: mpl.Axes,
+    *,
+    density: np.ndarray,
+    bin_edges: np.ndarray,
+    xlabel: str,
+    units: str,
+    axes_title: str | None = None,
+) -> None:
+    """
+    Add plot of histogram on a Matplotlib Axes.
+
+    Parameters
+    ----------
+    ax : matplotlib.Axes
+        Axes object to plot the histogram on.
+    density: np.ndarray
+        The normalized density values for the histogram.
+    bin_edges: np.ndarray
+        The bin edges for the histogram.
+    xlabel : str
+        Label to use for the x-axis histogram bins, not including units.
+            Correct: "InSAR Phase"
+            Wrong: "InSAR Phase (radians)"
+        The units for this label will be set per `units`.
+    units : str
+        Units which will be used for labeling axes.
+        The x-axis bins will be labeled with units of "`units`", and
+        the y-axis densities will be labeled with units of "1/`units`".
+    axes_title : str or None, optional
+        Title for the Axes. If None, no title will be added. Defaults to None.
+    """
+    # Use custom cycler for accessibility
+    ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
+
+    # Add backscatter histogram density to the figure
+    nisarqa.rslc.add_hist_to_axis(
+        ax,
+        counts=density,
+        edges=bin_edges,
+        label=None,
+    )
+
+    if axes_title is not None:
+        ax.set_title(axes_title)
+    ax.set_xlabel(f"{xlabel} ({units})")
+    ax.set_ylabel(f"Density (1/{units})")
+
+    # TODO: For RSLC/GSLC/GCOV, we let the top limit float. Do the same for InSAR?
+    # Let the top limit float
+    ax.set_ylim(bottom=0.0)
+    ax.grid(visible=True)
+
+
+def add_histogram_data_to_h5(
+    stats_h5: h5py.File,
+    stats_h5_group_path: str,
+    *,
+    density: np.ndarray,
+    bin_edges: np.ndarray,
+    units: str,
+) -> None:
+    """
+    Add statistics to the STATS HDF5 file.
+
+    Parameters
+    ----------
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        If calling function has a *Raster, suggest using the *Raster's
+        `stats_h5_group_path` attribute.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    density: np.ndarray
+        The normalized density values for the histogram.
+    bin_edges: np.ndarray
+        The bin edges for the histogram.
+    units : str
+        Units which will be used for labeling axes.
+        The bin edges will be denoted with units of "`units`", and
+        the densities will be denoted with units of "1/`units`".
+    """
+    # Save density values to stats.h5 file
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=stats_h5_group_path,
+        ds_name="histogramDensity",
+        ds_data=density,
+        ds_units=f"1/{units}",
+        ds_description="Normalized density of the histogram",
+    )
+
+    # Save bins to stats.h5 file
+    nisarqa.create_dataset_in_h5group(
+        h5_file=stats_h5,
+        grp_path=stats_h5_group_path,
+        ds_name="histogramBins",
+        ds_data=bin_edges,
+        ds_units=units,
+        ds_description="Histogram bin edges",
+    )
+
+
+def process_single_histogram(
+    raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    *,
+    xlabel: str,
+    name_of_histogram: str,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None:
+    """
+    Make histogram of a *Raster; plot to single PDF page and add metrics to HDF5.
+
+    Parameters
+    ----------
+    raster : nisarqa.GeoRaster | nisarqa.RadarRaster
+        *Raster to generate the histogram for.
+    xlabel : str
+        Label to use for the x-axis histogram bins, not including units.
+            Correct: "InSAR Phase"
+            Wrong: "InSAR Phase (radians)"
+        The units for this label will be set per `raster.units`.
+    name_of_histogram : str
+        What is this histogram of? This string will be used in the main title
+        of the PDF page, like this: "Histogram of <name_of_histogram>".
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the histogram to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+
+    Warnings
+    --------
+    The entire input array will be read into memory and processed.
+    Only use this function for small datasets.
+    """
+    fig, ax = plt.subplots(
+        ncols=1,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
+    )
+
+    # Form the plot title
+    title = f"Histogram of {name_of_histogram}\n{raster.name}"
+    fig.suptitle(title)
+
+    generate_histogram_to_axes_and_h5(
+        raster=raster,
+        ax=ax,
+        stats_h5=stats_h5,
+        xlabel=xlabel,
+        include_axes_title=False,
+    )
+
+    # Save complete plots to graphical summary PDF file
+    report_pdf.savefig(fig)
+
+    # Close figure
+    plt.close(fig)
+
+
+def process_two_histograms(
+    *,
+    raster1: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    raster2: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    r1_xlabel: str,
+    r2_xlabel: str,
+    name_of_histogram_pair: str,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
+) -> None:
+    """
+    Make histograms of two *Rasters; plot to PDF page and add metrics to HDF5.
+
+    The histograms of the two rasters will be plotted side-by-side on a
+    single PDF page.
+
+    Parameters
+    ----------
+    raster1, raster2 : nisarqa.GeoRaster | nisarqa.RadarRaster
+        *Rasters to generate the histograms for.
+    r1_xlabel, r2_xlabel : str
+        Label to use for the x-axis histogram bins for `raster1` and `raster2`
+        (respectively), not including units.
+            Correct: "InSAR Phase"
+            Wrong: "InSAR Phase (radians)"
+        The units for this label will be set per `raster.units`.
+    name_of_histogram_pair : str
+        What are these histograms of? This string will be used in the main title
+        of the PDF page, like this: "Histograms of <name_of_histogram_pair>".
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the histogram plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+
+    Warnings
+    --------
+    The entire input arrays will be read into memory and processed.
+    Only use this function for small datasets.
+    """
+    fig, (ax1, ax2) = plt.subplots(
+        ncols=2,
+        nrows=1,
+        constrained_layout="tight",
+        figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
+        sharey=False,
+    )
+
+    # Construct title for the overall PDF page. (`*raster.name` has a format
+    # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
+    # remove the final layer name of e.g. "_slantRangeOffset".)
+    name = "_".join(raster1.name.split("_")[:-1])
+    title = f"Histograms of {name_of_histogram_pair}\n{name}"
+    fig.suptitle(title)
+
+    generate_histogram_to_axes_and_h5(
+        raster=raster1,
+        ax=ax1,
+        stats_h5=stats_h5,
+        xlabel=r1_xlabel,
+        include_axes_title=True,
+    )
+
+    generate_histogram_to_axes_and_h5(
+        raster=raster2,
+        ax=ax2,
+        stats_h5=stats_h5,
+        xlabel=r2_xlabel,
+        include_axes_title=True,
+    )
+
+    # Save complete plots to graphical summary PDF file
+    report_pdf.savefig(fig)
+
+    # Close figure
     plt.close(fig)
 
 
