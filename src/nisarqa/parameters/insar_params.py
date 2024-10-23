@@ -1723,17 +1723,17 @@ class RIFGRootParamGroup(RootParamGroup):
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (
-            RIFGInputFileGroupParamGroup,
-            RIFGProductPathGroupParamGroup,
-            RIFGWorkflowsParamGroup,
-            RIFGValidationParamGroup,
-            RIFGWrappedIgramParamGroup,
-            RIFGCohMagLayerParamGroup,
-            RIFGAzAndRangeOffsetsParamGroup,
-            RIFGCorrSurfacePeakLayerParamGroup,
-            RIFGIgramBrowseParamGroup,
-        )
+        return {
+            "input_f": RIFGInputFileGroupParamGroup,
+            "prodpath": RIFGProductPathGroupParamGroup,
+            "workflows": RIFGWorkflowsParamGroup,
+            "validation": RIFGValidationParamGroup,
+            "wrapped_igram": RIFGWrappedIgramParamGroup,
+            "coh_mag": RIFGCohMagLayerParamGroup,
+            "az_rng_offsets": RIFGAzAndRangeOffsetsParamGroup,
+            "corr_surface_peak": RIFGCorrSurfacePeakLayerParamGroup,
+            "browse": RIFGIgramBrowseParamGroup,
+        }
 
 
 @dataclass
@@ -1863,20 +1863,20 @@ class RUNWRootParamGroup(RootParamGroup):
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (
-            RUNWInputFileGroupParamGroup,
-            RUNWProductPathGroupParamGroup,
-            RUNWWorkflowsParamGroup,
-            RUNWValidationParamGroup,
-            RUNWPhaseImageParamGroup,
-            RUNWCohMagLayerParamGroup,
-            RUNWConnectedComponentsParamGroup,
-            RUNWIonoPhaseScreenParamGroup,
-            RUNWIonoPhaseUncertaintyParamGroup,
-            RUNWAzAndRangeOffsetsParamGroup,
-            RUNWCorrSurfacePeakLayerParamGroup,
-            RUNWIgramBrowseParamGroup,
-        )
+        return {
+            "input_f": RUNWInputFileGroupParamGroup,
+            "prodpath": RUNWProductPathGroupParamGroup,
+            "workflows": RUNWWorkflowsParamGroup,
+            "validation": RUNWValidationParamGroup,
+            "unw_phs_img": RUNWPhaseImageParamGroup,
+            "coh_mag": RUNWCohMagLayerParamGroup,
+            "connected_components": RUNWConnectedComponentsParamGroup,
+            "iono_phs_screen": RUNWIonoPhaseScreenParamGroup,
+            "iono_phs_uncert": RUNWIonoPhaseUncertaintyParamGroup,
+            "az_rng_offsets": RUNWAzAndRangeOffsetsParamGroup,
+            "corr_surface_peak": RUNWCorrSurfacePeakLayerParamGroup,
+            "browse": RUNWIgramBrowseParamGroup,
+        }
 
 
 @dataclass
@@ -2017,21 +2017,21 @@ class GUNWRootParamGroup(RootParamGroup):
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (
-            GUNWInputFileGroupParamGroup,
-            GUNWProductPathGroupParamGroup,
-            GUNWWorkflowsParamGroup,
-            GUNWValidationParamGroup,
-            GUNWPhaseImageParamGroup,
-            GUNWWrappedIgramParamGroup,
-            GUNWCohMagLayerParamGroup,
-            GUNWConnectedComponentsParamGroup,
-            GUNWIonoPhaseScreenParamGroup,
-            GUNWIonoPhaseUncertaintyParamGroup,
-            GUNWAzAndRangeOffsetsParamGroup,
-            GUNWCorrSurfacePeakLayerParamGroup,
-            GUNWIgramBrowseParamGroup,
-        )
+        return {
+            "input_f": GUNWInputFileGroupParamGroup,
+            "prodpath": GUNWProductPathGroupParamGroup,
+            "workflows": GUNWWorkflowsParamGroup,
+            "validation": GUNWValidationParamGroup,
+            "unw_phs_img": GUNWPhaseImageParamGroup,
+            "wrapped_igram": GUNWWrappedIgramParamGroup,
+            "coh_mag": GUNWCohMagLayerParamGroup,
+            "connected_components": GUNWConnectedComponentsParamGroup,
+            "iono_phs_screen": GUNWIonoPhaseScreenParamGroup,
+            "iono_phs_uncert": GUNWIonoPhaseUncertaintyParamGroup,
+            "az_rng_offsets": GUNWAzAndRangeOffsetsParamGroup,
+            "corr_surface_peak": GUNWCorrSurfacePeakLayerParamGroup,
+            "browse": GUNWIgramBrowseParamGroup,
+        }
 
 
 @dataclass
@@ -2138,17 +2138,17 @@ class ROFFRootParamGroup(RootParamGroup):
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (
-            ROFFInputFileGroupParamGroup,
-            ROFFProductPathGroupParamGroup,
-            ROFFWorkflowsParamGroup,
-            ROFFValidationParamGroup,
-            ROFFAzAndRangeOffsetsParamGroup,
-            ROFFQuiverParamGroup,
-            ROFFVarianceLayersParamGroup,
-            ROFFCrossOffsetVarianceLayerParamGroup,
-            ROFFCorrSurfacePeakLayerParamGroup,
-        )
+        return {
+            "input_f": ROFFInputFileGroupParamGroup,
+            "prodpath": ROFFProductPathGroupParamGroup,
+            "workflows": ROFFWorkflowsParamGroup,
+            "validation": ROFFValidationParamGroup,
+            "az_rng_offsets": ROFFAzAndRangeOffsetsParamGroup,
+            "quiver": ROFFQuiverParamGroup,
+            "variances": ROFFVarianceLayersParamGroup,
+            "cross_variance": ROFFCrossOffsetVarianceLayerParamGroup,
+            "corr_surface_peak": ROFFCorrSurfacePeakLayerParamGroup,
+        }
 
 
 @dataclass
@@ -2255,17 +2255,17 @@ class GOFFRootParamGroup(RootParamGroup):
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (
-            GOFFInputFileGroupParamGroup,
-            GOFFProductPathGroupParamGroup,
-            GOFFWorkflowsParamGroup,
-            GOFFValidationParamGroup,
-            GOFFAzAndRangeOffsetsParamGroup,
-            GOFFQuiverParamGroup,
-            GOFFVarianceLayersParamGroup,
-            GOFFCrossOffsetVarianceLayerParamGroup,
-            GOFFCorrSurfacePeakLayerParamGroup,
-        )
+        return {
+            "input_f": GOFFInputFileGroupParamGroup,
+            "prodpath": GOFFProductPathGroupParamGroup,
+            "workflows": GOFFWorkflowsParamGroup,
+            "validation": GOFFValidationParamGroup,
+            "az_rng_offsets": GOFFAzAndRangeOffsetsParamGroup,
+            "quiver": GOFFQuiverParamGroup,
+            "variances": GOFFVarianceLayersParamGroup,
+            "cross_variance": GOFFCrossOffsetVarianceLayerParamGroup,
+            "corr_surface_peak": GOFFCorrSurfacePeakLayerParamGroup,
+        }
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

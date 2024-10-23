@@ -161,14 +161,14 @@ class GCOVRootParamGroup(RootParamGroup):
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (
-            InputFileGroupParamGroup,
-            ProductPathGroupParamGroup,
-            WorkflowsParamGroup,
-            ValidationGroupParamGroup,
-            BackscatterImageParamGroup,
-            GCOVHistogramParamGroup,
-        )
+        return {
+            "input_f": InputFileGroupParamGroup,
+            "prodpath": ProductPathGroupParamGroup,
+            "workflows": WorkflowsParamGroup,
+            "validation": ValidationGroupParamGroup,
+            "backscatter_img": BackscatterImageParamGroup,
+            "histogram": GCOVHistogramParamGroup,
+        }
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

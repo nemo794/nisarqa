@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Any, ClassVar, Optional, Union
+from typing import Any, ClassVar, Optional, Type, Union
 
 import h5py
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
@@ -1193,7 +1193,9 @@ class RootParamGroup(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_order_of_groups_in_yaml():
+    def get_order_of_groups_in_yaml() -> (
+        dict[str : Type[HDF5ParamGroup | YamlParamGroup]]
+    ):
         """
         Return the order that parameter groups should appear in the output
         runconfig template file.
@@ -1211,16 +1213,19 @@ class RootParamGroup(ABC):
         A call to `RSLCRootParamGroup.get_order_of_groups_in_yaml()`
         would return**:
 
-            (InputFileGroupParamGroup,
-            DynamicAncillaryFileParamGroup,
-            ProductPathGroupParamGroup,
-            RSLCWorkflowsParamGroup,
-            BackscatterImageParamGroup,
-            HistogramParamGroup,
-            AbsCalParamGroup,
-            NESZParamGroup,
-            PointTargetAnalyzerParamGroup
-            )
+            {
+                "input_f": InputFileGroupParamGroup,
+                "anc_files": DynamicAncillaryFileParamGroup,
+                "prodpath": ProductPathGroupParamGroup,
+                "workflows": RSLCWorkflowsParamGroup,
+                "validation": ValidationGroupParamGroup,
+                "backscatter_img": BackscatterImageParamGroup,
+                "histogram": HistogramParamGroup,
+                "range_spectra": RangeSpectraParamGroup,
+                "az_spectra": AzimuthSpectraParamGroup,
+                "abs_cal": AbsCalParamGroup,
+                "pta": PointTargetAnalyzerParamGroup,
+            }
 
         ** Exact RSLC groups are subject to change, based on code updates
            and new features added to RSLC QA-SAS.
@@ -1265,7 +1270,7 @@ class RootParamGroup(ABC):
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
-        param_group_class_objects = self.get_order_of_groups_in_yaml()
+        param_group_class_objects = self.get_order_of_groups_in_yaml().values()
 
         # We're trying to loop over all fields in `self` (each field corresponds
         # to a group in the runconfig) but in the particular order specified by
@@ -1356,7 +1361,7 @@ class RootParamGroup(ABC):
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
-        param_group_class_objects = cls.get_order_of_groups_in_yaml()
+        param_group_class_objects = cls.get_order_of_groups_in_yaml().values()
 
         for param_grp in param_group_class_objects:
             param_grp.populate_default_runcfg(runconfig_cm, indent=indent)

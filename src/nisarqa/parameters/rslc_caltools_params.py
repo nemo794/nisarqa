@@ -1151,19 +1151,19 @@ class RSLCRootParamGroup(RootParamGroup):
     def get_order_of_groups_in_yaml():
         # This order determines the order
         # the groups will appear in the runconfig.
-        return (
-            InputFileGroupParamGroup,
-            DynamicAncillaryFileParamGroup,
-            ProductPathGroupParamGroup,
-            RSLCWorkflowsParamGroup,
-            ValidationGroupParamGroup,
-            BackscatterImageParamGroup,
-            HistogramParamGroup,
-            RangeSpectraParamGroup,
-            AzimuthSpectraParamGroup,
-            AbsCalParamGroup,
-            PointTargetAnalyzerParamGroup,
-        )
+        return {
+            "input_f": InputFileGroupParamGroup,
+            "anc_files": DynamicAncillaryFileParamGroup,
+            "prodpath": ProductPathGroupParamGroup,
+            "workflows": RSLCWorkflowsParamGroup,
+            "validation": ValidationGroupParamGroup,
+            "backscatter_img": BackscatterImageParamGroup,
+            "histogram": HistogramParamGroup,
+            "range_spectra": RangeSpectraParamGroup,
+            "az_spectra": AzimuthSpectraParamGroup,
+            "abs_cal": AbsCalParamGroup,
+            "pta": PointTargetAnalyzerParamGroup,
+        }
 
 
 # TODO - move to nisar_params.py module
