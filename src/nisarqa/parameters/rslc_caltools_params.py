@@ -718,14 +718,14 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
 
         # Set attributes dependent upon backscatter_histogram_bin_edges_range
         # Backscatter Bin Edges - hardcode to be in decibels
-        # 101 bin edges => 100 bins
+        # 201 bin edges => 200 bins
         object.__setattr__(
             self,
             "backscatter_bin_edges",
             np.linspace(
                 self.backscatter_histogram_bin_edges_range[0],
                 self.backscatter_histogram_bin_edges_range[1],
-                num=101,
+                num=201,
                 endpoint=True,
             ),
         )
@@ -735,7 +735,7 @@ class HistogramParamGroup(YamlParamGroup, HDF5ParamGroup):
         object.__setattr__(
             self,
             "phs_bin_edges",
-            np.linspace(start=start, stop=stop, num=101, endpoint=True),
+            np.linspace(start=start, stop=stop, num=201, endpoint=True),
         )
 
     @staticmethod
