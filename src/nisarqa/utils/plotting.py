@@ -3676,6 +3676,8 @@ def generate_histogram_to_axes_and_h5(
         Non-finite raster values are ignored.
     ax : matplotlib.axes.Axes
         Axes object.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
     xlabel : str
         Label to use for the x-axis histogram bins, not including units.
             Correct: "InSAR Phase"
@@ -3726,10 +3728,10 @@ def generate_histogram_to_axes_and_h5(
 
 
 def add_histogram_to_axes(
-    ax: mpl.axes.Axes,
-    *,
     density: np.ndarray,
     bin_edges: np.ndarray,
+    ax: mpl.axes.Axes,
+    *,
     xlabel: str,
     units: str,
     axes_title: str | None = None,
@@ -3739,12 +3741,12 @@ def add_histogram_to_axes(
 
     Parameters
     ----------
-    ax : matplotlib.axes.Axes
-        Axes object to plot the histogram on.
     density: np.ndarray
         The normalized density values for the histogram.
     bin_edges: np.ndarray
         The bin edges for the histogram.
+    ax : matplotlib.axes.Axes
+        Axes object to plot the histogram on.
     xlabel : str
         Label to use for the x-axis histogram bins, not including units.
             Correct: "InSAR Phase"
@@ -3782,37 +3784,48 @@ def add_histogram_to_axes(
 
 
 def add_histogram_data_to_h5(
-    stats_h5: h5py.File,
-    stats_h5_group_path: str,
-    *,
     density: np.ndarray,
     bin_edges: np.ndarray,
+    stats_h5: h5py.File,
+    *,
     units: str,
+    stats_h5_group_path: str,
 ) -> None:
     """
-    Add histogram data to the STATS HDF5 file.
+        Add histogram data to the STATS HDF5 file.
 
-    Parameters
-    ----------
-    stats_h5 : h5py.File
-        The output file to save QA metrics, etc. to.
-    stats_h5_group_path : str
-        Path in the STATS.h5 file for the group where all metrics and
-        statistics re: this raster should be saved.
-        If calling function has a *Raster, suggest using the *Raster's
-        `stats_h5_group_path` attribute.
-        Examples:
-            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
-            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
-            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-    density : numpy.ndarray
-        The normalized density values for the histogram.
-    bin_edges : numpy.ndarray
-        The bin edges for the histogram.
-    units : str
-        Units which will be used for labeling axes.
-        The bin edges will be denoted with units of "`units`", and
-        the densities will be denoted with units of "1/`units`".
+        Parameters
+        ----------
+        density: np.ndarray
+            The normalized density values for the histogram.
+        bin_edges: np.ndarray
+            The bin edges for the histogram.
+        stats_h5 : h5py.File
+            The output file to save QA metrics, etc. to.
+        units : str
+            Units which will be used for labeling axes.
+            The bin edges will be denoted with units of "`units`", and
+            the densities will be denoted with units of "1/`units`".
+        stats_h5_group_path : str
+            Path in the STATS.h5 file for the group where all metrics and
+            statistics re: this raster should be saved.
+            If calling function has a *Raster, suggest using the *Raster's
+            `stats_h5_group_path` attribute.
+            Examples:
+                RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+                RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+                ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    <<<<<<< HEAD
+        density : numpy.ndarray
+            The normalized density values for the histogram.
+        bin_edges : numpy.ndarray
+            The bin edges for the histogram.
+        units : str
+            Units which will be used for labeling axes.
+            The bin edges will be denoted with units of "`units`", and
+            the densities will be denoted with units of "1/`units`".
+    =======
+    >>>>>>> a88eb46 (mpl type annotations. reorganize parameter ordering)
     """
     # Save density values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
@@ -3837,11 +3850,11 @@ def add_histogram_data_to_h5(
 
 def process_single_histogram(
     raster: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    report_pdf: PdfPages,
+    stats_h5: h5py.File,
     *,
     xlabel: str,
     name_of_histogram: str,
-    report_pdf: PdfPages,
-    stats_h5: h5py.File,
 ) -> None:
     """
     Make histogram of a *Raster; plot to single PDF page and add metrics to HDF5.
@@ -3850,6 +3863,10 @@ def process_single_histogram(
     ----------
     raster : nisarqa.GeoRaster | nisarqa.RadarRaster
         *Raster to generate the histogram for.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the histogram to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
     xlabel : str
         Label to use for the x-axis histogram bins, not including units.
             Correct: "InSAR Phase"
@@ -3858,10 +3875,6 @@ def process_single_histogram(
     name_of_histogram : str
         What is this histogram of? This string will be used in the main title
         of the PDF page, like this: "Histogram of <name_of_histogram>".
-    report_pdf : matplotlib.backends.backend_pdf.PdfPages
-        The output PDF file to append the histogram to.
-    stats_h5 : h5py.File
-        The output file to save QA metrics, etc. to.
 
     Warnings
     --------
@@ -3895,14 +3908,14 @@ def process_single_histogram(
 
 
 def process_two_histograms(
-    *,
     raster1: nisarqa.GeoRaster | nisarqa.RadarRaster,
     raster2: nisarqa.GeoRaster | nisarqa.RadarRaster,
-    r1_xlabel: str,
-    r2_xlabel: str,
-    name_of_histogram_pair: str,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
+    *,
+    name_of_histogram_pair: str,
+    r1_xlabel: str,
+    r2_xlabel: str,
 ) -> None:
     """
     Make histograms of two *Rasters; plot to PDF page and add metrics to HDF5.
@@ -3915,19 +3928,19 @@ def process_two_histograms(
     raster1, raster2 : nisarqa.GeoRaster | nisarqa.RadarRaster
         *Rasters to generate the histograms for. If a *Raster has complex data,
         its histogram will be computed on the phase angle of the data values.
+    report_pdf : matplotlib.backends.backend_pdf.PdfPages
+        The output PDF file to append the histogram plots to.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    name_of_histogram_pair : str
+        What are these histograms of? This string will be used in the main title
+        of the PDF page, like this: "Histograms of <name_of_histogram_pair>".
     r1_xlabel, r2_xlabel : str
         Label to use for the x-axis histogram bins for `raster1` and `raster2`
         (respectively), not including units.
             Correct: "InSAR Phase"
             Wrong: "InSAR Phase (radians)"
         The units for this label will be set per `raster.units`.
-    name_of_histogram_pair : str
-        What are these histograms of? This string will be used in the main title
-        of the PDF page, like this: "Histograms of <name_of_histogram_pair>".
-    report_pdf : matplotlib.backends.backend_pdf.PdfPages
-        The output PDF file to append the histogram plots to.
-    stats_h5 : h5py.File
-        The output file to save QA metrics, etc. to.
 
     Warnings
     --------
