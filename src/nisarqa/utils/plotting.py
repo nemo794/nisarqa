@@ -3797,40 +3797,29 @@ def add_histogram_data_to_h5(
     stats_h5_group_path: str,
 ) -> None:
     """
-        Add histogram data to the STATS HDF5 file.
+    Add histogram data to the STATS HDF5 file.
 
-        Parameters
-        ----------
-        density: np.ndarray
-            The normalized density values for the histogram.
-        bin_edges: np.ndarray
-            The bin edges for the histogram.
-        stats_h5 : h5py.File
-            The output file to save QA metrics, etc. to.
-        units : str
-            Units which will be used for labeling axes.
-            The bin edges will be denoted with units of "`units`", and
-            the densities will be denoted with units of "1/`units`".
-        stats_h5_group_path : str
-            Path in the STATS.h5 file for the group where all metrics and
-            statistics re: this raster should be saved.
-            If calling function has a *Raster, suggest using the *Raster's
-            `stats_h5_group_path` attribute.
-            Examples:
-                RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
-                RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
-                ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-    <<<<<<< HEAD
-        density : numpy.ndarray
-            The normalized density values for the histogram.
-        bin_edges : numpy.ndarray
-            The bin edges for the histogram.
-        units : str
-            Units which will be used for labeling axes.
-            The bin edges will be denoted with units of "`units`", and
-            the densities will be denoted with units of "1/`units`".
-    =======
-    >>>>>>> a88eb46 (mpl type annotations. reorganize parameter ordering)
+    Parameters
+    ----------
+    density: np.ndarray
+        The normalized density values for the histogram.
+    bin_edges: np.ndarray
+        The bin edges for the histogram.
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to.
+    units : str
+        Units which will be used for labeling axes.
+        The bin edges will be denoted with units of "`units`", and
+        the densities will be denoted with units of "1/`units`".
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        If calling function has a *Raster, suggest using the *Raster's
+        `stats_h5_group_path` attribute.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
     """
     # Save density values to stats.h5 file
     nisarqa.create_dataset_in_h5group(
@@ -3949,7 +3938,6 @@ def process_two_histograms(
         The units for this label will be set per `raster.units`.
     sharey : bool, optional
         True to have the plots share a y-axes; False
-
 
     Warnings
     --------
