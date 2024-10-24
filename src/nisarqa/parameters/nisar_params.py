@@ -1193,9 +1193,7 @@ class RootParamGroup(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_order_of_groups_in_yaml() -> (
-        dict[str : Type[HDF5ParamGroup | YamlParamGroup]]
-    ):
+    def get_order_of_groups_in_yaml() -> dict[str : Type[YamlParamGroup]]:
         """
         Return the order that parameter groups should appear in the output
         runconfig template file.
@@ -1270,55 +1268,22 @@ class RootParamGroup(ABC):
 
         # Populate the yaml object. This order determines the order
         # the groups will appear in the runconfig.
-        param_group_class_objects = self.get_order_of_groups_in_yaml().values()
+        param_group_attr_names = self.get_order_of_groups_in_yaml().keys()
 
         # We're trying to loop over all fields in `self` (each field corresponds
         # to a group in the runconfig) but in the particular order specified by
         # `self.get_order_of_groups_in_yaml()`.
-        # We assume that each field in `self` has a unique type so that,
-        # for each group type, we can locate the corresponding instance field.
-        # However, per a comment in https://stackoverflow.com/a/51946806,
-        # "if you are not on 3.10 and use `from __future__ import
-        # annotations`, the `type` field will be the str representation
-        # of the type, not the type itself."
-        # So, instead of using `isinstance()`, we'll use string comparison
-        # to perform this matching of group types to instance field types.
 
-        for next_param_grp in param_group_class_objects:
+        for next_attr_name in param_group_attr_names:
             # Fetch this instance's version of that class object
-            for instance_field in fields(self):
+            instance_attr = getattr(self, next_attr_name)
+            if instance_attr is None:
+                # This instance's attribute was set to None, so do
+                # not add it to the runconfig.
+                continue
 
-                # Currently, the *RootParameterGroups have type annotations
-                # that use Optional and have at most one non-None type.
-                # Example patterns of the type annotations:
-                #    Yes: Optional[BackscatterImageParamGroup]
-                #    Yes: BackscatterImageParamGroup
-                #    No:  BackscatterImageParamGroup | HistogramParamGroup
-                #    No:  BackscatterImageParamGroup | None
-                # This function is implemented for the first two cases,
-                # and will raise the ValueError (below) in the second two cases.
-                match = re.search(r"Optional\[(.*?)\]", instance_field.type)
-                field_type = match.group(1) if match else instance_field.type
-
-                if field_type in str(next_param_grp):
-                    # Awesome! We found this instance's attribute that
-                    # corresponds to `next_param_grp`.
-                    item = getattr(self, instance_field.name)
-                    if item is None:
-                        # This instance's attribute which matches to
-                        # `next_param_grp` was set to None, so do
-                        # not add it to the runconfig.
-                        break
-                    item.populate_user_runcfg(usr_runconfig_cm, indent=indent)
-                    break
-            else:
-                raise ValueError(
-                    f"This instance of {type(self)} does not contain an"
-                    f" attribute with type {next_param_grp}, but it should"
-                    " according to the types listed in its"
-                    " `get_order_of_groups_in_yaml()` implementation,"
-                    f" which are: {param_group_class_objects}"
-                )
+            # Append to the user runconfig commented map
+            instance_attr.populate_user_runcfg(usr_runconfig_cm, indent=indent)
 
         # return as a string
         output = io.StringIO()
