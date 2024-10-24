@@ -1051,17 +1051,22 @@ class RSLCRootParamGroup(RootParamGroup):
                     self.workflows, abs_cal=False, point_target=False
                 )
 
-                # Update the corner_reflector_file to be None.
-                self.anc_files = replace(
-                    self.anc_files, corner_reflector_file=None
-                )
-
                 # Per the convention noted in
                 # RootParamGroup.save_processing_params_to_stats_h5():
                 #       If a workflow was not requested, its RootParams
                 #       attribute will be None, so there will be no params to
                 #       add to the h5 file."
+                # In nominal cases, these groups are set to None during
+                # `build_root_params()`. But, that step occurs prior to this
+                # `__post_init__()`, so we need to manually update the
+                # corresponding param groups to False.
+                self.abs_cal = None
+                self.pta = None
 
+                # Update the corner_reflector_file to be None.
+                self.anc_files = replace(
+                    self.anc_files, corner_reflector_file=None
+                )
                 # While it shouldn't break anything in the code as of Sept 2023
                 # to leave the `anc_file` group instantiated and with its
                 # only attribute set to None, this might lead to some code
