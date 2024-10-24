@@ -9,6 +9,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any
 
 import h5py
+import isce3
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
@@ -238,8 +239,8 @@ def populate_abscal_hdf5_output(
         key="timestamp",
         ds_name="radarObservationDate",
         ds_descr=(
-            "The radar observation date and time of the corner reflector, as a"
-            " string in ISO 8601 format."
+            "The radar observation date and time of the corner reflector in"
+            " UTC, as a string in the format YYYY-mm-ddTHH:MM:SS.sssssssss"
         ),
         ds_dtype=np.bytes_,
     )
@@ -576,6 +577,17 @@ def populate_pta_hdf5_output(
     )
 
     create_dataset_from_pta_results(
+        key="timestamp",
+        grp_path=grp_path,
+        ds_name="radarObservationDate",
+        ds_descr=(
+            "The radar observation date and time of the corner reflector in"
+            " UTC, as a string in the format YYYY-mm-ddTHH:MM:SS.sssssssss"
+        ),
+        ds_dtype=np.bytes_,
+    )
+
+    create_dataset_from_pta_results(
         key="elevation_angle",
         grp_path=grp_path,
         ds_name="elevationAngle",
@@ -866,6 +878,11 @@ class CornerReflectorIPRCuts:
     ----------
     id : str
         Unique corner reflector ID.
+    observation_time : isce3.core.DateTime
+        The UTC date and time that the corner reflector was observed by the
+        radar (in zero-Doppler geometry).
+    el_angle : float
+        Antenna elevation angle of the corner reflector, in radians.
     az_cut : IPRCut
         The azimuth impulse response cut.
     rg_cut : IPRCut
@@ -873,11 +890,13 @@ class CornerReflectorIPRCuts:
     """
 
     id: str
+    observation_time: isce3.core.DateTime
+    el_angle: float
     az_cut: IPRCut
     rg_cut: IPRCut
 
 
-def get_pta_data_group(file_: h5py.File) -> h5py.Group:
+def get_pta_data_group(stats_h5: h5py.File) -> h5py.Group:
     """
     Get the 'pointTargetAnalyzer' data group in an RSLC QA STATS.h5 file.
 
@@ -887,7 +906,7 @@ def get_pta_data_group(file_: h5py.File) -> h5py.Group:
 
     Parameters
     ----------
-    file_ : h5py.File
+    stats_h5 : h5py.File
         The input HDF5 file. Must be a valid STATS.h5 file created by the RSLC
         QA workflow with the PTA tool enabled.
 
@@ -910,8 +929,8 @@ def get_pta_data_group(file_: h5py.File) -> h5py.Group:
     """
     for band in nisarqa.NISAR_BANDS:
         path = nisarqa.STATS_H5_PTA_DATA_GROUP % band
-        if path in file_:
-            return file_[path]
+        if path in stats_h5:
+            return stats_h5[path]
 
     raise nisarqa.DatasetNotFoundError(
         "Input STATS.h5 file did not contain a group matching"
@@ -987,6 +1006,21 @@ def get_ipr_cut_data(group: h5py.Group) -> Iterator[CornerReflectorIPRCuts]:
     # Total number of corner reflectors.
     num_corners = len(ids)
 
+    # A helper function to check that elevationAngle/PSLR/ISLR datasets are
+    # valid and return their contents. Each dataset should be 1-D array with
+    # length equal to the number of corner reflectors.
+    def ensure_valid_1d_dataset(dataset: h5py.Dataset) -> np.ndarray:
+        # Check dataset shape.
+        if dataset.shape != (num_corners,):
+            raise ValueError(
+                "Expected dataset to be a 1-D array with length equal to the"
+                f" number of corner reflectors ({num_corners}), but instead got"
+                f" {dataset.shape=} for dataset {dataset.name}"
+            )
+
+        # Return the contents.
+        return dataset[()]
+
     # A helper function to check that each corner reflector IPR cut dataset is
     # valid and return its contents. Each dataset should contain an MxN array of
     # impulse response azimuth/range cuts, where M is the total number of corner
@@ -1012,6 +1046,9 @@ def get_ipr_cut_data(group: h5py.Group) -> Iterator[CornerReflectorIPRCuts]:
         # Return the contents.
         return dataset[()]
 
+    observation_times = ensure_valid_1d_dataset(group["radarObservationDate"])
+    el_angles = ensure_valid_1d_dataset(group["elevationAngle"])
+
     az_index = ensure_valid_2d_dataset(group["azimuthIRF/cut/index"])
     az_magnitude = ensure_valid_2d_dataset(group["azimuthIRF/cut/magnitude"])
     az_phase = ensure_valid_2d_dataset(group["azimuthIRF/cut/phase"])
@@ -1019,21 +1056,6 @@ def get_ipr_cut_data(group: h5py.Group) -> Iterator[CornerReflectorIPRCuts]:
     rg_index = ensure_valid_2d_dataset(group["rangeIRF/cut/index"])
     rg_magnitude = ensure_valid_2d_dataset(group["rangeIRF/cut/magnitude"])
     rg_phase = ensure_valid_2d_dataset(group["rangeIRF/cut/phase"])
-
-    # A helper function to check that PSLR/ISLR datasets are valid and return
-    # their contents. Each dataset should be 1-D array with length equal to the
-    # number of corner reflectors.
-    def ensure_valid_1d_dataset(dataset: h5py.Dataset) -> np.ndarray:
-        # Check dataset shape.
-        if dataset.shape != (num_corners,):
-            raise ValueError(
-                "Expected dataset to be a 1-D array with length equal to the"
-                f" number of corner reflectors ({num_corners}), but instead got"
-                f" len={dataset.shape[0]} for dataset {dataset.name}"
-            )
-
-        # Return the contents.
-        return dataset[()]
 
     az_pslr = ensure_valid_1d_dataset(group["azimuthIRF/PSLR"])
     az_islr = ensure_valid_1d_dataset(group["azimuthIRF/ISLR"])
@@ -1044,6 +1066,8 @@ def get_ipr_cut_data(group: h5py.Group) -> Iterator[CornerReflectorIPRCuts]:
     # Iterate over corner reflectors.
     for i in range(num_corners):
         id_ = ids[i]
+        observation_time = isce3.core.DateTime(observation_times[i])
+        el_angle = el_angles[i]
         az_cut = IPRCut(
             index=az_index[i],
             magnitude=az_magnitude[i],
@@ -1058,7 +1082,13 @@ def get_ipr_cut_data(group: h5py.Group) -> Iterator[CornerReflectorIPRCuts]:
             pslr=rg_pslr[i],
             islr=rg_islr[i],
         )
-        yield CornerReflectorIPRCuts(id=id_, az_cut=az_cut, rg_cut=rg_cut)
+        yield CornerReflectorIPRCuts(
+            id=id_,
+            observation_time=observation_time,
+            el_angle=el_angle,
+            az_cut=az_cut,
+            rg_cut=rg_cut,
+        )
 
 
 def plot_ipr_cuts(
@@ -1166,6 +1196,27 @@ def plot_ipr_cuts(
     # Add a legend to the left sub-plot.
     labels = [line.get_label() for line in lines]
     axes[0].legend(lines, labels, loc="upper left")
+
+    # Get the datetime string in ISO 8601 format.
+    # NOTE: `isce3.core.DateTime.isoformat()` currently produces output with
+    # nanosecond precision, although this isn't necessarily guaranteed by the
+    # API. If this changes in the future, we'll need to update some descriptions
+    # in the output STATS.h5 file.
+    obs_time_str = cuts.observation_time.isoformat()
+
+    # Annotate figure with the radar observation time and elevation angle of the
+    # corner reflector.
+    fig.text(
+        x=0.03, y=0.03, s=f"$\\bf{{Observation\ time\ (UTC):}}$\n{obs_time_str}"
+    )
+    el_angle_deg = np.rad2deg(cuts.el_angle)
+    fig.text(
+        x=0.53, y=0.03, s=f"$\\bf{{Elevation\ angle\ (deg):}}$\n{el_angle_deg}"
+    )
+
+    # Tighten figure layout to leave some margin at the bottom to avoid
+    # overlapping annotations with axis labels.
+    plt.tight_layout(rect=[0.0, 0.1, 1.0, 1.0])
 
     return fig
 
