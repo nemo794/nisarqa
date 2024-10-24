@@ -4,13 +4,12 @@ import collections
 import dataclasses
 import io
 import os
-import re
 import sys
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Any, ClassVar, Optional, Type, Union
+from typing import Any, ClassVar, Optional, Union
 
 import h5py
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
@@ -1193,7 +1192,7 @@ class RootParamGroup(ABC):
 
     @staticmethod
     @abstractmethod
-    def get_order_of_groups_in_yaml() -> dict[str : Type[YamlParamGroup]]:
+    def get_order_of_groups_in_yaml() -> dict[str, type[YamlParamGroup]]:
         """
         Return the order that parameter groups should appear in the output
         runconfig template file.
