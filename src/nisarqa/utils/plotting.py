@@ -297,6 +297,7 @@ def process_ionosphere_phase_screen(
                     name_of_histogram_pair="Ionosphere Phase Screen",
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
+                    sharey=False,
                 )
 
 
@@ -699,6 +700,7 @@ def process_phase_image_wrapped(
                     name_of_histogram_pair="Wrapped Phase Image Group",
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
+                    sharey=False,
                 )
 
 
@@ -2013,6 +2015,7 @@ def process_range_and_az_offsets(
         name_of_histogram_pair="Along Track and Slant Range Offsets",
         report_pdf=report_pdf,
         stats_h5=stats_h5,
+        sharey=True,
     )
 
 
@@ -2784,6 +2787,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
                         name_of_histogram_pair="Azimuth and Slant Range Offsets STD",
                         report_pdf=report_pdf,
                         stats_h5=stats_h5,
+                        sharey=True,
                     )
 
 
@@ -3182,6 +3186,7 @@ def process_cross_variance_and_surface_peak(
                         name_of_histogram_pair="Cross Offset Covariance and Correlation Surface Peak",
                         report_pdf=report_pdf,
                         stats_h5=stats_h5,
+                        sharey=False,
                     )
 
 
@@ -3916,6 +3921,7 @@ def process_two_histograms(
     name_of_histogram_pair: str,
     r1_xlabel: str,
     r2_xlabel: str,
+    sharey: bool = False,
 ) -> None:
     """
     Make histograms of two *Rasters; plot to PDF page and add metrics to HDF5.
@@ -3941,6 +3947,9 @@ def process_two_histograms(
             Correct: "InSAR Phase"
             Wrong: "InSAR Phase (radians)"
         The units for this label will be set per `raster.units`.
+    sharey : bool, optional
+        True to have the plots share a y-axes; False
+
 
     Warnings
     --------
@@ -3952,7 +3961,7 @@ def process_two_histograms(
         nrows=1,
         constrained_layout="tight",
         figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
-        sharey=False,
+        sharey=sharey,
     )
 
     # Construct title for the overall PDF page. (`*raster.name` has a format
@@ -3977,6 +3986,9 @@ def process_two_histograms(
         xlabel=r2_xlabel,
         include_axes_title=True,
     )
+
+    if sharey:
+        ax2.set_ylabel("")
 
     # Save complete plots to graphical summary PDF file
     report_pdf.savefig(fig)
