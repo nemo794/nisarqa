@@ -2914,7 +2914,7 @@ def process_surface_peak(
         A structure containing processing parameters to generate the
         correlation surface peak layer plots.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
-        The output pdf file to append the plot to.
+        The output PDF file to append the plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
     """
@@ -2960,8 +2960,10 @@ def add_corr_surface_peak_to_axes(
     include_y_axes_labels : bool, optional
         True to include the y-axis label and y-axis tick mark labels; False to
         exclude. (The tick marks will still appear, but will be unlabeled.)
+        Defaults to True.
     include_axes_title : bool, optional
         True to include a title on the axes itself; False to exclude it.
+        Defaults to True.
     """
     # Prepare and plot the correlation surface peak on the right sub-plot
     surf_peak = nisarqa.decimate_raster_array_to_square_pixels(corr_surf_peak)
@@ -2978,8 +2980,8 @@ def add_corr_surface_peak_to_axes(
             " of [0, 1]."
         )
 
-    # Add the slant range offsets variance plot (right plot)
-    im2 = ax.imshow(
+    # Add the correlation surface peak plot
+    im = ax.imshow(
         surf_peak,
         aspect="equal",
         cmap="gray",
@@ -3012,8 +3014,8 @@ def add_corr_surface_peak_to_axes(
 
     # Add a colorbar to the surface peak plot
     fig = ax.get_figure()
-    cax1 = fig.colorbar(im2, ax=ax)
-    cax1.ax.set_ylabel(
+    cax = fig.colorbar(im, ax=ax)
+    cax.ax.set_ylabel(
         ylabel="Normalized correlation peak (unitless)",
         rotation=270,
         labelpad=10.0,
@@ -3025,7 +3027,7 @@ def plot_corr_surface_peak_to_pdf(
     report_pdf: PdfPages,
 ) -> None:
     """
-    Plot correlation surface peak layers on a single PDF page.
+    Plot correlation surface peak layer on a single PDF page.
 
     Parameters
     ----------
@@ -3042,9 +3044,7 @@ def plot_corr_surface_peak_to_pdf(
         figsize=nisarqa.FIG_SIZE_ONE_PLOT_PER_PAGE,
     )
 
-    # Construct title for the overall PDF page. (`*raster.name` has a format
-    # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
-    # remove the final layer name of e.g. "_slantRangeOffset".)
+    # Construct title for the overall PDF page.
     title = f"Correlation Surface Peak (unitless)\n{corr_surf_peak.name}"
     fig.suptitle(title)
 
