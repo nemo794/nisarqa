@@ -2781,7 +2781,7 @@ def process_az_and_slant_rg_variances_from_offset_product(
                         raster2=rg_off_var,
                         r1_xlabel="Standard Deviation",
                         r2_xlabel="Standard Deviation",
-                        name_of_histogram_pair="Azimuth and Slant Range Offsets StdDev.",
+                        name_of_histogram_pair="Azimuth and Slant Range Offsets STD",
                         report_pdf=report_pdf,
                         stats_h5=stats_h5,
                     )
@@ -2853,7 +2853,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(az_offset_variance.name.split("_")[:-1])
-    title = f"Azimuth and Slant Range Offsets StdDev. (pixels)\n{name}"
+    title = f"Azimuth and Slant Range Offsets STD (pixels)\n{name}"
     fig.suptitle(title)
 
     # Replace non-finite and/or masked-out pixels (i.e. pixels set to the
