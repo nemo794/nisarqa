@@ -3686,7 +3686,7 @@ def generate_histogram_to_axes_and_h5(
         Defaults to True.
     """
     # Get histogram probability density
-    arr = raster.data[()]
+    arr = np.asanyarray(raster.data)
     arr = arr[~np.isnan(arr)]
     if raster.is_complex:
         # complex data; take the phase angle.
