@@ -3664,7 +3664,7 @@ def generate_histogram_to_axes_and_h5(
     *,
     xlabel=str,
     include_axes_title: bool = True,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> None:
     """
     Add plot of correlation surface peak layer on a Matplotlib Axes.
 
@@ -3673,9 +3673,9 @@ def generate_histogram_to_axes_and_h5(
     raster : nisarqa.RadarRaster or nisarqa.GeoRaster
         *Raster to generate the histogram for. If a *Raster has complex data,
         its histogram will be computed on the phase angle of the data values.
-    ax : matplotlib.Axes
-        Axes object. The window extent and other properties of this axes
-        will be used to compute the downsampling factor for the image array.
+        Non-finite raster values are ignored.
+    ax : matplotlib.axes.Axes
+        Axes object.
     xlabel : str
         Label to use for the x-axis histogram bins, not including units.
             Correct: "InSAR Phase"
@@ -3683,6 +3683,7 @@ def generate_histogram_to_axes_and_h5(
         The units for this label will be set per `raster.units`.
     include_axes_title : bool, optional
         True to include a title on the axes itself; False to exclude it.
+        Defaults to True.
     """
     # Get histogram probability density
     arr = raster.data[()]
@@ -3691,13 +3692,16 @@ def generate_histogram_to_axes_and_h5(
         # complex data; take the phase angle.
         arr = np.angle(arr)
     # Fix the number of bins to keep the output file size small
+    # NOTE: InSAR phase histograms were observed to have a spike at 0 radians,
+    # likely due to imperfect overlap between the reference and secondary SLCs.
+    # This histogram feature may be masked if the number of bins is too low.
     density, bin_edges = np.histogram(arr, bins=200, density=True)
 
     # Append to Axes
     if include_axes_title:
-        # Get the layer's polarizations. (`*raster.name` has a format
+        # Get the layer name. (`*raster.name` has a format
         # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
-        # get the polarization, e.g. "slantRangeOffset".)
+        # get the last component, e.g. "slantRangeOffset".)
         ax_title = raster.name.split("_")[-1]
     else:
         ax_title = None
@@ -3731,7 +3735,7 @@ def add_histogram_to_axes(
     axes_title: str | None = None,
 ) -> None:
     """
-    Add plot of histogram on a Matplotlib Axes.
+    Plot a histogram on a Matplotlib Axes.
 
     Parameters
     ----------
@@ -3786,7 +3790,7 @@ def add_histogram_data_to_h5(
     units: str,
 ) -> None:
     """
-    Add statistics to the STATS HDF5 file.
+    Add histogram data to the STATS HDF5 file.
 
     Parameters
     ----------
@@ -3801,9 +3805,9 @@ def add_histogram_data_to_h5(
             RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
             RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
             ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-    density: np.ndarray
+    density : numpy.ndarray
         The normalized density values for the histogram.
-    bin_edges: np.ndarray
+    bin_edges : numpy.ndarray
         The bin edges for the histogram.
     units : str
         Units which will be used for labeling axes.
