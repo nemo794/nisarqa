@@ -3659,7 +3659,7 @@ def plot_unwrapped_coh_mag_to_pdf(
 
 def generate_histogram_to_axes_and_h5(
     raster: nisarqa.RadarRaster | nisarqa.GeoRaster,
-    ax: mpl.Axes,
+    ax: mpl.axes.Axes,
     stats_h5: h5py.File,
     *,
     xlabel=str,
@@ -3726,7 +3726,7 @@ def generate_histogram_to_axes_and_h5(
 
 
 def add_histogram_to_axes(
-    ax: mpl.Axes,
+    ax: mpl.axes.Axes,
     *,
     density: np.ndarray,
     bin_edges: np.ndarray,
@@ -3739,7 +3739,7 @@ def add_histogram_to_axes(
 
     Parameters
     ----------
-    ax : matplotlib.Axes
+    ax : matplotlib.axes.Axes
         Axes object to plot the histogram on.
     density: np.ndarray
         The normalized density values for the histogram.
