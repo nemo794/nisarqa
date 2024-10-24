@@ -1738,7 +1738,7 @@ def format_cbar_ticks_for_multiples_of_pi(
 
 
 def downsample_img_to_size_of_axes(
-    ax: mpl.Axes, arr: np.ndarray, mode: str = "decimate"
+    ax: mpl.axes.Axes, arr: np.ndarray, mode: str = "decimate"
 ) -> np.ndarray:
     """
     Downsample array to size of axes for use with `interpolation='none'`.
@@ -1754,7 +1754,7 @@ def downsample_img_to_size_of_axes(
 
     Parameters
     ----------
-    ax : matplotlib.Axes
+    ax : matplotlib.axes.Axes
         Axes object. The window extent and other properties of this axes
         will be used to compute the downsampling factor for the image array.
     arr : numpy.ndarray
@@ -2942,7 +2942,7 @@ def process_surface_peak(
 
 def add_corr_surface_peak_to_axes(
     corr_surf_peak: nisarqa.RadarRaster | nisarqa.GeoRaster,
-    ax: mpl.Axes,
+    ax: mpl.axes.Axes,
     *,
     include_y_axes_labels: bool = True,
     include_axes_title: bool = True,
@@ -2954,7 +2954,7 @@ def add_corr_surface_peak_to_axes(
     ----------
     corr_surf_peak : nisarqa.RadarRaster or nisarqa.GeoRaster
         Correlation Surface Peak layer to be plotted.
-    ax : matplotlib.Axes
+    ax : matplotlib.axes.Axes
         Axes object. The window extent and other properties of this axes
         will be used to compute the downsampling factor for the image array.
     include_y_axes_labels : bool, optional
