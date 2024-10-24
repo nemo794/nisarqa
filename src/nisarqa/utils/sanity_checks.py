@@ -106,11 +106,19 @@ def identification_sanity_checks(
     # we can log that they were not manually verified by this function.
     ds_checked = set()
 
-    ds_name = "absoluteOrbitNumber"
-    ds_checked.add(ds_name)
-    if _dataset_exists(ds_name):
-        data = _get_integer_dataset(ds_name=ds_name)
-        passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
+    # absolute orbit number
+    if product_type.lower() in nisarqa.LIST_OF_INSAR_PRODUCTS:
+        ds_names = [
+            "referenceAbsoluteOrbitNumber",
+            "secondaryAbsoluteOrbitNumber",
+        ]
+    else:
+        ds_names = ["absoluteOrbitNumber"]
+    for ds_name in ds_names:
+        ds_checked.add(ds_name)
+        if _dataset_exists(ds_name):
+            data = _get_integer_dataset(ds_name=ds_name)
+            passes &= _verify_greater_than_zero(value=data, ds_name=ds_name)
 
     ds_name = "trackNumber"
     ds_checked.add(ds_name)
@@ -210,6 +218,7 @@ def identification_sanity_checks(
         "isGeocoded",
         "isMixedMode",
         "isUrgentObservation",
+        "isJointObservation",
     ):
         ds_checked.add(ds_name)
         if _dataset_exists(ds_name):
@@ -291,6 +300,7 @@ def identification_sanity_checks(
         "boundingPolygon",
         "instrumentName",
         "plannedDatatakeId",
+        "productDoi",
     ):
         ds_checked.add(ds_name)
         if _dataset_exists(ds_name):
