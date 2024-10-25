@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- product specification version is 1.1.2 -->
+<!-- product specification version is 1.2.0 -->
 <algorithm name="L1_SingleLookComplex"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="../../SDS/pix/schema.xsd">
@@ -61,6 +61,12 @@
                 shape="scalar">
           <annotation app="conformance"
                       lang="en">Unique granule identification name</annotation>
+        </string>
+        <string length="0"
+                name="/science/LSAR/identification/productDoi"
+                shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Digital Object Identifier (DOI) for the product</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/productVersion"
@@ -220,7 +226,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension</annotation>
         </real>
         <real name="/science/LSAR/RSLC/swaths/zeroDopplerTimeSpacing"
               shape="scalar"
@@ -725,7 +731,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to calibration records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to calibration records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/geometry/slantRange"
               shape="calibrationSlantRangeWidth"
@@ -739,21 +745,21 @@
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="1">2D LUT to convert DN to beta 0 assuming as a function of zero doppler time and slant range</annotation>
+                      units="1">2D LUT to convert DN to beta 0 assuming as a function of zero Doppler time and slant range</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/geometry/sigma0"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="1">2D LUT to convert DN to sigma 0 assuming as a function of zero doppler time and slant range</annotation>
+                      units="1">2D LUT to convert DN to sigma 0 assuming as a function of zero Doppler time and slant range</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/geometry/gamma0"
               shape="calibrationScaleShape"
               width="32">
           <annotation app="conformance"
                       lang="en"
-                      units="1">2D LUT to convert DN to gamma 0 as a function of zero doppler time and slant range</annotation>
+                      units="1">2D LUT to convert DN to gamma 0 as a function of zero Doppler time and slant range</annotation>
         </real>
         <!-- End of LUTS -->
 
@@ -764,7 +770,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to calibration elevationAntennaPattern records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to calibration elevationAntennaPattern records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/slantRange"
               shape="calibrationSlantRangeWidth"
@@ -826,7 +832,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to calibration elevationAntennaPattern records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to calibration elevationAntennaPattern records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/slantRange"
               shape="calibrationSlantRangeWidth"
@@ -892,7 +898,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to calibration noiseEquivalentBackscatter records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to calibration noiseEquivalentBackscatter records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/slantRange"
               shape="calibrationSlantRangeWidth"
@@ -955,7 +961,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to calibration noiseEquivalentBackscatter records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to calibration noiseEquivalentBackscatter records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/slantRange"
               shape="calibrationSlantRangeWidth"
@@ -1549,7 +1555,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to processing information records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to processing information records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/slantRange"
               shape="dopplerCentroidSlantRangeWidth"
@@ -1563,7 +1569,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to processing information records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to processing information records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyA/slantRange"
               shape="dopplerCentroidSlantRangeWidth"
@@ -1584,7 +1590,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to processing information records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to processing information records</annotation>
         </real>
         <real name="/science/LSAR/RSLC/metadata/processingInformation/parameters/frequencyB/slantRange"
               shape="dopplerCentroidSlantRangeWidth"

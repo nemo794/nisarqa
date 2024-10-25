@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- product specification version is 1.1.2 -->
+<!-- product specification version is 1.2.0 -->
 <algorithm name="L1_WrappedInterferogram"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="../../SDS/pix/schema.xsd">
@@ -80,6 +80,12 @@
                         shape="scalar">
                     <annotation app="conformance"
                                 lang="en">Unique granule identification name</annotation>
+                </string>
+                <string length="0"
+                        name="/science/LSAR/identification/productDoi"
+                        shape="scalar">
+                    <annotation app="conformance"
+                                lang="en">Digital Object Identifier (DOI) for the product</annotation>
                 </string>
                 <string length="0"
                         name="/science/LSAR/identification/productVersion"
@@ -283,21 +289,21 @@
                 </real>
                 <!-- 1D arrays / dimensions -->
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/slantRange"
-                      shape="frequencyASlantRangeWidth"
+                      shape="interferogramSlantRangeWidth"
                       width="64">
                     <annotation app="conformance"
                                 lang="en"
                                 units="meters">Slant range vector</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/zeroDopplerTime"
-                      shape="frequencyAZeroDopplerTimeLength"
+                      shape="interferogramZeroDopplerTimeLength"
                       width="64">
                     <annotation app="conformance"
                                 lang="en"
                                 units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler azimuth time since UTC epoch vector</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/digitalElevationModel"
-                      shape="realDataFrequencyAShape"
+                      shape="interferogramShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -312,7 +318,7 @@
                 <!-- 2D CF compliant rasters -->
                 <!-- Number of layers in actual product will depend on list of available polarizations above -->
                 <integer name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/mask"
-                         shape="realDataFrequencyAShape"
+                         shape="interferogramShape"
                          width="8"
                          signed="false">
                          <annotation app="conformance"
@@ -323,7 +329,7 @@
                                      long_name="Valid samples subswath mask">Mask indicating the subswaths of valid samples in the reference RSLC and geometrically-coregistered secondary RSLC. Each pixel value is a two-digit number: the least significant digit represents the subswath number of that pixel in the secondary RSLC, and the most significant digit represents the subswath number of that pixel in the reference RSLC. A value of ‘0’ in either digit indicates an invalid sample in the corresponding RSLC</annotation>
                 </integer>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/wrappedInterferogram"
-                      shape="complexDataFrequencyAShape"
+                      shape="complexInterferogramShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -332,7 +338,7 @@
                     <annotation app="io" kwd="complex"/>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/HH/coherenceMagnitude"
-                      shape="realDataFrequencyAShape"
+                      shape="interferogramShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -345,7 +351,7 @@
                 </real>
 
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/VV/wrappedInterferogram"
-                      shape="complexDataFrequencyAShape"
+                      shape="complexInterferogramShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -354,7 +360,7 @@
                     <annotation app="io" kwd="complex"/>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/interferogram/VV/coherenceMagnitude"
-                      shape="realDataFrequencyAShape"
+                      shape="interferogramShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -396,7 +402,7 @@
                                 units="seconds">Along-track spacing of the offset grid</annotation>
                 </real>
                 <integer name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/mask"
-                         shape="offsetDataShape"
+                         shape="offsetShape"
                          width="8"
                          signed="false">
                          <annotation app="conformance"
@@ -407,7 +413,7 @@
                                      long_name="Valid samples subswath mask">Mask indicating the subswaths of valid samples in the reference RSLC and geometrically-coregistered secondary RSLC. Each pixel value is a two-digit number: the least significant digit represents the subswath number of that pixel in the secondary RSLC, and the most significant digit represents the subswath number of that pixel in the reference RSLC. A value of ‘0’ in either digit indicates an invalid sample in the corresponding RSLC</annotation>
                 </integer>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/digitalElevationModel"
-                      shape="realDataFrequencyAShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -419,7 +425,7 @@
                                 units="meters">Digital Elevation Model (DEM) in radar coordinates. This dataset is produced using Copernicus WorldDEM-30 Copyright DLR e.V. 2010-2014 and Copyright Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. This dataset is generated by referencing the Copernicus DEM elevations to the WGS84 ellipsoid and projecting them onto a range/Doppler grid</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/HH/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -431,7 +437,7 @@
                                 units="meters">Slant range offset</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/HH/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -443,7 +449,7 @@
                                 units="meters">Along-track offset</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/HH/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -451,7 +457,7 @@
                                 units="1">Normalized correlation surface peak</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/VV/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -463,7 +469,7 @@
                                 units="meters">Slant range offset</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/VV/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -475,7 +481,7 @@
                                 units="meters">Along-track offset</annotation>
                 </real>
                 <real name="/science/LSAR/RIFG/swaths/frequencyA/pixelOffsets/VV/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -1264,45 +1270,45 @@
             <dimension extent="0"
                        name="numberOfFrequencyAPolarizations"/>
         </shape>
-        <shape name="frequencyASlantRangeWidth"
+        <shape name="interferogramSlantRangeWidth"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Number of pixels in all L-SAR frequencyA imagery datasets</annotation>
+                        lang="en">Number of pixels in all L-SAR datasets within the interferogram group</annotation>
             <dimension extent="0"
-                       name="frequencyASlantRangeWidth"/>
+                       name="interferogramSlantRangeWidth"/>
         </shape>
-        <shape name="frequencyAZeroDopplerTimeLength"
+        <shape name="interferogramZeroDopplerTimeLength"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Number of lines in all L-SAR frequencyA imagery datasets</annotation>
+                        lang="en">Number of lines in all L-SAR datasets within the interferogram group</annotation>
             <dimension extent="0"
-                       name="frequencyAZeroDopplerTimeLength"/>
+                       name="interferogramZeroDopplerTimeLength"/>
         </shape>
-        <shape name="complexDataFrequencyAShape"
+        <shape name="complexInterferogramShape"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Shape associated with L-SAR frequencyA imagery datasets</annotation>
+                        lang="en">Shape associated with complex datasets in the interferogram group</annotation>
             <dimension extent="0"
-                       name="frequencyAZeroDopplerTimeLength"/>
+                       name="interferogramZeroDopplerTimeLength"/>
             <dimension extent="0"
-                       name="frequencyASlantRangeWidth"/>
+                       name="interferogramSlantRangeWidth"/>
             <dimension name="complex" extent="2"/>
         </shape>
-        <shape name="realDataFrequencyAShape"
+        <shape name="interferogramShape"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Shape associated with L-SAR frequencyA imagery interferometric dataset</annotation>
+                        lang="en">Shape associated with real or integer datasets in the interferogram group</annotation>
             <dimension extent="0"
-                       name="frequencyAZeroDopplerTimeLength"/>
+                       name="interferogramZeroDopplerTimeLength"/>
             <dimension extent="0"
-                       name="frequencyASlantRangeWidth"/>
+                       name="interferogramSlantRangeWidth"/>
         </shape>
 
         <!-- Pixel offsets -->
-        <shape name="offsetDataShape"
+        <shape name="offsetShape"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Shape associated with Pixel Offset layers</annotation>
+                        lang="en">Shape associated with L-SAR datasets in the pixelOffsets group</annotation>
             <dimension extent="0"
                        name="offsetZeroDopplerTimeLength"/>
             <dimension extent="0"
@@ -1311,27 +1317,16 @@
         <shape name="offsetSlantRangeWidth"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Number of pixels in Pixel Offset layers</annotation>
+                        lang="en">Number of pixels in all L-SAR datasets within the pixelOffsets group</annotation>
             <dimension extent="0"
                        name="offsetSlantRangeWidth"/>
         </shape>
         <shape name="offsetZeroDopplerTimeLength"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Number of lines in all L-SAR frequencyA imagery datasets</annotation>
+                        lang="en">Number of lines in all L-SAR datasets within the pixelOffsets group</annotation>
             <dimension extent="0"
                        name="offsetZeroDopplerTimeLength"/>
-        </shape>
-
-        <!-- For marking valid samples in an image -->
-        <shape name="validSamplesShapeFrequencyA"
-               order="slowest...fastest">
-            <annotation app="conformance"
-                        lang="en">Shape associated with L-SAR frequencyA valid samples dataset</annotation>
-            <dimension extent="0"
-                       name="frequencyAZeroDopplerTimeLength"/>
-            <dimension extent="2"
-                       name="firstLastPair"/>
         </shape>
 
         <!-- Geolocation cube related shapes -->

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- product specification version is 1.1.2 -->
+<!-- product specification version is 1.2.0 -->
 <algorithm name="L1_RadarPixelOffsets"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="../../SDS/pix/schema.xsd">
@@ -80,6 +80,12 @@
                         shape="scalar">
                     <annotation app="conformance"
                                 lang="en">Unique granule identification name</annotation>
+                </string>
+                <string length="0"
+                        name="/science/LSAR/identification/productDoi"
+                        shape="scalar">
+                    <annotation app="conformance"
+                                lang="en">Digital Object Identifier (DOI) for the product</annotation>
                 </string>
                 <string length="0"
                         name="/science/LSAR/identification/productVersion"
@@ -289,7 +295,7 @@
                                 units="seconds">Along-track spacing of the offset grid</annotation>
                 </real>
                 <integer name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/mask"
-                         shape="offsetDataShape"
+                         shape="offsetShape"
                          width="8"
                          signed="false">
                          <annotation app="conformance"
@@ -300,7 +306,7 @@
                                      long_name="Valid samples subswath mask">Mask indicating the subswaths of valid samples in the reference RSLC and geometrically-coregistered secondary RSLC. Each pixel value is a two-digit number: the least significant digit represents the subswath number of that pixel in the secondary RSLC, and the most significant digit represents the subswath number of that pixel in the reference RSLC. A value of ‘0’ in either digit indicates an invalid sample in the corresponding RSLC</annotation>
                 </integer>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/digitalElevationModel"
-                      shape="realDataFrequencyAShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -313,7 +319,7 @@
                 </real>
                 <!-- Pixel offsets rasters: HH polarization -->
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer1/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -325,7 +331,7 @@
                                 units="meters">Raw (unculled, unfiltered) slant range pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -337,7 +343,7 @@
                                 units="meters">Raw (unculled, unfiltered) along-track pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer1/snr"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -349,7 +355,7 @@
                                 units="1">Pixel offsets signal-to-noise ratio</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer1/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -361,7 +367,7 @@
                                 units="1">Normalized correlation surface peak</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer1/slantRangeOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -373,7 +379,7 @@
                                 units="meters^2">Slant range pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer1/alongTrackOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -385,7 +391,7 @@
                                 units="meters^2">Along-track pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer1/crossOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -397,7 +403,7 @@
                                 units="meters^2">Off-diagonal term of the pixel offsets covariance matrix</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer2/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -409,7 +415,7 @@
                                 units="meters">Raw (unculled, unfiltered) slant range pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer2/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -421,7 +427,7 @@
                                 units="meters">Raw (unculled, unfiltered) along-track pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer2/snr"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -433,7 +439,7 @@
                                 units="1">Pixel offsets signal-to-noise ratio</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer2/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -445,7 +451,7 @@
                                 units="1">Normalized correlation surface peak</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer2/slantRangeOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -457,7 +463,7 @@
                                 units="meters^2">Slant range pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer2/alongTrackOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -469,7 +475,7 @@
                                 units="meters^2">Along-track pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer2/crossOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -481,7 +487,7 @@
                                 units="meters^2">Off-diagonal term of the pixel offsets covariance matrix</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer3/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -493,7 +499,7 @@
                                 units="meters">Raw (unculled, unfiltered) slant range pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer3/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -505,7 +511,7 @@
                                 units="meters">Raw (unculled, unfiltered) along-track pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer3/snr"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -517,7 +523,7 @@
                                 units="1">Pixel offsets signal-to-noise ratio</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer3/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -529,7 +535,7 @@
                                 units="1">Normalized correlation surface peak</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer3/slantRangeOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -541,7 +547,7 @@
                                 units="meters^2">Slant range pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer3/alongTrackOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -553,7 +559,7 @@
                                 units="meters^2">Along-track pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/HH/layer3/crossOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -566,7 +572,7 @@
                 </real>
                 <!-- Pixel offsets rasters: VV polarization -->
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer1/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -578,7 +584,7 @@
                                 units="meters">Raw (unculled, unfiltered) slant range pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer1/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -590,7 +596,7 @@
                                 units="meters">Raw (unculled, unfiltered) along-track pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer1/snr"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -602,7 +608,7 @@
                                 units="1">Pixel offsets signal-to-noise ratio</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer1/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -614,7 +620,7 @@
                                 units="1">Normalized correlation surface peak</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer1/slantRangeOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -626,7 +632,7 @@
                                 units="meters^2">Slant range pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer1/alongTrackOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -638,7 +644,7 @@
                                 units="meters^2">Along-track pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer1/crossOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -650,7 +656,7 @@
                                 units="meters^2">Off-diagonal term of the pixel offsets covariance matrix</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer2/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -662,7 +668,7 @@
                                 units="meters">Raw (unculled, unfiltered) slant range pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer2/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -674,7 +680,7 @@
                                 units="meters">Raw (unculled, unfiltered) along-track pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer2/snr"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -686,7 +692,7 @@
                                 units="1">Pixel offsets signal-to-noise ratio</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer2/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -698,7 +704,7 @@
                                 units="1">Normalized correlation surface peak</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer2/slantRangeOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -710,7 +716,7 @@
                                 units="meters^2">Slant range pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer2/alongTrackOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -722,7 +728,7 @@
                                 units="meters^2">Along-track pixel offset variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer2/crossOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -734,7 +740,7 @@
                                 units="meters^2">Off-diagonal term of the pixel offsets covariance matrix</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer3/slantRangeOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -746,7 +752,7 @@
                                 units="meters">Raw (unculled, unfiltered) slant range pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer3/alongTrackOffset"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -758,7 +764,7 @@
                                 units="meters">Raw (unculled, unfiltered) along-track pixel offsets</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer3/snr"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -770,7 +776,7 @@
                                 units="1">Pixel offsets signal-to-noise ratio</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer3/correlationSurfacePeak"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -782,7 +788,7 @@
                                 units="1">Normalized correlation surface peak</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer3/slantRangeOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -794,7 +800,7 @@
                                 units="meters^2">Slant range pixel offsets variance</annotation>
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer3/alongTrackOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -807,7 +813,7 @@
 
                 </real>
                 <real name="/science/LSAR/ROFF/swaths/frequencyA/pixelOffsets/VV/layer3/crossOffsetVariance"
-                      shape="offsetDataShape"
+                      shape="offsetShape"
                       width="32">
                     <annotation app="conformance"
                                 lang="en"
@@ -1617,10 +1623,10 @@
             <dimension extent="0"
                        name="numberOfFrequencyAOffsetLayers"/>
         </shape>
-        <shape name="offsetDataShape"
+        <shape name="offsetShape"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Shape associated with Pixel Offset layers</annotation>
+                        lang="en">Shape associated with L-SAR datasets in the pixelOffsets group</annotation>
             <dimension extent="0"
                        name="offsetZeroDopplerTimeLength"/>
             <dimension extent="0"
@@ -1629,14 +1635,14 @@
         <shape name="offsetSlantRangeWidth"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Number of pixels in Pixel Offset layers</annotation>
+                        lang="en">Number of pixels in all L-SAR datasets within the pixelOffsets group</annotation>
             <dimension extent="0"
                        name="offsetSlantRangeWidth"/>
         </shape>
         <shape name="offsetZeroDopplerTimeLength"
                order="slowest...fastest">
             <annotation app="conformance"
-                        lang="en">Number of lines in all L-SAR frequencyA imagery datasets</annotation>
+                        lang="en">Number of lines in all L-SAR datasets within the pixelOffsets group</annotation>
             <dimension extent="0"
                        name="offsetZeroDopplerTimeLength"/>
         </shape>

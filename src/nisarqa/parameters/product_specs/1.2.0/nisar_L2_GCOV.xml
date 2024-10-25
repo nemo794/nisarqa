@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- product specification version is 1.1.2 -->
+<!-- product specification version is 1.2.0 -->
 <algorithm name="L2_GeocodedCovariance"
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="../../SDS/pix/schema.xsd">
@@ -61,6 +61,12 @@
                 shape="scalar">
           <annotation app="conformance"
                       lang="en">Unique granule identification name</annotation>
+        </string>
+        <string length="0"
+                 name="/science/LSAR/identification/productDoi"
+                 shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Digital Object Identifier (DOI) for the product</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/identification/productVersion"
@@ -274,6 +280,8 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
@@ -334,7 +342,7 @@
                       long_name="Valid samples subswath mask"
                       valid_min="0"
                       _FillValue="255"
-                      grid_mapping="projection">GCOV terms mask</annotation>
+                      grid_mapping="projection">Mask indicating the subswath number associated with valid GCOV samples. A GCOV sample is only considered valid if it is generated from fully-focused radar samples. If at least one radar sample in the averaging set is partially focused or invalid, the corresponding mask pixel will contain the value `0`. GCOV pixels outside of the radar acquisition extent are filled with the value `255`</annotation>
         </integer>
         <real name="/science/LSAR/GCOV/grids/frequencyA/HHHH"
               shape="realDataFrequencyAShape"
@@ -360,14 +368,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HHHV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between HH and HV</annotation>
@@ -380,14 +388,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HHVH"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance betweeen HH and VH</annotation>
@@ -400,14 +408,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HHVV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between HH and VV</annotation>
@@ -437,14 +445,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HVVH"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between HV and VH</annotation>
@@ -457,14 +465,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HVVV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance betweeen HH and VV</annotation>
@@ -494,14 +502,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term VHVV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance betweeen VH and VV</annotation>
@@ -548,14 +556,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term RHRV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between RH and RV</annotation>
@@ -632,6 +640,8 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
@@ -709,7 +719,7 @@
                       long_name="Valid samples subswath mask"
                       valid_min="0"
                       _FillValue="255"
-                      grid_mapping="projection">GCOV terms mask</annotation>
+                      grid_mapping="projection">Mask indicating the subswath number associated with valid GCOV samples. A GCOV sample is only considered valid if it is generated from fully-focused radar samples. If at least one radar sample in the averaging set is partially focused or invalid, the corresponding mask pixel will contain the value `0`. GCOV pixels outside of the radar acquisition extent are filled with the value `255`</annotation>
         </integer>
         <real name="/science/LSAR/GCOV/grids/frequencyB/HHHH"
               shape="realDataFrequencyBShape"
@@ -735,14 +745,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HHHV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between HH and HV</annotation>
@@ -755,14 +765,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HHVH"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance betweeen HH and VH</annotation>
@@ -775,14 +785,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HHVV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between HH and VV</annotation>
@@ -812,14 +822,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HVVH"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between HV and VH</annotation>
@@ -832,14 +842,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term HVVV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance betweeen HH and VV</annotation>
@@ -869,14 +879,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term VHVV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance betweeen VH and VV</annotation>
@@ -923,14 +933,14 @@
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Geocoded polarimetric covariance term RHRV"
-                      mean_real_value="Arithmetic average of the real part of numeric data points"
-                      min_real_value="Minimum value of the real part of numeric data points"
-                      max_real_value="Maximum value of the real part of numeric data points"
-                      sample_stddev_real="Standard deviation of the real part of numeric data points"
-                      mean_imag_value="Arithmetic average of the imaginary part of numeric data points"
-                      min_imag_value="Minimum value of the imaginary part of numeric data points"
-                      max_imag_value="Maximum value of the imaginary part of numeric data points"
-                      sample_stddev_imag="Standard deviation of the imaginary part of numeric data points"
+                      mean_real_value="Arithmetic average of the real part of the numeric data points"
+                      min_real_value="Minimum value of the real part of the numeric data points"
+                      max_real_value="Maximum value of the real part of the numeric data points"
+                      sample_stddev_real="Standard deviation of the real part of the numeric data points"
+                      mean_imag_value="Arithmetic average of the imaginary part of the numeric data points"
+                      min_imag_value="Minimum value of the imaginary part of the numeric data points"
+                      max_imag_value="Maximum value of the imaginary part of the numeric data points"
+                      sample_stddev_imag="Standard deviation of the imaginary part of the numeric data points"
                       _FillValue="(nan+nan*j)"
                       grid_mapping="projection"
                       units="1">Covariance between RH and RV</annotation>
@@ -971,18 +981,6 @@
                 <annotation app="conformance"
                             epsg="EPSG code"
                             lang="en">OGR compatible WKT representing the bounding box of the product (the union of the geocoded grid for available frequency A and frequency B image datasets). Horizontal coordinates are X and Y directions of the geocoded grid coordinate system, and the vertical coordinate is the height above the WGS84 ellipsoid in meters. The first point corresponds to the top left edge of the bounding box. The remaining points are traversed in counterclockwise order on the map. The fifth point closes the bounding box by repeating the first point</annotation>
-        </string>
-        <string length="0"
-                name="/science/LSAR/GCOV/metadata/ceosAnalysisReadyData/dataAccess"
-                shape="scalar">
-          <annotation app="conformance"
-                      lang="en">Location from where this product can be retrieved (URL or DOI)</annotation>
-        </string>
-        <string length="0"
-                name="/science/LSAR/GCOV/metadata/ceosAnalysisReadyData/sourceDataAccess"
-                shape="scalar">
-          <annotation app="conformance"
-                      lang="en">Location from where the source data product can be retrieved (URL or DOI)</annotation>
         </string>
         <string length="0"
                 name="/science/LSAR/GCOV/metadata/ceosAnalysisReadyData/staticLayersDataAccess"
@@ -1062,6 +1060,7 @@
                       DIMENSION_LIST="HDF5 internal attribute"
                       long_name="Zero Doppler azimuth time"
                       grid_mapping="projection"
+                      _FillValue="nan"
                       units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler azimuth time in seconds since UTC epoch</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/radarGrid/incidenceAngle"
@@ -1167,6 +1166,8 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
@@ -1206,6 +1207,7 @@
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
+                          standard_name = "height_above_reference_ellipsoid"
                           units="meters">Height values above WGS84 Ellipsoid corresponding to the radar grid</annotation>
         </real>
         <!-- End of Metadata cube -->
@@ -1224,34 +1226,36 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
                         lang="en">Product map grid projection: EPSG code, with additional projection information as HDF5 Attributes</annotation>
         </integer>
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/yCoordinates"	
-              shape="calibrationLength"	
-              width="64">	
-              <annotation app="conformance"	
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/yCoordinates"
+              shape="calibrationLength"
+              width="64">
+              <annotation app="conformance"
                           lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="Y coordinates of projection"
                           standard_name="projection_y_coordinate"
-                          units="meters">Y coordinates in specified projection</annotation>	
-        </real>	
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/xCoordinates"	
-              shape="calibrationWidth"	
-              width="64">	
-              <annotation app="conformance"	
-                          lang="en"	
+                          units="meters">Y coordinates in specified projection</annotation>
+        </real>
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/xCoordinates"
+              shape="calibrationWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="X coordinates of projection"
                           standard_name="projection_x_coordinate"
-                          units="meters">X coordinates in specified projection</annotation>	
+                          units="meters">X coordinates in specified projection</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/elevationAntennaPattern/HH"
               shape="antennaPatternComplexShape"
@@ -1332,34 +1336,36 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
                         lang="en">Product map grid projection: EPSG code, with additional projection information as HDF5 Attributes</annotation>
         </integer>
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/yCoordinates"	
-              shape="calibrationLength"	
-              width="64">	
-              <annotation app="conformance"	
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/yCoordinates"
+              shape="calibrationLength"
+              width="64">
+              <annotation app="conformance"
                           lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="Y coordinates of projection"
                           standard_name="projection_y_coordinate"
-                          units="meters">Y coordinates in specified projection</annotation>	
-        </real>	
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/xCoordinates"	
-              shape="calibrationWidth"	
-              width="64">	
-              <annotation app="conformance"	
+                          units="meters">Y coordinates in specified projection</annotation>
+        </real>
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/xCoordinates"
+              shape="calibrationWidth"
+              width="64">
+              <annotation app="conformance"
                           lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="X coordinates of projection"
                           standard_name="projection_x_coordinate"
-                          units="meters">X coordinates in specified projection</annotation>	
+                          units="meters">X coordinates in specified projection</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/elevationAntennaPattern/HH"
               shape="antennaPatternComplexShape"
@@ -1443,34 +1449,36 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
                         lang="en">Product map grid projection: EPSG code, with additional projection information as HDF5 Attributes</annotation>
         </integer>
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/yCoordinates"	
-              shape="calibrationLength"	
-              width="64">	
-              <annotation app="conformance"	
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/yCoordinates"
+              shape="calibrationLength"
+              width="64">
+              <annotation app="conformance"
                           lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="Y coordinates of projection"
                           standard_name="projection_y_coordinate"
-                          units="meters">Y coordinates in specified projection</annotation>	
-        </real>	
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/xCoordinates"	
-              shape="calibrationWidth"	
-              width="64">	
-              <annotation app="conformance"	
-                          lang="en"	
+                          units="meters">Y coordinates in specified projection</annotation>
+        </real>
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/xCoordinates"
+              shape="calibrationWidth"
+              width="64">
+              <annotation app="conformance"
+                          lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="X coordinates of projection"
                           standard_name="projection_x_coordinate"
-                          units="meters">X coordinates in specified projection</annotation>	
+                          units="meters">X coordinates in specified projection</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyA/noiseEquivalentBackscatter/HH"
               shape="calibrationScaleShape"
@@ -1583,34 +1591,36 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
                         lang="en">Product map grid projection: EPSG code, with additional projection information as HDF5 Attributes</annotation>
         </integer>
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/yCoordinates"	
-              shape="calibrationLength"	
-              width="64">	
-              <annotation app="conformance"	
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/yCoordinates"
+              shape="calibrationLength"
+              width="64">
+              <annotation app="conformance"
                           lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="Y coordinates of projection"
                           standard_name="projection_y_coordinate"
-                          units="meters">Y coordinates in specified projection</annotation>	
-        </real>	
-        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/xCoordinates"	
-              shape="calibrationWidth"	
-              width="64">	
-              <annotation app="conformance"	
+                          units="meters">Y coordinates in specified projection</annotation>
+        </real>
+        <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/xCoordinates"
+              shape="calibrationWidth"
+              width="64">
+              <annotation app="conformance"
                           lang="en"
                           REFERENCE_LIST="HDF5 internal attribute"
                           CLASS="HDF5 internal attribute"
                           NAME="HDF5 internal attribute"
                           long_name="X coordinates of projection"
                           standard_name="projection_x_coordinate"
-                          units="meters">X coordinates in specified projection</annotation>	
+                          units="meters">X coordinates in specified projection</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/calibrationInformation/frequencyB/noiseEquivalentBackscatter/HV"
               shape="calibrationScaleShape"
@@ -2447,6 +2457,8 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
@@ -2492,6 +2504,8 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
@@ -2527,10 +2541,6 @@
           <annotation app="conformance"
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
-                      mean_value="Arithmetic average of the numeric data points"
-                      min_value="Minimum value of the numeric data points"
-                      max_value="Maximum value of the numeric data points"
-                      sample_stddev="Standard deviation of the numeric data points"
                       _FillValue="nan"
                       grid_mapping="projection"
                       units="hertz">2D LUT of Doppler centroid for frequency A</annotation>
@@ -2549,6 +2559,8 @@
                         inverse_flattening="Inverse flattening of the ellipsoidal figure"
                         latitude_of_projection_origin="The latitude chosen as the origin of rectangular coordinates for a map projection."
                         longitude_of_projection_origin="The longitude, with respect to Greenwich, of the prime meridian associated with the geodetic datum."
+                        longitude_of_central_meridian="The line of longitude at the center of a map projection generally used as the basis for constructing the projection."
+                        scale_factor_at_central_meridian="A multiplier for reducing a distance obtained from a map by computation or scaling to the actual distance along the central meridian."
                         semi_major_axis="Semi-major axis"
                         spatial_ref="Spatial reference"
                         utm_zone_number="UTM zone number"
@@ -2584,10 +2596,6 @@
           <annotation app="conformance"
                       lang="en"
                       DIMENSION_LIST="HDF5 internal attribute"
-                      mean_value="Arithmetic average of the numeric data points"
-                      min_value="Minimum value of the numeric data points"
-                      max_value="Maximum value of the numeric data points"
-                      sample_stddev="Standard deviation of the numeric data points"
                       _FillValue="nan"
                       grid_mapping="projection"
                       units="hertz">2D LUT of Doppler centroid for frequency B</annotation>
@@ -2744,6 +2752,12 @@
         </string>
         <!-- Source data (RSLC) information -->
         <string length="0"
+                 name="/science/LSAR/GCOV/metadata/sourceData/productDoi"
+                 shape="scalar">
+          <annotation app="conformance"
+                      lang="en">Digital Object Identifier (DOI) of the source product</annotation>
+        </string>
+        <string length="0"
                 name="/science/LSAR/GCOV/metadata/sourceData/productVersion"
                 shape="scalar">
           <annotation app="conformance"
@@ -2798,7 +2812,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to source data processing information records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to source data processing information records</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/slantRange"
               shape="sourceDataDopplerCentroidSlantRangeWidth"
@@ -2812,7 +2826,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to source data processing information records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to source data processing information records</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyA/slantRange"
               shape="sourceDataDopplerCentroidSlantRangeWidth"
@@ -2833,7 +2847,7 @@
               width="64">
               <annotation app="conformance"
                           lang="en"
-                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero doppler time since UTC epoch dimension corresponding to source data processing information records</annotation>
+                          units="seconds since YYYY-mm-ddTHH:MM:SS">Zero Doppler time since UTC epoch dimension corresponding to source data processing information records</annotation>
         </real>
         <real name="/science/LSAR/GCOV/metadata/sourceData/processingInformation/parameters/frequencyB/slantRange"
               shape="sourceDataDopplerCentroidSlantRangeWidth"
@@ -3204,7 +3218,7 @@
     <shape name="complexDataFrequencyAShape"
            order="slowest...fastest">
            <annotation app="conformance"
-                       lang="en">Shape associated with L-SAR frequency A complex-valued imagery datasets</annotation> 
+                       lang="en">Shape associated with L-SAR frequency A complex-valued imagery datasets</annotation>
            <dimension extent="0"
                       name="frequencyALength"/>
            <dimension extent="0"
@@ -3214,7 +3228,7 @@
     <shape name="realDataFrequencyAShape"
            order="slowest...fastest">
            <annotation app="conformance"
-                       lang="en">Shape associated with L-SAR frequency A real-valued imagery datasets</annotation> 
+                       lang="en">Shape associated with L-SAR frequency A real-valued imagery datasets</annotation>
            <dimension extent="0"
                       name="frequencyALength"/>
            <dimension extent="0"
@@ -3265,7 +3279,7 @@
                       name="frequencyBLength"/>
            <dimension extent="0"
                       name="frequencyBWidth"/>
-           <dimension name="complex" extent="2"/> 
+           <dimension name="complex" extent="2"/>
     </shape>
     <shape name="realDataFrequencyBShape"
            order="slowest...fastest">
@@ -3317,7 +3331,7 @@
                        lang="en">Width dimension of the metadata cube</annotation>
            <dimension extent="0"
                       name="radarCubeWidth"/>
-    </shape>  
+    </shape>
 
     <!-- Processing parameters related shapes -->
     <shape name="dopplerCentroidLength"
@@ -3382,6 +3396,7 @@
                        lang="en">Shape of crosstalk datasets</annotation>
            <dimension name="complex" extent="2"/>
     </shape>
+
      <!-- Source data related shape -->
     <shape name="sourceDataDopplerCentroidTimeLength"
     order="slowest...fastest">
