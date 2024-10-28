@@ -2987,7 +2987,13 @@ def process_surface_peak(
                     report_pdf=report_pdf,
                 )
 
-                # TODO Compute histograms
+                process_single_histogram(
+                    raster=surface_peak,
+                    report_pdf=report_pdf,
+                    stats_h5=stats_h5,
+                    xlabel="Normalized Correlation Peak",
+                    name_of_histogram="Correlation Surface Peak",
+                )
 
 
 def add_corr_surface_peak_to_axes(
