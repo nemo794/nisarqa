@@ -3451,7 +3451,7 @@ def plot_connected_components_layer(
     )
 
     # Step 4: Create a bar chart of the connected components on ax2
-    ax2.set_title("Percentage of Pixels per Connected Component")
+    ax2.set_title("Percentage of Pixels per Connected Component", fontsize=10)
 
     x_locations_of_bars = range(len(percentages))
 

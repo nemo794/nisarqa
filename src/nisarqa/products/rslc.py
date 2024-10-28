@@ -282,16 +282,16 @@ def verify_rslc(
                 print(msg)
 
         if root_params.workflows.neb:
-            log.info(
-                "Beginning Noise Equivalent Backscatter CalTool..."
-            )
+            log.info("Beginning Noise Equivalent Backscatter CalTool...")
 
             # Run NEB tool
             nisarqa.caltools.run_neb_tool(
                 rslc=product,
                 stats_filename=stats_file,
             )
-            log.info(f"Noise Equivalent Backscatter CalTool results saved to {stats_file}.")
+            log.info(
+                f"Noise Equivalent Backscatter CalTool results saved to {stats_file}."
+            )
             msg = "Noise Equivalent Backscatter CalTool complete."
             log.info(msg)
             if not verbose:
@@ -539,18 +539,28 @@ def process_backscatter_imgs_and_browse(
 
                 # Label and Save Backscatter Image to PDF
                 with product.get_raster(freq=freq, pol=pol) as img:
-                    title = (
-                        f"{plot_title_prefix}\n"
-                        f"(scale={params.backscatter_units}%s)\n{img.name}"
-                    )
-                    if params.gamma is None:
-                        title = title % ""
-                    else:
-                        title = title % rf", $\gamma$-correction={params.gamma}"
+                    # Construct Figure title
+                    fig_title = f"{plot_title_prefix}\n{img.name}"
+
+                    # Construct the axes title. Add image correction notes
+                    # in the order specified in `apply_image_correction()`.
+                    ax_title = ""
+                    clip_interval = params.percentile_for_clipping
+                    if not np.allclose(clip_interval, [0.0, 100.0]):
+                        ax_title += (
+                            "clipped to percentile range"
+                            f" [{clip_interval[0]}, {clip_interval[1]}]\n"
+                        )
+
+                    ax_title += f"scale={params.backscatter_units}"
+
+                    if params.gamma is not None:
+                        ax_title += rf", $\gamma$-correction={params.gamma}"
 
                     nisarqa.rslc.img2pdf_grayscale(
                         img_arr=corrected_img,
-                        title=title,
+                        fig_title=fig_title,
+                        ax_title=ax_title,
                         ylim=img.y_axis_limits,
                         xlim=img.x_axis_limits,
                         colorbar_formatter=colorbar_formatter,
@@ -1007,7 +1017,8 @@ def prep_arr_for_png_with_transparency(img_arr):
 def img2pdf_grayscale(
     img_arr: ArrayLike,
     plots_pdf: PdfPages,
-    title: Optional[str] = None,
+    fig_title: Optional[str] = None,
+    ax_title: Optional[str] = None,
     xlim: Optional[Sequence[float]] = None,
     ylim: Optional[Sequence[float]] = None,
     colorbar_formatter: Optional[FuncFormatter] = None,
@@ -1024,8 +1035,10 @@ def img2pdf_grayscale(
         Image to plot in grayscale
     plots_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
-    title : str or None, optional
-        The full title for the plot
+    fig_title : str or None, optional
+        The title for the plot's figure.
+    ax_title : str or None, optional
+        The title for the plot's axes. (Functionally akin to a subtitle.)
     xlim, ylim : sequence of numeric or None, optional
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>],
@@ -1079,12 +1092,13 @@ def img2pdf_grayscale(
         cbar.ax.yaxis.set_major_formatter(colorbar_formatter)
 
     ## Label the plot
+    f.suptitle(fig_title)
     format_axes_ticks_and_labels(
         ax=ax,
         xlim=xlim,
         ylim=ylim,
         img_arr_shape=np.shape(img_arr),
-        title=title,
+        title=ax_title,
         xlabel=xlabel,
         ylabel=ylabel,
     )
@@ -1128,7 +1142,7 @@ def format_axes_ticks_and_labels(
         establishes the aspect ratio for the axes.
         Required if `xlim` or `ylim` are specified; otherwise will be ignored.
     title : str or None, optional
-        The full title for the plot. Defaults to None (no title added).
+        The title for the axes. Defaults to None (no title added).
     xlabel, ylabel : str or None, optional
         Axes labels for the x-axis and y-axis (respectively).
         Defaults to None (no labels added).
@@ -1214,7 +1228,7 @@ def format_axes_ticks_and_labels(
 
     # Add title
     if title is not None:
-        ax.set_title(title)
+        ax.set_title(title, fontsize=10)
 
 
 def process_backscatter_and_phase_histograms(
