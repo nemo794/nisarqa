@@ -1063,19 +1063,17 @@ class RSLCRootParamGroup(RootParamGroup):
                 self.abs_cal = None
                 self.pta = None
 
-                # Update the corner_reflector_file to be None.
-                self.anc_files = replace(
-                    self.anc_files, corner_reflector_file=None
-                )
-                # While it shouldn't break anything in the code as of Sept 2023
-                # to leave the `anc_file` group instantiated and with its
-                # only attribute set to None, this might lead to some code
-                # hygiene issues later due to not following QA convention.
+                # Similarly, if we leave the `anc_file` group instantiated
+                # and with its only attribute set to None, this leads to code
+                # hygiene issues due to not following QA convention.
+                # For example, during `save_processing_params_to_stats_h5()`,
+                # when 'runConfigurationContents' is saved to the STATS file,
+                # it would include the `anc_file` group but have a null
+                # corner reflector file.
 
-                # With the Sept. 2023 code, we could simply set
-                # `self.anc_files = None`. However, later if another file (such
-                # as a DEM) is later added `anc_files`, then we want a more
-                # nuanced behavior.
+                # To solve this, we could simply set `self.anc_files = None`.
+                # However, if another file (such as a DEM) is later added
+                # to `anc_files`, then we want a more forward-looking behavior.
 
                 # For now, assume that any parameter added to
                 # DynamicAncillaryFileParamGroup will either be required (and
