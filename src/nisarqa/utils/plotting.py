@@ -701,6 +701,7 @@ def process_phase_image_wrapped(
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
                     sharey=False,
+                    r1_data_prep_func=lambda x: np.angle(x),
                 )
 
 
@@ -2010,11 +2011,11 @@ def process_range_and_az_offsets(
     process_two_histograms(
         raster1=az_offset,
         raster2=rg_offset,
-        r1_xlabel="Displacement",
-        r2_xlabel="Displacement",
-        name_of_histogram_pair="Along Track and Slant Range Offsets",
         report_pdf=report_pdf,
         stats_h5=stats_h5,
+        name_of_histogram_pair="Along Track and Slant Range Offsets",
+        r1_xlabel="Displacement",
+        r2_xlabel="Displacement",
         sharey=True,
     )
 
@@ -2782,12 +2783,14 @@ def process_az_and_slant_rg_variances_from_offset_product(
                     process_two_histograms(
                         raster1=az_off_var,
                         raster2=rg_off_var,
-                        r1_xlabel="Standard Deviation",
-                        r2_xlabel="Standard Deviation",
-                        name_of_histogram_pair="Azimuth and Slant Range Offsets STD",
                         report_pdf=report_pdf,
                         stats_h5=stats_h5,
+                        name_of_histogram_pair="Azimuth and Slant Range Offsets STD",
+                        r1_xlabel="Standard Deviation",
+                        r2_xlabel="Standard Deviation",
                         sharey=True,
+                        r1_data_prep_func=lambda x: np.sqrt(x),
+                        r2_data_prep_func=lambda x: np.sqrt(x),
                     )
 
 
@@ -3181,11 +3184,12 @@ def process_cross_variance_and_surface_peak(
                     process_two_histograms(
                         raster1=cross_off_var,
                         raster2=surface_peak,
-                        r1_xlabel="Covariance",
-                        r2_xlabel="Normalized Correlation Peak",
-                        name_of_histogram_pair="Cross Offset Covariance and Correlation Surface Peak",
                         report_pdf=report_pdf,
                         stats_h5=stats_h5,
+                        name_of_histogram_pair="Cross Offset Covariance and Correlation Surface Peak",
+                        r1_xlabel="Covariance",
+                        r2_xlabel="Normalized Correlation Peak",
+                        r1_clip_percentile=params_cross_offset.percentile_for_clipping,
                         sharey=False,
                     )
 
@@ -3669,16 +3673,16 @@ def generate_histogram_to_axes_and_h5(
     *,
     xlabel=str,
     include_axes_title: bool = True,
+    percentile_for_clipping: Sequence[float] | None = None,
+    data_prep_func: Callable | None = None,
 ) -> None:
     """
-    Add plot of correlation surface peak layer on a Matplotlib Axes.
+    Compute histogram and save to PDF and STATS HDF5 file.
 
     Parameters
     ----------
     raster : nisarqa.RadarRaster or nisarqa.GeoRaster
-        *Raster to generate the histogram for. If a *Raster has complex data,
-        its histogram will be computed on the phase angle of the data values.
-        Non-finite raster values are ignored.
+        *Raster to generate the histogram for. Non-finite values are ignored.
     ax : matplotlib.axes.Axes
         Axes object.
     stats_h5 : h5py.File
@@ -3691,13 +3695,32 @@ def generate_histogram_to_axes_and_h5(
     include_axes_title : bool, optional
         True to include a title on the axes itself; False to exclude it.
         Defaults to True.
+    percentile_for_clipping : None or pair of float, optional
+        Percentile range that the finite raster values will be clipped to prior
+        to creating the histogram. If None, no clipping will occur.
+        Must be in range [0.0, 100.0] or None. Defaults to None.
+    data_prep_func : Callable or None, optional
+        Function to process the raster data through before applying
+        `percentile_for_clipping` and before computing
+        the histogram counts. For example, this function could be
+        `lamba x: numpy.angle(x)` to convert complex values into float values,
+        or it could be `lambda x: numpy.sqrt(x)` for converting variances
+        into standard deviation.
+        If `None`, then histogram will be computed on the raster as-is,
+        and no pre-processing of the data will occur.
+        Defaults to None.
     """
     # Get histogram probability density
     arr = np.asanyarray(raster.data)
     arr = arr[np.isfinite(arr)]
-    if raster.is_complex:
-        # complex data; take the phase angle.
-        arr = np.angle(arr)
+    if data_prep_func is not None:
+        arr = data_prep_func(arr)
+
+    if percentile_for_clipping is not None:
+        arr = nisarqa.rslc.clip_array(
+            arr=arr, percentile_range=percentile_for_clipping
+        )
+
     # Fix the number of bins to keep the output file size small
     # NOTE: InSAR phase histograms were observed to have a spike at 0 radians,
     # likely due to imperfect overlap between the reference and secondary SLCs.
@@ -3720,6 +3743,7 @@ def generate_histogram_to_axes_and_h5(
         xlabel=xlabel,
         units=raster.units,
         axes_title=ax_title,
+        percentile_for_clipping=percentile_for_clipping,
     )
 
     # Save to stats HDF5
@@ -3740,6 +3764,7 @@ def add_histogram_to_axes(
     xlabel: str,
     units: str,
     axes_title: str | None = None,
+    percentile_for_clipping: Sequence[float] | None = None,
 ) -> None:
     """
     Plot a histogram on a Matplotlib Axes.
@@ -3763,6 +3788,10 @@ def add_histogram_to_axes(
         the y-axis densities will be labeled with units of "1/`units`".
     axes_title : str or None, optional
         Title for the Axes. If None, no title will be added. Defaults to None.
+    percentile_for_clipping : None or pair of float, optional
+        Percentile range that the finite raster values will be clipped to prior
+        to creating the histogram. If None, no clipping will occur.
+        Must be in range [0.0, 100.0] or None. Defaults to None.
     """
     # Use custom cycler for accessibility
     ax.set_prop_cycle(nisarqa.CUSTOM_CYCLER)
@@ -3775,14 +3804,24 @@ def add_histogram_to_axes(
         label=None,
     )
 
+    # Construct the axes title
+    final_axes_title = None
     if axes_title is not None:
-        ax.set_title(axes_title)
+        final_axes_title = axes_title
+    if percentile_for_clipping is not None:
+        txt = f"clipped to percentile range {percentile_for_clipping}"
+        if axes_title is None:
+            final_axes_title = txt
+        else:
+            final_axes_title += f"\n{txt}"
+    ax.set_title(final_axes_title)
+
     if units == "1":
         units = "unitless"
     ax.set_xlabel(f"{xlabel} ({units})")
     ax.set_ylabel(f"Density (1/{units})")
 
-    # TODO: For RSLC/GSLC/GCOV, we let the top limit float. Do the same for InSAR?
+    # TODO: For RSLC/GSLC/GCOV, the top limit floats. Do the same for InSAR?
     # Let the top limit float
     ax.set_ylim(bottom=0.0)
     ax.grid(visible=True)
@@ -3849,6 +3888,7 @@ def process_single_histogram(
     *,
     xlabel: str,
     name_of_histogram: str,
+    percentile_for_clipping: Sequence[float] | None = None,
 ) -> None:
     """
     Make histogram of a *Raster; plot to single PDF page and add metrics to HDF5.
@@ -3869,6 +3909,10 @@ def process_single_histogram(
     name_of_histogram : str
         What is this histogram of? This string will be used in the main title
         of the PDF page, like this: "Histogram of <name_of_histogram>".
+    percentile_for_clipping : None or pair of float, optional
+        Percentile range that the finite raster values will be clipped to prior
+        to creating the histogram. If None, no clipping will occur.
+        Must be in range [0.0, 100.0] or None. Defaults to None.
 
     Warnings
     --------
@@ -3892,6 +3936,7 @@ def process_single_histogram(
         stats_h5=stats_h5,
         xlabel=xlabel,
         include_axes_title=False,
+        percentile_for_clipping=percentile_for_clipping,
     )
 
     # Save complete plots to graphical summary PDF file
@@ -3910,7 +3955,11 @@ def process_two_histograms(
     name_of_histogram_pair: str,
     r1_xlabel: str,
     r2_xlabel: str,
+    r1_clip_percentile: Sequence[float] | None = None,
+    r2_clip_percentile: Sequence[float] | None = None,
     sharey: bool = False,
+    r1_data_prep_func: Callable | None = None,
+    r2_data_prep_func: Callable | None = None,
 ) -> None:
     """
     Make histograms of two *Rasters; plot to PDF page and add metrics to HDF5.
@@ -3921,8 +3970,7 @@ def process_two_histograms(
     Parameters
     ----------
     raster1, raster2 : nisarqa.GeoRaster | nisarqa.RadarRaster
-        *Rasters to generate the histograms for. If a *Raster has complex data,
-        its histogram will be computed on the phase angle of the data values.
+        *Rasters to generate the histograms for. Non-finite values are ignored.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the histogram plots to.
     stats_h5 : h5py.File
@@ -3936,8 +3984,23 @@ def process_two_histograms(
             Correct: "InSAR Phase"
             Wrong: "InSAR Phase (radians)"
         The units for this label will be set per `raster.units`.
+    r1_clip_percentile, r2_clip_percentile : None or pair of float, optional
+        Percentile range that the finite raster values will be clipped to prior
+        to creating the histogram for `raster1` and `raster2`, respectively.
+        If None, no clipping will occur. Must be in range [0.0, 100.0] or None.
+        Defaults to None.
     sharey : bool, optional
-        True to have the plots share a y-axes; False
+        True to have the plots share a y-axes; False otherwise.
+    r1_data_prep_func, r2_data_prep_func : Callable or None, optional
+        Function to process the raster1 and raster2 (respectively) data
+        through before applying `percentile_for_clipping` and before computing
+        the histogram counts. For example, this function could be
+        `lamba x: numpy.angle(x)` to convert complex values into float values,
+        or it could be `lambda x: numpy.sqrt(x)` for converting variances
+        into standard deviation.
+        If `None`, then histogram will be computed on the rasters as-is,
+        and no pre-processing of the data will occur.
+        Defaults to None.
 
     Warnings
     --------
@@ -3965,6 +4028,8 @@ def process_two_histograms(
         stats_h5=stats_h5,
         xlabel=r1_xlabel,
         include_axes_title=True,
+        percentile_for_clipping=r1_clip_percentile,
+        data_prep_func=r1_data_prep_func,
     )
 
     generate_histogram_to_axes_and_h5(
@@ -3973,6 +4038,8 @@ def process_two_histograms(
         stats_h5=stats_h5,
         xlabel=r2_xlabel,
         include_axes_title=True,
+        percentile_for_clipping=r2_clip_percentile,
+        data_prep_func=r2_data_prep_func,
     )
 
     if sharey:
