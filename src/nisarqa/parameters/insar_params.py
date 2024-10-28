@@ -1078,7 +1078,7 @@ class GOFFQuiverParamGroup(QuiverParamGroup):
 
 
 @dataclass(frozen=True)
-class VarianceLayersParamGroup(YamlParamGroup):
+class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters to generate Variance Layer Plots for ROFF and GOFF.
 
@@ -1107,7 +1107,21 @@ class VarianceLayersParamGroup(YamlParamGroup):
                 which (in turn) is used for the interval of the colorbar.
                 If None, the interval is computed using the min and max 
                 of the square root of these layers.""",
-            )
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="azAndRngOffsetVarianceColorbarMinMax",
+                units="1",
+                descr=(
+                    "The vmin and vmax values used to generate the plots"
+                    " for the az and slant range variance layers. The"
+                    " square root of these layers (i.e. the standard deviation"
+                    " of the offsets) was clipped to this interval, which"
+                    " (in turn) was used for the interval of the colorbar."
+                    " If None, the interval was computed using the min and max "
+                    " of the square root of each layers"
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
         },
     )
 
@@ -1222,7 +1236,7 @@ class GOFFVarianceLayersParamGroup(
 
 
 @dataclass(frozen=True)
-class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
+class CrossOffsetVarianceLayerParamGroup(YamlParamGroup, HDF5ParamGroup):
     """
     Parameters to generate cross offset variance layer plots for ROFF and GOFF.
 
@@ -1249,7 +1263,18 @@ class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
                 for the cross offset variance layer for ROFF and GOFF.
                 If None, then the colorbar range will be computed based
                 on `percentile_for_clipping`.""",
-            )
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="crossOffsetVarianceColorbarMinMax",
+                units="1",
+                descr=(
+                    "The vmin and vmax values to generate the plots"
+                    " for the cross offset variance layer."
+                    " If None, then the colorbar range was computed based"
+                    " on `crossOffsetVariancePercentileClipped`."
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
         },
     )
 
@@ -1262,6 +1287,16 @@ class CrossOffsetVarianceLayerParamGroup(YamlParamGroup):
                     will be clipped to, which determines the colormap interval.
                     Must be in range [0.0, 100.0].
                     Superseded by `cbar_min_max` parameter.""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="crossOffsetVariancePercentileClipped",
+                units="1",
+                descr=(
+                    "Percentile range that the cross offset variance raster was"
+                    " clipped to. which determines the colormap interval."
+                    " Can be superseded by `crossOffsetVarianceColorbarMinMax`"
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
         },
     )
