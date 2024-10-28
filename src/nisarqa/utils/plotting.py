@@ -3815,7 +3815,10 @@ def add_histogram_to_axes(
     if axes_title is not None:
         final_axes_title = axes_title
     if percentile_for_clipping is not None:
-        txt = f"clipped to percentile range {percentile_for_clipping}"
+        txt = (
+            f"clipped to percentile range"
+            f" [{percentile_for_clipping[0]}, {percentile_for_clipping[1]}]"
+        )
         if axes_title is None:
             final_axes_title = txt
         else:
