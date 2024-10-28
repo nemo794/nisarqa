@@ -197,11 +197,13 @@ def create_dataset_in_h5group(
         Path to h5py Group to add the dataset and attributes to
     ds_name : str
         Name (key) for the Dataset in the `grp_path`
-    ds_data : array_like or str
-        Data to be stored as a Dataset in `grp_path`.
+    ds_data : array_like or str or bool
+        Data to be stored as a Dataset in `grp_path`. If data is a boolean
+        value, then per NISAR conventions it will be saved as its "True" or
+        "False" string representation.
     ds_description : str
         Description of `ds_data`; will be stored in a `description`
-        attribute for the new Dataset
+        attribute for the new Dataset.
     ds_units : str or None, optional
         Units of `ds_data`; will be stored in a `units` attribute
         for the new Dataset.
@@ -268,6 +270,9 @@ def create_dataset_in_h5group(
                 " currently supported. Suggestion: Make `ds_data` a list or tuple"
                 " of Python strings, or an ndarray of fixed-length byte strings."
             )
+        elif isinstance(data, bool):
+            data = "True" if data else "False"
+            data = np.bytes_(data)
 
         return data
 
