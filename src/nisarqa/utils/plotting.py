@@ -2840,7 +2840,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
         then plotted using this interval for the colorbar.
         If `None`:
             If the variance layers' units are meters^2, default to:
-                [0.0, 2.5 * (max(mean(<az var layer>), mean(<rg var layer>))]
+                [0.0, 10.0]
             If the variance layers' units are pixels^2, default to:
                 [0.0, 0.1]
             If variance layers' units are anything else, default to:
@@ -2910,9 +2910,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
         if units == "pixels":
             cbar_max = 0.1
         elif units == "meters":
-            # Using `2.5 * mean(covariance)` as the max value is a heuristic
-            # that empirically works well for the InSAR team.
-            cbar_max = 2.5 * max(np.nanmean(az_var), np.nanmean(rg_var))
+            cbar_max = 10.0
         else:
             # Units could not be determined. Set the max to the largest
             # value in the actual arrays being plotted.

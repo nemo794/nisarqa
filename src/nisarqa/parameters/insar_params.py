@@ -1092,7 +1092,7 @@ class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
         then plotted using this interval for the colorbar.
         If `None`:
             If the variance layers' units are meters^2, this will default to:
-                [0.0, 2.5 * (max(mean(<az var layer>), mean(<rg var layer>))]
+                [0.0, 10.0]
             If the variance layers' units are pixels^2, this will default to:
                 [0.0, 0.1]
             If variance layers' units are anything else, this will default to:
@@ -1111,7 +1111,7 @@ class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
                 of the offsets) is computed, clipped to this interval, and
                 then plotted using this interval for the colorbar.
                 If None, the interval is computed by:
-                    If the variance layers' units are 'meters^2': [0.0, 2.5 * (max(mean(<az var layer>), mean(<rg var layer>))]
+                    If the variance layers' units are 'meters^2': [0.0, 10.0]
                     Else-if the variance layers' units are 'pixels^2': [0.0, 0.1]
                     Otherwise: [0.0, max(sqrt(<az var layer>), sqrt(<rg var layer>))]
                 Defaults to None.""",
