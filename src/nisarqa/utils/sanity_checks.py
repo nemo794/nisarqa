@@ -219,6 +219,7 @@ def identification_sanity_checks(
         "isMixedMode",
         "isUrgentObservation",
         "isJointObservation",
+        "isFullFrame",
     ):
         ds_checked.add(ds_name)
         if _dataset_exists(ds_name):
