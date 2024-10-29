@@ -2866,31 +2866,24 @@ def plot_range_and_az_offsets_variances_to_pdf(
 
     # Variance should be in units of e.g. pixels^2 or meters^2. We're plotting
     # stddev, so get the square root of the units.
-    units = az_offset_variance.units
-    if ("^2" not in units) and ("*" not in units) and ("squared" not in units):
-        raise ValueError(
-            f"`{az_offset_variance.name}` layer has units of '{units}',"
-            " but must be that base unit squared (e.g. 'meters^2')."
-        )
-    if "meter" in units:
-        # normalize for units of either "meter" or "meters"
-        units = "meters"
-    elif "pixel" in units:
-        # normalize for units of either "pixel" or "pixels"
-        units = "pixels"
+    var_units = az_offset_variance.units
+    if var_units == "meters^2":
+        std_units = "meters"
+    elif var_units == "pixels^2":
+        std_units = "pixels"
     else:
         nisarqa.get_logger().warning(
-            f"Azimuth and range offset variance layers have units of {units}."
-            " Suggest using units of 'pixels^2' or 'meters^2' for better"
-            " colorbar range defaults."
+            "Azimuth and range offset variance layers have units of"
+            f" {var_units}. Suggest units of 'pixels^2' or 'meters^2' for"
+            " better colorbar range defaults."
         )
-        units = f"sqrt({units})"
+        std_units = f"sqrt({var_units})"
 
     # Construct title for the overall PDF page. (`*raster.name` has a format
     # like "RUNW_L_A_pixelOffsets_HH_slantRangeOffset". We need to
     # remove the final layer name of e.g. "_slantRangeOffset".)
     name = "_".join(az_offset_variance.name.split("_")[:-1])
-    title = f"Azimuth and Slant Range Offsets STD ({units})\n{name}"
+    title = f"Azimuth and Slant Range Offsets STD ({std_units})\n{name}"
     fig.suptitle(title)
 
     # Replace non-finite and/or masked-out pixels (i.e. pixels set to the
@@ -2907,9 +2900,9 @@ def plot_range_and_az_offsets_variances_to_pdf(
     if cbar_min_max is None:
         # Use same colorbar scale for both plots
         cbar_min = 0.0
-        if units == "pixels":
+        if std_units == "pixels":
             cbar_max = 0.1
-        elif units == "meters":
+        elif std_units == "meters":
             cbar_max = 10.0
         else:
             # Units could not be determined. Set the max to the largest
@@ -2964,7 +2957,7 @@ def plot_range_and_az_offsets_variances_to_pdf(
     # Add a colorbar to the figure
     cax = fig.colorbar(im2, ax=ax2)
     cax.ax.set_ylabel(
-        ylabel=f"Standard deviation ({units})",
+        ylabel=f"Standard deviation ({std_units})",
         rotation=270,
         labelpad=10.0,
     )
