@@ -1057,8 +1057,9 @@ class RSLCRootParamGroup(RootParamGroup):
                 #       attribute will be None, so there will be no params to
                 #       add to the h5 file."
                 # In nominal cases, these groups are set to None during
-                # `build_root_params()`. But, that step occurs prior to this
-                # `__post_init__()`, so we need to manually update the
+                # `build_root_params()`. But, that step occurs prior to
+                # checking whether a corner reflector file was provided,
+                # so we need to manually update the
                 # corresponding param groups to False.
                 self.abs_cal = None
                 self.pta = None
