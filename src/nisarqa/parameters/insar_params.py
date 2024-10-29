@@ -1110,15 +1110,15 @@ class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="azAndRngOffsetVarianceColorbarMinMax",
-                units="1",
+                units="meters",
                 descr=(
                     "The vmin and vmax values used to generate the plots"
                     " for the az and slant range variance layers. The"
                     " square root of these layers (i.e. the standard deviation"
                     " of the offsets) was clipped to this interval, which"
                     " (in turn) was used for the interval of the colorbar."
-                    " If None, the interval was computed using the min and max "
-                    " of the square root of each layers"
+                    " If None, the interval was computed using the min and max"
+                    " of the square root of each layer"
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -1266,12 +1266,12 @@ class CrossOffsetVarianceLayerParamGroup(YamlParamGroup, HDF5ParamGroup):
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="crossOffsetVarianceColorbarMinMax",
-                units="1",
+                units="meters^2",
                 descr=(
                     "The vmin and vmax values to generate the plots"
                     " for the cross offset variance layer."
                     " If None, then the colorbar range was computed based"
-                    " on `crossOffsetVariancePercentileClipped`."
+                    " on `crossOffsetVariancePercentileClipped`"
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
@@ -1293,7 +1293,7 @@ class CrossOffsetVarianceLayerParamGroup(YamlParamGroup, HDF5ParamGroup):
                 units="1",
                 descr=(
                     "Percentile range that the cross offset variance raster was"
-                    " clipped to. which determines the colormap interval."
+                    " clipped to, which determines the colormap interval."
                     " Can be superseded by `crossOffsetVarianceColorbarMinMax`"
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,

@@ -701,7 +701,7 @@ def process_phase_image_wrapped(
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
                     sharey=False,
-                    r1_data_prep_func=lambda x: np.angle(x),
+                    r1_data_prep_func=np.angle,
                 )
 
 
@@ -3679,7 +3679,7 @@ def generate_histogram_to_axes_and_h5(
     *,
     xlabel=str,
     include_axes_title: bool = True,
-    percentile_for_clipping: Sequence[float] | None = None,
+    percentile_for_clipping: tuple[float, float] | None = None,
     data_prep_func: Callable | None = None,
 ) -> None:
     """
@@ -3706,11 +3706,11 @@ def generate_histogram_to_axes_and_h5(
         to creating the histogram. If None, no clipping will occur.
         Must be in range [0.0, 100.0] or None. Defaults to None.
     data_prep_func : Callable or None, optional
-        Function to process the raster data through before applying
+        Function to transform the raster data before applying
         `percentile_for_clipping` and before computing
         the histogram counts. For example, this function could be
-        `lamba x: numpy.angle(x)` to convert complex values into float values,
-        or it could be `lambda x: numpy.sqrt(x)` for converting variances
+        `numpy.angle` to convert complex values into float values,
+        or it could be `numpy.sqrt` for converting variances
         into standard deviation.
         If `None`, then histogram will be computed on the raster as-is,
         and no pre-processing of the data will occur.
@@ -3729,7 +3729,8 @@ def generate_histogram_to_axes_and_h5(
 
     # Fix the number of bins to keep the output file size small
     # NOTE: InSAR phase histograms were observed to have a spike at 0 radians,
-    # likely due to imperfect overlap between the reference and secondary SLCs.
+    # likely due to imperfect overlap between the reference and secondary
+    # SLC footprints.
     # This histogram feature may be masked if the number of bins is too low.
     density, bin_edges = np.histogram(arr, bins=200, density=True)
 
@@ -3770,7 +3771,7 @@ def add_histogram_to_axes(
     xlabel: str,
     units: str,
     axes_title: str | None = None,
-    percentile_for_clipping: Sequence[float] | None = None,
+    percentile_for_clipping: tuple[float, float] | None = None,
 ) -> None:
     """
     Plot a histogram on a Matplotlib Axes.
@@ -3849,9 +3850,9 @@ def add_histogram_data_to_h5(
 
     Parameters
     ----------
-    density: np.ndarray
+    density : numpy.ndarray
         The normalized density values for the histogram.
-    bin_edges: np.ndarray
+    bin_edges : numpy.ndarray
         The bin edges for the histogram.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
@@ -3897,7 +3898,7 @@ def process_single_histogram(
     *,
     xlabel: str,
     name_of_histogram: str,
-    percentile_for_clipping: Sequence[float] | None = None,
+    percentile_for_clipping: tuple[float, float] | None = None,
 ) -> None:
     """
     Make histogram of a *Raster; plot to single PDF page and add metrics to HDF5.
@@ -3964,8 +3965,8 @@ def process_two_histograms(
     name_of_histogram_pair: str,
     r1_xlabel: str,
     r2_xlabel: str,
-    r1_clip_percentile: Sequence[float] | None = None,
-    r2_clip_percentile: Sequence[float] | None = None,
+    r1_clip_percentile: tuple[float, float] | None = None,
+    r2_clip_percentile: tuple[float, float] | None = None,
     sharey: bool = False,
     r1_data_prep_func: Callable | None = None,
     r2_data_prep_func: Callable | None = None,
@@ -4001,8 +4002,8 @@ def process_two_histograms(
     sharey : bool, optional
         True to have the plots share a y-axes; False otherwise.
     r1_data_prep_func, r2_data_prep_func : Callable or None, optional
-        Function to process the raster1 and raster2 (respectively) data
-        through before applying `percentile_for_clipping` and before computing
+        Function to transform the raster1 and raster2 (respectively) data
+        before clipping outliers and before computing
         the histogram counts. For example, this function could be
         `lamba x: numpy.angle(x)` to convert complex values into float values,
         or it could be `lambda x: numpy.sqrt(x)` for converting variances
