@@ -3824,7 +3824,7 @@ def add_histogram_to_axes(
             final_axes_title = txt
         else:
             final_axes_title += f"\n{txt}"
-    ax.set_title(final_axes_title)
+    ax.set_title(final_axes_title, fontsize=10)
 
     if units == "1":
         units = "unitless"
