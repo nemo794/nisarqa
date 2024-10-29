@@ -2789,8 +2789,8 @@ def process_az_and_slant_rg_variances_from_offset_product(
                         r1_xlabel="Standard Deviation",
                         r2_xlabel="Standard Deviation",
                         sharey=True,
-                        r1_data_prep_func=lambda x: np.sqrt(x),
-                        r2_data_prep_func=lambda x: np.sqrt(x),
+                        r1_data_prep_func=np.sqrt,
+                        r2_data_prep_func=np.sqrt,
                     )
 
 
@@ -4005,8 +4005,8 @@ def process_two_histograms(
         Function to transform the raster1 and raster2 (respectively) data
         before clipping outliers and before computing
         the histogram counts. For example, this function could be
-        `lamba x: numpy.angle(x)` to convert complex values into float values,
-        or it could be `lambda x: numpy.sqrt(x)` for converting variances
+        `numpy.angle` to convert complex values into float values,
+        or it could be `numpy.sqrt` for converting variances
         into standard deviation.
         If `None`, then histogram will be computed on the rasters as-is,
         and no pre-processing of the data will occur.
