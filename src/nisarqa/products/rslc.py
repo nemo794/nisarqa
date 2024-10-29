@@ -1036,9 +1036,10 @@ def img2pdf_grayscale(
     plots_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
     fig_title : str or None, optional
-        The title for the plot's figure.
+        The title for the plot's figure. Defaults to None.
     ax_title : str or None, optional
         The title for the plot's axes. (Functionally akin to a subtitle.)
+        Defaults to None.
     xlim, ylim : sequence of numeric or None, optional
         Lower and upper limits for the axes ticks for the plot.
         Format: xlim=[<x-axis lower limit>, <x-axis upper limit>],
