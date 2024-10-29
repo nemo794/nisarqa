@@ -252,7 +252,9 @@ def create_dataset_in_h5group(
     grp = h5_file.require_group(grp_path)
 
     # If a string or a list of strings, convert to fixed-length byte strings
-    def _to_fixed_length_str(data: ArrayLike | str) -> ArrayLike | np.bytes_:
+    def _to_fixed_length_str(
+        data: ArrayLike | str | bool,
+    ) -> ArrayLike | np.bytes_:
         # If `data` is an e.g. numpy array with a numeric dtype,
         # do not alter it.
         if isinstance(data, str):
@@ -273,7 +275,17 @@ def create_dataset_in_h5group(
         elif isinstance(data, bool):
             data = "True" if data else "False"
             data = np.bytes_(data)
-
+        elif (
+            isinstance(data, Sequence)
+            and all(isinstance(b, bool) for b in data)
+        ) or (
+            isinstance(data, np.ndarray)
+            and (np.issubdtype(data.dtype, np.bool_))
+        ):
+            raise NotImplementedError(
+                f"`{data=}` is a sequence or array of boolean values"
+                " which is not currently supported"
+            )
         return data
 
     # Create dataset and add attributes
