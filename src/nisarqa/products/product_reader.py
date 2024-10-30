@@ -271,7 +271,9 @@ def _parse_dataset_stats_from_h5(
         return nisarqa.RasterStats(**kwargs)
 
     # Based on the dtype, construct the *RasterStats for the input Dataset
-    if np.issubdtype(ds.dtype, np.complexfloating):
+    if np.issubdtype(ds.dtype, np.complexfloating) or nisarqa.is_complex32(
+        dataset=ds
+    ):
         real_stats = _get_stats_object(component="real")
         imag_stats = _get_stats_object(component="imag")
         raster_stats = nisarqa.ComplexRasterStats(
@@ -2197,7 +2199,6 @@ class NonInsarProduct(NisarProduct):
         """
         log = nisarqa.get_logger()
         spec = nisarqa.Version.from_string(self.product_spec_version)
-
 
         with h5py.File(self.filepath, "r") as f:
             grp = f[f"{self._calibration_metadata_path}/frequency{freq}"]
