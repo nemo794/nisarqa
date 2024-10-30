@@ -301,7 +301,7 @@ def verify_rslc(
             log.info("Beginning Point Target Analyzer CalTool...")
 
             # Run Point Target Analyzer tool
-            nisarqa.caltools.run_pta_tool(
+            nisarqa.caltools.run_rslc_pta_tool(
                 pta_params=root_params.pta,
                 dyn_anc_params=root_params.anc_files,
                 rslc=product,
@@ -314,7 +314,7 @@ def verify_rslc(
             # Read the PTA results from `stats_file`, generate plots of
             # azimuth/range cuts, and add them to the PDF report.
             with h5py.File(stats_file, mode="r") as stats_h5:
-                nisarqa.caltools.plot_rslc_cr_offsets_to_pdf(
+                nisarqa.caltools.plot_cr_offsets_to_pdf(
                     product, stats_h5, report_pdf
                 )
                 nisarqa.caltools.add_pta_plots_to_report(stats_h5, report_pdf)

@@ -15,8 +15,8 @@ from nisarqa import (
     HDF5Attrs,
     HDF5ParamGroup,
     InputFileGroupParamGroup,
-    PointTargetAnalyzerParamGroup,
     ProductPathGroupParamGroup,
+    RSLCPointTargetAnalyzerParamGroup,
     RootParamGroup,
     ValidationGroupParamGroup,
     WorkflowsParamGroup,
@@ -28,7 +28,42 @@ objects_to_skip = nisarqa.get_all(__name__)
 
 
 @dataclass(frozen=True)
-class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
+class SLCWorkflowsParamGroup(WorkflowsParamGroup):
+    """
+    The parameters specifying which SLC-Caltools QA workflows should be run.
+
+    This corresponds to the `qa: workflows` runconfig group.
+
+    Parameters
+    ----------
+    validate : bool, optional
+        True to run the validate workflow. Default: True
+        (inherited from WorkflowsParamGroup class)
+    qa_reports : bool, optional
+        True to run the QA Reports workflow. Default: True
+        (inherited from WorkflowsParamGroup class)
+    point_target : bool, optional
+        True to run the Point Target Analyzer (PTA) workflow. Default: True
+    """
+
+    point_target: bool = field(
+        default=WorkflowsParamGroup._default_val,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="point_target_analyzer",
+                descr=WorkflowsParamGroup._descr
+                % "Point Target Analyzer calibration tool",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        super().__post_init__()
+        self._check_workflows_arg("point_target", self.point_target)
+
+
+@dataclass(frozen=True)
+class RSLCWorkflowsParamGroup(SLCWorkflowsParamGroup):
     """
     The parameters specifying which RSLC-Caltools QA workflows should be run.
 
@@ -42,14 +77,14 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
     qa_reports : bool, optional
         True to run the QA Reports workflow. Default: True
         (inherited from WorkflowsParamGroup class)
+    point_target : bool, optional
+        True to run the Point Target Analyzer (PTA) workflow. Default: True
     abs_cal : bool, optional
         True to run the Absolute Radiometric Calibration Factor CalTool workflow
         Default: True
     neb : bool, optional
         True to run the Noise Equivalent Backscatter Tool (NEB) workflow.
         Default: True.
-    point_target : bool, optional
-        True to run the Point Target Analyzer (PTA) workflow. Default: True
     """
 
     abs_cal: bool = field(
@@ -74,23 +109,11 @@ class RSLCWorkflowsParamGroup(WorkflowsParamGroup):
         },
     )
 
-    point_target: bool = field(
-        default=WorkflowsParamGroup._default_val,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="point_target_analyzer",
-                descr=WorkflowsParamGroup._descr
-                % "Point Target Analyzer calibration tool",
-            )
-        },
-    )
-
     def __post_init__(self):
         # VALIDATE INPUTS
         super().__post_init__()
         self._check_workflows_arg("abs_cal", self.abs_cal)
         self._check_workflows_arg("neb", self.neb)
-        self._check_workflows_arg("point_target", self.point_target)
 
 
 @dataclass(frozen=True)
@@ -107,6 +130,7 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
         The input corner reflector file's file name (with path).
         A valid corner reflector file is required for the Absolute Calibration
         Factor and Point Target Analyzer workflows to generate results.
+        Defaults to None.
     """
 
     # WARNING: Before adding an additional parameter to this dataclass,
@@ -796,7 +820,7 @@ class RangeSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="hz_to_mhz",
-                descr="""True if the input frequencies are in Hz, 
+                descr="""True if the input frequencies are in Hz,
                 but output should be converted to MHz.""",
             )
         },
@@ -902,7 +926,7 @@ class AzimuthSpectraParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="hz_to_mhz",
-                descr="""True if the input frequencies are in Hz, 
+                descr="""True if the input frequencies are in Hz,
                 but output should be converted to MHz.""",
             )
         },
@@ -989,7 +1013,7 @@ class RSLCRootParamGroup(RootParamGroup):
         Dynamic Ancillary File Group parameters for RSLC QA-Caltools
     abs_cal : AbsCalParamGroup or None, optional
         Absolute Radiometric Calibration group parameters for RSLC QA-Caltools
-    pta : PointTargetAnalyzerParamGroup or None, optional
+    pta : RSLCPointTargetAnalyzerParamGroup or None, optional
         Point Target Analyzer group parameters for RSLC QA-Caltools
     """
 
@@ -1007,7 +1031,7 @@ class RSLCRootParamGroup(RootParamGroup):
     # CalTools parameters
     anc_files: Optional[DynamicAncillaryFileParamGroup] = None
     abs_cal: Optional[AbsCalParamGroup] = None
-    pta: Optional[PointTargetAnalyzerParamGroup] = None
+    pta: Optional[RSLCPointTargetAnalyzerParamGroup] = None
 
     def __post_init__(self):
         # Per request from project, the desired behavior for QA is to have
@@ -1077,8 +1101,9 @@ class RSLCRootParamGroup(RootParamGroup):
                 # to `anc_files`, then we want a more forward-looking behavior.
 
                 # For now, assume that any parameter added to
-                # DynamicAncillaryFileParamGroup will either be required (and
-                # likely contain a string filepath), or will default to None.
+                # DynamicAncillaryFileParamGroup will either be required
+                # (and likely contain a string filepath), or will default to
+                # None.
                 # Note: if/when that assumption becomes invalid, please update
                 # this check.
                 for f in fields(self.anc_files):
@@ -1145,7 +1170,7 @@ class RSLCRootParamGroup(RootParamGroup):
             Grp(
                 flag_param_grp_req=workflows.point_target,
                 root_param_grp_attr_name="pta",
-                param_grp_cls_obj=PointTargetAnalyzerParamGroup,
+                param_grp_cls_obj=RSLCPointTargetAnalyzerParamGroup,
             ),
         )
 
@@ -1165,8 +1190,8 @@ class RSLCRootParamGroup(RootParamGroup):
             "histogram": HistogramParamGroup,
             "range_spectra": RangeSpectraParamGroup,
             "az_spectra": AzimuthSpectraParamGroup,
+            "pta": RSLCPointTargetAnalyzerParamGroup,
             "abs_cal": AbsCalParamGroup,
-            "pta": PointTargetAnalyzerParamGroup,
         }
 
 
@@ -1199,7 +1224,7 @@ def build_root_params(product_type, user_rncfg):
         workflows_param_cls_obj = RSLCWorkflowsParamGroup
         root_param_class_obj = RSLCRootParamGroup
     elif product_type == "gslc":
-        workflows_param_cls_obj = WorkflowsParamGroup
+        workflows_param_cls_obj = nisarqa.SLCWorkflowsParamGroup
         root_param_class_obj = nisarqa.GSLCRootParamGroup
     elif product_type == "gcov":
         workflows_param_cls_obj = WorkflowsParamGroup

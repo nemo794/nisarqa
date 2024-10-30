@@ -17,14 +17,20 @@ from matplotlib.axes import Axes
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.colors import to_rgba
 from matplotlib.figure import Figure
-from nisar.workflows import estimate_abscal_factor, point_target_analysis
+from nisar.workflows import (
+    estimate_abscal_factor,
+    gslc_point_target_analysis,
+    point_target_analysis,
+)
 from numpy.typing import ArrayLike, DTypeLike
 
 import nisarqa
 from nisarqa import (
     AbsCalParamGroup,
     DynamicAncillaryFileParamGroup,
+    GSLCDynamicAncillaryFileParamGroup,
     PointTargetAnalyzerParamGroup,
+    RSLCPointTargetAnalyzerParamGroup,
 )
 
 # List of objects from the import statements that
@@ -208,7 +214,7 @@ def populate_abscal_hdf5_output(
     create_dataset_from_abscal_results(
         key="id",
         ds_name="cornerReflectorId",
-        ds_descr="The unique identifier of the corner reflector.",
+        ds_descr="The unique identifier of the corner reflector",
         ds_dtype=np.bytes_,
     )
 
@@ -218,7 +224,7 @@ def populate_abscal_hdf5_output(
         ds_descr=(
             "The date (and time) when the corner reflector was surveyed most"
             " recently prior to the radar observation, as a string in ISO 8601"
-            " format."
+            " format"
         ),
         ds_dtype=np.bytes_,
     )
@@ -230,7 +236,7 @@ def populate_abscal_hdf5_output(
             "The corner reflector velocity due to tectonic plate motion, as an"
             " East-North-Up (ENU) vector in meters per second (m/s). The"
             " velocity components are provided in local ENU coordinates with"
-            " respect to the WGS 84 reference ellipsoid."
+            " respect to the WGS 84 reference ellipsoid"
         ),
         ds_dtype=np.float64,
         ds_units="meters per second",
@@ -252,7 +258,7 @@ def populate_abscal_hdf5_output(
         ds_descr=(
             "Antenna elevation angle, in radians, measured w.r.t. antenna"
             " boresight, increasing toward the far-range direction and"
-            " decreasing (becoming negative) toward the near-range direction."
+            " decreasing (becoming negative) toward the near-range direction"
         ),
         ds_dtype=np.float64,
         ds_units="radians",
@@ -264,7 +270,7 @@ def populate_abscal_hdf5_output(
         ds_descr=(
             "The absolute radiometric calibration error for the corner"
             " reflector (the ratio of the measured RCS to the predicted RCS),"
-            " in linear units."
+            " in linear units"
         ),
         ds_dtype=np.float64,
         ds_units="1",
@@ -368,15 +374,16 @@ def run_neb_tool(
             # TODO: Step 2: create plots
 
 
-def run_pta_single_freq_pol(
+def run_rslc_pta_single_freq_pol(
     corner_reflector_csv: str | os.PathLike,
     rslc_hdf5: str | os.PathLike,
+    *,
     freq: str,
     pol: str,
-    pta_params: PointTargetAnalyzerParamGroup,
+    pta_params: RSLCPointTargetAnalyzerParamGroup,
 ) -> list[dict[str, Any]]:
     """
-    Run the point target analysis (PTA) tool.
+    Run the RSLC point target analysis (PTA) tool.
 
     Run the `nisar.workflows.point_target_analysis` workflow on a single
     freq/pol in the input RSLC file and parse the JSON output to a list of dicts
@@ -397,7 +404,7 @@ def run_pta_single_freq_pol(
         The frequency sub-band of the data.
     pol : str
         The transmit and receive polarization of the data.
-    pta_params : PointTargetAnalyzerParamGroup
+    pta_params : RSLCPointTargetAnalyzerParamGroup
         A dataclass containing the parameters for processing
         and outputting the Point Target Analyzer workflow.
 
@@ -419,8 +426,8 @@ def run_pta_single_freq_pol(
     .. [1] B. Hawkins, "Corner Reflector Software Interface Specification," JPL
        D-107698 (2023).
     """
-    # The parameter names in PointTargetAnalyzerParamGroup were designed to be
-    # identical to the keyword arguments of
+    # The parameter names in RSLCPointTargetAnalyzerParamGroup were designed to
+    # be identical to the keyword arguments of
     # `point_target_analysis.process_corner_reflector_csv()`. If/when this
     # assumption no longer holds, then a KeyError will be thrown below, and QA
     # code will need to be updated accordingly.
@@ -448,13 +455,103 @@ def run_pta_single_freq_pol(
             return json.load(tmpfile)
 
 
+def run_gslc_pta_single_freq_pol(
+    corner_reflector_csv: str | os.PathLike,
+    gslc_hdf5: str | os.PathLike,
+    *,
+    freq: str,
+    pol: str,
+    pta_params: PointTargetAnalyzerParamGroup,
+    dem_file: str | os.PathLike | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Run the GSLC point target analysis (PTA) tool.
+
+    Run the `nisar.workflows.gslc_point_target_analysis` workflow on a single
+    freq/pol in the input GSLC file and parse the JSON output to a list of dicts
+    containing one dict per valid corner reflector found in the scene.
+
+    See the corresponding script in the `nisar` package for a detailed
+    description of the output.
+
+    Parameters
+    ----------
+    corner_reflector_csv : path-like
+        A CSV file containing corner reflector data in the format defined by the
+        NISAR Corner Reflector Software Interface Specification (SIS) document\
+        [1]_.
+    gslc_hdf5 : path-like
+        A NISAR GSLC product file path.
+    freq : {'A', 'B'}
+        The frequency sub-band of the data.
+    pol : str
+        The transmit and receive polarization of the data.
+    pta_params : PointTargetAnalyzerParamGroup
+        A dataclass containing the parameters for processing
+        and outputting the Point Target Analyzer workflow.
+    dem_file : path-like or None, optional
+        Optional Digital Elevation Model (DEM) file in a GDAL-compatible raster
+        format. Used for flattening phase removal of the GSLC data, if
+        applicable (i.e. if the GSLC was flattened). If None (no DEM is
+        supplied), the PTA tool will attempt to un-flatten using the reference
+        ellipsoid, which may produce less accurate results. Defaults to None.
+
+    Returns
+    -------
+    results : list of dict
+        A list of dicts containing one entry per valid corner reflector found
+        within the area imaged by the GSLC product.
+
+    Notes
+    -----
+    Since some corner reflectors may be outside the image bounds of a given
+    radar observation, if the tool encounters an error while processing any
+    particular target, it will emit a warning with the exception & traceback
+    info and continue on to processing the next target.
+
+    References
+    ----------
+    .. [1] B. Hawkins, "Corner Reflector Software Interface Specification," JPL
+       D-107698 (2023).
+    """
+    # The parameter names in PointTargetAnalyzerParamGroup were designed to be
+    # identical to the keyword arguments of
+    # `gslc_point_target_analysis.analyze_gslc_point_targets_csv()`. If/when
+    # this assumption no longer holds, then a KeyError will be thrown below, and
+    # QA code will need to be updated accordingly.
+    kwds = asdict(pta_params)
+
+    # Create a temporary file to store the JSON output of the tool.
+    with NamedTemporaryFile(suffix=".json") as tmpfile:
+        # Run PTA tool.
+        gslc_point_target_analysis.analyze_gslc_point_targets_csv(
+            gslc_filename=gslc_hdf5,
+            output_file=tmpfile.name,
+            corner_reflector_csv=corner_reflector_csv,
+            freq=freq,
+            pol=pol,
+            dem_path=dem_file,
+            cuts=True,
+            cr_format="nisar",
+            **kwds,
+        )
+
+        # Parse the JSON output.
+        # `json.load()` fails if the file is empty.
+        if file_is_empty(tmpfile.name):
+            return []
+        else:
+            return json.load(tmpfile)
+
+
 def populate_pta_hdf5_output(
     stats_h5: h5py.File,
     grp_path: str,
+    product_type: str,
     pta_results: Sequence[Mapping[str, Any]],
 ) -> None:
     """
-    Store the output of the PTA tool in the stats HDF5 file.
+    Store the output of the RSLC/GSLC PTA tool in the stats HDF5 file.
 
     Parameters
     ----------
@@ -464,10 +561,21 @@ def populate_pta_hdf5_output(
     grp_path : str
         The path of the group within `stats_h5` to store the results in. The
         group will be created if it did not already exist.
+    product_type : {'RSLC', 'GSLC'}
+        The type of NISAR product that the PTA tool was run on. Either 'RSLC' or
+        'GSLC'.
     pta_results : sequence of dict
         The output of the PTA tool. A list of dicts containing one entry per
-        valid corner reflector found within the area imaged by the RSLC product.
+        valid corner reflector found within the area imaged by the RSLC/GSLC
+        product.
     """
+
+    valid_product_types = {"RSLC", "GSLC"}
+    if product_type not in valid_product_types:
+        raise ValueError(
+            f"`product_type` must be in {valid_product_types}, instead got"
+            f" {product_type!r}"
+        )
 
     # Helper function to create a new dataset within `grp_path` that stores info
     # about each corner reflector in the PTA output. This function is a bit more
@@ -510,7 +618,7 @@ def populate_pta_hdf5_output(
         key="id",
         grp_path=grp_path,
         ds_name="cornerReflectorId",
-        ds_descr="The unique identifier of the corner reflector.",
+        ds_descr="The unique identifier of the corner reflector",
         ds_dtype=np.bytes_,
     )
 
@@ -521,7 +629,7 @@ def populate_pta_hdf5_output(
         ds_descr=(
             "The date (and time) when the corner reflector was surveyed most"
             " recently prior to the radar observation, as a string in ISO 8601"
-            " format."
+            " format"
         ),
         ds_dtype=np.bytes_,
     )
@@ -533,7 +641,7 @@ def populate_pta_hdf5_output(
         ds_descr=(
             "The integer validity code of the corner reflector. Refer to the"
             " NISAR Corner Reflector Software Interface Specification (SIS)"
-            " document for details."
+            " document for details"
         ),
         ds_dtype=np.int_,
     )
@@ -546,7 +654,7 @@ def populate_pta_hdf5_output(
             "The corner reflector velocity due to tectonic plate motion, as an"
             " East-North-Up (ENU) vector in meters per second (m/s). The"
             " velocity components are provided in local ENU coordinates with"
-            " respect to the WGS 84 reference ellipsoid."
+            " respect to the WGS 84 reference ellipsoid"
         ),
         ds_dtype=np.float64,
         ds_units="meters per second",
@@ -556,7 +664,7 @@ def populate_pta_hdf5_output(
         key="magnitude",
         grp_path=grp_path,
         ds_name="peakMagnitude",
-        ds_descr="The peak magnitude of the impulse response.",
+        ds_descr="The peak magnitude of the impulse response",
         ds_dtype=np.float64,
         ds_units="1",
     )
@@ -565,7 +673,7 @@ def populate_pta_hdf5_output(
         key="phase",
         grp_path=grp_path,
         ds_name="peakPhase",
-        ds_descr="The phase at the peak location, in radians.",
+        ds_descr="The phase at the peak location, in radians",
         ds_dtype=np.float64,
         ds_units="radians",
     )
@@ -588,27 +696,92 @@ def populate_pta_hdf5_output(
         ds_descr=(
             "Antenna elevation angle, in radians, measured w.r.t. antenna"
             " boresight, increasing toward the far-range direction and"
-            " decreasing (becoming negative) toward the near-range direction."
+            " decreasing (becoming negative) toward the near-range direction"
         ),
         ds_dtype=np.float64,
         ds_units="radians",
     )
 
+    if product_type == "RSLC":
+        image_axes = ["azimuth", "range"]
+    elif product_type == "GSLC":
+        image_axes = ["X", "Y"]
+    else:
+        # Should be unreachable.
+        assert False, f"unexpected product type {product_type}"
+
+    for axis in image_axes:
+        axis_grp_path = f"{grp_path}/{axis.lower()}Position"
+
+        create_dataset_from_pta_results(
+            key=axis.lower(),
+            subkey="index",
+            grp_path=axis_grp_path,
+            ds_name="peakIndex",
+            ds_descr=(
+                f"The real-valued {axis} index, in samples, of the estimated"
+                " peak location of the impulse response function (IRF) within"
+                f" the {product_type} image grid"
+            ),
+            ds_dtype=np.float64,
+            ds_units="samples",
+        )
+
+        create_dataset_from_pta_results(
+            key=axis.lower(),
+            subkey="offset",
+            grp_path=axis_grp_path,
+            ds_name="peakOffset",
+            ds_descr=(
+                f"The error in the predicted target location in the {axis}"
+                " direction, in samples. Equal to the signed difference between"
+                " the measured location of the impulse response peak in the"
+                f" {product_type} data and the predicted location of the peak"
+                " based on the surveyed corner reflector location"
+            ),
+            ds_dtype=np.float64,
+            ds_units="samples",
+        )
+
+        create_dataset_from_pta_results(
+            key=axis.lower(),
+            subkey="phase ramp",
+            grp_path=axis_grp_path,
+            ds_name="phaseSlope",
+            ds_descr=(
+                f"The estimated local {axis} phase slope at the target"
+                " location, in radians per sample"
+            ),
+            ds_dtype=np.float64,
+            ds_units="radians per sample",
+        )
+
     for direction in ["azimuth", "range"]:
+        direction_grp_path = f"{grp_path}/{direction}IRF"
+
+        islr_descr = (
+            f"The integrated sidelobe ratio (ISLR) of the {direction} impulse"
+            " response function (IRF), in decibels (dB). A measure of the"
+            " ratio of energy in the sidelobes to the energy in the main"
+            " lobe"
+        )
+
+        # The RSLC PTA exposes the `predict_null` option, which is not supported
+        # by the GSLC PTA tool.
+        if product_type == "RSLC":
+            islr_descr += (
+                ". If `predict_null` was true, the first sidelobe will be"
+                " considered part of the main lobe and the ISLR will instead"
+                " measure the ratio of energy in the remaining sidelobes to the"
+                " energy in the main lobe + first sidelobe"
+            )
+
         create_dataset_from_pta_results(
             key=direction,
             subkey="ISLR",
-            grp_path=grp_path + f"/{direction}IRF",
+            grp_path=direction_grp_path,
             ds_name="ISLR",
-            ds_descr=(
-                f"The integrated sidelobe ratio of the {direction} IRF, in"
-                " decibels (dB). A measure of the ratio of energy in the"
-                " sidelobes to the energy in the main lobe. If `predict_null`"
-                " was true, the first sidelobe will be considered part of the"
-                " main lobe and the ISLR will instead measure the ratio of"
-                " energy in the remaining sidelobes to the energy in the main"
-                " lobe + first sidelobe."
-            ),
+            ds_descr=islr_descr,
             ds_dtype=np.float64,
             ds_units="1",
         )
@@ -616,12 +789,12 @@ def populate_pta_hdf5_output(
         create_dataset_from_pta_results(
             key=direction,
             subkey="PSLR",
-            grp_path=grp_path + f"/{direction}IRF",
+            grp_path=direction_grp_path,
             ds_name="PSLR",
             ds_descr=(
-                f"The peak-to-sidelobe ratio of the {direction} IRF, in"
-                " decibels (dB). A measure of the ratio of peak sidelobe power"
-                " to the peak main lobe power."
+                f"The peak-to-sidelobe ratio (PSLR) of the {direction} impulse"
+                " response function (IRF), in decibels (dB). A measure of the"
+                " ratio of peak sidelobe power to the peak main lobe power"
             ),
             ds_dtype=np.float64,
             ds_units="1",
@@ -629,67 +802,27 @@ def populate_pta_hdf5_output(
 
         create_dataset_from_pta_results(
             key=direction,
-            subkey="index",
-            grp_path=grp_path + f"/{direction}IRF",
-            ds_name="peakIndex",
-            ds_descr=(
-                f"The real-valued {direction} index, in samples, of the"
-                " estimated peak location of the IRF within the RSLC image"
-                " grid."
-            ),
-            ds_dtype=np.float64,
-            ds_units="samples",
-        )
-
-        create_dataset_from_pta_results(
-            key=direction,
-            subkey="offset",
-            grp_path=grp_path + f"/{direction}IRF",
-            ds_name="peakOffset",
-            ds_descr=(
-                f"The error in the predicted target location in the {direction}"
-                " direction, in samples. Equal to the signed difference between"
-                " the measured location of the IRF peak in the RSLC data and"
-                " the predicted location of the peak based on the surveyed"
-                " corner reflector location."
-            ),
-            ds_dtype=np.float64,
-            ds_units="samples",
-        )
-
-        create_dataset_from_pta_results(
-            key=direction,
-            subkey="phase ramp",
-            grp_path=grp_path + f"/{direction}IRF",
-            ds_name="phaseSlope",
-            ds_descr=(
-                f"The estimated {direction} phase slope at the target location,"
-                " in radians per sample."
-            ),
-            ds_dtype=np.float64,
-            ds_units="radians per sample",
-        )
-
-        create_dataset_from_pta_results(
-            key=direction,
             subkey="resolution",
-            grp_path=grp_path + f"/{direction}IRF",
+            grp_path=direction_grp_path,
             ds_name="resolution",
             ds_descr=(
-                f"The measured 3dB width of the {direction} IRF, in samples."
+                f"The measured 3dB width of the {direction} impulse response"
+                " function (IRF), in samples"
             ),
             ds_dtype=np.float64,
             ds_units="samples",
         )
+
+        cut_grp_path = direction_grp_path + "/cut"
 
         create_dataset_from_pta_results(
             key=direction,
             subkey="cut",
-            grp_path=grp_path + f"/{direction}IRF/cut",
+            grp_path=cut_grp_path,
             ds_name="index",
             ds_descr=(
                 f"The {direction} sample indices of the magnitude and phase cut"
-                " values."
+                " values"
             ),
             ds_dtype=np.float64,
             ds_units="samples",
@@ -698,11 +831,11 @@ def populate_pta_hdf5_output(
         create_dataset_from_pta_results(
             key=direction,
             subkey="magnitude cut",
-            grp_path=grp_path + f"/{direction}IRF/cut",
+            grp_path=cut_grp_path,
             ds_name="magnitude",
             ds_descr=(
-                "The magnitude of the (upsampled) impulse response function in"
-                f" {direction}."
+                "The magnitude of the (upsampled) impulse response function"
+                f" (IRF) in {direction}"
             ),
             ds_dtype=np.float64,
             ds_units="1",
@@ -711,29 +844,29 @@ def populate_pta_hdf5_output(
         create_dataset_from_pta_results(
             key=direction,
             subkey="phase cut",
-            grp_path=grp_path + f"/{direction}IRF/cut",
+            grp_path=cut_grp_path,
             ds_name="phase",
             ds_descr=(
-                "The phase of the (upsampled) impulse response function in"
-                f" {direction}."
+                "The phase of the (upsampled) impulse response function (IRF)"
+                f" in {direction}"
             ),
             ds_dtype=np.float64,
             ds_units="radians",
         )
 
 
-def run_pta_tool(
-    pta_params: PointTargetAnalyzerParamGroup,
+def run_rslc_pta_tool(
+    pta_params: RSLCPointTargetAnalyzerParamGroup,
     dyn_anc_params: DynamicAncillaryFileParamGroup,
     rslc: nisarqa.RSLC,
     stats_filename: str | os.PathLike,
 ) -> None:
     """
-    Run the Point Target Analyzer workflow.
+    Run the RSLC Point Target Analyzer (PTA) workflow.
 
     Parameters
     ----------
-    pta_params : PointTargetAnalyzerParamGroup
+    pta_params : RSLCPointTargetAnalyzerParamGroup
         A dataclass containing the parameters for processing
         and outputting the Point Target Analyzer workflow.
     dyn_anc_params : DynamicAncillaryFileParamGroup
@@ -753,7 +886,7 @@ def run_pta_tool(
         pols = get_copols(rslc, freq)
 
         for pol in pols:
-            results = run_pta_single_freq_pol(
+            results = run_rslc_pta_single_freq_pol(
                 corner_reflector_csv=dyn_anc_params.corner_reflector_file,
                 rslc_hdf5=rslc.filepath,
                 freq=freq,
@@ -775,6 +908,7 @@ def run_pta_tool(
                     populate_pta_hdf5_output(
                         stats_h5=stats_h5,
                         grp_path=pol_group_path,
+                        product_type="RSLC",
                         pta_results=results,
                     )
 
@@ -790,7 +924,7 @@ def run_pta_tool(
                             grp_path=freq_group_path,
                             ds_name="slantRangeSpacing",
                             ds_data=rslc.get_slant_range_spacing(freq),
-                            ds_description="Slant range spacing of grid.",
+                            ds_description="Slant range spacing of grid",
                             ds_units="meters",
                         )
 
@@ -807,6 +941,97 @@ def run_pta_tool(
                                 " consecutive lines near mid swath of the RSLC"
                                 " image"
                             ),
+                            ds_units="meters",
+                        )
+
+
+def run_gslc_pta_tool(
+    pta_params: PointTargetAnalyzerParamGroup,
+    dyn_anc_params: GSLCDynamicAncillaryFileParamGroup,
+    gslc: nisarqa.GSLC,
+    stats_filename: str | os.PathLike,
+) -> None:
+    """
+    Run the GSLC Point Target Analyzer (PTA) workflow.
+
+    Parameters
+    ----------
+    pta_params : PointTargetAnalyzerParamGroup
+        A dataclass containing the parameters for processing
+        and outputting the Point Target Analyzer workflow.
+    dyn_anc_params : GSLCDynamicAncillaryFileParamGroup
+        A dataclass containing the parameters for the dynamic
+        ancillary files.
+    gslc : nisarqa.GSLC
+        The GSLC product.
+    stats_filename : path-like
+        Filename (with path) for output STATS.h5 file. This is where
+        outputs from the CalTool should be stored.
+    """
+
+    for freq in gslc.freqs:
+        # The scattering matrix of a canonical triangular trihedral corner
+        # reflector is diagonal. We're only interested in measuring the co-pol
+        # response since the cross-pol response should be negligible.
+        pols = get_copols(gslc, freq)
+
+        for pol in pols:
+            results = run_gslc_pta_single_freq_pol(
+                corner_reflector_csv=dyn_anc_params.corner_reflector_file,
+                gslc_hdf5=gslc.filepath,
+                freq=freq,
+                pol=pol,
+                pta_params=pta_params,
+                dem_file=dyn_anc_params.dem_file,
+            )
+
+            # Check if the results were empty (i.e. if there were no valid
+            # corner reflectors in the scene). If so, don't create any HDF5
+            # output for this freq/pol.
+            if not results:
+                continue
+
+            freq_group_path = (
+                nisarqa.STATS_H5_PTA_DATA_GROUP % gslc.band
+                + f"/frequency{freq}"
+            )
+            pol_group_path = freq_group_path + f"/{pol}"
+
+            with h5py.File(stats_filename, mode="a") as stats_h5:
+                populate_pta_hdf5_output(
+                    stats_h5=stats_h5,
+                    grp_path=pol_group_path,
+                    product_type="GSLC",
+                    pta_results=results,
+                )
+
+                # Several of the PTA outputs are expressed in pixel coordinates
+                # rather than physical units. In order to assist with
+                # interpretability of these values, we also provide the pixel
+                # spacing of the image grid (if not already provided for this
+                # frequency sub-band).
+                freq_group = stats_h5[freq_group_path]
+                if not "xCoordinateSpacing" in freq_group:
+                    with gslc.get_raster(freq, pol) as raster:
+                        descr = (
+                            "Nominal spacing in meters between consecutive"
+                            " pixels"
+                        )
+                        nisarqa.create_dataset_in_h5group(
+                            h5_file=stats_h5,
+                            grp_path=freq_group_path,
+                            ds_name="xCoordinateSpacing",
+                            ds_data=raster.x_spacing,
+                            ds_description=descr,
+                            ds_units="meters",
+                        )
+                        assert "yCoordinateSpacing" not in freq_group
+                        nisarqa.create_dataset_in_h5group(
+                            h5_file=stats_h5,
+                            grp_path=freq_group_path,
+                            ds_name="yCoordinateSpacing",
+                            ds_data=raster.y_spacing,
+                            ds_description=descr,
                             ds_units="meters",
                         )
 
@@ -1167,7 +1392,8 @@ def plot_ipr_cuts(
         # Constrain the left y-axis (power) lower limit to 50dB below the peak.
         # Otherwise, the nulls tend to stretch the y-axis range too much. (Note
         # that the azimuth & range cuts both have the same peak value.)
-        peak_power = np.max(power_db)
+        # Use `nanmax` since GSLC impulse response cuts may contain NaN values.
+        peak_power = np.nanmax(power_db)
         ax.set_ylim([peak_power - 50.0, None])
 
         # Set right y-axis (phase) limits. Note: don't use fixed limits for the
@@ -1217,20 +1443,20 @@ def plot_ipr_cuts(
 
 def add_pta_plots_to_report(stats_h5: h5py.File, report_pdf: PdfPages) -> None:
     """
-    Add plots of PTA results to the RSLC QA PDF report.
+    Add plots of PTA results to the RSLC/GSLC QA PDF report.
 
     Extract the Point Target Analysis (PTA) results from `stats_h5`, use them to
     generate plots of azimuth & range impulse response for each corner reflector
     in the scene and add them to QA PDF report.
 
     This function has no effect if the input STATS.h5 file did not contain a PTA
-    data group (for example, in the case where the RSLC product did not contain
-    any corner reflectors).
+    data group (for example, in the case where the RSLC/GSLC product did not
+    contain any corner reflectors).
 
     Parameters
     ----------
     stats_h5 : h5py.File
-        The input RSLC QA STATS.h5 file.
+        The input RSLC or GSLC QA STATS.h5 file.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF report.
     """
@@ -1607,30 +1833,47 @@ def make_cr_offsets_figure(
     return fig
 
 
-def plot_rslc_cr_offsets_to_pdf(
-    rslc: nisarqa.RSLC, stats_h5: h5py.File, report_pdf: PdfPages
+def plot_cr_offsets_to_pdf(
+    slc: nisarqa.RSLC | nisarqa.GSLC, stats_h5: h5py.File, report_pdf: PdfPages
 ) -> None:
     """
-    Plot corner reflector azimuth/range position errors to PDF.
+    Plot RSLC/GSLC corner reflector geometric position errors to PDF.
 
     Extract the Point Target Analysis (PTA) results from `stats_h5`, use them to
-    generate plots of azimuth & range peak offsets for each corner reflector
-    in the scene and add them to QA PDF report. A single figure is generated for
-    each available frequency/polarization pair.
+    generate plots of azimuth & range (for RSLC) or easting & northing (for
+    GSLC) peak offsets for each corner reflector in the scene and add them to
+    QA PDF report. A single figure is generated for each available
+    frequency/polarization pair.
 
     This function has no effect if the input STATS.h5 file did not contain a PTA
-    data group (for example, in the case where the RSLC product did not contain
+    data group (for example, in the case where the input product did not contain
     any corner reflectors).
 
     Parameters
     ----------
-    rslc : RSLC
-        The RSLC product that the PTA results were generated from.
+    slc : RSLC or GSLC
+        The NISAR product that the PTA results were generated from.
     stats_h5 : h5py.File
-        The input RSLC QA STATS.h5 file.
+        The input RSLC/GSLC QA STATS.h5 file.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF report.
     """
+    # Get the names of the groups in the STATS.h5 file that contain corner
+    # reflector peak offsets data. The group names correspond to the axes of the
+    # RSLC/GSLC image data.
+    if isinstance(slc, nisarqa.RSLC):
+        assert not isinstance(slc, nisarqa.GSLC)
+        x_axis = "range"
+        y_axis = "azimuth"
+    elif isinstance(slc, nisarqa.GSLC):
+        x_axis = "x"
+        y_axis = "y"
+    else:
+        raise TypeError(
+            "Input product must be RSLC or GSLC, instead got"
+            f" {slc.product_type}"
+        )
+
     # Get the group in the HDF5 file containing the output from the PTA tool. If
     # the group does not exist, we assume that the RSLC product did not contain
     # any valid corner reflectors, so there is nothing to do here.
@@ -1663,32 +1906,35 @@ def plot_rslc_cr_offsets_to_pdf(
         for pol in pols:
             pol_group = freq_group[pol]
 
-            # Extract azimuth & range peak offsets data from STATS.h5.
-            az_offsets = pol_group["azimuthIRF/peakOffset"]
-            rg_offsets = pol_group["rangeIRF/peakOffset"]
+            # Extract range & azimuth (easting & northing) peak offsets data
+            # from STATS.h5.
+            x_offsets = pol_group[f"{x_axis}Position/peakOffset"]
+            y_offsets = pol_group[f"{y_axis}Position/peakOffset"]
 
             # Check that both datasets contain 1-D arrays with the same shape.
-            for dataset in [az_offsets, rg_offsets]:
+            for dataset in [x_offsets, y_offsets]:
                 if dataset.ndim != 1:
                     raise ValueError(
                         f"Expected dataset {dataset.name} to contain a 1-D"
                         f" array, instead got ndim={dataset.ndim}"
                     )
-            if az_offsets.shape != rg_offsets.shape:
+            if x_offsets.shape != y_offsets.shape:
                 raise ValueError(
-                    "Azimuth & range peak offsets must have the same shape,"
-                    f" instead got {az_offsets.shape=} and {rg_offsets.shape=}"
+                    f"Corner reflector peak offsets in {x_axis} and {y_axis}"
+                    " must have the same shape, instead got"
+                    f" {x_axis}_offsets.shape={x_offsets.shape} and"
+                    f" {y_axis}_offsets.shape={y_offsets.shape}"
                 )
 
             # Get descriptive metadata corresponding to the X & Y axes of the
             # raster image.
-            x_attrs, y_attrs = get_cr_plot_axis_attrs(rslc, freq, pol)
+            x_attrs, y_attrs = get_cr_plot_axis_attrs(slc, freq, pol)
 
             # Make a plot of corner reflector position offsets for the current
             # freq/pol and append it to the PDF report.
             fig = make_cr_offsets_figure(
-                x_offsets=rg_offsets,
-                y_offsets=az_offsets,
+                x_offsets=x_offsets,
+                y_offsets=y_offsets,
                 x_attrs=x_attrs,
                 y_attrs=y_attrs,
                 freq=freq,

@@ -122,25 +122,13 @@ def verify_gslc(
         if not verbose:
             print(msg)
 
-    if root_params.workflows.qa_reports:
-        log.info(f"Beginning `qa_reports` processing...")
-
-        log.info(f"Beginning processing of browse KML...")
-        nisarqa.write_latlonquad_to_kml(
-            llq=product.get_browse_latlonquad(),
-            output_dir=root_params.get_output_dir(),
-            kml_filename=root_params.get_kml_browse_filename(),
-            png_filename=root_params.get_browse_png_filename(),
-        )
-        log.info(f"Browse image kml file saved to {browse_file_kml}")
-
-        with (
-            h5py.File(stats_file, mode="w") as stats_h5,
-            PdfPages(report_file) as report_pdf,
-        ):
-            # Add file metadata and title page to report PDF.
-            nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
-
+    # If running these workflows, save the processing parameters and
+    # identification group to STATS.h5
+    if root_params.workflows.qa_reports or root_params.workflows.point_target:
+        # This is the first time opening the STATS.h5 file for RSLC
+        # workflow, so open in 'w' mode.
+        # After this, always open STATS.h5 in 'r+' mode.
+        with h5py.File(stats_file, mode="w") as stats_h5:
             # Save the processing parameters to the stats.h5 file
             root_params.save_processing_params_to_stats_h5(
                 h5_file=stats_h5, band=product.band
@@ -152,55 +140,114 @@ def verify_gslc(
             )
             log.info(f"Input file Identification group copied to {stats_file}")
 
-            # Save frequency/polarization info to stats file
-            nisarqa.rslc.save_nisar_freq_metadata_to_h5(
-                stats_h5=stats_h5, product=product
+    # Both the `qa_reports` and/or `point_target` steps may generate a report
+    # PDF. If both are workflows are enabled, this can cause an issue, since
+    # closing and re-opening a `PdfPages` object causes the file to be
+    # overwritten, discarding the previous contents. The current solution is to
+    # unconditionally create the `PdfPages` object and keep it open during both
+    # steps. The file is automatically deleted upon closing if nothing was
+    # written to it.
+    with PdfPages(report_file, keep_empty=False) as report_pdf:
+
+        if root_params.workflows.qa_reports:
+            log.info(f"Beginning `qa_reports` processing...")
+
+            log.info(f"Beginning processing of browse KML...")
+            nisarqa.write_latlonquad_to_kml(
+                llq=product.get_browse_latlonquad(),
+                output_dir=root_params.get_output_dir(),
+                kml_filename=root_params.get_kml_browse_filename(),
+                png_filename=root_params.get_browse_png_filename(),
+            )
+            log.info(f"Browse image kml file saved to {browse_file_kml}")
+
+            with h5py.File(stats_file, mode="r+") as stats_h5:
+                # Add file metadata and title page to report PDF.
+                nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
+
+                # Save frequency/polarization info to stats file
+                nisarqa.rslc.save_nisar_freq_metadata_to_h5(
+                    stats_h5=stats_h5, product=product
+                )
+
+                nisarqa.copy_non_insar_imagery_metrics(
+                    product=product, stats_h5=stats_h5
+                )
+                log.info(f"Input file imagery metrics copied to {stats_file}")
+
+                input_raster_represents_power = False
+                name_of_backscatter_content = (
+                    r"GSLC Backscatter Coefficient ($\beta^0$)"
+                )
+
+                # Generate the GSLC Power Image and Browse Image
+                nisarqa.rslc.process_backscatter_imgs_and_browse(
+                    product=product,
+                    params=root_params.backscatter_img,
+                    stats_h5=stats_h5,
+                    report_pdf=report_pdf,
+                    plot_title_prefix=name_of_backscatter_content,
+                    input_raster_represents_power=input_raster_represents_power,
+                    browse_filename=browse_file_png,
+                )
+                log.info("Processing of Backscatter images complete.")
+                log.info(f"Browse image PNG file saved to {browse_file_png}")
+
+                # Generate the GSLC Power and Phase Histograms
+                nisarqa.rslc.process_backscatter_and_phase_histograms(
+                    product=product,
+                    params=root_params.histogram,
+                    stats_h5=stats_h5,
+                    report_pdf=report_pdf,
+                    plot_title_prefix=name_of_backscatter_content,
+                    input_raster_represents_power=input_raster_represents_power,
+                )
+                log.info(
+                    "Processing of backscatter and phase histograms complete."
+                )
+
+                # Process Interferograms
+
+                # Check for invalid values
+
+                # Compute metrics for stats.h5
+
+                log.info(f"PDF reports saved to {report_file}")
+                log.info(f"HDF5 statistics saved to {stats_file}")
+                log.info(
+                    f"CSV Summary PASS/FAIL checks saved to {summary_file}"
+                )
+                msg = "`qa_reports` processing complete."
+                log.info(msg)
+                if not verbose:
+                    print(msg)
+
+        if root_params.workflows.point_target:
+            log.info("Beginning Point Target Analyzer CalTool...")
+
+            # Run Point Target Analyzer tool
+            nisarqa.caltools.run_gslc_pta_tool(
+                pta_params=root_params.pta,
+                dyn_anc_params=root_params.anc_files,
+                gslc=product,
+                stats_filename=stats_file,
+            )
+            log.info(
+                f"Point Target Analyzer CalTool results saved to {stats_file}."
             )
 
-            nisarqa.copy_non_insar_imagery_metrics(
-                product=product, stats_h5=stats_h5
+            # Read the PTA results from `stats_file`, generate plots of
+            # azimuth/range cuts, and add them to the PDF report.
+            with h5py.File(stats_file, mode="r") as stats_h5:
+                nisarqa.caltools.plot_cr_offsets_to_pdf(
+                    product, stats_h5, report_pdf
+                )
+                nisarqa.caltools.add_pta_plots_to_report(stats_h5, report_pdf)
+            log.info(
+                f"Point Target Analyzer CalTool plots saved to {report_file}."
             )
-            log.info(f"Input file imagery metrics copied to {stats_file}")
 
-            input_raster_represents_power = False
-            name_of_backscatter_content = (
-                r"GSLC Backscatter Coefficient ($\beta^0$)"
-            )
-
-            # Generate the GSLC Power Image and Browse Image
-            nisarqa.rslc.process_backscatter_imgs_and_browse(
-                product=product,
-                params=root_params.backscatter_img,
-                stats_h5=stats_h5,
-                report_pdf=report_pdf,
-                plot_title_prefix=name_of_backscatter_content,
-                input_raster_represents_power=input_raster_represents_power,
-                browse_filename=browse_file_png,
-            )
-            log.info("Processing of Backscatter images complete.")
-            log.info(f"Browse image PNG file saved to {browse_file_png}")
-
-            # Generate the GSLC Power and Phase Histograms
-            nisarqa.rslc.process_backscatter_and_phase_histograms(
-                product=product,
-                params=root_params.histogram,
-                stats_h5=stats_h5,
-                report_pdf=report_pdf,
-                plot_title_prefix=name_of_backscatter_content,
-                input_raster_represents_power=input_raster_represents_power,
-            )
-            log.info("Processing of backscatter and phase histograms complete.")
-
-            # Process Interferograms
-
-            # Check for invalid values
-
-            # Compute metrics for stats.h5
-
-            log.info(f"PDF reports saved to {report_file}")
-            log.info(f"HDF5 statistics saved to {stats_file}")
-            log.info(f"CSV Summary PASS/FAIL checks saved to {summary_file}")
-            msg = "`qa_reports` processing complete."
+            msg = "Point Target Analyzer CalTool complete."
             log.info(msg)
             if not verbose:
                 print(msg)
