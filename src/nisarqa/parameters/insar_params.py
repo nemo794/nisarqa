@@ -1113,8 +1113,7 @@ class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
                 If None, the interval is computed by:
                     If the variance layers' units are 'meters^2': [0.0, 10.0]
                     Else-if the variance layers' units are 'pixels^2': [0.0, 0.1]
-                    Otherwise: [0.0, max(sqrt(<az var layer>), sqrt(<rg var layer>))]
-                Defaults to None.""",
+                    Otherwise: [0.0, max(sqrt(<az var layer>), sqrt(<rg var layer>))]""",
             ),
             "hdf5_attrs": HDF5Attrs(
                 name="azAndRngOffsetVarianceColorbarMinMax",
