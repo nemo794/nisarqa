@@ -271,8 +271,11 @@ def _parse_dataset_stats_from_h5(
         return nisarqa.RasterStats(**kwargs)
 
     # Based on the dtype, construct the *RasterStats for the input Dataset
-    if np.issubdtype(ds.dtype, np.complexfloating) or nisarqa.is_complex32(
-        dataset=ds
+    # Note: Check for `.is_complex32()` first so that code works with h5py<3.8.
+    # In older versions of h5py, even accessing ds.dtype will cause a TypeError
+    # to be raised if the dataset is complex32.
+    if nisarqa.is_complex32(dataset=ds) or np.issubdtype(
+        ds.dtype, np.complexfloating
     ):
         real_stats = _get_stats_object(component="real")
         imag_stats = _get_stats_object(component="imag")
