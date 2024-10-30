@@ -1124,9 +1124,11 @@ class VarianceLayersParamGroup(YamlParamGroup, HDF5ParamGroup):
                     " for the az and slant range variance layers. The"
                     " square root of these layers (i.e. the standard deviation"
                     " of the offsets) was computed, clipped to this interval,"
-                    " and then used for the interval of the colorbar."
+                    " and then plotted using this interval for the colorbar."
                     " If None, the interval was determined based on the units"
-                    " of the input layers."
+                    " of the input layers: If `meters^2`, then [0.0, 10.0]."
+                    " If `pixels^2`, then [0.0, 0.1]. Otherwise [0.0,"
+                    " max(sqrt(<az var layer>), sqrt(<rg var layer>))]"
                 ),
                 group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
             ),
