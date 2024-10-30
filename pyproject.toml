@@ -40,7 +40,7 @@ classifiers = [
 dependencies = [
     "cycler",
     "h5py>=3",
-    "isce3>=0.16",
+    "isce3>=0.23",
     "matplotlib",
     "numpy>=1.20",
     "pillow",
