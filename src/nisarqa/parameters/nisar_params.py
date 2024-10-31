@@ -1368,6 +1368,19 @@ class RootParamGroup(ABC):
             ds_units=None,
         )
 
+        # Add QA processing datetime to stats file
+        nisarqa.create_dataset_in_h5group(
+            h5_file=h5_file,
+            grp_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP % band,
+            ds_name="QAProcessingDateTime",
+            ds_data=nisarqa.QA_PROCESSING_DATETIME,
+            ds_description=(
+                "QA processing date and time (in UTC) in the format"
+                " YYYY-mm-ddTHH:MM:SS"
+            ),
+            ds_units=None,
+        )
+
         # Save final runconfig parameters to HDF5
         nisarqa.create_dataset_in_h5group(
             h5_file=h5_file,
