@@ -15,60 +15,50 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 
 def verify_igram(
-    user_rncfg: Mapping[str, Mapping], product_type: str, verbose: bool = False
+    root_params: (
+        nisarqa.RIFGRootParamGroup
+        | nisarqa.RUNWRootParamGroup
+        | nisarqa.GUNWRootParamGroup
+    ),
+    verbose: bool = False,
 ) -> None:
     """
-    Verify a RIFG, RUNW, or GUNW product per provided runconfig.
+    Perform verification checks and quality assurance on a NISAR InSAR product.
 
-    This is the main function for running the entire QA workflow for this
-    product. It will run based on the options supplied in the
-    input runconfig file.
-    The input runconfig file must follow the standard QA runconfig format
-    for this product. Run the command line command:
-            nisar_qa dumpconfig <product name>
-    to generate an example template with default parameters for this product.
+    This is the main function for running the entire QA workflow for one of
+    a NISAR RIFG, RUNW, or GUNW product.
+    It will run based on the options supplied in the input parameters.
 
     Parameters
     ----------
-    user_rncfg : nested dict
-        A dictionary whose structure matches this product's QA runconfig
-        YAML file and which contains the parameters needed to run its QA SAS.
-    product_type : str
-        One of: "rifg", "runw", or "gunw".
+    root_params : nisarqa.RIFGRootParamGroup or nisarqa.RUNWRootParamGroup
+                        or nisarqa.GUNWRootParamGroup
+        Input parameters to run this QA SAS. The type of the input product
+        to be verified (RIFG, RUNW, or GUNW) will be inferred from the type
+        of this argument.
     verbose : bool, optional
         True to stream log messages to console (stderr) in addition to the
         log file. False to only stream to the log file. (Initial log messages
         during setup will stream to console regardless.) Defaults to False.
     """
-    supported_product_types = ("rifg", "runw", "gunw")
-    if product_type not in supported_product_types:
-        raise ValueError(
-            f"{product_type=}, must be one of {supported_product_types}."
+    if isinstance(root_params, nisarqa.RIFGRootParamGroup):
+        product_type = "rifg"
+    elif isinstance(root_params, nisarqa.RUNWRootParamGroup):
+        product_type = "runw"
+    elif isinstance(root_params, nisarqa.GUNWRootParamGroup):
+        product_type = "gunw"
+    else:
+        raise TypeError(
+            f"`root_params` has type {type(root_params)}, must be one of"
+            " RIFGRootParamGroup, RUNWRootParamGroup, or GUNWRootParamGroup."
         )
 
     log = nisarqa.get_logger()
-    log.info("Begin parsing of runconfig for user-provided QA parameters.")
-
-    # Build the *RootParamGroup parameters per the runconfig
-    try:
-        root_params = nisarqa.build_root_params(
-            product_type=product_type, user_rncfg=user_rncfg
-        )
-    except nisarqa.ExitEarly:
-        # No workflows were requested. Exit early.
-        log.info(
-            "All `workflows` set to `False` in the runconfig, "
-            "so no QA outputs will be generated. This is not an error."
-        )
-        return
 
     # Start logging in the log file
     out_dir = root_params.get_output_dir()
     log_file_txt = out_dir / root_params.get_log_filename()
-    log.info(
-        "Parsing of runconfig for QA parameters complete. Complete log"
-        " continues in the output log file."
-    )
+    log.info(f"Log messages now directed to the log file: {log_file_txt}")
     nisarqa.set_logger_handler(log_file=log_file_txt, verbose=verbose)
 
     # Log the values of the parameters.

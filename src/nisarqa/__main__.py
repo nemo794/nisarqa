@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
+import os
+
+import matplotlib
+
 # Switch backend to one that doesn't require DISPLAY to be set since we're
 # just plotting to file anyway. (Some compute notes do not allow X connections)
 # This needs to be set prior to opening any matplotlib objects.
-import matplotlib
-
 matplotlib.use("Agg")
 import argparse
-
-from ruamel.yaml import YAML
 
 import nisarqa
 
@@ -152,27 +154,6 @@ def dumpconfig(product_type, indent=4):
         )
 
 
-def load_user_runconfig(runconfig_yaml):
-    """
-    Load a QA Runconfig yaml file into a dict format.
-
-    Parameters
-    ----------
-    runconfig_yaml : str
-        Filename (with path) to a QA runconfig yaml file.
-
-    Returns
-    -------
-    user_rncfg : dict
-        `runconfig_yaml` loaded into a dict format
-    """
-    # parse runconfig into a dict structure
-    parser = YAML(typ="safe")
-    with open(runconfig_yaml, "r") as f:
-        user_rncfg = parser.load(f)
-    return user_rncfg
-
-
 def run():
     # parse the args
     args = parse_cli_args()
@@ -184,43 +165,39 @@ def run():
         dumpconfig(product_type=args.product_type, indent=args.indent)
         return
 
-    # parse runconfig into a dict structure
     log = nisarqa.get_logger()
+
+    # Generate the *RootParamGroup object from the runconfig
+    product_type = subcommand.replace("_qa", "")
+    try:
+        root_params = nisarqa.RootParamGroup.from_runconfig_file(
+            args.runconfig_yaml, product_type
+        )
+    except nisarqa.ExitEarly:
+        # No workflows were requested. Exit early.
+        log.info(
+            "All `workflows` set to `False` in the runconfig, "
+            "so no QA outputs will be generated. This is not an error."
+        )
+        return
+
     log.info(
-        f"Begin loading user runconfig yaml to dict: {args.runconfig_yaml}"
-    )
-    user_rncfg = load_user_runconfig(args.runconfig_yaml)
-    log.info(
-        "Loading of user runconfig complete. Beginning QA for"
-        f" {subcommand.replace('_qa', '').upper()} input product."
+        "Parsing of runconfig complete. Beginning QA for"
+        f" {product_type.upper()} input product."
     )
 
+    # Run QA SAS
+    verbose = args.verbose
     if subcommand == "rslc_qa":
-        nisarqa.rslc.verify_rslc(user_rncfg=user_rncfg, verbose=args.verbose)
+        nisarqa.rslc.verify_rslc(root_params=root_params, verbose=verbose)
     elif subcommand == "gslc_qa":
-        nisarqa.gslc.verify_gslc(user_rncfg=user_rncfg, verbose=args.verbose)
+        nisarqa.gslc.verify_gslc(root_params=root_params, verbose=verbose)
     elif subcommand == "gcov_qa":
-        nisarqa.gcov.verify_gcov(user_rncfg=user_rncfg, verbose=args.verbose)
-    elif subcommand == "rifg_qa":
-        nisarqa.igram.verify_igram(
-            user_rncfg=user_rncfg, product_type="rifg", verbose=args.verbose
-        )
-    elif subcommand == "runw_qa":
-        nisarqa.igram.verify_igram(
-            user_rncfg=user_rncfg, product_type="runw", verbose=args.verbose
-        )
-    elif subcommand == "gunw_qa":
-        nisarqa.igram.verify_igram(
-            user_rncfg=user_rncfg, product_type="gunw", verbose=args.verbose
-        )
-    elif subcommand == "roff_qa":
-        nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="roff", verbose=args.verbose
-        )
-    elif subcommand == "goff_qa":
-        nisarqa.offsets.verify_offset(
-            user_rncfg=user_rncfg, product_type="goff", verbose=args.verbose
-        )
+        nisarqa.gcov.verify_gcov(root_params=root_params, verbose=verbose)
+    elif subcommand in ("rifg_qa", "runw_qa", "gunw_qa"):
+        nisarqa.igram.verify_igram(root_params=root_params, verbose=verbose)
+    elif subcommand in ("roff_qa", "goff_qa"):
+        nisarqa.offsets.verify_offset(root_params=root_params, verbose=verbose)
     else:
         raise ValueError(f"Unknown subcommand: {subcommand}")
 
