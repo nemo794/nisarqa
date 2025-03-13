@@ -1,22 +1,18 @@
-# Instructions to Build the QA Product Specification .docx
+# Table of 
 
-## Create new environment with dependencies
-Official [instructions to install `pandoc` are here](https://pandoc.org/installing.html).
 
-Instructions on a Mac Silicon running Sonoma 14.7.4:
-```bash
-# Keep separate from the `nisarqa` conda environment
-conda create -n qa_docs
-conda activate qa_docs
+# Instructions to Update the Product Spec Markdown Files
 
-# install
-conda install -c conda-forge pandoc pillow h5py numpy
-```
+The markdown files have two primary venues for viewing: the public `nisarqa` Github repository, and the NISAR Product Specification document which is signed and released publicly.
 
-## Compress all image files before pushing
-To keep the size of the git repo manageable, users are requested to compress all images prior to submitting a pull request. The script `nisarqa/docs/product_specs/images/resize_png_to_jpg.py` is provided to quickly downsample and compress images for use in the documentation.
 
-After compressing images, remember to double-check that the images' links in the markdown files are all still correct.
+## Update markdown text to match new QA PRs
+
+As new QA PRs are drafted, the best practise is for the product specs to be updated in those PRs to keep them in sync. But, when preparing to cut a QA releases, the developer should do a final pass updating the product specs in advance of cutting the release.
+
+When updating the product specs, the author needs to be mindful that the output looks "nice" in both Github and in .docx output. To view correctly on the Github repository, the markdown must be written in "Github-Flavored Markdown". However, when reformatting the markdown files into .docx files via `pandoc`, not all formatting will translate correctly. Here is guidance on how to correctly format the raw markdown for both venues:
+* 
+
 
 
 ## Auto-Generate Updated QA HDF5 Product Specification tables
@@ -34,6 +30,29 @@ python ./generate_stats_markdown.py /path/to/QA/STATS.h5
 
 The `generate_stats_markdown.py` script automatically adds header information into each output markdown file, iterates through the input product to parse the structure, formats the tables, and saves it with the correct file name in the `product_specs` directory. It also handles a few known edge cases. **To make changes to the QA HDF5 product spec markdown documents, please update this `generate_stats_markdown.py` script and re-run the script. _Do not edit the markdown files directly._**
 
+## Compress all image files before pushing
+To keep the size of the git repo manageable, users are requested to compress all images prior to submitting a pull request. The script `nisarqa/docs/product_specs/images/resize_png_to_jpg.py` is provided to quickly downsample and compress images for use in the documentation.
+
+After compressing images, remember to double-check that the images' links in the markdown files are all still correct.
+
+
+# Instructions to Build the QA Product Specification .docx
+
+## Update all markdown files
+Per the instructions (above).
+
+## Create new environment with dependencies
+Official [instructions to install `pandoc` are here](https://pandoc.org/installing.html).
+
+Instructions on a Mac Silicon running Sonoma 14.7.4:
+```bash
+# Keep separate from the `nisarqa` conda environment
+conda create -n qa_docs
+conda activate qa_docs
+
+# install
+conda install -c conda-forge pandoc pillow h5py numpy
+```
 
 ## Concatonate the `.md` files and generate the intermediary DOCX
 
@@ -57,7 +76,7 @@ Open the final "front matter" .docx file, which contains the cover page, signatu
 * Paste the clipboard contents verbatim into the body. (In effect, we're wholesale replacing to old body contents with the updated contents.)
 * Scroll up to the table of contents. Right-click, and "update field". This should rebuild the TOC with the new material
 * In the Word document, under the "View" section, in the Macros dropdown select View Macros. Run the `TableStyleAndCenterImages` macro. (Will take ~4-8 minutes.)
-    - If this macro does not exist, then copy-paste the code (below) into the VBA editor in Word, and that Macro should appear.
+    - If this macro does not exist, then copy-paste the code (below) into the Visual Basic Editor (VBA) in Word, and that Macro should appear.
 * Update the front matter with dates, revision history, etc.
 
 

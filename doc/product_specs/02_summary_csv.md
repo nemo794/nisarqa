@@ -1,5 +1,5 @@
 
-# High-Level Summary CSV (PASS/FAIL/WARN Checks)
+# High-Level Summary PASS/FAIL/WARN Checks (CSV)
 
 ## Overview
 
@@ -19,7 +19,7 @@ The soft checks notify users of the existance of minor concerns in the input pro
 
 ## Example RSLC QA Summary CSV
 
-Here are the contents of a sample RSLC QA Summary CSV:
+Here are the contents of an example RSLC QA Summary CSV:
 
 ```
 Tool,Check,Result,Threshold,Actual,Notes
@@ -31,7 +31,7 @@ QA,% Cumulative NaN and Inf and fill and near-zero pixels under threshold?,PASS,
 QA,QA completed with no exceptions?,PASS,,,
 ```
 
-Here are the same contents, visualized in a table:
+Here are the same example RSLC QA Summary CSV contents, visualized in a table:
 
 
 | Tool | Check | Result | Threshold | Actual | Notes |
@@ -43,10 +43,29 @@ Here are the same contents, visualized in a table:
 | QA | % Cumulative NaN and Inf and fill and near-zero pixels under threshold? | PASS |  |  | RSLC_L_A_HH phase: If a 'FAIL' then all histogram bin counts are zero. This likely indicates that the raster contained no valid data. Note: check performed on decimated raster not full raster.
 | QA | QA completed with no exceptions? | PASS |  |  | 
 
+Here is an example RIFG QA Summary CSV contents, visualized in a table:
+
+| Tool | Check | Result | Threshold | Actual | Notes |
+| :---: | ------- | :---: | :----: | :---: | --------- |
+| QA | Able to open input NISAR file? | PASS |  |  |  |
+| QA | Metadata cubes are valid? | PASS |  |  |  |
+| QA | Passes all `identification` group checks? | FAIL |  |  |  |
+| QA | % NaN pixels under threshold? | PASS | 95.0 | 0.00 | RIFG_L_A_interferogram_HH_wrappedInterferogram |
+| QA | % Cumulative NaN and Inf and fill and near-zero pixels under threshold? | PASS | 95.0 | 0.00 | RIFG_L_A_interferogram_HH_wrappedInterferogram |
+| QA | % NaN pixels under threshold? | PASS | 95.0 | 0.03 | RIFG_L_A_interferogram_HH_coherenceMagnitude |
+| QA | % Cumulative NaN and Inf and fill and near-zero pixels under threshold? | PASS | 95.0 | 0.03 | RIFG_L_A_interferogram_HH_coherenceMagnitude |
+| QA | % NaN pixels under threshold? | PASS | 95.0 | 0.14 | RIFG_L_A_pixelOffsets_HH_alongTrackOffset |
+| QA | % Cumulative NaN and Inf and fill and near-zero pixels under threshold? | PASS | 95.0 | 0.14 | RIFG_L_A_pixelOffsets_HH_alongTrackOffset |
+| QA | % NaN pixels under threshold? | PASS | 95.0 | 0.00 | RIFG_L_A_pixelOffsets_HH_slantRangeOffset |
+| QA | % Cumulative NaN and Inf and fill and near-zero pixels under threshold? | PASS | 95.0 | 0.00 | RIFG_L_A_pixelOffsets_HH_slantRangeOffset |
+| QA | % NaN pixels under threshold? | PASS | 95.0 | 0.00 | RIFG_L_A_pixelOffsets_HH_correlationSurfacePeak |
+| QA | % Cumulative NaN and Inf and fill and near-zero pixels under threshold? | PASS | 95.0 | 0.00 | RIFG_L_A_pixelOffsets_HH_correlationSurfacePeak |
+| QA | QA completed with no exceptions? | PASS |  |  | 
+
 
 ## Example QA Summary CSV with Fatal Error
 
-Here are the contents of a sample QA Summary CSV for an input file with a fatal error, visualized in a table:
+Here are the contents of an example QA Summary CSV for an input file with a fatal error, visualized in a table:
 
 | Tool | Check | Result | Threshold | Actual | Notes
 | :---: | ------- | :---: | :----: | :---: | --------- |
