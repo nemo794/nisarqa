@@ -34,9 +34,9 @@ in RSLC and GSLC image products, and provide metrics such as
 Peak-to-Sidelobe Ratio (PSLR) and Integrated Sidelobe Ratio (ISLR) 
 for image quality assessment.
 
-Sample impulse response plots in the PDF:
+Example impulse response plots in the PDF:
 
-![Sample impulse response plots](images/report_pta_impulse_response_rslc.jpg)
+![Example impulse response plots](images/report_pta_impulse_response_rslc.jpg)
 
 
 Corner reflector (CR) offsets scatterplots in QA reports measure the error 
@@ -44,7 +44,7 @@ between expected and apparent positions of surveyed targets in both
 range-Doppler and geocoded image products in order to calibrate azimuth 
 and range delays and evaluate geolocation accuracy.
 
-Sample CR offsets scatterplots in the PDF:
+Example CR offsets scatterplots in the PDF:
 
-![Sample CR offsets scatterplots](images/report_pta_cr_offsets_rslc.jpg)
+![Example CR offsets scatterplots](images/report_pta_cr_offsets_rslc.jpg)
 

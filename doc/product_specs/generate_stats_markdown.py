@@ -30,16 +30,20 @@ def _doc_order(prod_type: str) -> str:
 def _freqs(prod_type: str) -> list[str]:
     prod_type = prod_type.lower()
     if prod_type in ("rslc", "gslc", "gcov"):
-        return nisarqa.NISAR_FREQS
+        freqs = nisarqa.NISAR_FREQS
     elif prod_type in nisarqa.LIST_OF_INSAR_PRODUCTS:
-        return ["A"]
+        freqs = ["A"]
     else:
         raise ValueError("Unsupported product type.")
+
+    freqs = [f"`frequency{f}`" for f in freqs]
+    return ", ".join(freqs)
 
 
 def _pols(prod_type: str) -> list[str]:
     prod_type = prod_type.lower()
-    return nisarqa.get_possible_pols(prod_type)
+    pols = [f"`{p}`" for p in nisarqa.get_possible_pols(prod_type)]
+    return ", ".join(pols)
 
 
 def get_header(product_type: str) -> str:
@@ -62,8 +66,19 @@ def get_header(product_type: str) -> str:
     else:
         header += f"\n\n* Possible Polarization Groups: {_pols(product_type)}"
 
+    if product_type in ("rslc", "gslc"):
+        grps = ("`pointTargetAnalyzer`",)
+        if product_type == "rslc":
+            grps += (
+                "`absoluteRadiometricCalibration`",
+                "`noiseEquivalentBackscatter`",
+            )
+
+        header += f"\n\n* Possible CalTools groups: {', '.join(grps)}"
+
     if product_type in ("roff", "goff"):
-        header += f"\n\n* Possible layer groups: {nisarqa.NISAR_LAYERS}"
+        layers = [f"`{l}`" for l in nisarqa.NISAR_LAYERS]
+        header += f"\n\n* Possible layer Groups: {', '.join(layers)}"
 
     header += "\n\n"
 
@@ -101,6 +116,9 @@ def get_spec_table(input_file: str, product_type: str) -> str:
             obj = in_f[name]
             if isinstance(obj, h5py.Dataset):
                 spec.append(f"\n| Path: | **`{name}`** |")
+                spec.append(
+                    f"\n|    | _Product type:_ {product_type.upper()} QA |"
+                )
                 for key, val in obj.attrs.items():
                     if key == "subswathStartIndex":
                         v = "Starting index for the subswath used to generate this plot"
@@ -126,6 +144,11 @@ def get_spec_table(input_file: str, product_type: str) -> str:
                             v = "seconds since YYYY-mm-ddTHH:MM:SS"
                         else:
                             raise ValueError("ACK")
+
+                    # Escape special characters
+                    v = v.replace("<", r"\<")
+                    v = v.replace(">", r"\>")
+
                     spec.append(f"\n|    | _{key}:_ {v} |")
 
                 # Include the dtype

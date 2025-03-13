@@ -2,9 +2,9 @@
 # Browse Products (PNG + KML)
 
 ## Overview
-The browse images are designed to provide an intuitive representation and visualization of the science content of an input L1/L2 granule. During generation of the PNGs, image processing is applied to meets these goals; unlike the source L1/L2 science data products, the PNG's pixel values should not be used for analysis. PNGs are either grayscale or RBGA, with transparency.
+The browse images are designed to provide a quick, intuitive representation and visualization of the science content of an input L1/L2 granule. Their sidecar KML files allow for quick visualization in GIS software. During generation of the PNGs, image processing is applied to meets these goals; unlike the source L1/L2 science data products, the PNG's pixel values should not be used for analysis. PNGs are either grayscale or RBGA, with transparency.
 
-Each PNG is accompanied by a sidecar KML file which contains approximate latitude/longitude coordinates of the four corners of the PNG for use in GIS software. Note that for L2 geocoded products, the four corners correspond (approximately) to the four corners of the entire raster, including the geocoding fill area.
+Note that during processing, the QA software multilooks and/or decimates the original raster from the full-size L1/L2 science product down to the smaller size needed for the browse image PNG. During this reduction, best effort is made to so that the pixels in the final PNG are "approximately square pixels", meaning that each side of the pixel represents approximately the same number of meters on the ground. To simplify this reduction, rows and/or columns in the original raster often truncated.
 
 ## RSLC and GSLC Browse Image
 RSLC and GSLC browse images are generated from the SLC imagery layer(s). The imagery layer(s) are multilooked and image processed to produce the final PNG; the algorithm used is described in the Report PDF: Backscatter Images section.
@@ -28,13 +28,13 @@ RSLC and GSLC browse images are either grayscale or RGBA. Layer(s) used are sele
 
 A reduced-size copy of the individual image(s) used to form the browse image is plotted in the `REPORT.pdf`, where details about the coordinates, colorbar, and more can be found.
 
-Sample RSLC Browse Image, from ALOS-1 derived data:
+Example RSLC Browse Image (reduced size), from ALOS-1 derived data:
 
-![Sample RSLC Browse Image](images/browse_RSLC_reduced_size.jpg)
+![Example RSLC Browse Image](images/browse_RSLC_compressed.jpg)
 
-Sample GSLC Browse Image, from ALOS-1 derived data:
+Example GSLC Browse Image (reduced size), from ALOS-1 derived data:
 
-![Sample GSLC Browse Image](images/browse_GSLC_reduced_size.jpg)
+![Example GSLC Browse Image](images/BROWSE_GSLC_small.png)
 
 
 ## GCOV Browse Image
@@ -53,50 +53,58 @@ GCOV browse image are either grayscale or RGBA PNGs. Layer(s) used are selected 
 
 A reduced-size copy of the individual image(s) used to form the browse image is plotted in the `REPORT.pdf`, where details about the coordinates, colorbar, and more can be found.
 
-Sample GCOV Browse Image, from ALOS-1 derived data:
+Example GCOV Browse Image (reduced size), from ALOS-1 derived data:
 
-![Sample GCOV Browse Image](images/browse_GCOV_reduced_size.jpg)
+![Example GCOV Browse Image](images/BROWSE_GCOV_small.png)
 
 
 ## RIFG Browse Image
-RIFG browse image are RGBA PNGs; they are generated from the Unwrapped Interferogram Layer. A reduced-size copy of this image is plotted in the `REPORT.pdf`, where details about the coordinates, colorbar, and more can be found.
+RIFG browse images are RGBA PNGs; they are generated from the Unwrapped Interferogram Layer. A reduced-size copy of this image is plotted in the `REPORT.pdf`, where details about the coordinates, colorbar, and more can be found.
 
-Sample RIFG Browse Image, from ALOS-1 derived data:
+Example RIFG Browse Image (reduced size), from ALOS-2 derived data:
 
-![Sample RIFG Browse Image](images/browse_RIFG_reduced_size.jpg)
+![Example RIFG Browse Image](images/browse_RIFG_compressed.jpg)
 
 
 ## RUNW and GUNW Browse Image
 RUNW and GUNW browse images are RGBA PNGs; they are generated from the Wrapped Phase Image Layer which has been re-wrapped to the interval [0, 7pi). A reduced-size copy of this image is plotted in the `REPORT.pdf`, where details about the coordinates, colorbar, and more can be found.
 
-Sample RUNW Browse Image, from ALOS-1 derived data:
+Example RUNW Browse Image (reduced size), from ALOS-2 derived data:
 
-![Sample RUNW Browse Image](images/browse_RUNW_reduced_size.jpg)
+![Example RUNW Browse Image](images/browse_RUNW_compressed.jpg)
 
-Sample GUNW Browse Image, from ALOS-1 derived data:
+Example GUNW Browse Image (reduced size), from ALOS-2 derived data:
 
-![Sample GUNW Browse Image](images/browse_GUNW_reduced_size.jpg)
+![Example GUNW Browse Image](images/browse_GUNW_compressed.jpg)
 
 
 ## ROFF and GOFF Browse Image
-ROFF and GOFF browse images are RGBA PNGs; they are generated by combining the Along Track Offsets and Slant Range Offsets layers from one of the `layerX` groups into a single image, overlaid with quiver-plot arrows to for quick visualization of the magnitude and direction of movement in the scene.
+ROFF and GOFF browse images are RGBA PNGs; they are generated by combining the Along Track Offsets and Slant Range Offsets layers from one of the `layerX` groups (see next paragraph) into a single image, overlaid with quiver-plot arrows to for quick visualization of the magnitude and direction of movement in the scene.
 
-In the ROFF and GOFF offsets products, there are one or more layer groups (e.g. `layer1`, `layer2`, etc.). Each layer group was processed with a unique algorithm combination, which strikes a unique balance between the amount of noise and the coarseness of the granularity. The priorizitation order for the selecting which layer group to use for the browse image is 3, 2, 1, 4, 5, 6, 7.
+In the ROFF and GOFF offsets products, there are one or more layer groups (e.g. `layer1`, `layer2`, etc.). Each layer group was processed with a distinct algorithm combination, which strikes a unique balance between the amount of noise and the coarseness of the granularity. The priorizitation order for the selecting which layer group to use for the browse image is 3, 2, 1, 4, 5, 6, 7.
 
-A reduced-size copy of this image is plotted in the `REPORT.pdf`, where details about the coordinates, colorbar, and more can be found.
+A reduced-size copy of the browse image is plotted in the `REPORT.pdf`, where details about the coordinates, colorbar, and more can be found.
 
-Sample ROFF Browse Image, from ALOS-1 derived data:
+Example ROFF Browse Image (reduced size), from ALOS-2 derived data:
 
-![Sample ROFF Browse Image](images/browse_ROFF_reduced_size.jpg)
+![Example ROFF Browse Image](images/BROWSE_ROFF_small.png)
 
-Sample GOFF Browse Image, from ALOS-1 derived data:
+Example GOFF Browse Image (reduced size), from ALOS-2 derived data:
 
-![Sample GOFF Browse Image](images/browse_GOFF_reduced_size.jpg)
+![Example GOFF Browse Image](images/BROWSE_GOFF_small.png)
 
 
 ## KML Description (All Products)
 
-Here are the contents of an example RSLC KML file. The KML file contains an `<href>` to the filename (along a relative path) of the corresponding PNG. For the nominal KML to recognize the PNG, both the PNG and KML  files must be in the same directory, and the `<href>` must match exactly the PNG's filename. If the PNG is moved and/or renamed, then the KML must be updated with the corresponding relative filepath to and/or filename of the PNG.
+Each browse image PNG is accompanied by a sidecar KML file for quick visualization in GIS software.
+
+The KML contains the latitude/longitude coordinates of the four corner pixels of the raster layer in the input L1/L2 science product used to generate the browse PNG. Due to resizing and truncation while generating the PNG, the four corner pixels of the PNG will only approximately align with the four latitude/longitude coordinates in the KML; when plotted in GIS software this can lead to the PNGs appearing slightly "stretched". This is expected.
+
+Note that for L2 geocoded products, the four latitude/longitude coordinates correspond to the four corners of the entire input raster layer, which includes the geocoding fill.
+
+The QA KML file contains an `<href>` to the filename (along a relative path) of the corresponding PNG. For the nominal KML to recognize the PNG, both the PNG and KML files must be in the same directory, and the `<href>` must match exactly the PNG's filename. If the PNG is moved and/or renamed, then the KML must be updated with the corresponding relative filepath to and/or filename of the PNG.
+
+Contents of an example RSLC KML file:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
