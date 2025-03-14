@@ -1,3 +1,4 @@
+import warnings
 import h5py
 import os
 import argparse
@@ -165,9 +166,6 @@ def get_spec_table(input_file: str, product_type: str) -> str:
                     ndim = f"{ndim}-D array"
                 spec.append(f"\n|    | _ndim:_ {ndim} |")
 
-                # # Add separator line (it looks better in the .docx)
-                # spec.append("\n|     |     |    |")
-
         in_f.visit(build_spec)
 
     spec.append("\n\n\n")
@@ -175,7 +173,7 @@ def get_spec_table(input_file: str, product_type: str) -> str:
     return "".join(spec)
 
 
-def main(input_file: str) -> None:
+def main(input_file: str, out_dir: str) -> None:
 
     # Get the product type
     with h5py.File(input_file, "r") as in_f:
@@ -183,13 +181,17 @@ def main(input_file: str) -> None:
     product_type = nisarqa.byte_string_to_python_str(product_type)
     product_type = product_type.lower()
 
-    cwd = os.getcwd()
-    if not cwd.endswith("nisarqa/doc/product_specs"):
-        raise Exception(
-            "`cd` into the ../nisarqa/doc/product_specs directory to run this script."
+    if not out_dir.endswith("docs/product_specs"):
+        warnings.warn(
+            f"{out_dir=}, suggest using nisarqa's `docs/product_specs`"
+            " directory instead to overwrite existing versions of the HDF5"
+            " product spec Markdown files.",
+            RuntimeWarning,
         )
 
-    filename = f"05{_doc_order(product_type)}_{product_type}_hdf5_spec.md"
+    filename = os.path.join(
+        out_dir, f"05{_doc_order(product_type)}_{product_type}_hdf5_spec.md"
+    )
 
     with open(filename, "w") as out_f:
         out_f.write(get_header(product_type=product_type))
@@ -204,35 +206,23 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Generate HDF5 specs of input file in markdown."
     )
-    parser.add_argument("filename", help="Path to the input L1/L2 file")
+    parser.add_argument(
+        "filename",
+        help=(
+            "Path to input QA HDF5 file to parse the product type and its"
+            " HDF5 product structure from"
+        ),
+    )
+    parser.add_argument(
+        "out_dir",
+        help=(
+            "Path to output directory to store the final Markdown file"
+            " containing the header and HDF5 file structure"
+        ),
+    )
+
     args = parser.parse_args()
     input_file = args.filename
+    out_dir = args.out_dir
 
-    if input_file == "all":
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/RSLC/NISAR_L1_PR_RSLC_002_030_A_019_2800_SHNA_A_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/GSLC/NISAR_L2_PR_GSLC_002_030_A_019_2800_SHNA_A_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/GCOV/NISAR_L2_PR_GCOV_002_030_A_019_2800_SHNA_A_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/INSAR/NISAR_L1_PR_RIFG_001_030_A_019_002_2000_SH_20081012T060911_20081012T060925_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/INSAR/NISAR_L1_PR_RUNW_001_030_A_019_002_2000_SH_20081012T060911_20081012T060925_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/INSAR/NISAR_L2_PR_GUNW_001_030_A_019_002_2000_SH_20081012T060911_20081012T060925_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/INSAR/NISAR_L1_PR_ROFF_001_030_A_019_002_2000_SH_20081012T060911_20081012T060925_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-        main(
-            "/Users/niemoell/Desktop/nisar_test_data/20250129_r404_JPL_sample_products/INSAR/NISAR_L2_PR_GOFF_001_030_A_019_002_2000_SH_20081012T060911_20081012T060925_20081127T061000_20081127T061014_D00404_N_F_J_001_QA_STATS.h5"
-        )
-    else:
-        main(input_file)
+    main(input_file, out_dir)
