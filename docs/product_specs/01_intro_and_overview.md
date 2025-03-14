@@ -21,7 +21,7 @@ Here is a simplified overview of the NASA SDS processing pipeline:
 
 The NISAR QA software is available publicly at https://github.com/isce-framework/nisarqa. This can be used to generate modified versions of the standard QA products using different parameter settings.
 
-The `nisarqa` respository contains the development and release history of the QA software. It is also hosts the markdown files for the QA Product Specification documentation, which is used to generate the official, signed release versions of the QA Product Specification document by the NISAR mission.
+The `nisarqa` respository contains the development and release history of the QA software. It is also hosts the Markdown files for the QA Product Specification documentation, which is used to generate the official, signed release versions of the QA Product Specification document by the NISAR mission.
 
 As the QA software evolves, the product specifications will also evolve. The QA software version used to generate a given set of QA outputs can be found on the cover page of the QA report PDF file and in the QA HDF5 file's `/science/LSAR/QA/processing/QASoftwareVersion` dataset. This version number corresponds to a specific QA software tag: https://github.com/isce-framework/nisarqa/tags. Each tagged version implicitly includes a snapshot of the product specifications at the time of that tag.
 
