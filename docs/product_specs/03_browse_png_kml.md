@@ -98,11 +98,13 @@ Example GOFF Browse Image (reduced size), from ALOS-2 derived data:
 
 Each browse image PNG is accompanied by a sidecar KML file for quick visualization in GIS software.
 
-The KML contains the latitude/longitude coordinates of the four corner pixels of the raster layer in the input L1/L2 science product used to generate the browse PNG. Due to resizing and truncation while generating the PNG, the four corner pixels of the PNG will only approximately align with the four latitude/longitude coordinates in the KML; when plotted in GIS software this can lead to the PNGs appearing slightly "stretched". This is expected.
+The KML contains the longitude and latitude coordinates of the four corner pixels of the raster layer in the input L1/L2 science product used to generate the browse PNG. Due to resizing and truncation while generating the PNG, the four corner pixels of the PNG will only approximately align with the four longitude/latitude coordinates in the KML; when plotted in GIS software this can lead to the PNGs appearing slightly "stretched". This is expected.
 
-Note that for L2 geocoded products, the four latitude/longitude coordinates correspond to the four corners of the entire input raster layer, which includes the geocoding fill.
+Note that for L2 geocoded products, the four longitude/latitude coordinates correspond to the four corners of the entire input raster layer, which includes the geocoding fill.
 
 The QA KML file contains an `<href>` to the filename (along a relative path) of the corresponding PNG. For the nominal KML to recognize the PNG, both the PNG and KML files must be in the same directory, and the `<href>` must match exactly the PNG's filename. If the PNG is moved and/or renamed, then the KML must be updated with the corresponding relative filepath to and/or filename of the PNG.
+
+The four corner points found in the `<gx:LatLonQuad>` are set per KML specifications, available at https://developers.google.com/kml/documentation/kmlreference#gxlatlonquad. Per the specifications, "Exactly four coordinate tuples have to be provided, each consisting of floating point values for longitude and latitude. [...] The coordinates must be specified in counter-clockwise order with the first coordinate corresponding to the lower-left corner of the overlayed image. The shape described by these corners must be convex."
 
 Contents of an example RSLC KML file:
 
