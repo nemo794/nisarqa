@@ -473,6 +473,8 @@ def process_backscatter_imgs_and_browse(
         "GCOV Backscatter Coefficient (gamma-0)".
         Defaults to "Backscatter Coefficient".
     """
+    log = nisarqa.get_logger()
+    log.info("Beginning processing of backscatter images...")
 
     # Select which layers will be needed for the browse image.
     # Multilooking takes a long time, but each multilooked polarization image
@@ -564,6 +566,8 @@ def process_backscatter_imgs_and_browse(
 
     # Construct the browse image
     product.save_browse(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
+
+    log.info("Processing complete for backscatter images.")
 
 
 # TODO - move to generic location
@@ -1271,6 +1275,8 @@ def process_backscatter_and_phase_histograms(
     """
 
     # Generate and store the histograms
+    log = nisarqa.get_logger()
+    log.info("Beginning processing of backscatter and phase histograms...")
 
     for freq in product.freqs:
         with nisarqa.log_runtime(
@@ -1586,6 +1592,7 @@ def generate_phase_histogram_single_freq(
 
         # Close figure
         plt.close(fig)
+
     else:
         # Remove unused dataset from STATS.h5 because no phase histogram was
         # generated.
