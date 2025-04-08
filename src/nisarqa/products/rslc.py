@@ -473,8 +473,6 @@ def process_backscatter_imgs_and_browse(
         "GCOV Backscatter Coefficient (gamma-0)".
         Defaults to "Backscatter Coefficient".
     """
-    log = nisarqa.get_logger()
-    log.info("Beginning processing of backscatter images...")
 
     # Select which layers will be needed for the browse image.
     # Multilooking takes a long time, but each multilooked polarization image
@@ -563,10 +561,9 @@ def process_backscatter_imgs_and_browse(
     # Construct the browse image
     product.save_browse(pol_imgs=pol_imgs_for_browse, filepath=browse_filename)
 
-    log.info("Processing complete for backscatter images.")
-
 
 # TODO - move to generic location
+@nisarqa.log_function_start_and_stop_time
 def get_multilooked_backscatter_img(
     img, params, stats_h5, input_raster_represents_power=False
 ):
@@ -1219,6 +1216,7 @@ def format_axes_ticks_and_labels(
         ax.set_title(title, fontsize=10)
 
 
+@nisarqa.log_function_start_and_stop_time
 def process_backscatter_and_phase_histograms(
     product: nisarqa.NonInsarProduct,
     params: nisarqa.HistogramParamGroup,
@@ -1265,14 +1263,8 @@ def process_backscatter_and_phase_histograms(
     """
 
     # Generate and store the histograms
-    log = nisarqa.get_logger()
-    log.info("Beginning processing of backscatter and phase histograms...")
 
     for freq in product.freqs:
-        log.info(
-            "Beginning processing of backscatter and phase histograms"
-            f" for frequency {freq}..."
-        )
         generate_backscatter_image_histogram_single_freq(
             product=product,
             freq=freq,
@@ -1290,13 +1282,9 @@ def process_backscatter_and_phase_histograms(
             stats_h5=stats_h5,
             report_pdf=report_pdf,
         )
-        log.info(
-            "Processing complete for backscatter and phase histograms"
-            f" for frequency {freq}."
-        )
-    log.info("Processing complete for all backscatter and phase histograms.")
 
 
+@nisarqa.log_function_start_and_stop_time
 def generate_backscatter_image_histogram_single_freq(
     product: nisarqa.NonInsarProduct,
     freq: str,
@@ -1375,7 +1363,6 @@ def generate_backscatter_image_histogram_single_freq(
         return power
 
     for pol_name in product.get_pols(freq=freq):
-        start_pol = time()
         with product.get_raster(freq=freq, pol=pol_name) as pol_data:
             # Get histogram probability density
             hist_density = nisarqa.compute_histogram_by_tiling(
@@ -1417,10 +1404,6 @@ def generate_backscatter_image_histogram_single_freq(
                 edges=params.backscatter_bin_edges,
                 label=pol_name,
             )
-        log.info(
-            "Total time in seconds to generate backscatter histogram for"
-            f" frequency {freq}, polarization {pol_name}: {start_pol-time()}"
-        )
 
     # Label the backscatter histogram Figure
     title = (
@@ -1443,12 +1426,9 @@ def generate_backscatter_image_histogram_single_freq(
     plt.close(fig)
 
     log.debug(f"Backscatter Image Histograms for Frequency {freq} complete.")
-    log.info(
-        "Total time in seconds to generate backscatter histograms"
-        f" for frequency {freq}: {start-time()}"
-    )
 
 
+@nisarqa.log_function_start_and_stop_time
 def generate_phase_histogram_single_freq(
     product: nisarqa.NonInsarProduct,
     freq: str,
@@ -1483,7 +1463,6 @@ def generate_phase_histogram_single_freq(
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the backscatter image plot to
     """
-    start = time()
     log = nisarqa.get_logger()
 
     band = product.band
@@ -1518,7 +1497,6 @@ def generate_phase_histogram_single_freq(
             return np.angle(arr[np.abs(arr) >= 1.0e-05], deg=True)
 
     for pol_name in product.get_pols(freq=freq):
-        start_pol = time()
         with product.get_raster(freq=freq, pol=pol_name) as pol_data:
             # Only create phase histograms for complex datasets. Examples of
             # complex datasets include RSLC, GSLC, and GCOV off-diagonal rasters.
@@ -1560,10 +1538,6 @@ def generate_phase_histogram_single_freq(
                 edges=params.phs_bin_edges,
                 label=pol_name,
             )
-        log.info(
-            "Total time in seconds to generate backscatter histogram for"
-            f" frequency {freq}, polarization {pol_name}: {start_pol-time()}"
-        )
 
     # Label and output the Phase Histogram Figure
     if save_phase_histogram:
@@ -1587,11 +1561,6 @@ def generate_phase_histogram_single_freq(
 
         # Close figure
         plt.close(fig)
-
-        log.info(
-            "Total time in seconds to generate phase histograms"
-            f" for frequency {freq}: {start-time()}"
-        )
     else:
         # Remove unused dataset from STATS.h5 because no phase histogram was
         # generated.
@@ -1612,8 +1581,6 @@ def generate_phase_histogram_single_freq(
         if path in stats_h5:
             del stats_h5[path]
 
-    log.debug(f"Phase Histograms for Frequency {freq} complete.")
-
 
 def add_hist_to_axis(
     axis: Axes, counts: np.ndarray, edges: np.ndarray, label: str | None = None
@@ -1626,6 +1593,7 @@ def add_hist_to_axis(
     axis.plot(bin_centers, counts, label=label)
 
 
+@nisarqa.log_function_start_and_stop_time
 def process_range_spectra(
     product: nisarqa.RSLC,
     params: nisarqa.RangeSpectraParamGroup,
@@ -1667,6 +1635,7 @@ def process_range_spectra(
         )
 
 
+@nisarqa.log_function_start_and_stop_time
 def generate_range_spectra_single_freq(
     product: nisarqa.RSLC,
     freq: str,
@@ -1700,7 +1669,6 @@ def generate_range_spectra_single_freq(
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the range spectra plots plot to.
     """
-    start = time()
     log = nisarqa.get_logger()
     log.debug(f"Generating Range Spectra for Frequency {freq}...")
 
@@ -1757,7 +1725,6 @@ def generate_range_spectra_single_freq(
     rng_spec_units_hdf5 = "decibel re 1/hertz"
 
     for pol in product.get_pols(freq):
-        start_pol = time()
         with product.get_raster(freq=freq, pol=pol) as img:
             # Get the Range Spectra
             # (The returned array is in dB re 1/Hz)
@@ -1784,10 +1751,6 @@ def generate_range_spectra_single_freq(
 
             # Add this power spectrum to the figure
             ax.plot(fft_freqs, rng_spectrum, label=pol)
-        log.info(
-            "Total time in seconds to generate range power spectra for"
-            f" frequency {freq}, polarization {pol}: {start_pol-time()}"
-        )
 
     # Label the Plot
     ax.set_title(f"Range Power Spectra for Frequency {freq}\n")
@@ -1805,12 +1768,9 @@ def generate_range_spectra_single_freq(
     plt.close()
 
     log.debug(f"Range Power Spectra for Frequency {freq} complete.")
-    log.info(
-        "Total time in seconds to generate Range Power Spectra "
-        f" for frequency {freq}: {start-time()}"
-    )
 
 
+@nisarqa.log_function_start_and_stop_time
 def process_azimuth_spectra(
     product: nisarqa.RSLC,
     params: nisarqa.AzimuthSpectraParamGroup,
@@ -1855,6 +1815,7 @@ def process_azimuth_spectra(
         )
 
 
+@nisarqa.log_function_start_and_stop_time
 def generate_az_spectra_single_freq(
     product: nisarqa.RSLC,
     freq: str,
@@ -1890,10 +1851,6 @@ def generate_az_spectra_single_freq(
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the spectra plots plot to.
     """
-    start = time()
-    log = nisarqa.get_logger()
-    log.debug(f"Generating Azimuth Spectra for Frequency {freq}...")
-
     # Plot the az spectra using strictly increasing sample frequencies
     # (no discontinuity).
     fft_shift = True
@@ -1961,11 +1918,9 @@ def generate_az_spectra_single_freq(
     y_max = np.nan
 
     for pol in product.get_pols(freq):
-        start_pol = time()
         with product.get_raster(freq=freq, pol=pol) as img:
 
             for subswath, ax in zip(("Near", "Mid", "Far"), all_axes):
-                start_subswath = time()
                 img_width = np.shape(img.data)[1]
                 num_col = params.num_columns
 
@@ -2024,14 +1979,6 @@ def generate_az_spectra_single_freq(
                     f"{subswath}-Range (columns {col_slice.start}-{col_slice.stop})",
                     fontsize=9,
                 )
-                log.info(
-                    "Total time in seconds to generate azimuth power spectra for"
-                    f" frequency {freq}, polarization {pol}, subswath {subswath}: {start_subswath-time()}"
-                )
-        log.info(
-            "Total time in seconds to generate azimuth power spectra for"
-            f" frequency {freq}, polarization {pol}: {start_pol-time()}"
-        )
 
     # All axes can share the same y-label. Attach that label to the middle
     # axes, so that it is centered.
@@ -2052,12 +1999,6 @@ def generate_az_spectra_single_freq(
 
     # Close the plot
     plt.close()
-
-    log.debug(f"Azimuth Power Spectra for Frequency {freq} complete.")
-    log.info(
-        "Total time in seconds to generate Azimuth Power Spectra "
-        f" for frequency {freq}: {start-time()}"
-    )
 
 
 def _get_units_hz_or_mhz(mhz: bool) -> tuple[str, str]:

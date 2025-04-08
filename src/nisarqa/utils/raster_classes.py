@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from functools import cached_property
+import re
 from typing import Any, Optional, overload
 
 import h5py
@@ -134,6 +135,11 @@ class ComplexFloat16Decoder(object):
     @property
     def name(self) -> str:
         return self.dataset.name
+
+    def __repr__(self):
+        original = self.dataset.__repr__()
+        new = original.replace("HDF5 dataset", "ComplexFloat16Decoder")
+        return new
 
 
 @dataclass
