@@ -493,12 +493,16 @@ def process_backscatter_imgs_and_browse(
             # Open the *SARRaster image
 
             with product.get_raster(freq=freq, pol=pol) as img:
-                multilooked_img = get_multilooked_backscatter_img(
-                    img=img,
-                    params=params,
-                    stats_h5=stats_h5,
-                    input_raster_represents_power=input_raster_represents_power,
-                )
+                with nisarqa.log_runtime(
+                    f"`get_multilooked_backscatter_img` for Frequency {freq}"
+                    f" Polarization {pol}"
+                ):
+                    multilooked_img = get_multilooked_backscatter_img(
+                        img=img,
+                        params=params,
+                        stats_h5=stats_h5,
+                        input_raster_represents_power=input_raster_represents_power,
+                    )
 
                 corrected_img, orig_vmin, orig_vmax = apply_image_correction(
                     img_arr=multilooked_img, params=params
@@ -563,7 +567,6 @@ def process_backscatter_imgs_and_browse(
 
 
 # TODO - move to generic location
-@nisarqa.log_function_start_and_stop_time
 def get_multilooked_backscatter_img(
     img, params, stats_h5, input_raster_represents_power=False
 ):
@@ -661,12 +664,17 @@ def get_multilooked_backscatter_img(
     log.debug(f"Beginning Multilooking with nlooks window shape: {nlooks}")
 
     # Multilook
-    out_img = nisarqa.compute_multilooked_backscatter_by_tiling(
-        arr=img.data,
-        nlooks=nlooks,
-        input_raster_represents_power=input_raster_represents_power,
-        tile_shape=params.tile_shape,
-    )
+    with nisarqa.log_runtime(
+        f"`compute_multilooked_backscatter_by_tiling` for {img.name} with"
+        f" shape {img.data.shape} using {nlooks=} and tile"
+        f" shape {params.tile_shape}"
+    ):
+        out_img = nisarqa.compute_multilooked_backscatter_by_tiling(
+            arr=img.data,
+            nlooks=nlooks,
+            input_raster_represents_power=input_raster_represents_power,
+            tile_shape=params.tile_shape,
+        )
 
     log.debug(f"Final multilooked image shape: {out_img.shape}")
     log.info(f"Multilooking complete for backscatter image {img.name}.")
@@ -1216,7 +1224,7 @@ def format_axes_ticks_and_labels(
         ax.set_title(title, fontsize=10)
 
 
-@nisarqa.log_function_start_and_stop_time
+@nisarqa.log_function_runtime
 def process_backscatter_and_phase_histograms(
     product: nisarqa.NonInsarProduct,
     params: nisarqa.HistogramParamGroup,
@@ -1265,26 +1273,32 @@ def process_backscatter_and_phase_histograms(
     # Generate and store the histograms
 
     for freq in product.freqs:
-        generate_backscatter_image_histogram_single_freq(
-            product=product,
-            freq=freq,
-            params=params,
-            stats_h5=stats_h5,
-            report_pdf=report_pdf,
-            input_raster_represents_power=input_raster_represents_power,
-            plot_title_prefix=plot_title_prefix,
-        )
+        with nisarqa.log_runtime(
+            "`generate_backscatter_image_histogram_single_freq` for"
+            f" Frequency {freq}"
+        ):
+            generate_backscatter_image_histogram_single_freq(
+                product=product,
+                freq=freq,
+                params=params,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
+                input_raster_represents_power=input_raster_represents_power,
+                plot_title_prefix=plot_title_prefix,
+            )
 
-        generate_phase_histogram_single_freq(
-            product=product,
-            freq=freq,
-            params=params,
-            stats_h5=stats_h5,
-            report_pdf=report_pdf,
-        )
+        with nisarqa.log_runtime(
+            f"`generate_phase_histogram_single_freq` for Frequency {freq}"
+        ):
+            generate_phase_histogram_single_freq(
+                product=product,
+                freq=freq,
+                params=params,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
+            )
 
 
-@nisarqa.log_function_start_and_stop_time
 def generate_backscatter_image_histogram_single_freq(
     product: nisarqa.NonInsarProduct,
     freq: str,
@@ -1365,15 +1379,21 @@ def generate_backscatter_image_histogram_single_freq(
     for pol_name in product.get_pols(freq=freq):
         with product.get_raster(freq=freq, pol=pol_name) as pol_data:
             # Get histogram probability density
-            hist_density = nisarqa.compute_histogram_by_tiling(
-                arr=pol_data.data,
-                arr_name=f"{pol_data.name} backscatter",
-                bin_edges=params.backscatter_bin_edges,
-                data_prep_func=img_prep,
-                density=True,
-                decimation_ratio=params.decimation_ratio,
-                tile_shape=params.tile_shape,
-            )
+            with nisarqa.log_runtime(
+                f"`compute_histogram_by_tiling` for backscatter histogram for"
+                f" Frequency {freq}, Polarization {pol_name} with"
+                f" raster shape {pol_data.data.shape} using decimation ratio"
+                f" {params.decimation_ratio} and tile shape {params.tile_shape}"
+            ):
+                hist_density = nisarqa.compute_histogram_by_tiling(
+                    arr=pol_data.data,
+                    arr_name=f"{pol_data.name} backscatter",
+                    bin_edges=params.backscatter_bin_edges,
+                    data_prep_func=img_prep,
+                    density=True,
+                    decimation_ratio=params.decimation_ratio,
+                    tile_shape=params.tile_shape,
+                )
 
             # Save to stats.h5 file
             grp_path = f"{nisarqa.STATS_H5_QA_FREQ_GROUP}/{pol_name}/" % (
@@ -1428,7 +1448,6 @@ def generate_backscatter_image_histogram_single_freq(
     log.debug(f"Backscatter Image Histograms for Frequency {freq} complete.")
 
 
-@nisarqa.log_function_start_and_stop_time
 def generate_phase_histogram_single_freq(
     product: nisarqa.NonInsarProduct,
     freq: str,
@@ -1505,16 +1524,22 @@ def generate_phase_histogram_single_freq(
 
             save_phase_histogram = True
 
-            # Get histogram probability densities
-            hist_density = nisarqa.compute_histogram_by_tiling(
-                arr=pol_data.data,
-                arr_name=f"{pol_data.name} phase",
-                bin_edges=params.phs_bin_edges,
-                data_prep_func=img_prep,
-                density=True,
-                decimation_ratio=params.decimation_ratio,
-                tile_shape=params.tile_shape,
-            )
+            with nisarqa.log_runtime(
+                f"`compute_histogram_by_tiling` for phase histogram for"
+                f" Frequency {freq}, Polarization {pol_name} with"
+                f" raster shape {pol_data.data.shape} using decimation ratio"
+                f" {params.decimation_ratio} and tile shape {params.tile_shape}"
+            ):
+                # Get histogram probability densities
+                hist_density = nisarqa.compute_histogram_by_tiling(
+                    arr=pol_data.data,
+                    arr_name=f"{pol_data.name} phase",
+                    bin_edges=params.phs_bin_edges,
+                    data_prep_func=img_prep,
+                    density=True,
+                    decimation_ratio=params.decimation_ratio,
+                    tile_shape=params.tile_shape,
+                )
 
             # Save to stats.h5 file
             freq_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (band, freq)
@@ -1593,7 +1618,7 @@ def add_hist_to_axis(
     axis.plot(bin_centers, counts, label=label)
 
 
-@nisarqa.log_function_start_and_stop_time
+@nisarqa.log_function_runtime
 def process_range_spectra(
     product: nisarqa.RSLC,
     params: nisarqa.RangeSpectraParamGroup,
@@ -1626,16 +1651,18 @@ def process_range_spectra(
 
     # Generate and store the range spectra plots
     for freq in product.freqs:
-        generate_range_spectra_single_freq(
-            product=product,
-            freq=freq,
-            params=params,
-            stats_h5=stats_h5,
-            report_pdf=report_pdf,
-        )
+        with nisarqa.log_runtime(
+            f"`generate_range_spectra_single_freq` for Freq {freq}"
+        ):
+            generate_range_spectra_single_freq(
+                product=product,
+                freq=freq,
+                params=params,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
+            )
 
 
-@nisarqa.log_function_start_and_stop_time
 def generate_range_spectra_single_freq(
     product: nisarqa.RSLC,
     freq: str,
@@ -1726,15 +1753,21 @@ def generate_range_spectra_single_freq(
 
     for pol in product.get_pols(freq):
         with product.get_raster(freq=freq, pol=pol) as img:
-            # Get the Range Spectra
-            # (The returned array is in dB re 1/Hz)
-            rng_spectrum = nisarqa.compute_range_spectra_by_tiling(
-                arr=img.data,
-                sampling_rate=sample_rate,
-                az_decimation=params.az_decimation,
-                tile_height=params.tile_height,
-                fft_shift=fft_shift,
-            )
+            with nisarqa.log_runtime(
+                f"`compute_range_spectra_by_tiling` for Frequency {freq}"
+                f" Polarization {pol} with shape {img.data.shape} using"
+                f" azimuth decimation of {params.az_decimation} and tile"
+                f" height of {params.tile_height}"
+            ):
+                # Get the Range Spectra
+                # (The returned array is in dB re 1/Hz)
+                rng_spectrum = nisarqa.compute_range_spectra_by_tiling(
+                    arr=img.data,
+                    sampling_rate=sample_rate,
+                    az_decimation=params.az_decimation,
+                    tile_height=params.tile_height,
+                    fft_shift=fft_shift,
+                )
 
             # Save normalized range power spectra values to stats.h5 file
             nisarqa.create_dataset_in_h5group(
@@ -1770,7 +1803,7 @@ def generate_range_spectra_single_freq(
     log.debug(f"Range Power Spectra for Frequency {freq} complete.")
 
 
-@nisarqa.log_function_start_and_stop_time
+@nisarqa.log_function_runtime
 def process_azimuth_spectra(
     product: nisarqa.RSLC,
     params: nisarqa.AzimuthSpectraParamGroup,
@@ -1806,16 +1839,18 @@ def process_azimuth_spectra(
 
     # Generate and store the az spectra plots
     for freq in product.freqs:
-        generate_az_spectra_single_freq(
-            product=product,
-            freq=freq,
-            params=params,
-            stats_h5=stats_h5,
-            report_pdf=report_pdf,
-        )
+        with nisarqa.log_runtime(
+            f"`generate_az_spectra_single_freq` for Frequency {freq}"
+        ):
+            generate_az_spectra_single_freq(
+                product=product,
+                freq=freq,
+                params=params,
+                stats_h5=stats_h5,
+                report_pdf=report_pdf,
+            )
 
 
-@nisarqa.log_function_start_and_stop_time
 def generate_az_spectra_single_freq(
     product: nisarqa.RSLC,
     freq: str,
@@ -1939,14 +1974,21 @@ def generate_az_spectra_single_freq(
                         start_idx = mid_img - mid_num_col
                         col_slice = slice(start_idx, start_idx + num_col)
 
-                # The returned array is in dB re 1/Hz
-                az_spectrum = nisarqa.compute_az_spectra_by_tiling(
-                    arr=img.data,
-                    sampling_rate=sample_rate,
-                    subswath_slice=col_slice,
-                    tile_width=params.tile_width,
-                    fft_shift=fft_shift,
-                )
+                with nisarqa.log_runtime(
+                    f"`compute_az_spectra_by_tiling` for Frequency {freq},"
+                    f" Polarization {pol}, {subswath}-Range subswath"
+                    f" (columns [{col_slice.start}:{col_slice.stop}],"
+                    f" step={1 if col_slice.step is None else col_slice.step})"
+                    f" using tile width {params.tile_width}"
+                ):
+                    # The returned array is in dB re 1/Hz
+                    az_spectrum = nisarqa.compute_az_spectra_by_tiling(
+                        arr=img.data,
+                        sampling_rate=sample_rate,
+                        subswath_slice=col_slice,
+                        tile_width=params.tile_width,
+                        fft_shift=fft_shift,
+                    )
 
                 # Save normalized power spectra values to stats.h5 file
                 nisarqa.create_dataset_in_h5group(
