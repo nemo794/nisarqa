@@ -1652,7 +1652,7 @@ def process_range_spectra(
     # Generate and store the range spectra plots
     for freq in product.freqs:
         with nisarqa.log_runtime(
-            f"`generate_range_spectra_single_freq` for Freq {freq}"
+            f"`generate_range_spectra_single_freq` for Frequency {freq}"
         ):
             generate_range_spectra_single_freq(
                 product=product,
