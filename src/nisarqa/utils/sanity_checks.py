@@ -11,8 +11,6 @@ import nisarqa
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
-T = TypeVar("T")
-
 
 def dataset_sanity_checks(product: nisarqa.NisarProduct) -> None:
     """
@@ -89,7 +87,9 @@ def identification_sanity_checks(
         return True
 
     def _verify_data_is_in_list(
-        value: T | None, valid_options: Container[T], ds_name: str
+        value: nisarqa.T | None,
+        valid_options: Container[nisarqa.T],
+        ds_name: str,
     ) -> bool:
         if (value is None) or (value not in valid_options):
             log.error(
