@@ -6,7 +6,7 @@ import os
 import warnings
 from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from typing import Optional, TypeVar
+from typing import Optional
 from datetime import datetime
 
 
@@ -16,10 +16,6 @@ from numpy.typing import ArrayLike
 from ruamel.yaml import YAML
 
 import nisarqa
-
-# Used for callable types
-# TODO - where in the codebase should T and P live?
-T = TypeVar("T")
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -509,7 +505,9 @@ def log_runtime(msg: str) -> Generator[None, None, None]:
     nisarqa.get_logger().info(f"Runtime: {msg} took {toc - tic}")
 
 
-def log_function_runtime(func: Callable[..., T]) -> Callable[..., T]:
+def log_function_runtime(
+    func: Callable[..., nisarqa.T],
+) -> Callable[..., nisarqa.T]:
     """
     Function decorator to log the runtime of a function.
 
