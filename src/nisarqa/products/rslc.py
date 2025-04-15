@@ -1445,7 +1445,7 @@ def generate_backscatter_image_histogram_single_freq(
     # Close figure
     plt.close(fig)
 
-    log.debug(f"Backscatter Image Histograms for Frequency {freq} complete.")
+    log.info(f"Backscatter Image Histograms for Frequency {freq} complete.")
 
 
 def generate_phase_histogram_single_freq(
@@ -1493,7 +1493,7 @@ def generate_phase_histogram_single_freq(
     # this will remain False.)
     save_phase_histogram = False
 
-    log.debug(f"Generating Phase Histograms for Frequency {freq}...")
+    log.info(f"Generating Phase Histograms for Frequency {freq}...")
 
     # Open one figure+axes.
     # Each band+frequency will have a distinct plot, with all of the
@@ -1606,6 +1606,8 @@ def generate_phase_histogram_single_freq(
         if path in stats_h5:
             del stats_h5[path]
 
+    log.info(f"Phase Histograms for Frequency {freq} complete.")
+
 
 def add_hist_to_axis(
     axis: Axes, counts: np.ndarray, edges: np.ndarray, label: str | None = None
@@ -1697,7 +1699,7 @@ def generate_range_spectra_single_freq(
         The output PDF file to append the range spectra plots plot to.
     """
     log = nisarqa.get_logger()
-    log.debug(f"Generating Range Spectra for Frequency {freq}...")
+    log.info(f"Generating Range Spectra for Frequency {freq}...")
 
     # Plot the range spectra using strictly increasing sample frequencies
     # (no discontinuity).
@@ -1800,7 +1802,7 @@ def generate_range_spectra_single_freq(
     # Close the plot
     plt.close()
 
-    log.debug(f"Range Power Spectra for Frequency {freq} complete.")
+    log.info(f"Range Power Spectra for Frequency {freq} complete.")
 
 
 @nisarqa.log_function_runtime
@@ -1886,6 +1888,9 @@ def generate_az_spectra_single_freq(
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the spectra plots plot to.
     """
+    log = nisarqa.get_logger()
+    log.info(f"Generating Azimuth Power Spectra for Frequency {freq}...")
+
     # Plot the az spectra using strictly increasing sample frequencies
     # (no discontinuity).
     fft_shift = True
@@ -2041,6 +2046,8 @@ def generate_az_spectra_single_freq(
 
     # Close the plot
     plt.close()
+
+    log.info(f"Azimuth Power Spectra for Frequency {freq} complete.")
 
 
 def _get_units_hz_or_mhz(mhz: bool) -> tuple[str, str]:
