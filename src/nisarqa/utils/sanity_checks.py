@@ -87,8 +87,8 @@ def identification_sanity_checks(
         return True
 
     def _verify_data_is_in_list(
-        value: nisarqa.T | None,
-        valid_options: Container[nisarqa.T],
+        value: nisarqa.typing.T | None,
+        valid_options: Container[nisarqa.typing.T],
         ds_name: str,
     ) -> bool:
         if (value is None) or (value not in valid_options):

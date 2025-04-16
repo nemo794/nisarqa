@@ -1532,16 +1532,16 @@ class RootParamGroup(ABC):
 
     @classmethod
     def from_runconfig_dict(
-        cls: type[nisarqa.RootParamGroupT],
-        user_rncfg: nisarqa.RunConfigDict,
+        cls: type[nisarqa.typing.RootParamGroupT],
+        user_rncfg: nisarqa.typing.RunConfigDict,
         product_type: str,
-    ) -> nisarqa.RootParamGroupT:
+    ) -> nisarqa.typing.RootParamGroupT:
         """
         Build a *RootParamGroup for `product_type` from a QA runconfig dict.
 
         Parameters
         ----------
-        user_rncfg : nisarqa.RunConfigDict
+        user_rncfg : nisarqa.typing.RunConfigDict
             A dictionary whose structure matches `product_type`'s QA runconfig
             YAML file and that contains the parameters needed to run its QA SAS.
         product_type : str
@@ -1550,7 +1550,7 @@ class RootParamGroup(ABC):
 
         Returns
         -------
-        root_params : nisarqa.RootParamGroup
+        root_params : nisarqa.typing.RootParamGroupT
             *RootParamGroup object for the specified product type. This will be
             populated with runconfig values where provided,
             and default values for missing runconfig parameters.
@@ -1714,10 +1714,10 @@ class RootParamGroup(ABC):
 
     @classmethod
     def from_runconfig_file(
-        cls: type[nisarqa.RootParamGroupT],
+        cls: type[nisarqa.typing.RootParamGroupT],
         runconfig_yaml: str | os.PathLike,
         product_type: str,
-    ) -> nisarqa.RootParamGroupT:
+    ) -> nisarqa.typing.RootParamGroupT:
         """
         Get a *RootParamGroup for `product_type` from a QA Runconfig YAML file.
 
@@ -1737,7 +1737,7 @@ class RootParamGroup(ABC):
 
         Returns
         -------
-        root_params : nisarqa.RootParamGroup
+        root_params : nisarqa.typing.RootParamGroupT
             An instance of *RootParamGroup corresponding to `product_type`.
             For example, if `product_type` is 'gcov', the return type
             will be `nisarqa.GCOVRootParamGroup`. This will be

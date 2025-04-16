@@ -506,8 +506,8 @@ def log_runtime(msg: str) -> Generator[None, None, None]:
 
 
 def log_function_runtime(
-    func: Callable[..., nisarqa.T],
-) -> Callable[..., nisarqa.T]:
+    func: Callable[..., nisarqa.typing.T],
+) -> Callable[..., nisarqa.typing.T]:
     """
     Function decorator to log the runtime of a function.
 
@@ -546,7 +546,7 @@ def ignore_runtime_warnings() -> Iterator[None]:
 
 def load_user_runconfig(
     runconfig_yaml: str | os.PathLike,
-) -> nisarqa.RunConfigDict:
+) -> nisarqa.typing.RunConfigDict:
     """
     Load a QA runconfig YAML file into a dict format.
 
@@ -557,7 +557,7 @@ def load_user_runconfig(
 
     Returns
     -------
-    user_rncfg : nisarqa.RunConfigDict
+    user_rncfg : nisarqa.typing.RunConfigDict
         `runconfig_yaml` loaded into a dict format
     """
     # parse runconfig into a dict structure
