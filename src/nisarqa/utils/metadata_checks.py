@@ -441,13 +441,13 @@ def is_gdal_friendly(input_filepath: str, ds_path: str) -> bool:
         return False
 
 
-def _lut_has_finite_pixels(ds: nisarqa.MetadataLUTT) -> bool:
+def _lut_has_finite_pixels(ds: nisarqa.typing.MetadataLUTT) -> bool:
     """
     Return False if LUT contains all non-finite values; True otherwise.
 
     Parameters
     ----------
-    ds : nisarqa.MetadataLUTT
+    ds : nisarqa.typing.MetadataLUTT
         Metadata LUT to be checked.
 
     Returns
@@ -481,13 +481,13 @@ def _lut_has_finite_pixels(ds: nisarqa.MetadataLUTT) -> bool:
     return True
 
 
-def _lut_is_not_all_zeros(ds: nisarqa.MetadataLUTT) -> bool:
+def _lut_is_not_all_zeros(ds: nisarqa.typing.MetadataLUTT) -> bool:
     """
     Return False if metadata LUT contains all near-zeros; True otherwise.
 
     Parameters
     ----------
-    ds : nisarqa.MetadataLUTT
+    ds : nisarqa.typing.MetadataLUTT
         Metadata LUT to be checked.
 
     Returns

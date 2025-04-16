@@ -1198,7 +1198,7 @@ class NisarProduct(ABC):
         self,
         f: h5py.File,
         ds_arr: h5py.Dataset,
-    ) -> nisarqa.MetadataLUTT:
+    ) -> nisarqa.typing.MetadataLUTT:
         """
         Construct a MetadataLUT for the given 1D, 2D, or 3D LUT.
 
@@ -1211,7 +1211,7 @@ class NisarProduct(ABC):
 
         Returns
         -------
-        ds : nisarqa.MetadataLUTT
+        ds : nisarqa.typing.MetadataLUTT
             A constructed MetadataLUT of `ds_arr`. The number of dimensions
             of `ds_arr` determines whether a MetadataLUT1D, *2D, or *3D
             is returned.
