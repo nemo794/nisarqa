@@ -135,6 +135,11 @@ class ComplexFloat16Decoder(object):
     def name(self) -> str:
         return self.dataset.name
 
+    def __repr__(self):
+        original = self.dataset.__repr__()
+        new = original.replace("HDF5 dataset", "ComplexFloat16Decoder")
+        return new
+
 
 @dataclass
 class RasterStats:

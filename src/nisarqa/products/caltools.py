@@ -277,6 +277,7 @@ def populate_abscal_hdf5_output(
     )
 
 
+@nisarqa.log_function_runtime
 def run_abscal_tool(
     abscal_params: AbsCalParamGroup,
     dyn_anc_params: DynamicAncillaryFileParamGroup,
@@ -307,12 +308,20 @@ def run_abscal_tool(
         pols = get_copols(rslc, freq)
 
         for pol in pols:
-            results = run_abscal_single_freq_pol(
-                corner_reflector_csv=dyn_anc_params.corner_reflector_file,
-                rslc_hdf5=rslc.filepath,
-                freq=freq,
-                pol=pol,
-                abscal_params=abscal_params,
+            with nisarqa.log_runtime(
+                f"`run_abscal_single_freq_pol` for Frequency {freq},"
+                f" Polarization {pol}"
+            ):
+                results = run_abscal_single_freq_pol(
+                    corner_reflector_csv=dyn_anc_params.corner_reflector_file,
+                    rslc_hdf5=rslc.filepath,
+                    freq=freq,
+                    pol=pol,
+                    abscal_params=abscal_params,
+                )
+            nisarqa.get_logger().info(
+                f"AbsCal Tool for Frequency {freq}, Polarization {pol}"
+                f" found {len(results)} corner reflectors."
             )
 
             # Check if the results were empty (i.e. if there were no valid
@@ -332,6 +341,7 @@ def run_abscal_tool(
                     )
 
 
+@nisarqa.log_function_runtime
 def run_neb_tool(
     rslc: nisarqa.RSLC,
     stats_filename: str | os.PathLike,
@@ -855,6 +865,7 @@ def populate_pta_hdf5_output(
         )
 
 
+@nisarqa.log_function_runtime
 def run_rslc_pta_tool(
     pta_params: RSLCPointTargetAnalyzerParamGroup,
     dyn_anc_params: DynamicAncillaryFileParamGroup,
@@ -886,12 +897,20 @@ def run_rslc_pta_tool(
         pols = get_copols(rslc, freq)
 
         for pol in pols:
-            results = run_rslc_pta_single_freq_pol(
-                corner_reflector_csv=dyn_anc_params.corner_reflector_file,
-                rslc_hdf5=rslc.filepath,
-                freq=freq,
-                pol=pol,
-                pta_params=pta_params,
+            with nisarqa.log_runtime(
+                f"`run_rslc_pta_single_freq_pol` for Frequency {freq},"
+                f" Polarization {pol}"
+            ):
+                results = run_rslc_pta_single_freq_pol(
+                    corner_reflector_csv=dyn_anc_params.corner_reflector_file,
+                    rslc_hdf5=rslc.filepath,
+                    freq=freq,
+                    pol=pol,
+                    pta_params=pta_params,
+                )
+            nisarqa.get_logger().info(
+                f"RSLC PTA Tool for Frequency {freq}, Polarization {pol}"
+                f" found {len(results)} corner reflectors."
             )
 
             # Check if the results were empty (i.e. if there were no valid
@@ -945,6 +964,7 @@ def run_rslc_pta_tool(
                         )
 
 
+@nisarqa.log_function_runtime
 def run_gslc_pta_tool(
     pta_params: PointTargetAnalyzerParamGroup,
     dyn_anc_params: GSLCDynamicAncillaryFileParamGroup,
@@ -976,13 +996,21 @@ def run_gslc_pta_tool(
         pols = get_copols(gslc, freq)
 
         for pol in pols:
-            results = run_gslc_pta_single_freq_pol(
-                corner_reflector_csv=dyn_anc_params.corner_reflector_file,
-                gslc_hdf5=gslc.filepath,
-                freq=freq,
-                pol=pol,
-                pta_params=pta_params,
-                dem_file=dyn_anc_params.dem_file,
+            with nisarqa.log_runtime(
+                f"`run_gslc_pta_single_freq_pol` for Frequency {freq},"
+                f" Polarization {pol}"
+            ):
+                results = run_gslc_pta_single_freq_pol(
+                    corner_reflector_csv=dyn_anc_params.corner_reflector_file,
+                    gslc_hdf5=gslc.filepath,
+                    freq=freq,
+                    pol=pol,
+                    pta_params=pta_params,
+                    dem_file=dyn_anc_params.dem_file,
+                )
+            nisarqa.get_logger().info(
+                f"GSLC PTA Tool for Frequency {freq}, Polarization {pol}"
+                f" found {len(results)} corner reflectors."
             )
 
             # Check if the results were empty (i.e. if there were no valid

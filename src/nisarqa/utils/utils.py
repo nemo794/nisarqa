@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from functools import wraps
 import logging
 import os
 import warnings
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from typing import Optional
+from datetime import datetime
+
 
 import h5py
 import numpy as np
@@ -478,6 +481,54 @@ def set_logger_handler(
         handler.setLevel(log_level)
         handler.setFormatter(fmt)
         log.addHandler(handler)
+
+
+@contextmanager
+def log_runtime(msg: str) -> Generator[None, None, None]:
+    """
+    Log the runtime of the context manager's block with microsecond precision.
+
+    Parameters
+    ----------
+    msg : str
+        Prefix for the log message. Format of logged message will be:
+            "Runtime: <msg> took <duration>".
+
+    See Also
+    --------
+    log_function_runtime :
+        Function decorator to log runtime of a function.
+    """
+    tic = datetime.now()
+    yield
+    toc = datetime.now()
+    nisarqa.get_logger().info(f"Runtime: {msg} took {toc - tic}")
+
+
+def log_function_runtime(
+    func: Callable[..., nisarqa.T],
+) -> Callable[..., nisarqa.T]:
+    """
+    Function decorator to log the runtime of a function.
+
+    Parameters
+    ----------
+    func : callable
+        Function that will have its runtime logged.
+
+    See Also
+    --------
+    log_runtime :
+        Context manager to log runtime of a code block with a custom message.
+    """
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        with log_runtime(f"`{func.__name__}`"):
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 @contextmanager

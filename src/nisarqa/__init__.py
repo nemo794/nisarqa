@@ -126,6 +126,7 @@ from .utils.file_verification.verify import *
 from .utils.file_verification.xml_check import *
 from .utils.file_verification.xml_parser import *
 from .utils.metadata_checks import *
+from .utils.utils import *
 
 # keep individual products in their own namespace
 from .products import (
@@ -143,7 +144,6 @@ from .utils.multilook import *
 from .utils.plotting import *
 from .utils.raster_classes import *
 from .utils.tiling import *
-from .utils.utils import *
 from .utils.summary_csv import *
 from .utils.metrics_writer import *
 from .utils.sanity_checks import *
