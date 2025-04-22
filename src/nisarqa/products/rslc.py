@@ -260,6 +260,7 @@ def verify_rslc(
                 dyn_anc_params=root_params.anc_files,
                 rslc=product,
                 stats_filename=stats_file,
+                scratch_dir=scratch_dir,
             )
             log.info(
                 "Absolute Radiometric Calibration CalTool results saved to"
@@ -295,6 +296,7 @@ def verify_rslc(
                 dyn_anc_params=root_params.anc_files,
                 rslc=product,
                 stats_filename=stats_file,
+                scratch_dir=scratch_dir,
             )
             log.info(
                 f"Point Target Analyzer CalTool results saved to {stats_file}."
