@@ -1,16 +1,16 @@
 from __future__ import annotations
 
-from functools import wraps
 import logging
 import os
+import shutil
+import tempfile
 import warnings
 from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
 from contextlib import contextmanager
-from typing import Optional, Any, Generic, Protocol
 from datetime import datetime
+from functools import wraps
 from pathlib import Path
-import tempfile
-import shutil
+from typing import Any, Generic, Optional, Protocol
 
 import h5py
 import numpy as np
