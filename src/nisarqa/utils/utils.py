@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from typing import Any, Generic, Optional, Protocol
+from typing import Any, Optional
 
 import h5py
 import numpy as np
@@ -18,10 +18,9 @@ from numpy.typing import ArrayLike
 from ruamel.yaml import YAML
 
 import nisarqa
-from nisarqa.utils.typing import T
+from nisarqa import typing as qa_typing
 
 objects_to_skip = nisarqa.get_all(name=__name__)
-
 
 class DatasetNotFoundError(Exception):
     """
@@ -509,56 +508,8 @@ def log_runtime(msg: str) -> Generator[None, None, None]:
 
 
 def log_function_runtime(
-    func: Callable[..., nisarqa.T],
-) -> Callable[..., nisarqa.T]:
-    """
-    Function decorator to log the runtime of a function.
-
-    Parameters
-    ----------
-    func : callable
-        Function that will have its runtime logged.
-
-    See Also
-    --------
-    log_runtime :
-        Context manager to log runtime of a code block with a custom message.
-    """
-
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-
-        with log_runtime(f"`{func.__name__}`"):
-            return func(*args, **kwargs)
-
-    return wrapper
-
-
-@contextmanager
-def log_runtime(msg: str) -> Generator[None, None, None]:
-    """
-    Log the runtime of the context manager's block with microsecond precision.
-
-    Parameters
-    ----------
-    msg : str
-        Prefix for the log message. Format of logged message will be:
-            "Runtime: <msg> took <duration>".
-
-    See Also
-    --------
-    log_function_runtime :
-        Function decorator to log runtime of a function.
-    """
-    tic = datetime.now()
-    yield
-    toc = datetime.now()
-    nisarqa.get_logger().info(f"Runtime: {msg} took {toc - tic}")
-
-
-def log_function_runtime(
-    func: Callable[..., T],
-) -> Callable[..., T]:
+    func: Callable[..., qa_typing.T],
+) -> Callable[..., qa_typing.T]:
     """
     Function decorator to log the runtime of a function.
 
@@ -597,7 +548,7 @@ def ignore_runtime_warnings() -> Iterator[None]:
 
 def load_user_runconfig(
     runconfig_yaml: str | os.PathLike,
-) -> nisarqa.typing.RunConfigDict:
+) -> qa_typing.RunConfigDict:
     """
     Load a QA runconfig YAML file into a dict format.
 
@@ -608,7 +559,7 @@ def load_user_runconfig(
 
     Returns
     -------
-    user_rncfg : nisarqa.typing.RunConfigDict
+    user_rncfg : nisarqa.utils.typing.RunConfigDict
         `runconfig_yaml` loaded into a dict format
     """
     # parse runconfig into a dict structure
@@ -794,40 +745,6 @@ def get_global_scratch() -> Path:
         )
 
     return getattr(set_global_scratch, "_scratch_path")
-
-
-# TODO delete this function if unused
-def make_scratch_file(
-    *,
-    dir_: os.PathLike | str | None = None,
-    prefix: str | None = None,
-    suffix: str | None = None,
-) -> Path:
-    """
-    Create a uniquely-named scratch filepath as though by `tempfile.mkstemp()`.
-
-    Parameters
-    ----------
-    dir_ : path-like or None, optional
-        If dir_ is not None, the file will be created in that directory.
-        Otherwise, a default directory is used per `tempfile.mkstemp()`:
-        https://docs.python.org/3/library/tempfile.html#tempfile.mkstemp
-        Defaults to None.
-    prefix, suffix : str or None, optional
-        Prefix and suffix for the scratch file, as per `tempfile.mkstemp()`:
-        https://docs.python.org/3/library/tempfile.html#tempfile.mkstemp
-        Defaults to None.
-
-    Returns
-    -------
-    path : pathlib.Path
-        Filepath to a uniquely-named scratch file.
-    """
-    if dir_ is not None:
-        dir_ = os.fsdecode(dir_)
-    file, filename = tempfile.mkstemp(dir=dir_, prefix=prefix, suffix=suffix)
-    os.close(file)
-    return Path(filename)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
