@@ -738,11 +738,12 @@ def connected_components_metrics(
     )
 
     # Percentage of pixels in largest connected component
+    percent_largest_cc = 0.0 if num_valid_cc == 0 else max(percentages_list)
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
         ds_name="percentPixelsInLargestCC",
-        ds_data=max(percentages_list),
+        ds_data=percent_largest_cc,
         ds_units="1",
         ds_description=(
             "Percentage of pixels in the largest valid connected component"
@@ -753,11 +754,12 @@ def connected_components_metrics(
     )
 
     # Percentage of pixels with non-zero, non-fill connected components
+    percent_non_zero_cc = 0.0 if num_valid_cc == 0 else sum(percentages_list)
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
         ds_name="percentPixelsWithNonZeroCC",
-        ds_data=sum(percentages_list),
+        ds_data=percent_non_zero_cc,
         ds_units="1",
         ds_description=(
             "Percentage of pixels with non-zero, non-fill connected components"
