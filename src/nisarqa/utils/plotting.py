@@ -1756,8 +1756,15 @@ def format_cbar_ticks_for_multiples_of_pi(
             " matplotlib.colorbar.Colorbar or matplotlib.axes.Axes."
         )
 
+    if np.isclose(
+            cbar_max, cbar_max, atol=1e-6, rtol=0.0
+        ):
+        nisarqa.get_logger().warning(
+            f"{cbar_max=} and {cbar_min=}, which are approximately equal."
+            " Suggest double-checking datasets are as expected."
+        )
     # To be NaN-safe, do not simply use `if cbar_max <= cbar_min`.
-    if not (cbar_max > cbar_min):
+    elif not (cbar_max > cbar_min):
         raise ValueError(
             f"cbar_max must be > cbar_min, but got {cbar_max=} and {cbar_min=}."
         )
