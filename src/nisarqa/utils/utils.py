@@ -23,6 +23,7 @@ from nisarqa import typing as qa_typing
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
+
 class DatasetNotFoundError(Exception):
     """
     Custom exception for when a dataset is not found in an e.g. HDF5 file.
@@ -743,11 +744,11 @@ def get_global_scratch() -> Path:
 
 
 def lru_cache_with_frozen_argument(
-    param_name: str
+    param_name: str,
 ) -> Callable[[Callable[..., qa_typing.T]], Callable[..., qa_typing.T]]:
     """
     Decorator akin to `functools.lru_cache` but with one frozen argument.
-    
+
     Decorator to cache a function using LRU caching and freeze one argument
     after the first call. On subsequent calls, the specified argument is always
     overridden with the frozen value, even if a different value is passed.
@@ -760,14 +761,15 @@ def lru_cache_with_frozen_argument(
     ----------
     param_name : str
         The name of one of the decorated function's parameters, whose argument
-        will be frozen after the first invocation. 
+        will be frozen after the first invocation.
     """
+
     def decorator(
-        func: Callable[..., qa_typing.T]
+        func: Callable[..., qa_typing.T],
     ) -> Callable[..., qa_typing.T]:
 
         frozen_value: dict[str, Any] = {}  # Stores the frozen argument value
-        sig = inspect.signature(func)      # Used to bind arguments by name
+        sig = inspect.signature(func)  # Used to bind arguments by name
 
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -786,12 +788,12 @@ def lru_cache_with_frozen_argument(
 
             new_val = bound_args.arguments[param_name]
 
-            if 'value' not in frozen_value:
+            if "value" not in frozen_value:
                 # On first call, freeze the value
-                frozen_value['value'] = new_val
+                frozen_value["value"] = new_val
             else:
                 # Override the provided argument value with the frozen one
-                frz_val = frozen_value['value']
+                frz_val = frozen_value["value"]
                 nisarqa.get_logger().debug(
                     f"Overriding argument for '{param_name}': received"
                     f" `{new_val}`, using persistent frozen value `{frz_val}`"
