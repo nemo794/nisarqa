@@ -2,9 +2,22 @@
 # Browse Products (PNG + KML)
 
 ## Overview
-The browse images are designed to provide a quick, intuitive representation and visualization of the science content of an input L1/L2 granule. Their sidecar KML files allow for quick visualization in GIS software. During generation of the PNGs, image processing is applied to meets these goals; unlike the source L1/L2 science data products, the PNG's pixel values should not be used for analysis. PNGs are either grayscale or RBGA, with transparency.
+The browse images are designed to provide a quick, intuitive representation 
+and visualization of the science content of an input L1/L2 granule. 
+Their sidecar KML files allow for quick visualization in GIS software. 
+During generation of the PNGs, image processing is applied to meets 
+these goals; unlike the source L1/L2 science data products, the PNG's 
+pixel values should not be used for analysis. 
+PNGs are either grayscale or RBGA, with transparency.
 
-Note that during processing, the QA software multilooks and/or decimates the original raster from the full-size L1/L2 science product down to the smaller size needed for the browse image PNG. During this reduction, best effort is made to so that the pixels in the final PNG are "approximately square pixels", meaning that each side of the pixel represents approximately the same number of meters on the ground. To simplify this reduction, rows and/or columns in the original raster often truncated.
+Note that during processing, the QA software multilooks and/or decimates 
+the original raster from the full-size L1/L2 science product down to 
+the smaller size needed for the browse image PNG. During this reduction, 
+best effort is made to so that the pixels in the final PNG are 
+"approximately square pixels", meaning that each side of the pixel 
+represents approximately the same number of meters on the ground. 
+To simplify this reduction, rows and/or columns in the original raster 
+often truncated.
 
 ## RSLC and GSLC Browse Image
 RSLC and GSLC browse images are generated from the SLC imagery layer(s). The imagery layer(s) are multilooked and image processed to produce the final PNG; the algorithm used is described in the Report PDF: Backscatter Images section.

@@ -3,18 +3,35 @@
 
 ## Overview
 
-The summary CSV is high-level, human- and machine-readable file which summarizes detailed QA metrics into a CSV table.
+The summary CSV is high-level, human- and machine-readable file which 
+summarizes detailed QA metrics into a CSV table.
 
 Example PASS/FAIL/WARN checks included in the CSV:
 * PASS: All checks complete
 * FAIL: All pixels in one layer are NaN
 * WARN: Geolocation error over corner reflectors exceeds a specified threshold
 
-The specific checks included in the CSV will vary for each product type, with some checks depending on the content of individual granules. Select examples are presented below.
+The specific checks included in the CSV will vary for each product type, 
+with many checks depending on the content of individual granules. 
+Select examples are presented below.
 
-Observe that some of the checks in the examples below indicate a `"FAIL"`. This is because the QA software includes both fatal checks and soft checks. Fatal checks indicate a fatal error in the input L1/L2 granule which requires analysis and potential reprocessing by the NISAR mission team. If there is a fatal error, then the final row in the CSV (the `"QA completed with no exceptions?"` check) will be a `"FAIL"`.
+Note that some of the checks in the examples below indicate a `"FAIL"`. 
+This is because the QA software includes both fatal checks and soft checks.
 
-The soft checks notify users of the existance of minor concerns in the input product; these concerns should not halt the release of a L1/L2 dataset publically. For example, the NISAR sample products used to generate the example CSVs below were derived from ALOS-1 datasets; the conversion from ALOS-1 to NISAR-format did not include metadata corresponding to NISAR's `plannedObservationId` field in the `identification` group, and so that field was populated with a placeholder value. However, that placeholder value is not valid for the launched NISAR mission data, so that soft check is noted as a "FAIL".
+Fatal checks indicate a fatal error in the input L1/L2 granule which 
+requires further analysis by the developers or users. 
+If there is a fatal error, then the final row in the CSV (the 
+`"QA completed with no exceptions?"` check) will be a `"FAIL"`.
+
+Soft checks are meant to notify users of minor issues in the input granule;
+these issues should not halt the public release of a L1/L2 granule.
+For example, the NISAR sample products used to generate 
+the example CSVs below were derived from ALOS-1 datasets; the conversion 
+from ALOS-1 to NISAR-format did not include metadata corresponding to 
+NISAR's `plannedObservationId` field in the `identification` group, 
+and so that field was populated with a placeholder value. However, 
+that placeholder value is not valid for the launched NISAR mission data, 
+so that soft check is noted as a "FAIL".
 
 
 ## Example RSLC QA Summary CSV
@@ -65,7 +82,8 @@ Here is an example RIFG QA Summary CSV contents, visualized in a table:
 
 ## Example QA Summary CSV with Fatal Error
 
-Here are the contents of an example QA Summary CSV for an input file with a fatal error, visualized in a table:
+Here are the contents of an example QA Summary CSV for an input file 
+with a fatal error, visualized in a table:
 
 | Tool | Check | Result | Threshold | Actual | Notes
 | :---: | ------- | :---: | :----: | :---: | --------- |

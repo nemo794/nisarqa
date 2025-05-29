@@ -1,16 +1,28 @@
 
 # Introduction
 
-For the NASA-ISRO Synthetic Aperture Radar (NISAR) mission (https://nisar.jpl.nasa.gov/), the NASA Science Data System (SDS) will produce Quality Assurance (QA) products for all nominal Level-1 (L1) and Level-2 (L2) L-band science data products. The QA products will contain quality metrics, summary statistics, and plots of science data; they will be distributed publicly and freely through the NASA Alaska Satellite Facility Distributed Active Archive Center alongside the L1 and L2 products.
+For the NASA-ISRO Synthetic Aperture Radar (NISAR) mission 
+(https://nisar.jpl.nasa.gov/), the NASA Science Data System (SDS) will 
+produce Quality Assurance (QA) products for all nominal Level-1 (L1) 
+and Level-2 (L2) L-band science data products. The QA products will 
+contain quality metrics, summary statistics, and plots of science data; 
+they will be distributed publicly and freely through the NASA Alaska 
+Satellite Facility Distributed Active Archive Center alongside 
+the L1 and L2 products.
 
-These QA parameters will provide the scientific community with a comprehensive perspective on the quality of NISAR products at a global scale and enable efficient analysis without the need to download extensive L1/L2 science data.
+These QA parameters will provide the scientific community with a 
+comprehensive perspective on the quality of NISAR products at a global 
+scale and enable efficient analysis without the need to download extensive 
+L1/L2 science data.
 
 
 ## Overview of NISAR QA
 
 ### How will QA outputs be generated during NISAR mission operations?
 
-NISAR SDS at JPL will run the QA software at scale on each L1 and L2 science data granule produced as part of the baseline mission processing. Faulty granules can be flagged and prevented from being uploaded.
+NISAR SDS at JPL will run the QA software at scale on each L1 and L2 
+science data granule produced as part of the baseline mission processing. 
+Faulty granules can be flagged and prevented from being uploaded.
 
 Here is a simplified overview of the NASA SDS processing pipeline:
 
@@ -19,18 +31,26 @@ Here is a simplified overview of the NASA SDS processing pipeline:
 
 ### Open Source Software and Documentation
 
-The NISAR QA software is available publicly at https://github.com/isce-framework/nisarqa. This can be used to generate modified versions of the standard QA products using different parameter settings.
+The NISAR QA software is available publicly at 
+https://github.com/isce-framework/nisarqa. It can be used to generate modified
+versions of the standard QA products using different parameter settings.
 
-The `nisarqa` respository contains the development and release history of the QA software. It is also hosts the Markdown files for the QA Product Specification documentation, which is used to generate the official, signed release versions of the QA Product Specification document by the NISAR mission.
+The QA software version used to generate a given set of QA outputs can be 
+found on the cover page of the QA report PDF file and in the QA HDF5 file's 
+`/science/LSAR/QA/processing/QASoftwareVersion` Dataset. 
+This version number corresponds to a specific QA software tag: 
+https://github.com/isce-framework/nisarqa/tags.
 
-As the QA software evolves, the product specifications will also evolve. The QA software version used to generate a given set of QA outputs can be found on the cover page of the QA report PDF file and in the QA HDF5 file's `/science/LSAR/QA/processing/QASoftwareVersion` dataset. This version number corresponds to a specific QA software tag: https://github.com/isce-framework/nisarqa/tags. Each tagged version implicitly includes a snapshot of the product specifications at the time of that tag.
-
-For the most-current version of the content of these product specification documents, please visit the open-source respository.
+For the current and historical versions of the QA product specifications, 
+please visit the open-source `nisarqa` respository.
 
 
 ### NISAR QA Output Product Descriptions (Overview)
 
-One set of QA products will be generated for each L1 and L2 L-band science data granule. Due to the differing content of each L1 and L2 science product type, the specific QA content in each output file is customized per that product type and will be detailed in later sections.
+One set of QA products will be generated for each L1 and L2 L-band science 
+data granule. Due to the differing content of each L1 and L2 science product 
+type, the specific QA content in each output file is customized per that 
+product type and will be detailed in later sections.
 
 Descriptions of the individual files in one set of QA products:
 
@@ -45,13 +65,16 @@ Descriptions of the individual files in one set of QA products:
 
 
 
-\* For NISAR mission processing, `<gran_id>` will be the complete granule ID of the input L1/L2 product.
+\* For NISAR mission processing, `<gran_id>` will be the complete 
+granule ID of the input L1/L2 product.
 
 
 
 ## Input NISAR L1/L2 Science Product Overview
-Each NASA SDS L0-L2 L-band product is distributed as a single Hierarchical Data Format version 5 granule. For full descriptions, please see the L1/L2 product specification documents, 
-currently available from the sample data website https://nisar.jpl.nasa.gov/data/sample-data/ .
+Each NASA SDS L0-L2 L-band product is distributed as a single Hierarchical 
+Data Format version 5 granule. For full descriptions, please see the 
+L1/L2 product specification documents, available from either the ASF DAAC or
+the NISAR sample data website https://nisar.jpl.nasa.gov/data/sample-data/.
 
 ### NISAR Product Level Descriptions
 
@@ -68,14 +91,23 @@ Descriptions of the NISAR product levels, as defined by Science:
 
 ### NISAR L0-L2 Science Product Dependency Graph
 
-NISAR Quality Assurance software is designed to verify and assess the quality of the eight NISAR L-band L1 and L2 products, nominally generated using the ISCE3 software (https://github.com/isce-framework/isce3). The dependency graph and brief descriptions of each L1/L2 product are below, which illustrates the chain of upstream-to-downstream science products. This is useful because errors revealed via the QA reports for a downstream product can sometimes have their root cause traced back to the upstream input product. For example, if a user sees a concern in a GUNW product's QA report, they might consider looking at the upstream RIFG and RSLC QA reports for insight.
+NISAR Quality Assurance software is designed to verify and assess the 
+quality of the eight NISAR L-band L1 and L2 products, nominally 
+generated using the ISCE3 software (https://github.com/isce-framework/isce3). 
+The dependency graph and brief descriptions of each L1/L2 product are below, 
+which illustrates the upstream-to-downstream chain of the science products. 
+This is useful because issues that appear in QA reports for a downstream 
+product sometimes have their root cause traced back to the upstream input 
+product. For example, if a user sees an issue in a GUNW granule's QA report, 
+they might look at the upstream RIFG and RSLC granules' QA reports for insight.
 
 ![Product Dependency Graph](images/product_dependency.jpg)
 
 
 ### NISAR L1 and L2 Science Product Descriptions
 
-Descriptions for the NISAR L1 and L2 science products, which are the inputs to the QA software:
+Descriptions for the NISAR L1 and L2 science products, which are the inputs 
+to the QA software:
 
 | Level | Acronym | Product | Description |
 | :---: | :----: | --------- | ----------------- |
@@ -91,16 +123,30 @@ Descriptions for the NISAR L1 and L2 science products, which are the inputs to t
 
 ### L1 Range-Doppler products vs. L2 Geocoded products
 
-The L1 products' acronyms begin with the letter "R" and are on the range-Doppler (radar) grid; the L2 products' acronyms begin with the letter "G" and are geocoded.
+The L1 products are on the range-Doppler (radar) grid and their acronyms 
+begin with the letter "R". The L2 products are geocoded and their 
+acronyms begin with the letter "G".
 
-In practice, when viewing the QA report PDFs, the L2 products' imagery rasters will appear as a geocoded version of the radar grid image surrounded by geocoding fill. For the backscatter image plots in GSLC and GCOV PDFs, the backscatter fill defaults to be colored blue; elsewhere it appears translucent, white, or another color as appropriate.
+In practice, when viewing the QA report PDFs, the L2 products' imagery 
+rasters appear as a geocoded version of the radar grid image surrounded 
+by geocoding fill. For the backscatter image plots in GSLC and GCOV PDFs, 
+the backscatter fill defaults to be colored blue; elsewhere it appears 
+translucent, white, or another color as appropriate.
 
 ![Geocoding Intuition](images/geocoding.jpg)
 
 ## How to Use this Documentation
 
-Example output images and descriptions will be provided for each QA output file, and each QA feature.
+Example output images and descriptions will be provided for 
+each QA output file and each QA feature.
 
-While each L1/L2 product is unique, there are also many common features. Where there is overlap, for brevity this documentation will generally only include images for the QA outputs from one of the product types with that feature. The section header for each feature will note which products that feature is common to.
+Each L1/L2 product is unique, and similarly the exact QA outputs for each
+of the eight product types is unique. However, many product types share a
+common subset of QA features.
+If a feature is common to multiple product types, for brevity this 
+documentation will typically only include images of the QA outputs of 
+that feature for one of the product types. The section header for each
+feature will note all products for which that QA feature will be present.
 
-For the QA HDF5 statistical summary output, a complete product specification is provided for each product type.
+For the QA HDF5 statistical summary output, a complete product specification 
+is provided for each product type.
