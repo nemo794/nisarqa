@@ -153,7 +153,7 @@ def verify_igram(
             )
             log.info(f"QA Processing Parameters saved to {stats_file}")
 
-            nisarqa.rslc.copy_identification_group_to_stats_h5(
+            nisarqa.copy_identification_group_to_stats_h5(
                 product=product, stats_h5=stats_h5
             )
             log.info(f"Input file Identification group copied to {stats_file}")

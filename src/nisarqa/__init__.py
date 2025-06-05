@@ -107,6 +107,7 @@ def get_all(name, objects_to_skip=None, skip_private=True):
 
 # Import Globals first (these must be imported before the parameters)
 from .parameters.constants.globals import *
+from .utils.stats_h5_writer.stats_h5_globals import *
 
 # Next import parameters, products, utils, etc.
 from .parameters.nisar_params import *
@@ -125,6 +126,7 @@ from .utils.file_verification.dataset_inclusion_rules import *
 from .utils.file_verification.verify import *
 from .utils.file_verification.xml_check import *
 from .utils.file_verification.xml_parser import *
+
 from .utils.metadata_checks import *
 from .utils.utils import *
 
@@ -145,7 +147,8 @@ from .utils.plotting import *
 from .utils.raster_classes import *
 from .utils.tiling import *
 from .utils.summary_csv import *
-from .utils.metrics_writer import *
+from .utils.stats_h5_writer.metrics_writer import *
+from .utils.stats_h5_writer.setup_writer import *
 from .utils.sanity_checks import *
 from .utils import typing
 
