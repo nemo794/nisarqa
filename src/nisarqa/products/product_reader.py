@@ -630,7 +630,7 @@ class NisarProduct(ABC):
         runconfig_contents : str
             Contents (verbatim) of input granule's `runConfigurationContents`.
             If the product does not contain that Dataset (such as for older
-            granules), "N/A" is returned.
+            datasets), "N/A" is returned.
         """
         path = (
             self._processing_info_metadata_group_path
@@ -645,7 +645,7 @@ class NisarProduct(ABC):
                 # Discrepancies between this and the spec will be logged
                 # via the XML checker; no need to report again here.
                 nisarqa.get_logger().error(
-                    f"`runConfigurationContents` not found in input product"
+                    "`runConfigurationContents` not found in input product"
                     f" at the path {path}. Defaulting to 'N/A'."
                 )
                 return "N/A"
