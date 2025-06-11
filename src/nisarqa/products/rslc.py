@@ -134,12 +134,14 @@ def verify_rslc(
             )
             log.info(f"QA Processing Parameters saved to {stats_file}")
 
-            copy_identification_group_to_stats_h5(
+            nisarqa.copy_identification_group_to_stats_h5(
                 product=product, stats_h5=stats_h5
             )
             log.info(f"Input file Identification group copied to {stats_file}")
 
-            copy_rfi_metadata_to_stats_h5(product=product, stats_h5=stats_h5)
+            nisarqa.copy_rfi_metadata_to_stats_h5(
+                product=product, stats_h5=stats_h5
+            )
             log.info(f"Input file RFI metadata copied to {stats_file}")
 
     # Both the `qa_reports` and/or `point_target` steps may generate a report
@@ -168,7 +170,7 @@ def verify_rslc(
 
             with h5py.File(stats_file, mode="r+") as stats_h5:
                 # Save frequency/polarization info to stats file
-                save_nisar_freq_metadata_to_h5(
+                nisarqa.save_nisar_freq_metadata_to_h5(
                     stats_h5=stats_h5, product=product
                 )
 
@@ -316,120 +318,6 @@ def verify_rslc(
     log.info(msg)
     if not verbose:
         print(msg)
-
-
-# TODO - move to generic NISAR module
-def copy_identification_group_to_stats_h5(
-    product: nisarqa.NisarProduct, stats_h5: h5py.File
-) -> None:
-    """
-    Copy the identification group from the input NISAR file
-    to the STATS.h5 file.
-
-    Parameters
-    ----------
-    product : nisarqa.NisarProduct
-        Instance of a NisarProduct
-    stats_h5 : h5py.File
-        Handle to an h5 file where the identification metadata
-        should be saved
-    """
-
-    src_grp_path = product.identification_path
-    dest_grp_path = nisarqa.STATS_H5_IDENTIFICATION_GROUP % product.band
-
-    with h5py.File(product.filepath, "r") as in_file:
-        if dest_grp_path in stats_h5:
-            # The identification group already exists, so copy each
-            # dataset, etc. individually
-            for item in in_file[src_grp_path]:
-                item_path = f"{dest_grp_path}/{item}"
-                in_file.copy(in_file[item_path], stats_h5, item_path)
-        else:
-            # Copy entire identification metadata from input file to stats.h5
-            in_file.copy(in_file[src_grp_path], stats_h5, dest_grp_path)
-
-
-def copy_rfi_metadata_to_stats_h5(
-    product: nisarqa.RSLC,
-    stats_h5: h5py.File,
-) -> None:
-    """
-    Copy the RFI metadata from the RSLC product into the STATS HDF5 file.
-
-    Parameters
-    ----------
-    product : nisarqa.RSLC
-        The RSLC product.
-    stats_h5 : h5py.File
-        Handle to an HDF5 file where the identification metadata
-        should be saved.
-    """
-    with h5py.File(product.filepath, "r") as in_file:
-        for freq in product.freqs:
-            for pol in product.get_pols(freq=freq):
-                src_path = product.get_rfi_likelihood_path(freq=freq, pol=pol)
-
-                basename = src_path.split("/")[-1]
-                dest_path = (
-                    f"{nisarqa.STATS_H5_RFI_DATA_GROUP % product.band}/"
-                    + f"frequency{freq}/{pol}/{basename}"
-                )
-                try:
-                    in_file.copy(src_path, stats_h5, dest_path)
-                except RuntimeError:
-                    # h5py.File.copy() raises this error if `src_path`
-                    # does not exist:
-                    #       RuntimeError: Unable to synchronously copy object
-                    #       (component not found)
-                    nisarqa.get_logger().error(
-                        "Cannot copy `rfiLikelihood`. Input RSLC product is"
-                        " missing `rfiLikelihood` for"
-                        f" frequency {freq}, polarization {pol} at {src_path}"
-                    )
-
-
-# TODO - move to generic NISAR module
-def save_nisar_freq_metadata_to_h5(
-    product: nisarqa.NonInsarProduct, stats_h5: h5py.File
-) -> None:
-    """
-    Populate the `stats_h5` HDF5 file with a list of each available
-    frequency's polarizations.
-
-    If `pols` contains values for Frequency A, then this dataset will
-    be created in `stats_h5`:
-        /science/<band>/QA/data/frequencyA/listOfPolarizations
-
-    If `pols` contains values for Frequency B, then this dataset will
-    be created in `stats_h5`:
-        /science/<band>/QA/data/frequencyB/listOfPolarizations
-
-    * Note: The paths are pulled from the global nisarqa.STATS_H5_QA_FREQ_GROUP.
-    If the value of that global changes, then the path for the
-    `listOfPolarizations` dataset(s) will change accordingly.
-
-    Parameters
-    ----------
-    product : nisarqa.NisarProduct
-        Input NISAR product
-    stats_h5 : h5py.File
-        Handle to an h5 file where the list(s) of polarizations should be saved
-    """
-    # Populate data group's metadata
-    for freq in product.freqs:
-        list_of_pols = product.get_pols(freq=freq)
-        grp_path = nisarqa.STATS_H5_QA_FREQ_GROUP % (product.band, freq)
-        nisarqa.create_dataset_in_h5group(
-            h5_file=stats_h5,
-            grp_path=grp_path,
-            ds_name="listOfPolarizations",
-            ds_data=list_of_pols,
-            ds_description=(
-                f"Polarizations for Frequency {freq} "
-                "discovered in input NISAR product by QA code"
-            ),
-        )
 
 
 def process_backscatter_imgs_and_browse(
