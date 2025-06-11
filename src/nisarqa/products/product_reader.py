@@ -382,7 +382,7 @@ class NisarProduct(ABC):
         -------
         llq : LatLonQuad
             A LatLonQuad object containing the four corner coordinates for this
-            product's browse image.
+            product's browse image, in degrees.
         """
         pass
 
@@ -1363,12 +1363,9 @@ class NisarRadarProduct(NisarProduct):
         # Shapely boundary coords is a tuple of coordinate lists of
         # form ([x...], [y...])
         coords = shapely.from_wkt(self.bounding_polygon).boundary.coords
-        # Rezip the coordinates to a list of (x, y) tuples,
-        # and convert to radians for the internal LonLat class
-        coords = [
-            nisarqa.LonLat(np.deg2rad(c[0]), np.deg2rad(c[1]))
-            for c in zip(*coords.xy)
-        ]
+        # Rezip the coordinates to a list of (x, y) tuples.
+        # Lon/lat values in the bounding polygon are in units of degrees.
+        coords = [nisarqa.LonLat(c[0], c[1]) for c in zip(*coords.xy)]
 
         # Workaround for bug in ISCE3 generated products. We expect 41 points
         # (10 along each side + endpoint same as start point), but there
@@ -1408,6 +1405,7 @@ class NisarRadarProduct(NisarProduct):
                 ur=corners[1],
                 ll=corners[3],
                 lr=corners[2],
+                normalize_longitudes=True,
             )
         else:
             # boundingPolygon is specifed in counter-clockwise order in
@@ -1425,6 +1423,7 @@ class NisarRadarProduct(NisarProduct):
                     ur=corners[3],
                     ll=corners[1],
                     lr=corners[2],
+                    normalize_longitudes=True,
                 )
             else:
                 # In the right-looking case, the counter-clockwise orientation
@@ -1437,6 +1436,7 @@ class NisarRadarProduct(NisarProduct):
                     ur=corners[1],
                     ll=corners[3],
                     lr=corners[2],
+                    normalize_longitudes=True,
                 )
 
         return geo_corners
@@ -1653,8 +1653,12 @@ class NisarGeoProduct(NisarProduct):
                 # isce3 projections are always 2-D transformations -- the height
                 # has no effect on lon/lat
                 lon, lat, _ = proj.inverse([x, y, 0])
-                geo_corners += (nisarqa.LonLat(lon, lat),)
-        return nisarqa.LatLonQuad(*geo_corners)
+
+                # convert lon/lat radians to degrees suitable for LatLonQuad
+                point = nisarqa.LonLat(np.rad2deg(lon), np.rad2deg(lat))
+                geo_corners += (point,)
+
+        return nisarqa.LatLonQuad(*geo_corners, normalize_longitudes=True)
 
     @cached_property
     def _data_group_path(self) -> str:

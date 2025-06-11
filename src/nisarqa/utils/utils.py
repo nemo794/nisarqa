@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 import logging
+import math
 import os
 import warnings
-from collections.abc import Callable, Generator, Iterator, Mapping, Sequence
+from collections.abc import (
+    Callable,
+    Generator,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 from contextlib import contextmanager
 from datetime import datetime
 from functools import wraps
-from typing import Optional
+from typing import Any, Optional, overload
 
 import h5py
 import numpy as np
@@ -15,6 +23,7 @@ from numpy.typing import ArrayLike
 from ruamel.yaml import YAML
 
 import nisarqa
+from nisarqa.utils.typing import RunConfigDict, T
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -445,9 +454,7 @@ def log_runtime(msg: str) -> Generator[None, None, None]:
     nisarqa.get_logger().info(f"Runtime: {msg} took {toc - tic}")
 
 
-def log_function_runtime(
-    func: Callable[..., nisarqa.typing.T],
-) -> Callable[..., nisarqa.typing.T]:
+def log_function_runtime(func: Callable[..., T]) -> Callable[..., T]:
     """
     Function decorator to log the runtime of a function.
 
@@ -486,7 +493,7 @@ def ignore_runtime_warnings() -> Iterator[None]:
 
 def load_user_runconfig(
     runconfig_yaml: str | os.PathLike,
-) -> nisarqa.typing.RunConfigDict:
+) -> RunConfigDict:
     """
     Load a QA runconfig YAML file into a dict format.
 
@@ -497,7 +504,7 @@ def load_user_runconfig(
 
     Returns
     -------
-    user_rncfg : nisarqa.typing.RunConfigDict
+    user_rncfg : nisarqa.utils.typing.RunConfigDict
         `runconfig_yaml` loaded into a dict format
     """
     # parse runconfig into a dict structure
@@ -505,6 +512,91 @@ def load_user_runconfig(
     with open(runconfig_yaml, "r") as f:
         user_rncfg = parser.load(f)
     return user_rncfg
+
+
+@overload
+def wrap_to_interval(val: float, start: float, stop: float) -> float:
+    pass
+
+
+@overload
+def wrap_to_interval(
+    val: Iterable[float], start: float, stop: float
+) -> Iterator[float]:
+    pass
+
+
+def wrap_to_interval(val, *, start, stop):
+    """
+    Wrap float value(s) to the interval [start, stop).
+
+    Parameters
+    ----------
+    val : float or Iterable of float
+        Value(s) to wrap.
+    start : float
+        Start of the interval (inclusive).
+    stop : float
+        End of the interval (exclusive).
+
+    Returns
+    -------
+    float or iterator of float
+        Wrapped value(s) in the interval [start, stop).
+        Returns a float if input is a scalar, otherwise returns an iterator.
+
+    Examples
+    --------
+    >>> wrap_to_interval(190, start=-180, stop=180)
+    -170.0
+
+    >>> import numpy as np
+    >>> wrap_to_interval(np.pi * 3, start=0, stop=2 * np.pi)
+    3.141592653589793
+
+    >>> x = wrap_to_interval([-370, 370], start=-180, stop=180)
+    >>> x
+    <generator object wrap_to_interval.<locals>.<genexpr> at 0x185f08040>
+    >>> list(x)
+    [-370.0, 10.0]
+    """
+    if not (stop > start):
+        raise ValueError(f"{stop=} must be greater than {start=}")
+
+    is_scalar = not nisarqa.is_iterable(val)
+    width = stop - start
+    wrap = lambda v: math.fmod(v - start, width) + start
+
+    return wrap(val) if is_scalar else (wrap(v) for v in val)
+
+
+def pairwise(iterable: Iterable[T]) -> Generator[tuple[T, T], None, None]:
+    """
+    Return successive overlapping pairs taken from the input iterable.
+
+    Example: pairwise('ABCDEFG') -> AB BC CD DE EF FG
+
+    Source: https://docs.python.org/3/library/itertools.html#itertools.pairwise
+
+    Parameters
+    ----------
+    iterable : iterable of T
+        The input iterable.
+
+    Yields
+    ------
+    pair : pair of T
+        Successive overlapping pairs taken from the input iterable.
+        The number of 2-tuples in the output iterator will be one fewer than
+        the number of inputs. It will be empty if the input iterable has
+        fewer than two values.
+    """
+
+    iterator = iter(iterable)
+    a = next(iterator, None)
+    for b in iterator:
+        yield a, b
+        a = b
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
