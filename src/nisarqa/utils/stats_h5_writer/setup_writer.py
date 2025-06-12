@@ -10,7 +10,7 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 def setup_stats_h5_all_products(
     product: nisarqa.NisarProduct,
     stats_h5: h5py.File,
-    root_params: nisarqa.typing.RootParamGroupT,
+    root_params: RootParamGroupT,
 ) -> None:
     """
     Setup the STATS.h5 file for all NISAR products.
@@ -18,10 +18,9 @@ def setup_stats_h5_all_products(
     Parameters
     ----------
     product : nisarqa.NisarProduct
-        Instance of a NisarProduct.
+        The input product.
     stats_h5 : h5py.File
-        Handle to an h5 file where the identification metadata
-        should be saved.
+        Handle to the output HDF5 file.
     root_params : nisarqa.typing.RootParamGroupT
         *RootParamGroup object for the product type of `product`.
     """
@@ -89,18 +88,18 @@ def copy_src_runconfig_to_stats_h5(
     Parameters
     ----------
     product : nisarqa.NisarProduct
-        Instance of a NisarProduct.
+        The input product.
     stats_h5 : h5py.File
-        Handle to an h5 file where the source runconfig should be saved.
+        Handle to an HDF5 file where the source runconfig should be saved.
     """
 
-    grp_path = f"{nisarqa.STATS_H5_SOURCE_DATA % product.band}"
+    grp_path = nisarqa.STATS_H5_SOURCE_DATA % product.band
     contents = product.runconfig_contents
 
     nisarqa.create_dataset_in_h5group(
         h5_file=stats_h5,
         grp_path=grp_path,
-        ds_name=f"runConfigurationContents",
+        ds_name="runConfigurationContents",
         ds_data=contents,
         ds_description=(
             "Contents of the run configuration file associated with the"

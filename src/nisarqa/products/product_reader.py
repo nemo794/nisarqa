@@ -518,16 +518,17 @@ class NisarProduct(ABC):
         runconfig_contents : str
             Contents (verbatim) of input granule's `runConfigurationContents`.
             If the product does not contain that Dataset (such as for older
-            datasets), "N/A" is returned.
+            granules), "N/A" is returned.
         """
 
-        path = Path(self._processing_info_metadata_group_path) / "parameters"
-        path = str(path)
+        path = (
+            self._processing_info_metadata_group_path +
+            "/parameters/runConfigurationContents"
+        )
         with h5py.File(self.filepath) as f:
-            if "runConfigurationContents" in f[path]:
-                runconfig = f[path]["runConfigurationContents"][...]
-                runconfig = nisarqa.byte_string_to_python_str(runconfig)
-                return runconfig
+            if path in f:
+                runconfig = f[path][...]
+                return nisarqa.byte_string_to_python_str(runconfig)
             else:
                 # Very old test datasets did not have this field.
                 # Discrepancies between this and the spec will be logged
