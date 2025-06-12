@@ -100,17 +100,6 @@ def verify_gslc(
         if not verbose:
             print(msg)
 
-    # If running these workflows, save the processing parameters and
-    # identification group to STATS.h5
-    if root_params.workflows.qa_reports or root_params.workflows.point_target:
-        # This is the first time opening the STATS.h5 file for GSLC
-        # workflow, so open in 'w' mode.
-        # After this, always open STATS.h5 in 'r+' mode.
-        with h5py.File(stats_file, mode="w") as stats_h5:
-            nisarqa.setup_stats_h5_all_products(
-                product=product, stats_h5=stats_h5, root_params=root_params
-            )
-
     # Both the `qa_reports` and/or `point_target` steps may generate a report
     # PDF. If both are workflows are enabled, this can cause an issue, since
     # closing and re-opening a `PdfPages` object causes the file to be
@@ -119,6 +108,21 @@ def verify_gslc(
     # steps. The file is automatically deleted upon closing if nothing was
     # written to it.
     with PdfPages(report_file, keep_empty=False) as report_pdf:
+
+        if (
+            root_params.workflows.qa_reports
+            or root_params.workflows.point_target
+        ):
+            # This is the first time opening the STATS.h5 file for GSLC
+            # workflow, so open in 'w' mode.
+            # After this, always open STATS.h5 in 'r+' mode.
+            with h5py.File(stats_file, mode="w") as stats_h5:
+                nisarqa.setup_stats_h5_all_products(
+                    product=product, stats_h5=stats_h5, root_params=root_params
+                )
+
+            # Add file metadata and title page to report PDF.
+            nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
 
         if root_params.workflows.qa_reports:
             log.info(f"Beginning `qa_reports` processing...")
@@ -133,8 +137,6 @@ def verify_gslc(
             log.info(f"Browse image kml file saved to {browse_file_kml}")
 
             with h5py.File(stats_file, mode="r+") as stats_h5:
-                # Add file metadata and title page to report PDF.
-                nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
 
                 # Save frequency/polarization info to stats file
                 nisarqa.save_nisar_freq_metadata_to_h5(
