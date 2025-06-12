@@ -522,8 +522,8 @@ class NisarProduct(ABC):
         """
 
         path = (
-            self._processing_info_metadata_group_path +
-            "/parameters/runConfigurationContents"
+            self._processing_info_metadata_group_path
+            + "/parameters/runConfigurationContents"
         )
         with h5py.File(self.filepath) as f:
             if path in f:
