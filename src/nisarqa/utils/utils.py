@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import math
 import os
+import shutil
+import tempfile
 import warnings
 from collections.abc import (
     Callable,
@@ -13,9 +15,10 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
-from typing import Any, Optional, overload
+from pathlib import Path
+from typing import Callable, Optional, overload
 
 import h5py
 import numpy as np
@@ -504,7 +507,7 @@ def load_user_runconfig(
 
     Returns
     -------
-    user_rncfg : nisarqa.utils.typing.RunConfigDict
+    user_rncfg : nisarqa.typing.RunConfigDict
         `runconfig_yaml` loaded into a dict format
     """
     # parse runconfig into a dict structure
@@ -597,6 +600,151 @@ def pairwise(iterable: Iterable[T]) -> Generator[tuple[T, T], None, None]:
     for b in iterator:
         yield a, b
         a = b
+
+
+@contextmanager
+def create_unique_subdirectory(
+    parent_dir: str | os.PathLike | None = None,
+    prefix: str | None = None,
+    *,
+    delete: bool = True,
+) -> Generator[Path, None, None]:
+    """
+    Create a uniquely-named subdirectory or temporary directory.
+
+    Parameters
+    ----------
+    parent_dir : path-like or None, optional
+        Local file system path to a directory where a new, uniquely-named
+        subdirectory will be created.
+        If `parent_dir` is a path-like object, it will be created if it
+        did not already exist.
+        If `parent_dir` is None, a temporary directory will be created as
+        though by `tempfile.mkdtemp()`.
+        Defaults to None.
+    prefix : str or None, optional
+        If not None, the subdirectory name will begin with that prefix.
+    delete : bool, optional
+        If True, the directory and its contents are recursively removed from
+        the file system upon exiting the context manager.
+        Defaults to True.
+
+    Yields
+    ------
+    pathlib.Path
+        Path to the uniquely-named subdirectory. If `delete` was True,
+        the directory will be removed from the file system upon exiting
+        the context manager.
+    """
+
+    if parent_dir is None:
+        # Make a temporary directory inside a default directory, which is
+        # chosen from a platform-dependent list, but can be controlled
+        # by setting the TMPDIR, TEMP or TMP environment variables.
+        # The directory is readable and writable only by the creating user ID.
+        path = Path(tempfile.mkdtemp(prefix=prefix))
+    else:
+        # Create a uniquely-named subdirectory
+        utc_now = datetime.now(timezone.utc)
+        # The colon character `:` is not advised for POSIX paths
+        utc_now = utc_now.strftime("%Y%m%d%H%M%S")
+
+        prefix_str = f"{'' if prefix is None else (prefix + '-')}{utc_now}-"
+
+        path = Path(tempfile.mkdtemp(prefix=prefix_str, dir=parent_dir))
+
+    try:
+        yield path
+    finally:
+        log = nisarqa.get_logger()
+        if delete:
+            try:
+                shutil.rmtree(path)
+            except FileNotFoundError:
+                msg = (
+                    f"Created directory was '{path}', but it was"
+                    " deleted external to (but within the context of)"
+                    " this context manager."
+                )
+                log.error(msg)
+                raise FileNotFoundError(msg)
+            else:
+                log.info(f"Directory deleted recursively: '{path}'")
+
+
+def set_global_scratch_dir(scratch_dir: str | os.PathLike) -> None:
+    """
+    Set the persistent global scratch directory path.
+
+    This function sets the persistent global scratch directory that is
+    returned by `get_global_scratch_dir()`.
+    Initially, the global scratch directory used by nisarqa is unset
+    and calls to `get_global_scratch_dir()` will raise a `RuntimeError` until
+    the first time `set_global_scratch_dir()` is called. Subsequent calls will
+    update the stored path.
+
+    Parameters
+    ----------
+    scratch_dir : path-like
+        Path to the scratch directory. Must be an existing directory
+        in the local file system. The user is responsible for deleting
+        the scratch directory and its contents when done with it.
+
+    See Also
+    --------
+    get_global_scratch_dir :
+        After the global scratch directory has been set, use this function
+        to get the Path to the current global scratch directory.
+    """
+    log = nisarqa.get_logger()
+
+    path = Path(scratch_dir)
+
+    if not path.is_dir():
+        raise ValueError(f"{scratch_dir=}, must be an existing directory.")
+
+    # Log if the global scratch directory already existed and is being updated.
+    if hasattr(set_global_scratch_dir, "_scratch_dir"):
+        old_dir = set_global_scratch_dir._scratch_dir
+        log.info(
+            f"Global scratch directory path was '{old_dir}'."
+            f" Updating it to '{path}'."
+        )
+
+    # Set function attribute to the new global scratch path
+    set_global_scratch_dir._scratch_dir = path
+
+    log.info(
+        f"Global scratch directory path set to "
+        f" '{set_global_scratch_dir._scratch_dir}'."
+    )
+
+
+def get_global_scratch_dir() -> Path:
+    """
+    Get the persistent global scratch directory path.
+
+    User must call `set_global_scratch_dir()` prior to calling this function.
+
+    Returns
+    -------
+    path : pathlib.Path
+        Path to global scratch directory.
+
+    See Also
+    --------
+    set_global_scratch_dir :
+        Set the global scratch directory. Must be called prior to calling
+        `get_global_scratch_dir()`.
+    """
+
+    if not hasattr(set_global_scratch_dir, "_scratch_dir"):
+        raise RuntimeError(
+            "Scratch path not set. User must call `set_global_scratch_dir()`"
+            " prior to calling this function."
+        )
+
+    return set_global_scratch_dir._scratch_dir
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

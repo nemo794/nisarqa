@@ -15,6 +15,7 @@ import h5py
 from ruamel.yaml import YAML, CommentedMap, CommentedSeq
 
 import nisarqa
+from nisarqa.utils.typing import RootParamGroupT, RunConfigDict
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -1039,7 +1040,15 @@ class ProductPathGroupParamGroup(YamlParamGroup):
     ----------
     qa_output_dir : path-like, optional
         Filepath to the output directory to store NISAR QA output files.
+        If the directory does not exist, it will be created.
         Defaults to './qa'
+    scratch_dir_parent : path-like, optional
+        Directory where software may write temporary data.
+        If the directory does not exist, it will be created.
+        Because this scratch directory might be shared with e.g. ISCE3
+        science product SASes, QA will create a uniquely-named
+        directory inside `scratch_dir_parent` for any QA scratch files.
+        Defaults to './scratch'
     """
 
     qa_output_dir: str | os.PathLike = field(
@@ -1047,7 +1056,22 @@ class ProductPathGroupParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="qa_output_dir",
-                descr="""Output directory to store all QA output files.""",
+                descr="""Output directory to store all QA output files.
+                If the directory does not exist, it will be created.""",
+            )
+        },
+    )
+
+    scratch_dir_parent: str | os.PathLike = field(
+        default="./scratch",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="scratch_path",
+                descr="""Directory where software may write temporary data.
+                If the directory does not exist, it will be created.
+                Because this scratch directory might be shared with e.g. ISCE3
+                science product SASes, QA will create a uniquely-named
+                directory inside `scratch_path` for any QA scratch files.""",
             )
         },
     )
@@ -1055,18 +1079,77 @@ class ProductPathGroupParamGroup(YamlParamGroup):
     def __post_init__(self):
         # VALIDATE INPUTS
 
-        if not isinstance(self.qa_output_dir, (str, os.PathLike)):
-            raise TypeError(f"`qa_output_dir` must be path-like")
+        for param_name in ("qa_output_dir", "scratch_dir_parent"):
+            val = getattr(self, param_name)
+            if not isinstance(val, (str, os.PathLike)):
+                raise TypeError(f"`{param_name}` must be path-like")
 
-        # If this directory does not exist, make it.
-        if not os.path.isdir(self.qa_output_dir):
-            log = nisarqa.get_logger()
-            log.info(f"Creating QA output directory: {self.qa_output_dir}")
-            os.makedirs(self.qa_output_dir, exist_ok=True)
+            # If this directory does not exist, make it.
+            if not os.path.isdir(val):
+                log = nisarqa.get_logger()
+                log.info(f"Creating {param_name} directory: '{val}'")
+                os.makedirs(val, exist_ok=True)
 
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "product_path_group"]
+
+
+@dataclass(frozen=True)
+class SoftwareConfigParamGroup(YamlParamGroup):
+    """
+    Parameters from the Software Config Group runconfig group.
+
+    Parameters
+    ----------
+    use_cache : bool, optional
+        True to use memory map(s) to cache select Dataset(s).
+        False to always read data directly from the input file.
+        Generally, enabling caching should reduce runtime.
+        Defaults to True.
+    delete_scratch_files : bool, optional
+        True to delete the nested QA scratch directory and its contents
+        from inside `scratch_dir_parent` when QA SAS is finished.
+        Defaults to True.
+    """
+
+    use_cache: bool = field(
+        default=True,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="use_cache",
+                descr="""True to use memory map(s) to cache select Dataset(s).
+                False to always read data directly from the input file.
+                Generally, enabling caching should reduce runtime.""",
+            )
+        },
+    )
+
+    # For NISAR mission operations, the scratch directory parameter will be
+    # shared by QA with the L1/L2 ISCE3 Science Data product SASes.
+    # Those SASes do not delete the scratch directory, and QA should not either.
+    delete_scratch_files: bool = field(
+        default=True,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="delete_qa_scratch_files",
+                descr="""True to delete the nested QA scratch directory in
+                `scratch_path` and its contents when QA SAS is finished.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # VALIDATE INPUTS
+        if not isinstance(self.use_cache, bool):
+            raise TypeError(f"`{self.use_cache=}`, must be bool.")
+
+        if not isinstance(self.delete_scratch_files, bool):
+            raise TypeError(f"`{self.delete_scratch_files=}`, must be bool.")
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "software_config"]
 
 
 @dataclass(frozen=True)
@@ -1116,6 +1199,7 @@ class RootParamGroup(ABC):
     workflows: WorkflowsParamGroup
     input_f: Optional[InputFileGroupParamGroup] = None
     prodpath: Optional[ProductPathGroupParamGroup] = None
+    software_config: Optional[SoftwareConfigParamGroup] = None
     validation: Optional[ValidationGroupParamGroup] = None
 
     # Create a namedtuple which maps the workflows requested
@@ -1532,10 +1616,10 @@ class RootParamGroup(ABC):
 
     @classmethod
     def from_runconfig_dict(
-        cls: type[nisarqa.typing.RootParamGroupT],
-        user_rncfg: nisarqa.typing.RunConfigDict,
+        cls: type[RootParamGroupT],
+        user_rncfg: RunConfigDict,
         product_type: str,
-    ) -> nisarqa.typing.RootParamGroupT:
+    ) -> RootParamGroupT:
         """
         Build a *RootParamGroup for `product_type` from a QA runconfig dict.
 
@@ -1714,10 +1798,10 @@ class RootParamGroup(ABC):
 
     @classmethod
     def from_runconfig_file(
-        cls: type[nisarqa.typing.RootParamGroupT],
+        cls: type[RootParamGroupT],
         runconfig_yaml: str | os.PathLike,
         product_type: str,
-    ) -> nisarqa.typing.RootParamGroupT:
+    ) -> RootParamGroupT:
         """
         Get a *RootParamGroup for `product_type` from a QA Runconfig YAML file.
 
