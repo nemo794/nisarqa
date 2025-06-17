@@ -579,10 +579,9 @@ class NisarProduct(ABC):
             else:
                 if np.issubdtype(list_of_freqs.dtype, np.bytes_):
                     # list of byte strings. Yay!
-                    list_of_freqs = [
-                        nisarqa.byte_string_to_python_str(my_str)
-                        for my_str in list_of_freqs[()]
-                    ]
+                    list_of_freqs = nisarqa.byte_string_to_python_str(
+                        list_of_freqs[()]
+                    )
                 elif isinstance(list_of_freqs[0], bytes):
                     # list of Python bytes objects. Boo.
                     # This edge case occurs in some InSAR datasets, and should
@@ -652,10 +651,9 @@ class NisarProduct(ABC):
             else:
                 if np.issubdtype(list_of_pols.dtype, np.bytes_):
                     # list of byte strings. Yay!
-                    list_of_pols = [
-                        nisarqa.byte_string_to_python_str(my_str)
-                        for my_str in list_of_pols[()]
-                    ]
+                    list_of_pols = nisarqa.byte_string_to_python_str(
+                        list_of_pols[()]
+                    )
                 elif isinstance(list_of_pols[0], bytes):
                     # list of Python bytes objects. Boo.
                     # This edge case occurs in some InSAR datasets, and should
@@ -3318,10 +3316,7 @@ class GCOV(NonInsarGeoProduct):
                     " be a list of strings."
                 )
             else:
-                list_of_cov = [
-                    nisarqa.byte_string_to_python_str(my_str)
-                    for my_str in list_of_cov[()]
-                ]
+                list_of_cov = nisarqa.byte_string_to_python_str(list_of_cov[()])
 
             # Sanity check that the contents make sense
             # For GCOV, `get_possible_pols()` actually returns the

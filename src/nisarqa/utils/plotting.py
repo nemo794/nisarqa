@@ -107,25 +107,14 @@ def add_title_page_to_report_pdf(
                 # granule ID is part of the title; do not repeat in the table
                 continue
 
-            # convert val to a string
+            # Read the value, then convert to its string representation
             v = val[()]
-            if np.issubdtype(v.dtype, np.bytes_):
-                if val.shape == ():
-                    # dataset is scalar, not a list
-                    v = nisarqa.byte_string_to_python_str(v)
-                else:
-                    # list of byte strings
-                    # Step 1: Format as a list that prints with commas
-                    v = [
-                        nisarqa.byte_string_to_python_str(my_str)
-                        for my_str in v
-                    ]
-                    # Step 2: Put into its string representation
-                    v = str(v)
 
-            else:
-                # numeric, etc dtype
-                v = str(v)
+            if np.issubdtype(v.dtype, np.bytes_):
+                # decode scalar byte strings and arrays of bytes strings
+                v = nisarqa.byte_string_to_python_str(v)
+
+            v = str(v)
 
             if len(v) > 30:
                 # Value is too long for a visually-appealing table.

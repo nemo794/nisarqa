@@ -637,6 +637,14 @@ def compare_datetime_hdf5_to_xml(
     -------
     flags : nisarqa.SingleAspectSingleInstanceFlags
         Metrics for datetime strings in `xml_dataset` and `hdf5_dataset`.
+
+    Raises
+    ------
+    NotImplementedError
+        If the HDF5 Dataset is an array of byte strings, where at least
+        one of those strings contains a datetime string.
+        As of June 2025, NISAR product specs contain no Datasets like this;
+        handling these edge cases would cause unncessary code complexity.
     """
     log = nisarqa.get_logger()
     flags = SingleAspectSingleInstanceFlags()
@@ -646,19 +654,38 @@ def compare_datetime_hdf5_to_xml(
         return flags
 
     h5_string = hdf5_dataset.dataset[...]
-    if (not np.issubdtype(h5_string.dtype, np.bytes_)) and (
-        h5_string.ndim == 0
-    ):
+
+    # Only check string dtype.
+    if not np.issubdtype(h5_string.dtype, np.bytes_):
+        return flags
+
+    # Convert to a Python Unicode string. If Dataset is an array of byte
+    # strings, this will return a list of Python strings.
+    # (Note: Arrays of byte strings also have a dtype of `numpy.bytes_``)
+    h5_ds_val = nisarqa.byte_string_to_python_str(h5_string)
+
+    if isinstance(h5_ds_val, list):
+        # Array of byte strings.
+        # As of June 2025, there are no known Datasets in NISAR L1/L2 products
+        # that are arrays of strings which should contain datetime strings.
+        # Let's add a quick check in case this changes.
+        for s in h5_ds_val:
+            if nisarqa.contains_datetime_value_substring(input_str=s):
+                raise NotImplementedError(
+                    "Dataset contains an array of byte strings, in which"
+                    " at least one byte string contains a datetime."
+                    f" Please update QA check. Dataset: {hdf5_dataset.name}"
+                )
+        # The array of byte strings contained no datetime strings. Great!
         return flags
 
     # Check if the HDF5 Dataset contains a datetime value
-    h5_str = nisarqa.byte_string_to_python_str(h5_string)
     h5_name = hdf5_dataset.dataset.name
 
-    if nisarqa.contains_datetime_value_substring(input_str=h5_str):
+    if nisarqa.contains_datetime_value_substring(input_str=h5_ds_val):
         try:
             h5_dt_str = nisarqa.extract_datetime_value_substring(
-                input_str=h5_str, dataset_name=h5_name
+                input_str=h5_ds_val, dataset_name=h5_name
             )
         except ValueError:
             if "runConfigurationContents" in h5_name:
