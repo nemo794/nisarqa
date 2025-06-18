@@ -1430,14 +1430,14 @@ class RootParamGroup(ABC):
         Parameters
         ----------
         h5_file : h5py.File
-            Handle to an h5 file where the processing metadata should be saved.
+            Handle to an HDF5 file where processing metadata should be saved.
         band : str
             The letter of the band. Ex: "L" or "S".
         """
         for params_obj in fields(self):
             po = getattr(self, params_obj.name)
             # If a workflow was not requested, its RootParams attribute
-            # will be None, so there will be no params to add to the h5 file
+            # will be None, so there will be no params to add to the HDF5 file
             if po is not None:
                 if issubclass(type(po), HDF5ParamGroup):
                     po.write_params_to_h5(h5_file, band=band)

@@ -213,12 +213,17 @@ def create_dataset_in_h5group(
     ) -> ArrayLike | np.bytes_:
         # If `data` is an e.g. numpy array with a numeric dtype,
         # do not alter it.
-        if isinstance(data, str):
-            data = np.bytes_(data)
-        elif isinstance(data, Sequence) and all(
-            isinstance(s, str) for s in data
+        if isinstance(data, str) or (
+            isinstance(data, Sequence) and all(isinstance(s, str) for s in data)
         ):
-            data = np.bytes_(data)
+            # If `data` is a scalar Python (Unicode) string,
+            # numpy.char.encode() returns a 0D array of byte strings.
+            # If a sequence of Python strings, numpy.char.encode() returns a
+            # NumPy array of byte strings.
+            # We want to use `np.char.encode()` to handle non-ASCII characters,
+            # such as the copyright symbol.
+            # (`numpy.bytes_()` can only handle ASCII characters.)
+            data = np.char.encode(data, encoding="utf-8")
         elif isinstance(data, np.ndarray) and (
             np.issubdtype(data.dtype, np.object_)
             or np.issubdtype(data.dtype, np.str_)
@@ -314,16 +319,57 @@ def m2km(m):
     return m / 1000.0
 
 
+@overload
 def byte_string_to_python_str(byte_str: np.bytes_) -> str:
-    """Convert Numpy byte string to Python string object."""
-    # Step 1: Use .astype(np.str_) to cast from numpy byte string
-    # to numpy unicode (UTF-32)
-    out = byte_str.astype(np.str_)
+    pass
 
-    # Step 2: Use str(...) to cast from numpy string to normal python string
-    out = str(out)
 
-    return out
+@overload
+def byte_string_to_python_str(byte_str: ArrayLike) -> list[str]:
+    pass
+
+
+def byte_string_to_python_str(byte_str):
+    """
+    Convert NumPy byte string(s) to Python string(s) (Unicode).
+
+    Parameters
+    ----------
+    byte_str : numpy.bytes_ or array_like of numpy.bytes_
+        A byte string or 1D array of byte strings.
+        If `byte_str` is a scalar byte string, it is converted to a Python string.
+        If `byte_str` is array_like of byte strings, it is converted
+        element-wise to a Python strings and that are returned in a list.
+
+    Returns
+    -------
+    python_str : str or list of str
+        `byte_str` converted to a Python string or list of Python strings.
+
+    Raises
+    ------
+    ValueError
+        If `byte_str` is an N-dimensional (N>1) array of byte strings.
+        As of June 2025, NISAR products contain no Datasets like this;
+        handling these edge cases would cause unnecessary code complexity.
+    """
+    # Step 1: Decode from NumPy byte string to NumPy unicode (UTF-8)
+    # Unlike casting via `my_string.as_type(np.str_)`, this method also
+    # correctly decodes non-ASCII characters (such as the copyright symbol
+    # found in the runconfigs)
+    out = np.char.decode(byte_str, encoding="utf-8")
+
+    # Step 2: Use str(...) to cast from NumPy string to Python string (Unicode)
+    if out.ndim == 0:
+        # scalar input
+        return str(out)
+    elif out.ndim == 1:
+        # array input
+        return [str(s) for s in out]
+    else:
+        raise ValueError(
+            f"{byte_str.ndim=}; N-dimensional (N>1) arrays are not supported."
+        )
 
 
 def get_logger() -> logging.Logger:

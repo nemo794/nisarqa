@@ -106,7 +106,7 @@ def _get_path_to_nearest_dataset(
     Parameters
     ----------
     h5_file : h5py.File
-        Handle to the input product h5 file.
+        Handle to the input product HDF5 file.
     starting_path : str
         Path to the starting dataset. This function will iterate up through
         each successive parent directory in `starting_path` to find the first
@@ -617,6 +617,42 @@ class NisarProduct(ABC):
             return spec_version
 
     @cached_property
+    def runconfig_contents(self) -> str:
+        """
+        Contents (verbatim) of input granule's `runConfigurationContents`.
+
+        Returns the Dataset contents as-is, with no further processing.
+        It is a known issue that the L1/L2 product types use different formats
+        for `runConfigurationContents` (e.g. JSON, YAML). If that format is
+        updated within ISCE3, then this function will simply continue to
+        copy the Dataset's contents as-is.
+
+        Returns
+        -------
+        runconfig_contents : str
+            Contents (verbatim) of input granule's `runConfigurationContents`.
+            If the product does not contain that Dataset (such as for older
+            granules), "N/A" is returned.
+        """
+        path = (
+            self._processing_info_metadata_group_path
+            + "/parameters/runConfigurationContents"
+        )
+        with h5py.File(self.filepath) as f:
+            if path in f:
+                runconfig = f[path][...]
+                return nisarqa.byte_string_to_python_str(runconfig)
+            else:
+                # Very old test datasets did not have this field.
+                # Discrepancies between this and the spec will be logged
+                # via the XML checker; no need to report again here.
+                nisarqa.get_logger().error(
+                    f"`runConfigurationContents` not found in input product"
+                    f" at the path {path}. Defaulting to 'N/A'."
+                )
+                return "N/A"
+
+    @cached_property
     def list_of_frequencies(self) -> tuple[str, ...]:
         """
         The contents of .../identification/listOfFrequencies in input file.
@@ -657,10 +693,9 @@ class NisarProduct(ABC):
             else:
                 if np.issubdtype(list_of_freqs.dtype, np.bytes_):
                     # list of byte strings. Yay!
-                    list_of_freqs = [
-                        nisarqa.byte_string_to_python_str(my_str)
-                        for my_str in list_of_freqs[()]
-                    ]
+                    list_of_freqs = nisarqa.byte_string_to_python_str(
+                        list_of_freqs[()]
+                    )
                 elif isinstance(list_of_freqs[0], bytes):
                     # list of Python bytes objects. Boo.
                     # This edge case occurs in some InSAR datasets, and should
@@ -730,10 +765,9 @@ class NisarProduct(ABC):
             else:
                 if np.issubdtype(list_of_pols.dtype, np.bytes_):
                     # list of byte strings. Yay!
-                    list_of_pols = [
-                        nisarqa.byte_string_to_python_str(my_str)
-                        for my_str in list_of_pols[()]
-                    ]
+                    list_of_pols = nisarqa.byte_string_to_python_str(
+                        list_of_pols[()]
+                    )
                 elif isinstance(list_of_pols[0], bytes):
                     # list of Python bytes objects. Boo.
                     # This edge case occurs in some InSAR datasets, and should
@@ -1638,7 +1672,7 @@ class NisarRadarProduct(NisarProduct):
         kwargs["ground_az_spacing"] = ground_az_spacing
 
         # Get Azimuth (y-axis) tick range + label
-        # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
+        # path in HDF5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
         # For NISAR, radar-domain grids are referenced by the center of the
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
@@ -3410,10 +3444,7 @@ class GCOV(NonInsarGeoProduct):
                     " be a list of strings."
                 )
             else:
-                list_of_cov = [
-                    nisarqa.byte_string_to_python_str(my_str)
-                    for my_str in list_of_cov[()]
-                ]
+                list_of_cov = nisarqa.byte_string_to_python_str(list_of_cov[()])
 
             # Sanity check that the contents make sense
             # For GCOV, `get_possible_pols()` actually returns the
@@ -3603,7 +3634,7 @@ class InsarProduct(NisarProduct):
         Parameters
         ----------
         stats_h5 : h5py.File
-            Handle to an h5 file where the list(s) of polarizations
+            Handle to an HDF5 file where the list(s) of polarizations
             should be saved.
         """
         band = self.band
