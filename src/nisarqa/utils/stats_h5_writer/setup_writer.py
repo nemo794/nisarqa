@@ -172,7 +172,8 @@ def save_nisar_freq_metadata_to_h5(
     product : nisarqa.NisarProduct
         Input NISAR product
     stats_h5 : h5py.File
-        Handle to an HDF5 file where the list(s) of polarizations should be saved
+        Handle to an HDF5 file where the list(s) of polarizations
+        should be saved.
     """
     # Populate data group's metadata
     for freq in product.freqs:

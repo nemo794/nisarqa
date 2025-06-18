@@ -364,7 +364,9 @@ def byte_string_to_python_str(byte_str):
         # array input
         return [str(s) for s in out]
     else:
-        raise ValueError(...)
+        raise ValueError(
+            f"{byte_str.ndim=}; N-dimensional (N>1) arrays are not supported."
+        )
 
 
 def get_logger() -> logging.Logger:
