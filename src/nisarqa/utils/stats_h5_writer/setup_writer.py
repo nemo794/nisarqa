@@ -3,6 +3,7 @@ from __future__ import annotations
 import h5py
 
 import nisarqa
+from nisarqa.utils.typing import RootParamGroupT
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -54,8 +55,8 @@ def copy_identification_group_to_stats_h5(
     product : nisarqa.NisarProduct
         Instance of a NisarProduct
     stats_h5 : h5py.File
-        Handle to an h5 file where the identification metadata
-        should be saved
+        Handle to an HDF5 file where the identification metadata
+        should be saved.
     """
 
     src_grp_path = product.identification_path
@@ -171,7 +172,7 @@ def save_nisar_freq_metadata_to_h5(
     product : nisarqa.NisarProduct
         Input NISAR product
     stats_h5 : h5py.File
-        Handle to an h5 file where the list(s) of polarizations should be saved
+        Handle to an HDF5 file where the list(s) of polarizations should be saved
     """
     # Populate data group's metadata
     for freq in product.freqs:

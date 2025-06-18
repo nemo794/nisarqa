@@ -213,8 +213,8 @@ def create_dataset_in_h5group(
         if isinstance(data, str) or (
             isinstance(data, Sequence) and all(isinstance(s, str) for s in data)
         ):
-            # If scalar byte string, numpy.char.encode() returns a
-            # 0D array of byte strings.
+            # If `data` is a scalar Python (Unicode) string,
+            # numpy.char.encode() returns a 0D array of byte strings.
             # If a sequence of Python strings, numpy.char.encode() returns a
             # NumPy array of byte strings.
             # We want to use `np.char.encode()` to handle non-ASCII characters,
@@ -327,7 +327,29 @@ def byte_string_to_python_str(byte_str: ArrayLike) -> list[str]:
 
 
 def byte_string_to_python_str(byte_str):
-    """Convert NumPy byte string(s) to Python string(s) (Unicode)."""
+    """
+    Convert NumPy byte string(s) to Python string(s) (Unicode).
+
+    Parameters
+    ----------
+    byte_str : numpy.bytes_ or array-like of numpy.bytes_
+        A byte string or 1D array of byte strings.
+        If `byte_str` is a scalar byte string, it is converted to a Python string.
+        If `byte_str` is array-like of byte strings, it is converted
+        element-wise to a Python strings and that are returned in a list.
+
+    Returns
+    -------
+    python_str : str or list of str
+        `byte_str` converted to a Python string or list of Python strings.
+
+    Raises
+    ------
+    ValueError
+        If `byte_str` is a multi-dimensional array of byte strings.
+        As of June 2025, NISAR products contain no Datasets like this;
+        handling these edge cases would cause unnecessary code complexity.
+    """
     # Step 1: Decode from NumPy byte string to NumPy unicode (UTF-8)
     # Unlike casting via `my_string.as_type(np.str_)`, this method also
     # correctly decodes non-ASCII characters (such as the copyright symbol
@@ -335,12 +357,14 @@ def byte_string_to_python_str(byte_str):
     out = np.char.decode(byte_str, encoding="utf-8")
 
     # Step 2: Use str(...) to cast from NumPy string to Python string (Unicode)
-    if out.shape == ():
+    if out.ndim == 0:
         # scalar input
         return str(out)
-    else:
+    elif out.ndim == 1:
         # array input
         return [str(s) for s in out]
+    else:
+        raise ValueError(...)
 
 
 def get_logger() -> logging.Logger:

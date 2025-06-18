@@ -649,13 +649,21 @@ def compare_datetime_hdf5_to_xml(
     log = nisarqa.get_logger()
     flags = SingleAspectSingleInstanceFlags()
 
-    # only consider scalar, fixed-length byte string Datasets
+    # The XML dataset type is considered "truth" in the QA XML Checker.
+    # Only datasets with a string dtype contain datetime strings, so if a
+    # dataset has a different type (e.g. integer) we know that there are
+    # no datetimes to verify. (And thus, no inconsistent datetimes to log.)
     if xml_dataset.dtype != str:
         return flags
 
+    # Now, check that the HDF5's corresponding Dataset is also a (byte) string.
+    # If not, then the Dataset was incorrectly formed; however, another
+    # function in the XML Checker is is responsible for checking+logging that
+    # the HDF5 datatype must be np.bytes_ if the XML datatype is str,
+    # so we do not need to log that issue again here. Instead, return early.
+    # (Once the user fixes the dtype issue and reruns QA, then this datetime
+    # string check will run to completion and log any datetime string issues.)
     h5_string = hdf5_dataset.dataset[...]
-
-    # Only check string dtype.
     if not np.issubdtype(h5_string.dtype, np.bytes_):
         return flags
 

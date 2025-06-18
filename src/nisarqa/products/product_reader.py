@@ -106,7 +106,7 @@ def _get_path_to_nearest_dataset(
     Parameters
     ----------
     h5_file : h5py.File
-        Handle to the input product h5 file.
+        Handle to the input product HDF5 file.
     starting_path : str
         Path to the starting dataset. This function will iterate up through
         each successive parent directory in `starting_path` to find the first
@@ -1551,7 +1551,7 @@ class NisarRadarProduct(NisarProduct):
         kwargs["ground_az_spacing"] = ground_az_spacing
 
         # Get Azimuth (y-axis) tick range + label
-        # path in h5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
+        # path in HDF5 file: /science/LSAR/RSLC/swaths/zeroDopplerTime
         # For NISAR, radar-domain grids are referenced by the center of the
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
@@ -3506,7 +3506,7 @@ class InsarProduct(NisarProduct):
         Parameters
         ----------
         stats_h5 : h5py.File
-            Handle to an h5 file where the list(s) of polarizations
+            Handle to an HDF5 file where the list(s) of polarizations
             should be saved.
         """
         band = self.band

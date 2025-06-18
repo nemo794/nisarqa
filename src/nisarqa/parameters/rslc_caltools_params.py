@@ -1079,7 +1079,7 @@ class RSLCRootParamGroup(RootParamGroup):
                 # RootParamGroup.save_processing_params_to_stats_h5():
                 #       If a workflow was not requested, its RootParams
                 #       attribute will be None, so there will be no params to
-                #       add to the h5 file."
+                #       add to the HDF5 file."
                 # In nominal cases, these groups are set to None during
                 # `from_runconfig_dict()`. But, that step occurs prior to
                 # checking whether a corner reflector file was provided,
