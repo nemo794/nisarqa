@@ -111,7 +111,7 @@ def add_title_page_to_report_pdf(
             v = val[()]
 
             if np.issubdtype(v.dtype, np.bytes_):
-                # decode scalar byte strings and arrays of bytes strings
+                # decode scalar byte strings and arrays of byte strings
                 v = nisarqa.byte_string_to_python_str(v)
 
             v = str(v)

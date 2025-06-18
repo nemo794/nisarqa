@@ -214,8 +214,8 @@ def create_dataset_in_h5group(
             isinstance(data, Sequence) and all(isinstance(s, str) for s in data)
         ):
             # If scalar byte string, numpy.char.encode() returns a
-            # scalar byte array.
-            # If array of byte strings, numpy.char.encode() returns a
+            # 0D array of byte strings.
+            # If a sequence of Python strings, numpy.char.encode() returns a
             # NumPy array of byte strings.
             # We want to use `np.char.encode()` to handle non-ASCII characters,
             # such as the copyright symbol.
@@ -322,7 +322,7 @@ def byte_string_to_python_str(byte_str: np.bytes_) -> str:
 
 
 @overload
-def byte_string_to_python_str(byte_str: ArrayLike[np.bytes_]) -> list[str]:
+def byte_string_to_python_str(byte_str: ArrayLike) -> list[str]:
     pass
 
 

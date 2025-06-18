@@ -644,7 +644,7 @@ def compare_datetime_hdf5_to_xml(
         If the HDF5 Dataset is an array of byte strings, where at least
         one of those strings contains a datetime string.
         As of June 2025, NISAR product specs contain no Datasets like this;
-        handling these edge cases would cause unncessary code complexity.
+        handling these edge cases would cause unnecessary code complexity.
     """
     log = nisarqa.get_logger()
     flags = SingleAspectSingleInstanceFlags()
@@ -661,7 +661,7 @@ def compare_datetime_hdf5_to_xml(
 
     # Convert to a Python Unicode string. If Dataset is an array of byte
     # strings, this will return a list of Python strings.
-    # (Note: Arrays of byte strings also have a dtype of `numpy.bytes_``)
+    # (Note: Arrays of byte strings also have a dtype of `numpy.bytes_`)
     h5_ds_val = nisarqa.byte_string_to_python_str(h5_string)
 
     if isinstance(h5_ds_val, list):
@@ -670,7 +670,7 @@ def compare_datetime_hdf5_to_xml(
         # that are arrays of strings which should contain datetime strings.
         # Let's add a quick check in case this changes.
         for s in h5_ds_val:
-            if nisarqa.contains_datetime_value_substring(input_str=s):
+            if nisarqa.contains_datetime_value_substring(s):
                 raise NotImplementedError(
                     "Dataset contains an array of byte strings, in which"
                     " at least one byte string contains a datetime."
