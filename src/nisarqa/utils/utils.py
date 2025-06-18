@@ -332,10 +332,10 @@ def byte_string_to_python_str(byte_str):
 
     Parameters
     ----------
-    byte_str : numpy.bytes_ or array-like of numpy.bytes_
+    byte_str : numpy.bytes_ or array_like of numpy.bytes_
         A byte string or 1D array of byte strings.
         If `byte_str` is a scalar byte string, it is converted to a Python string.
-        If `byte_str` is array-like of byte strings, it is converted
+        If `byte_str` is array_like of byte strings, it is converted
         element-wise to a Python strings and that are returned in a list.
 
     Returns
@@ -346,7 +346,7 @@ def byte_string_to_python_str(byte_str):
     Raises
     ------
     ValueError
-        If `byte_str` is a multi-dimensional array of byte strings.
+        If `byte_str` is an N-dimensional (N>1) array of byte strings.
         As of June 2025, NISAR products contain no Datasets like this;
         handling these edge cases would cause unnecessary code complexity.
     """

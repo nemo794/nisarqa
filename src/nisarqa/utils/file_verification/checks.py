@@ -658,7 +658,7 @@ def compare_datetime_hdf5_to_xml(
 
     # Now, check that the HDF5's corresponding Dataset is also a (byte) string.
     # If not, then the Dataset was incorrectly formed; however, another
-    # function in the XML Checker is is responsible for checking+logging that
+    # function in the XML Checker is responsible for checking+logging that
     # the HDF5 datatype must be np.bytes_ if the XML datatype is str,
     # so we do not need to log that issue again here. Instead, return early.
     # (Once the user fixes the dtype issue and reruns QA, then this datetime
