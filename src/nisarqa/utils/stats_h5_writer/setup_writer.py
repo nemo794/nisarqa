@@ -8,13 +8,13 @@ from nisarqa.utils.typing import RootParamGroupT
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def setup_stats_h5_all_products(
+def _setup_stats_h5_all_products(
     product: nisarqa.NisarProduct,
     stats_h5: h5py.File,
     root_params: RootParamGroupT,
 ) -> None:
     """
-    Setup the STATS.h5 file for all NISAR products.
+    Setup the STATS.h5 file with features common to all NISAR products.
 
     Parameters
     ----------
@@ -24,6 +24,15 @@ def setup_stats_h5_all_products(
         Handle to the output HDF5 file.
     root_params : nisarqa.typing.RootParamGroupT
         *RootParamGroup object corresponding to the product type of `product`.
+
+    See Also
+    --------
+    setup_stats_h5_non_insar_products :
+        Public function for setting up the STATS.h5 file for non-InSAR
+        (RSLC, GSLC, GCOV) products.
+    setup_stats_h5_insar_products :
+        Public function for setting up the STATS.h5 file for InSAR
+        (RIFG, RUNW, GUNW, ROFF, GOFF) products.
     """
     log = nisarqa.get_logger()
     stats_file = stats_h5.filename
@@ -114,11 +123,17 @@ def setup_stats_h5_non_insar_products(
         should be saved.
     root_params : nisarqa.typing.RootParamGroupT
         *RootParamGroup object corresponding to the product type of `product`.
+
+    See Also
+    --------
+    setup_stats_h5_insar_products :
+        Sister function for setting up the STATS.h5 file for InSAR
+        (RIFG, RUNW, GUNW, ROFF, GOFF) products.
     """
     log = nisarqa.get_logger()
     stats_file = stats_h5.filename
 
-    setup_stats_h5_all_products(
+    _setup_stats_h5_all_products(
         product=product, stats_h5=stats_h5, root_params=root_params
     )
 
@@ -136,6 +151,36 @@ def setup_stats_h5_non_insar_products(
             product=product, stats_h5=stats_h5
         )
         log.info(f"Input file imagery metrics copied to {stats_file}")
+
+
+def setup_stats_h5_insar_products(
+    product: nisarqa.InsarProduct,
+    stats_h5: h5py.File,
+    root_params: nisarqa.typing.RootParamGroupT,
+) -> None:
+    """
+    Setup the STATS.h5 file for InSAR products (RIFG, RUNW, GUNW, ROFF, GOFF).
+
+    Parameters
+    ----------
+    product : nisarqa.InsarProduct
+        Instance of an InsarProduct (RIFG, RUNW, GUNW, ROFF, GOFF).
+    stats_h5 : h5py.File
+        Handle to an HDF5 file where the identification metadata
+        should be saved.
+    root_params : nisarqa.typing.RootParamGroupT
+        *RootParamGroup object corresponding to the product type of `product`.
+
+    See Also
+    --------
+    setup_stats_h5_non_insar_products :
+        Sister function for setting up the STATS.h5 file for non-InSAR
+        (RSLC, GSLC, GCOV) products.
+    """
+
+    _setup_stats_h5_all_products(
+        product=product, stats_h5=stats_h5, root_params=root_params
+    )
 
 
 def copy_identification_group_to_stats_h5(
