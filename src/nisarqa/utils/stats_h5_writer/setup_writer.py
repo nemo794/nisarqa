@@ -110,7 +110,7 @@ def setup_stats_h5_non_insar_products(
     product : nisarqa.NonInsarProduct
         Instance of a NonInsarProduct (RSLC, GSLC, GCOV).
     stats_h5 : h5py.File
-        Handle to an h5 file where the identification metadata
+        Handle to an HDF5 file where the identification metadata
         should be saved.
     root_params : nisarqa.typing.RootParamGroupT
         *RootParamGroup object corresponding to the product type of `product`.
@@ -221,7 +221,7 @@ def copy_rfi_metadata_to_stats_h5(
     with h5py.File(product.filepath, "r") as in_file:
         for freq in product.freqs:
             # Use `product.get_list_of_polarizations()` instead of the
-            # typical `product.get_pols()`. There should make no difference
+            # typical `product.get_pols()`. This should make no difference
             # for RSLC and GSLC, but there is a difference for GCOV.
             # For GCOV, `product.get_pols()` actually returns the GCOV terms
             # (e.g. ["HHHH", "HVHVH"]), instead of the polarization pairs
