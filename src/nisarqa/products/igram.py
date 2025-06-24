@@ -146,7 +146,7 @@ def verify_igram(
             # Add file metadata and title page to report PDF.
             nisarqa.setup_report_pdf(product=product, report_pdf=report_pdf)
 
-            nisarqa.setup_stats_h5_all_products(
+            nisarqa.setup_stats_h5_insar_products(
                 product=product, stats_h5=stats_h5, root_params=root_params
             )
 

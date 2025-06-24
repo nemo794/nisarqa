@@ -8,22 +8,31 @@ from nisarqa.utils.typing import RootParamGroupT
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def setup_stats_h5_all_products(
+def _setup_stats_h5_all_products(
     product: nisarqa.NisarProduct,
     stats_h5: h5py.File,
     root_params: RootParamGroupT,
 ) -> None:
     """
-    Setup the STATS.h5 file for all NISAR products.
+    Setup the STATS.h5 file with features common to all NISAR products.
 
     Parameters
     ----------
     product : nisarqa.NisarProduct
-        The input product.
+        The input NISAR product.
     stats_h5 : h5py.File
         Handle to the output HDF5 file.
     root_params : nisarqa.typing.RootParamGroupT
-        *RootParamGroup object for the product type of `product`.
+        *RootParamGroup object corresponding to the product type of `product`.
+
+    See Also
+    --------
+    setup_stats_h5_non_insar_products :
+        Public function for setting up the STATS.h5 file for non-InSAR
+        (RSLC, GSLC, GCOV) products.
+    setup_stats_h5_insar_products :
+        Public function for setting up the STATS.h5 file for InSAR
+        (RIFG, RUNW, GUNW, ROFF, GOFF) products.
     """
     log = nisarqa.get_logger()
     stats_file = stats_h5.filename
@@ -65,7 +74,6 @@ def add_global_metadata_to_stats_h5(
     nisarqa.utils.plotting.add_metadata_to_report_pdf
         Sister function which adds global metadata to the REPORT.pdf.
     """
-
     if product_type.lower() not in nisarqa.LIST_OF_NISAR_PRODUCTS:
         raise ValueError(
             f"{product_type=}, must one of: {nisarqa.LIST_OF_NISAR_PRODUCTS}"
@@ -97,22 +105,93 @@ def add_global_metadata_to_stats_h5(
         )
 
 
+def setup_stats_h5_non_insar_products(
+    product: nisarqa.NonInsarProduct,
+    stats_h5: h5py.File,
+    root_params: nisarqa.typing.RootParamGroupT,
+) -> None:
+    """
+    Setup the STATS.h5 file for Non-InSAR products (RSLC, GSLC, GCOV).
+
+    Parameters
+    ----------
+    product : nisarqa.NonInsarProduct
+        The input non-InSAR (RSLC, GSLC, GCOV) product.
+    stats_h5 : h5py.File
+        Handle to the output HDF5 file.
+    root_params : nisarqa.typing.RootParamGroupT
+        *RootParamGroup object corresponding to the product type of `product`.
+
+    See Also
+    --------
+    setup_stats_h5_insar_products :
+        Sister function for setting up the STATS.h5 file for InSAR
+        (RIFG, RUNW, GUNW, ROFF, GOFF) products.
+    """
+    log = nisarqa.get_logger()
+    stats_file = stats_h5.filename
+
+    _setup_stats_h5_all_products(
+        product=product, stats_h5=stats_h5, root_params=root_params
+    )
+
+    copy_rfi_metadata_to_stats_h5(product=product, stats_h5=stats_h5)
+    log.info(f"Input file RFI metadata copied to {stats_file}")
+
+    if root_params.workflows.qa_reports:
+        # Save frequency/polarization info to stats file
+        nisarqa.save_nisar_freq_metadata_to_h5(
+            stats_h5=stats_h5, product=product
+        )
+
+        # Copy imagery metrics into stats.h5
+        nisarqa.copy_non_insar_imagery_metrics(
+            product=product, stats_h5=stats_h5
+        )
+        log.info(f"Input file imagery metrics copied to {stats_file}")
+
+
+def setup_stats_h5_insar_products(
+    product: nisarqa.InsarProduct,
+    stats_h5: h5py.File,
+    root_params: nisarqa.typing.RootParamGroupT,
+) -> None:
+    """
+    Setup the STATS.h5 file for InSAR products (RIFG, RUNW, GUNW, ROFF, GOFF).
+
+    Parameters
+    ----------
+    product : nisarqa.InsarProduct
+        The input InSAR (RIFG, RUNW, GUNW, ROFF, GOFF) product.
+    stats_h5 : h5py.File
+        Handle to the output HDF5 file.
+    root_params : nisarqa.typing.RootParamGroupT
+        *RootParamGroup object corresponding to the product type of `product`.
+
+    See Also
+    --------
+    setup_stats_h5_non_insar_products :
+        Sister function for setting up the STATS.h5 file for non-InSAR
+        (RSLC, GSLC, GCOV) products.
+    """
+    _setup_stats_h5_all_products(
+        product=product, stats_h5=stats_h5, root_params=root_params
+    )
+
+
 def copy_identification_group_to_stats_h5(
     product: nisarqa.NisarProduct, stats_h5: h5py.File
 ) -> None:
     """
-    Copy the identification group from the input NISAR file
-    to the STATS.h5 file.
+    Copy the identification Group from input NISAR file to the STATS.h5 file.
 
     Parameters
     ----------
     product : nisarqa.NisarProduct
-        Instance of a NisarProduct
+        The input NISAR product.
     stats_h5 : h5py.File
-        Handle to an HDF5 file where the identification metadata
-        should be saved.
+        Handle to the output HDF5 file.
     """
-
     src_grp_path = product.identification_path
     dest_grp_path = nisarqa.STATS_H5_IDENTIFICATION_GROUP % product.band
 
@@ -143,11 +222,10 @@ def copy_src_runconfig_to_stats_h5(
     Parameters
     ----------
     product : nisarqa.NisarProduct
-        The input product.
+        The input NISAR product.
     stats_h5 : h5py.File
         Handle to an HDF5 file where the source runconfig should be saved.
     """
-
     grp_path = nisarqa.STATS_H5_SOURCE_DATA % product.band
     contents = product.runconfig_contents
 
@@ -164,23 +242,32 @@ def copy_src_runconfig_to_stats_h5(
 
 
 def copy_rfi_metadata_to_stats_h5(
-    product: nisarqa.RSLC,
+    product: nisarqa.NonInsarProduct,
     stats_h5: h5py.File,
 ) -> None:
     """
-    Copy the RFI metadata from the RSLC product into the STATS HDF5 file.
+    Copy the RFI metadata from input product into the STATS HDF5 file.
 
     Parameters
     ----------
-    product : nisarqa.RSLC
-        The RSLC product.
+    product : nisarqa.NonInsarProduct
+        The input non-InSAR (RSLC, GSLC, GCOV) product.
     stats_h5 : h5py.File
-        Handle to an HDF5 file where the identification metadata
-        should be saved.
+        Handle to an HDF5 file where the RFI metadata should be saved.
     """
     with h5py.File(product.filepath, "r") as in_file:
         for freq in product.freqs:
-            for pol in product.get_pols(freq=freq):
+            # Use `product.get_list_of_polarizations()` instead of the
+            # typical `product.get_pols()`. This should make no difference
+            # for RSLC and GSLC, but there is a difference for GCOV.
+            # For GCOV, `product.get_pols()` actually returns the GCOV terms
+            # (e.g. ["HHHH", "HVHVH"]), instead of the polarization pairs
+            # (e.g. ["HH", "HV"]). The RFI likelihood values are accessed via
+            # polarization pairs for GCOV (not the GCOV terms).
+            # In contrast, `get_list_of_polarizations` returns the input RSLC,
+            # GSLC, or GCOV granule's `listOfPolarizations` Dataset contents,
+            # which are always the polarization pairs.
+            for pol in product.get_list_of_polarizations(freq=freq):
                 src_path = product.get_rfi_likelihood_path(freq=freq, pol=pol)
 
                 basename = src_path.split("/")[-1]
@@ -196,7 +283,7 @@ def copy_rfi_metadata_to_stats_h5(
                     #       RuntimeError: Unable to synchronously copy object
                     #       (component not found)
                     nisarqa.get_logger().error(
-                        "Cannot copy `rfiLikelihood`. Input RSLC product is"
+                        "Cannot copy `rfiLikelihood`. Input granule is"
                         " missing `rfiLikelihood` for"
                         f" frequency {freq}, polarization {pol} at {src_path}"
                     )
@@ -224,7 +311,7 @@ def save_nisar_freq_metadata_to_h5(
     Parameters
     ----------
     product : nisarqa.NisarProduct
-        Input NISAR product
+        The input NISAR product.
     stats_h5 : h5py.File
         Handle to an HDF5 file where the list(s) of polarizations
         should be saved.
