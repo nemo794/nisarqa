@@ -201,10 +201,103 @@ def ignored_xml_annotation_attributes() -> set[str]:
 
     Returns
     -------
-    set[str]
+    attrs : set of str
         The set of ignored attributes.
     """
     return {"lang", "app"}
+
+
+def common_nisar_projection_attributes() -> set[str]:
+    """
+    Attributes common to NISAR "projection" Datasets but not required by CF-1.7.
+
+    These Attributes have been added to all "projection" Datasets by
+    NISAR convention. However, they are not required by CF-1.7 conventions
+    for either UTM or polar-stereographic projections.
+
+    Returns
+    -------
+    attrs : set of str
+        The set of Attributes that are common to NISAR "projection" Datasets
+        but not required by CF-1.7 for UTM nor polar-steregraphic projections.
+    """
+    return {
+        "ellipsoid",
+        "epsg_code",
+        "longitude_of_projection_origin",
+        "spatial_ref",  # in the future, `spatial_ref` might update to `crs_wkt`
+    }
+
+
+def common_cf17_projection_attributes() -> set[str]:
+    """
+    CF-1.7 required Attributes common to UTM and polar-stereo "projection" Datasets.
+
+    These are per CF-1.7 Conventions:
+    https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/apf.html
+
+    Returns
+    -------
+    attrs : set of str
+        The set of CF-1.7 required Attributes common to all "projection" Datasets.
+    """
+    return {
+        "grid_mapping_name",
+        "false_easting",
+        "false_northing",
+        "semi_major_axis",
+        "inverse_flattening",
+        "latitude_of_projection_origin",
+    }
+
+
+def unique_cf17_utm_attributes() -> set[str]:
+    """
+    CF-1.7 required Attributes unique to UTM "projection" Datasets.
+
+    These are per CF-1.7 Conventions:
+    https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/apf.html
+
+    Returns
+    -------
+    attrs : set of str
+        The set of required Attributes unique to UTM "projection" Datasets.
+    """
+    return {
+        "utm_zone_number",
+        "scale_factor_at_central_meridian",
+        "longitude_of_central_meridian",
+    }
+
+
+def unique_cf17_polar_stereo_attributes() -> set[str]:
+    """
+    CF-1.7 required Attributes unique to polar stereo "projection" Datasets.
+
+    These are per CF-1.7 Conventions:
+    https://cfconventions.org/Data/cf-conventions/cf-conventions-1.7/build/apf.html
+
+    Returns
+    -------
+    attrs : set of str
+        The set of required Attributes unique to ISCE3 polar stereographic
+        "projection" Datasets.
+
+    Notes
+    -----
+    Per CF-1.7, `standard_parallel` is required for EPSG 9829 and
+    `scale_factor_at_projection_origin` is required for EPSG 9810.
+    ISCE3 uses EPSG 3413 for Polar Stereographic North and EPSG 3031
+    for Polar Stereographic South.
+    If you look at the WKT2 string for e.g. EPSG 3413, it references
+    EPSG 9829 ("Polar Stereographic (variant B)"), so the set returned by
+    this function will include `standard_parallel`.
+    https://epsg.io/3413.wkt2
+    """
+    return {
+        "straight_vertical_longitude_from_pole",
+        "standard_parallel",
+    }
 
 
 def numeric_dtype_should_not_have_units() -> set[str]:
