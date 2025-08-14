@@ -110,7 +110,7 @@ from .raster_classes import *
 from .lonlat import *
 from .parameters import *
 from .utils import *
-from .products import *
 from .input_product_readers import *
 from .validate import *
 from .processing import *
+from .workflows import *
