@@ -462,6 +462,14 @@ class GeoRaster(SARRaster):
         This corresponds to the lower side of the bottom pixels.
     epsg : int
         The EPSG code of the input raster.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the X direction for the
+        input array, starting from the left side of the left-most pixel
+        to the left side of the right-most pixel.
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the Y direction for the
+        input array, starting from the upper edge of the top-most pixel
+        to the upper edge of the bottom-most pixel.
     """
 
     # Attributes of the input array
@@ -498,6 +506,18 @@ class GeoRaster(SARRaster):
     @property
     def x_axis_label(self) -> str:
         return f"X Coordinate, EPSG:{self.epsg} (km)"
+
+    @property
+    def x_coordinates(self) -> np.ndarray:
+        return np.arange(
+            start=self.x_start, stop=self.x_stop, step=self.x_spacing
+        )
+
+    @property
+    def y_coordinates(self) -> np.ndarray:
+        return np.arange(
+            start=self.y_start, stop=self.y_stop, step=self.y_spacing
+        )
 
 
 @overload
