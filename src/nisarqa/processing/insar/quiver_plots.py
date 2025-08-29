@@ -537,10 +537,12 @@ def add_magnitude_image_and_quiver_plot_to_axes(
             )
         )
 
-        # Invert y component because matplotlib.pyplot.quiver follows the
-        # axes convention in the background image (positive y).
-        # But, the offset images follow the top-down convention (negative y),
-        # so we need to invert the values.
+        # NOTE: Invert the Y component because `matplotlib.pyplot.quiver()`
+        # after `matplotlib.pyplot.imshow()` will follow the coordinate
+        # convention of the raster i.e. row index downward.
+        # This is opposite to the coordinate system in which the offset was
+        # defined (i.e. +y upward), so the y offset needs to be inverted
+        # to properly plot the quivers on top of the image.
         y_offsets_at_arrow_tails *= -1
 
     # Add the quiver arrows to the plot.
@@ -670,13 +672,13 @@ def get_offset_values_in_projected_coordinates(
     geo2rdr_params = {} if (geo2rdr_params is None) else geo2rdr_params
 
     # Useful variables for the algorithm
-    num_arrows_x_direction = len(y_coords_values_at_arrow_tails)
-    num_arrows_y_direction = len(x_coords_values_at_arrow_tails)
+    num_arrows_x_direction = len(x_coords_values_at_arrow_tails)
+    num_arrows_y_direction = len(y_coords_values_at_arrow_tails)
     target_in_rdr_matrix = np.zeros(
         (num_arrows_y_direction, num_arrows_x_direction, 2), dtype=np.float64
     )
-    if (rg_offsets_at_arrow_tails.shape[1] != num_arrows_y_direction) or (
-        rg_offsets_at_arrow_tails.shape[0] != num_arrows_x_direction
+    if (rg_offsets_at_arrow_tails.shape[1] != num_arrows_x_direction) or (
+        rg_offsets_at_arrow_tails.shape[0] != num_arrows_y_direction
     ):
         raise ValueError(
             f"{rg_offsets_at_arrow_tails.shape=}, but its dimensions must"
