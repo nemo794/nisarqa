@@ -7,7 +7,9 @@ from functools import cached_property, lru_cache
 from pathlib import Path
 
 import h5py
+import isce3
 import numpy as np
+from scipy import constants
 
 import nisarqa
 
@@ -595,6 +597,65 @@ class NisarProduct(ABC):
             The science frequency for the input product. One of: "A" or "B".
         """
         return "A" if "A" in self.freqs else "B"
+
+    def center_freq(self, freq: str) -> float:
+        """
+        The center frequency for input product's Frequency `freq`.
+
+        Parameters
+        ----------
+        freq : str
+            Must be either "A" or "B".
+
+        Returns
+        -------
+        center_freq : float
+            The center frequency for input product's Frequency `freq`.
+        """
+        center_freq_path = f"{self.get_freq_path(freq=freq)}/centerFrequency"
+        with h5py.File(self.filepath, "r") as f:
+            center_freq = f[center_freq_path][...]
+
+        return center_freq
+
+    def wavelength(self, freq: str) -> float:
+        """
+        The wavelength for input product's Frequency `freq`.
+
+        Parameters
+        ----------
+        freq : str
+            Must be either "A" or "B".
+
+        Returns
+        -------
+        wavelength : float
+            The wavelength for input product's Frequency `freq`.
+        """
+        # Wavelength can be inferred from the centerFrequency dataset
+        # centerFrequency is in units of hertz
+        center_freq = self.center_freq(freq=freq)
+
+        # wavelength = <speed of light> / centerFrequency
+        return constants.c / center_freq
+
+    def ground_track_velocity(self) -> nisarqa.MetadataLUT3D:
+        """
+        Get the ground track velocity metadata cube.
+
+        Returns
+        -------
+        grd_trk_vel : nisarqa.MetadataLUT3D
+            The ground track velocity metadata cube.
+        """
+        grd_trk_path = "/".join(
+            [self._coordinate_grid_metadata_group_path, "groundTrackVelocity"]
+        )
+
+        with h5py.File(self.filepath, "r") as f:
+            grd_trk_vel = self._build_metadata_lut(f=f, ds_arr=f[grd_trk_path])
+
+        return grd_trk_vel
 
     def _check_product_type(self) -> None:
         """

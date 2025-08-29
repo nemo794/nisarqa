@@ -115,11 +115,24 @@ def process_az_and_slant_rg_offsets_from_offset_product(
             freq=freq, pol=pol, layer_num=layer_num
         ) as rg_off,
     ):
+
+        if isinstance(az_off, nisarqa.RadarRaster):
+            proj_params = None
+        else:
+            proj_params = nisarqa.ParamsForAzRgOffsetsToProjected(
+                epsg=product.epsg,
+                orbit=product.get_orbit(ref_or_sec="reference"),
+                wavelength=product.wavelength(freq=freq),
+                lookside=product.look_direction,
+                ground_track_velocity=product.ground_track_velocity(),
+            )
+
         y_dec, x_dec = plot_single_quiver_plot_to_png(
             az_offset=az_off,
             rg_offset=rg_off,
             params=params_quiver,
             png_filepath=browse_png,
+            quiver_projection_params=proj_params,
         )
 
         nisarqa.create_dataset_in_h5group(
@@ -162,6 +175,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                         rg_offset=rg_off,
                         params=params_quiver,
                         report_pdf=report_pdf,
+                        quiver_projection_params=proj_params,
                     )
 
                 # Add final colorbar range processing parameter for this

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 import h5py
+import isce3
 
 import nisarqa
 
@@ -202,6 +203,43 @@ class InsarProduct(NisarProduct):
                 ds_data=list_of_pols,
                 ds_description=f"Polarizations for Frequency {freq}.",
             )
+
+    def _path_to_orbit_grp(self) -> str:
+        """Path in HDF5 to the product's orbit metadata group."""
+        pass
+
+    def get_orbit(self, ref_or_sec: str) -> isce3.core.Orbit:
+        """
+        Get the isce3.core.Orbit for the input granule.
+
+        Parameters
+        ----------
+        ref_or_sec : str
+            One of {"reference", "secondary"}.
+            InSAR granules are generated from two input RSLC granules,
+            referred to as the "reference RSLC" and the "secondary RSLC".
+            Specifiying "reference" will return the Orbit for the
+            reference RSLC, and  specifying "secondary" will
+            return the Orbit for the secondary RSLC.
+
+        Returns
+        -------
+        orbit : isce3.core.Orbit
+            The Orbit for the requested reference or secondary RSLC.
+        """
+
+        if ref_or_sec not in ("reference", "secondary"):
+            raise ValueError(
+                f"{ref_or_sec=}, must be either 'reference' or 'secondary'."
+            )
+
+        orbit_path = "/".join([self._metadata_group_path, "orbit", ref_or_sec])
+        with h5py.File(self.filepath, "r") as f:
+            orbit_grp = f[orbit_path]
+            # where `group` is an `h5py.Group`
+            orbit = isce3.core.load_orbit_from_h5_group(orbit_grp)
+
+        return orbit
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
