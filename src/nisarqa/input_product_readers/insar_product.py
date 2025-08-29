@@ -235,7 +235,18 @@ class InsarProduct(NisarProduct):
 
         orbit_path = "/".join([self._metadata_group_path, "orbit", ref_or_sec])
         with h5py.File(self.filepath, "r") as f:
-            orbit_grp = f[orbit_path]
+            try:
+                orbit_grp = f[orbit_path]
+            except KeyError as e:
+                if nisarqa.Version.from_string(
+                    self.product_spec_version
+                ) < nisarqa.Version.from_string("1.1.1"):
+                    # "reference" and "secondary" orbit sub groups were
+                    # added in product specs 1.1.1
+                    orbit_path = "/".join([self._metadata_group_path, "orbit"])
+                    orbit_grp = f[orbit_path]
+                else:
+                    raise
             # where `group` is an `h5py.Group`
             orbit = isce3.core.load_orbit_from_h5_group(orbit_grp)
 
