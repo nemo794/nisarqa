@@ -609,7 +609,7 @@ class NisarProduct(ABC):
         Returns
         -------
         center_freq : float
-            The center frequency for input product's Frequency `freq`.
+            The center frequency for input product's Frequency `freq`, in hertz.
         """
         center_freq_path = f"{self.get_freq_path(freq=freq)}/centerFrequency"
         with h5py.File(self.filepath, "r") as f:
@@ -629,7 +629,7 @@ class NisarProduct(ABC):
         Returns
         -------
         wavelength : float
-            The wavelength for input product's Frequency `freq`.
+            The wavelength for input product's Frequency `freq`, in meters.
         """
         # Wavelength can be inferred from the centerFrequency dataset
         # centerFrequency is in units of hertz
@@ -652,9 +652,7 @@ class NisarProduct(ABC):
         )
 
         with h5py.File(self.filepath, "r") as f:
-            grd_trk_vel = self._build_metadata_lut(f=f, ds_arr=f[grd_trk_path])
-
-        return grd_trk_vel
+            return self._build_metadata_lut(f=f, ds_arr=f[grd_trk_path])
 
     def _check_product_type(self) -> None:
         """

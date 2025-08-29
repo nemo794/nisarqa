@@ -672,7 +672,7 @@ def decimate_raster_array_to_square_pixels(
     """
     # Decimate to square pixels.
     return decimate_array_to_square_pixels(
-        arr=raster_obj.data[...],
+        arr=np.asarray(raster_obj.data, copy=True),
         y_axis_spacing=raster_obj.y_axis_spacing,
         x_axis_spacing=raster_obj.x_axis_spacing,
     )
@@ -703,7 +703,7 @@ def decimate_raster_array_to_square_pixels_with_strides(
     """
     # Decimate to square pixels.
     return decimate_array_to_square_pixels_with_strides(
-        arr=raster_obj.data[...],
+        arr=np.asarray(raster_obj.data, copy=True),
         y_axis_spacing=raster_obj.y_axis_spacing,
         x_axis_spacing=raster_obj.x_axis_spacing,
     )
@@ -728,7 +728,7 @@ def decimate_array_to_square_pixels(
     Returns
     -------
     out : numpy.ndarray
-        Copy of `arr` that has been decimated along the first two
+        View of `arr` that has been decimated along the first two
         dimensions to have approx. square pixels.
     """
     out, _, _ = decimate_array_to_square_pixels_with_strides(
@@ -757,10 +757,10 @@ def decimate_array_to_square_pixels_with_strides(
     Returns
     -------
     out : numpy.ndarray
-        Copy of `arr` that has been decimated along the first two
+        View of `arr` that has been decimated along the first two
         dimensions to have approx. square pixels.
     ky, kx : int
-        The stride used for performing decimation in the X and Y directions,
+        The stride used for performing decimation in the Y and X directions,
         respectively.
     """
     arr = np.copy(arr)

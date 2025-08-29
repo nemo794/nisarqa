@@ -204,18 +204,13 @@ class InsarProduct(NisarProduct):
                 ds_description=f"Polarizations for Frequency {freq}.",
             )
 
-    def _path_to_orbit_grp(self) -> str:
-        """Path in HDF5 to the product's orbit metadata group."""
-        pass
-
     def get_orbit(self, ref_or_sec: str) -> isce3.core.Orbit:
         """
-        Get the isce3.core.Orbit for the input granule.
+        Get the orbit of the specified input RSLC for the input granule.
 
         Parameters
         ----------
-        ref_or_sec : str
-            One of {"reference", "secondary"}.
+        ref_or_sec : {"reference", "secondary"}
             InSAR granules are generated from two input RSLC granules,
             referred to as the "reference RSLC" and the "secondary RSLC".
             Specifiying "reference" will return the Orbit for the
@@ -247,7 +242,6 @@ class InsarProduct(NisarProduct):
                     orbit_grp = f[orbit_path]
                 else:
                     raise
-            # where `group` is an `h5py.Group`
             orbit = isce3.core.load_orbit_from_h5_group(orbit_grp)
 
         return orbit
