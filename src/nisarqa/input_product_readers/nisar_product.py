@@ -7,7 +7,6 @@ from functools import cached_property, lru_cache
 from pathlib import Path
 
 import h5py
-import isce3
 import numpy as np
 from scipy import constants
 

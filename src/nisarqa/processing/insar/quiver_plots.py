@@ -4,7 +4,7 @@ import functools
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, overload
+from typing import overload
 
 import isce3
 import matplotlib as mpl
@@ -30,7 +30,7 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-    quiver_projection_params: None,
+    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[float, float]: ...
 
 
@@ -40,14 +40,12 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-    quiver_projection_params: (
-        None | nisarqa.ParamsForAzRgOffsetsToProjected
-    ) = None,
+    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[float, float]: ...
 
 
 def plot_offsets_quiver_plot_to_pdf(
-    az_offset, rg_offset, params, report_pdf, quiver_projection_params
+    az_offset, rg_offset, params, report_pdf, quiver_projection_params=None
 ):
     """
     Process and save a single quiver plot to PDF.
@@ -86,12 +84,12 @@ def plot_offsets_quiver_plot_to_pdf(
 
     Notes
     -----
-    NISAR GOFF and GUNW pixel along track and slant offsets rasters are
-    geocoded, but their pixel values represent the offset in azimuth
-    and slant range directions (respectively). Because of this, if the
-    `az_offset` and `rg_offset` come from one of these product types,
-    then if `quiver_projection_params` is set to None, the quiver arrows
-    will not be plot in the correct direction/magnitude for the
+    NISAR GOFF and GUNW along track and slant range offsets rasters are
+    geocoded to projected coordinates, but their pixel values represent the
+    offset in azimuth and slant range directions (respectively).
+    Because of this, if `az_offset` and `rg_offset` come from GOFF or GUNW,
+    and if `quiver_projection_params` is set to None, then the quiver arrows
+    will not be plotted in the correct direction/magnitude for the
     projected X/Y image grid (i.e. they'll point the wrong direction).
     """
     # Validate input rasters
@@ -163,8 +161,8 @@ def plot_offsets_quiver_plot_to_pdf(
         az_off=az_off,
         rg_off=rg_off,
         params=params,
-        y_coordinates=y_coords,
         x_coordinates=x_coords,
+        y_coordinates=y_coords,
         quiver_projection_params=quiver_projection_params,
     )
 
@@ -196,9 +194,7 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     png_filepath: str | os.PathLike,
-    quiver_projection_params: (
-        None | nisarqa.ParamsForAzRgOffsetsToProjected
-    ) = None,
+    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[int, int]: ...
 
 
@@ -208,14 +204,12 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.GeoRaster,
     params: nisarqa.QuiverParamGroup,
     png_filepath: str | os.PathLike,
-    quiver_projection_params: (
-        None | nisarqa.ParamsForAzRgOffsetsToProjected
-    ) = None,
+    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[int, int]: ...
 
 
 def plot_single_quiver_plot_to_png(
-    az_offset, rg_offset, params, png_filepath, quiver_projection_params
+    az_offset, rg_offset, params, png_filepath, quiver_projection_params=None
 ):
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
@@ -232,13 +226,35 @@ def plot_single_quiver_plot_to_png(
         A structure containing processing parameters to generate quiver plots.
     png_filepath : path-like
         Filename (with path) for the image PNG.
-    quiver_projection_params :
+    quiver_projection_params : None or ParamsForAzRgOffsetsToProjected, optional
+        ** Strongly Recommended for GOFF and GUNW **
+        If None, or if offsets arrays are nisarqa.RadarRaster, this will
+        be ignored. Set this to None if the contents of the offset rasters
+        use the same coordinate grid as the raster image (e.g. both are
+        azimuth/range grid, such as for ROFF, RIFG, and RUNW).
+        If offsets arrays are nisarqa.GeoRaster and these parameters are
+        are provided, they will be used to modify the quiver arrows to
+        represent the total magnitude and direction of offset on the
+        projected coordinate grid. Note: The colormapped offset rasters
+        will still be plotted to represent total offset in az/range direction;
+        only the quiver arrows will be modified.
+        Defaults to None.
 
     Returns
     -------
     y_dec, x_dec : int
         The decimation stride value used in the Y axis direction and X axis
         direction (respectively).
+
+    Notes
+    -----
+    NISAR GOFF and GUNW along track and slant range offsets rasters are
+    geocoded to projected coordinates, but their pixel values represent the
+    offset in azimuth and slant range directions (respectively).
+    Because of this, if `az_offset` and `rg_offset` come from GOFF or GUNW,
+    and if `quiver_projection_params` is set to None, then the quiver arrows
+    will not be plotted in the correct direction/magnitude for the
+    projected X/Y image grid (i.e. they'll point the wrong direction).
     """
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
@@ -310,11 +326,11 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     az_off: np.ndarray,
     rg_off: np.ndarray,
     params: nisarqa.QuiverParamGroup,
-    x_coordinates: None | np.ndarray,
-    y_coordinates: None | np.ndarray,
     quiver_projection_params: (
         None | nisarqa.ParamsForAzRgOffsetsToProjected
     ) = None,
+    x_coordinates: None | np.ndarray = None,
+    y_coordinates: None | np.ndarray = None,
 ) -> tuple[mpl.AxesImage, float, float]:
     """
     Compute the total offset magnitude and add as a quiver plot to an Axes.
@@ -341,23 +357,22 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         ** Strongly Recommend providing parameters for GOFF and GUNW **
         If None, this will be ignored. Set this to None if the contents of
         the offset rasters use the same coordinate grid as the raster image
-        (e.g. both are range Doppler grid, such as for ROFF, RIFG, and RUNW).
+        (e.g. both are range Doppler coordinates, such as ROFF, RIFG, and RUNW).
         If provided, function assumes `az_off` and `rg_off` are in projected
         coordinates but their contents represent offsets in azimuth and slant
         range (respectively); this is the case for GOFF and GUNW.
-        These parameters should correspond to `az_off` and `rg_off`.
         These parameters will be used to modify the quiver arrows to
         represent the magnitude and direction of total offset on the
         projected coordinate grid. The colormapped offset rasters will
         still be plotted to represent total offset in az/range direction;
         only the quiver arrows will be modified.
-    x_coordinates, y_coordinates : None or array_like, optional
-        1D vectors of the X and Y coordinates (respectively) for
+        These parameters should correspond to `az_off` and `rg_off`.
+    x_coordinates, y_coordinates : None or numpy.ndarray, optional
+        1D arrays of the X and Y coordinates (respectively) for
         `rg_offsets` and `az_offsets`.
         If `quiver_projection_params` is None, these are ignored.
         If `quiver_projection_params` is not None, these are required to
-        be ArrayLike.
-        Defaults to None.
+        be arrays. Defaults to None.
 
     Returns
     -------
@@ -511,7 +526,7 @@ def add_magnitude_image_and_quiver_plot_to_axes(
             )
 
         x_offsets_at_arrow_tails, y_offsets_at_arrow_tails = (
-            _get_offset_values_in_projected_coordinates(
+            get_offset_values_in_projected_coordinates(
                 az_offsets=az_offsets_at_arrow_tails,
                 rg_offsets=rg_offsets_at_arrow_tails,
                 x_coordinates=x_coordinates[::arrow_stride],
@@ -529,9 +544,9 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         pixel_indices_of_arrow_tails_in_x_direction,
         # starting pixel index in y direction for each arrow tail
         pixel_indices_of_arrow_tails_in_y_direction,
-        # ending x direction offset for each arrow vector
+        # x direction offset for each arrow's tip
         x_offsets_at_arrow_tails * arrow_stride,
-        # ending y direction offset for each arrow vector
+        # y direction offset for each arrow's tip
         y_offsets_at_arrow_tails * arrow_stride,
         angles="xy",
         scale_units="xy",
@@ -549,10 +564,11 @@ class ParamsForAzRgOffsetsToProjected:
     Parameters to convert geocoded offsets values from az/range to projected.
 
     For e.g. GOFF and GUNW, the along track offsets and slant range offsets
-    rasters are geocoded (in projected coordinates), but their pixels'
+    rasters are geocoded to projected coordinates, but their pixels'
     values represent offsets in azimuth and slant range directions (in meters).
     These parameters are needed to rotate/scale the pixel values from
-    azimuth and slant range directions into the projected coordinates.
+    azimuth and slant range directions into the X/Y directions of the projected
+    coordinates.
 
     Parameters
     ----------
@@ -589,7 +605,7 @@ class ParamsForAzRgOffsetsToProjected:
     geo2rdr_params: Mapping[str, float] | None = None
 
 
-def _get_offset_values_in_projected_coordinates(
+def get_offset_values_in_projected_coordinates(
     az_offsets: np.ndarray,
     rg_offsets: np.ndarray,
     x_coordinates: None | np.ndarray,
@@ -597,6 +613,15 @@ def _get_offset_values_in_projected_coordinates(
     projection_params: nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
+    Convert pixel values from offset in az/range to offset in projected X/Y.
+
+    For the along-track and slant range offsets raster in NISAR GOFF and GUNW
+    products, the raster images are geocoded to projected coordinates but
+    their pixel values represent offsets in azimuth and slant range directions
+    (respectively) in meters.
+    This function will convert the values from offset amount in azimuth
+    and slant range directions to the offset in the X and Y directions
+    of the projected image grid.
 
     Parameters
     ----------
@@ -609,7 +634,7 @@ def _get_offset_values_in_projected_coordinates(
         Array should be geocoded, but the pixel values should represent
         offset in along azimuth direction (in meters).
     x_coords, y_coords : numpy.ndarray
-        1D vector of the X and Y coordinates (respectively) for
+        1D array of the X and Y coordinates (respectively) for
         `rg_offsets` and `az_offsets`.
     projection_params : ParamsForAzRgOffsetsToProjected
         Parameters used to convert the offsets rasters' pixel values from
@@ -620,7 +645,7 @@ def _get_offset_values_in_projected_coordinates(
     -------
     offset_in_x_direction, offset_in_y_direction : numpy.ndarray
         2D array of the offset values in X and Y direction (respectively)
-        in the projected coordinates.
+        of the projected coordinate grid.
     """
 
     # Variable renaming and unpacking
@@ -652,7 +677,7 @@ def _get_offset_values_in_projected_coordinates(
         )
 
     # For projected coordinate point (x_0, y_0) at each arrow tail,
-    # the basic algorithm is:
+    # the basic algorithm to convert is:
     # 1) Convert (x_0, y_0) from projected coordinates into LLH
     # 2) Run rdr2geo on the (x_0, y_0) LLH
     # 3) Use the az/rng offset values (in meters) at the coordinate
@@ -722,6 +747,8 @@ def _get_offset_values_in_projected_coordinates(
         x_coords_values_at_arrow_tails, y_coords_values_at_arrow_tails
     )
 
+    # Constructing the interpolator is an expensive operation (1-2 seconds),
+    # so do this outside of the for loops.
     grd_trk_vel_at_arrow_tail = nisarqa.interpolate_points_in_metadata_cube(
         data=ground_track_velocity.data,
         height_coordinates=ground_track_velocity.z_coord_vector,

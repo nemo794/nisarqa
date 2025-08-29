@@ -887,7 +887,7 @@ def interpolate_points_in_metadata_cube(
     method: str = "cubic",
 ) -> np.ndarray:
     """
-    Interpolates value at (h, y, x) from a 3D data cube.
+    Interpolate value of each point (h, y, x) from a 3D data cube.
 
     Parameters
     ----------
@@ -919,7 +919,8 @@ def interpolate_points_in_metadata_cube(
     Returns
     -------
     interp_points : np.ndarray with shape (m,p)
-        Interpolated value of `data` at each point (h, y, x).
+        Array containing the interpolated value of `data` at each point
+        (h, y, x).
     """
     log = nisarqa.get_logger()
 

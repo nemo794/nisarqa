@@ -117,8 +117,13 @@ def process_az_and_slant_rg_offsets_from_offset_product(
     ):
 
         if isinstance(az_off, nisarqa.RadarRaster):
+            # Set `proj_params` to None. Otherwise, the downstream functions
+            # will project the quiver arrows, which we don't want for ROFF
             proj_params = None
         else:
+            # Construct the `proj_params` object. This will trigger
+            # downstream functions to modify the quiver arrows for the
+            # input product's projected coordinates.
             proj_params = nisarqa.ParamsForAzRgOffsetsToProjected(
                 epsg=product.epsg,
                 orbit=product.get_orbit(ref_or_sec="reference"),
