@@ -763,7 +763,6 @@ def decimate_array_to_square_pixels_with_strides(
         The stride used for performing decimation in the Y and X directions,
         respectively.
     """
-    arr = np.copy(arr)
 
     ky, kx = nisarqa.compute_square_pixel_nlooks(
         img_shape=arr.shape[:2],

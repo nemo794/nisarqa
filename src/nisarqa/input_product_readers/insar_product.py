@@ -236,8 +236,14 @@ class InsarProduct(NisarProduct):
                 if nisarqa.Version.from_string(
                     self.product_spec_version
                 ) < nisarqa.Version.from_string("1.1.1"):
-                    # "reference" and "secondary" orbit sub groups were
-                    # added in product specs 1.1.1
+                    # Prior to product specs 1.1.1, InSAR products contained
+                    # only one orbit group (the orbit for the reference RSLC).
+                    if ref_or_sec == "secondary":
+                        raise ValueError(
+                            "Input granule only contains one orbit group which"
+                            " corresponds to the reference RSLC, but the orbit"
+                            " for the secondary RSLC was requested."
+                        )
                     orbit_path = "/".join([self._metadata_group_path, "orbit"])
                     orbit_grp = f[orbit_path]
                 else:
@@ -245,6 +251,47 @@ class InsarProduct(NisarProduct):
             orbit = isce3.core.load_orbit_from_h5_group(orbit_grp)
 
         return orbit
+
+    def center_freq(self, freq: str) -> float:
+        """
+        The center frequency for input product's Frequency `freq`.
+
+        Parameters
+        ----------
+        freq : str
+            Must be either "A" or "B".
+
+        Returns
+        -------
+        center_freq : float
+            The center frequency for input product's Frequency `freq`, in hertz.
+        """
+        center_freq_path = f"{self.get_freq_path(freq=freq)}/centerFrequency"
+        with h5py.File(self.filepath, "r") as f:
+            center_freq = f[center_freq_path][...]
+
+        return center_freq
+
+    def wavelength(self, freq: str) -> float:
+        """
+        The wavelength for input product's Frequency `freq`.
+
+        Parameters
+        ----------
+        freq : str
+            Must be either "A" or "B".
+
+        Returns
+        -------
+        wavelength : float
+            The wavelength for input product's Frequency `freq`, in meters.
+        """
+        # Wavelength can be inferred from the centerFrequency dataset
+        # centerFrequency is in units of hertz
+        center_freq = self.center_freq(freq=freq)
+
+        # wavelength = <speed of light> / centerFrequency
+        return isce3.core.speed_of_light / center_freq
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
