@@ -510,12 +510,14 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     # Determine the offsets in the image grid's X and Y directions
 
     if quiver_projection_params is None:
+        # ROFF, RIFG, RUNW
         # For L1 (ROFF, etc), `az_offsets_at_arrow_tails` indicates how many
         # meters to offset in the image grid's y-direction (aka along-track).
         # (Similar reasoning for slant range offsets and the x-direction.)
         y_offsets_at_arrow_tails = az_offsets_at_arrow_tails
         x_offsets_at_arrow_tails = rg_offsets_at_arrow_tails
     else:
+        # GOFF, GUNW
         # For L2 (GOFF, etc), `az_offsets_at_arrow_tails` indicates how many
         # meters to offset in the satellite's along-track direction, which
         # is NOT the same as the image grid's y-direction. So, do conversion.
@@ -534,6 +536,12 @@ def add_magnitude_image_and_quiver_plot_to_axes(
                 projection_params=quiver_projection_params,
             )
         )
+
+        # Invert y component because matplotlib.pyplot.quiver follows the
+        # axes convention in the background image (positive y).
+        # But, the offset images follow the top-down convention (negative y),
+        # so we need to invert the values.
+        y_offsets_at_arrow_tails *= -1
 
     # Add the quiver arrows to the plot.
     # Multiply the start and end points for each arrow by the decimation factor;
