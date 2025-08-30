@@ -586,7 +586,7 @@ class ParamsForAzRgOffsetsToProjected:
         EPSG of the offsets arrays and coordinate vectors.
     orbit : isce3.core.Orbit
         The trajectory of the radar antenna phase center over a time interval
-        that includes the observation times of each point in `geo_pts`.
+        that includes the observation times of each point offset pixel.
     look_side : isce3.core.LookSide or {'left', 'right'}
         The look direction of the input product (left-looking or right-looking).
     wavelength : float
@@ -610,7 +610,7 @@ class ParamsForAzRgOffsetsToProjected:
     epsg: int
     orbit: isce3.core.Orbit
     wavelength: float
-    lookside: isce3.core.LookSide | str
+    look_side: isce3.core.LookSide | str
     ground_track_velocity: nisarqa.MetadataLUT3D
     geo2rdr_params: Mapping[str, float] | None = None
 
@@ -666,7 +666,7 @@ def get_offset_values_in_projected_coordinates(
     epsg = projection_params.epsg
     orbit = projection_params.orbit
     wavelength = projection_params.wavelength
-    lookside = projection_params.lookside
+    look_side = projection_params.look_side
     ground_track_velocity = projection_params.ground_track_velocity
     geo2rdr_params = projection_params.geo2rdr_params
     geo2rdr_params = {} if (geo2rdr_params is None) else geo2rdr_params
@@ -741,7 +741,7 @@ def get_offset_values_in_projected_coordinates(
                 # NISAR products are zero-Doppler, so construct a zero-Doppler LUT
                 doppler=isce3.core.LUT2d(),
                 wavelength=wavelength,
-                side=lookside,
+                side=look_side,
                 **geo2rdr_params,
             )
             target_in_rdr_matrix[i, j, 0] = aztime
@@ -809,7 +809,7 @@ def get_offset_values_in_projected_coordinates(
                     # slant range in meters
                     slant_range=target_in_rdr_matrix[i, j, 1],
                     orbit=orbit,
-                    side=lookside,
+                    side=look_side,
                     # Here, doppler is a scalar value -- not a LUT. Because
                     # we know the target azimuth/range coordinates so we don't
                     # need Doppler as a function of range & azimuth, it can
