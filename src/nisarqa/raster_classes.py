@@ -414,7 +414,108 @@ class RadarRaster(SARRaster):
 
 
 @dataclass
-class GeoRaster(SARRaster):
+class GeoGrid:
+    """
+    Attributes specific to Geocoded products that define the geo grid.
+
+    The attributes specified here are based on the needs of the QA code
+    for generating and labeling plots, etc.
+
+    Parameters
+    ----------
+    epsg : int
+        The EPSG code of the input raster.
+    x_spacing : float
+        X spacing of pixels (in meters) of input array.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the X direction for the
+        input array, starting from the left side of the left-most pixel
+        to the left side of the right-most pixel.
+    y_spacing : float
+        Y spacing of pixels (in meters) of input array
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the Y direction for the
+        input array, starting from the upper edge of the top-most pixel
+        to the upper edge of the bottom-most pixel.
+
+    Attributes
+    ----------
+    x_start : float
+        The starting (West) X position of the input array
+        This corresponds to the left side of the left-most pixels.
+    x_stop : float
+        The stopping (East) X position of the input array
+        This corresponds to the right side of the right-most pixels.
+    y_start : float
+        The starting (North) Y position of the input array
+        This corresponds to the upper edge of the top pixels.
+    y_stop : float
+        The stopping (South) Y position of the input array
+        This corresponds to the lower side of the bottom pixels.
+
+    Notes
+    -----
+    Provided initialization parameters will also be stored as attributes.
+    """
+
+    epsg: int
+
+    x_spacing: float
+    x_coordinates: np.ndarray
+
+    y_spacing: float
+    y_coordinates: np.ndarray
+
+    x_start: float = field(init=False)
+    x_stop: float = field(init=False)
+    y_start: float = field(init=False)
+    y_stop: float = field(init=False)
+
+    def __post_init__(self):
+        # Infer start and stop values
+        self.x_start = float(self.x_coordinates[0])
+
+        # X in meters (units are specified as meters in the product spec)
+        # For NISAR, geocoded grids are referenced by the upper-left corner
+        # of the pixel to match GDAL conventions. So add the distance of
+        # the pixel's side to far right side to get the actual stop value.
+        self.x_stop = float(self.x_coordinates[-1] + self.x_axis_spacing)
+
+        self.y_start = float(self.y_coordinates[0])
+
+        # Y in meters (units are specified as meters in the product spec)
+        # For NISAR, geocoded grids are referenced by the upper-left corner
+        # of the pixel to match GDAL conventions. So add the distance of
+        # the pixel's side to bottom to get the actual stop value.
+        self.y_stop = float(self.y_coordinates[-1] + self.y_axis_spacing)
+
+    @property
+    def y_axis_spacing(self):
+        return self.y_spacing
+
+    @property
+    def y_axis_limits(self) -> tuple[float, float]:
+        return (nisarqa.m2km(self.y_start), nisarqa.m2km(self.y_stop))
+
+    @property
+    def y_axis_label(self) -> str:
+        return f"Y Coordinate, EPSG:{self.epsg} (km)"
+
+    @property
+    def x_axis_spacing(self):
+        return self.x_spacing
+
+    @property
+    def x_axis_limits(self) -> tuple[float, float]:
+        return (nisarqa.m2km(self.x_start), nisarqa.m2km(self.x_stop))
+
+    @property
+    def x_axis_label(self) -> str:
+        return f"X Coordinate, EPSG:{self.epsg} (km)"
+
+
+@dataclass
+class GeoRaster(GeoGrid, SARRaster):
     """
     A Raster with attributes specific to Geocoded products.
 
@@ -423,8 +524,22 @@ class GeoRaster(SARRaster):
 
     Parameters
     ----------
+    epsg : int
+        The EPSG code of the input raster.
+    x_spacing : float
+        X spacing of pixels (in meters) of input array.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the X direction for the
+        input array, starting from the left side of the left-most pixel
+        to the left side of the right-most pixel.
+    y_spacing : float
+        Y spacing of pixels (in meters) of input array
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the Y direction for the
+        input array, starting from the upper edge of the top-most pixel
+        to the upper edge of the bottom-most pixel.
     data : array_like
-        Raster data to be stored.
+        Raster data to be stored, aka the input array.
     units : str
         The units of the data. If `data` is numeric but unitless (e.g ratios),
         by NISAR convention please use the string "1".
@@ -444,69 +559,30 @@ class GeoRaster(SARRaster):
         name of the band for `data`, e.g. 'LSAR'
     freq : str
         name of the frequency for `data`, e.g. 'A' or 'B'
-    x_spacing : float
-        X spacing of pixels (in meters) of input array.
+
+    Attributes
+    ----------
     x_start : float
         The starting (West) X position of the input array
         This corresponds to the left side of the left-most pixels.
-        (Will be inferred from `x_coordinates`.)
     x_stop : float
         The stopping (East) X position of the input array
         This corresponds to the right side of the right-most pixels.
-        (Will be inferred from `x_coordinates`.)
-    y_spacing : float
-        Y spacing of pixels (in meters) of input array
     y_start : float
         The starting (North) Y position of the input array
         This corresponds to the upper edge of the top pixels.
-        (Will be inferred from `y_coordinates`.)
     y_stop : float
         The stopping (South) Y position of the input array
         This corresponds to the lower side of the bottom pixels.
-        (Will be inferred from `y_coordinates`.)
-    epsg : int
-        The EPSG code of the input raster.
-    x_coordinates : numpy.ndarray
-        1D vector of the coordinate values in the X direction for the
-        input array, starting from the left side of the left-most pixel
-        to the left side of the right-most pixel.
-    y_coordinates : numpy.ndarray
-        1D vector of the coordinate values in the Y direction for the
-        input array, starting from the upper edge of the top-most pixel
-        to the upper edge of the bottom-most pixel.
+
+    Notes
+    -----
+    All initialization parameters will also be stored as attributes.
     """
 
-    # Attributes of the input array
-    x_spacing: float
-    x_start: float = field(init=False)
-    x_stop: float = field(init=False)
-
-    y_spacing: float
-    y_start: float = field(init=False)
-    y_stop: float = field(init=False)
-
-    epsg: int
-
-    x_coordinates: np.ndarray
-    y_coordinates: np.ndarray
-
     def __post_init__(self):
-        # Infer start and stop values
-        self.x_start = float(self.x_coordinates[0])
-
-        # X in meters (units are specified as meters in the product spec)
-        # For NISAR, geocoded grids are referenced by the upper-left corner
-        # of the pixel to match GDAL conventions. So add the distance of
-        # the pixel's side to far right side to get the actual stop value.
-        self.x_stop = float(self.x_coordinates[-1] + self.x_axis_spacing)
-
-        self.y_start = float(self.y_coordinates[0])
-
-        # Y in meters (units are specified as meters in the product spec)
-        # For NISAR, geocoded grids are referenced by the upper-left corner
-        # of the pixel to match GDAL conventions. So add the distance of
-        # the pixel's side to bottom to get the actual stop value.
-        self.y_stop = float(self.y_coordinates[-1] + self.y_axis_spacing)
+        # Initialize the start and stop attributes
+        super().__post_init__()
 
     @property
     def y_axis_spacing(self):
@@ -973,27 +1049,42 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
         Name of the band for `img`, e.g. 'LSAR'
     freq : str
         Name of the frequency for `img`, e.g. 'A' or 'B'
+    epsg : int
+        The EPSG code of the input raster.
     x_spacing : float
         X spacing of pixels (in meters) of input array.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the X direction for the
+        input array, starting from the left side of the left-most pixel
+        to the left side of the right-most pixel.
+    y_spacing : float
+        Y spacing of pixels (in meters) of input array
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the Y direction for the
+        input array, starting from the upper edge of the top-most pixel
+        to the upper edge of the bottom-most pixel.
+    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
+        Statistics of the `data` array.
+
+    Attributes
+    ----------
     x_start : float
         The starting (West) X position of the input array
         This corresponds to the left side of the left-most pixels.
     x_stop : float
         The stopping (East) X position of the input array
         This corresponds to the right side of the right-most pixels.
-    y_spacing : float
-        Y spacing of pixels (in meters) of input array
     y_start : float
         The starting (North) Y position of the input array
         This corresponds to the upper edge of the top pixels.
     y_stop : float
         The stopping (South) Y position of the input array
         This corresponds to the lower side of the bottom pixels.
-    stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
-        Statistics of the `data` array.
     """
 
-    ...
+    def __post_init__(self):
+        # Initialize the start and stop attributes
+        super().__post_init__()
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
