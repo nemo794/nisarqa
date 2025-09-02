@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from functools import cached_property
 from typing import Any, Optional, Sequence, overload
 
@@ -449,17 +449,21 @@ class GeoRaster(SARRaster):
     x_start : float
         The starting (West) X position of the input array
         This corresponds to the left side of the left-most pixels.
+        (Will be inferred from `x_coordinates`.)
     x_stop : float
         The stopping (East) X position of the input array
         This corresponds to the right side of the right-most pixels.
+        (Will be inferred from `x_coordinates`.)
     y_spacing : float
         Y spacing of pixels (in meters) of input array
     y_start : float
         The starting (North) Y position of the input array
         This corresponds to the upper edge of the top pixels.
+        (Will be inferred from `y_coordinates`.)
     y_stop : float
         The stopping (South) Y position of the input array
         This corresponds to the lower side of the bottom pixels.
+        (Will be inferred from `y_coordinates`.)
     epsg : int
         The EPSG code of the input raster.
     x_coordinates : numpy.ndarray
@@ -474,12 +478,35 @@ class GeoRaster(SARRaster):
 
     # Attributes of the input array
     x_spacing: float
+    x_start: float = field(init=False)
+    x_stop: float = field(init=False)
+
     y_spacing: float
+    y_start: float = field(init=False)
+    y_stop: float = field(init=False)
 
     epsg: int
 
     x_coordinates: np.ndarray
     y_coordinates: np.ndarray
+
+    def __post_init__(self):
+        # Infer start and stop values
+        self.x_start = float(self.x_coordinates[0])
+
+        # X in meters (units are specified as meters in the product spec)
+        # For NISAR, geocoded grids are referenced by the upper-left corner
+        # of the pixel to match GDAL conventions. So add the distance of
+        # the pixel's side to far right side to get the actual stop value.
+        self.x_stop = float(self.x_coordinates[-1] + self.x_axis_spacing)
+
+        self.y_start = float(self.y_coordinates[0])
+
+        # Y in meters (units are specified as meters in the product spec)
+        # For NISAR, geocoded grids are referenced by the upper-left corner
+        # of the pixel to match GDAL conventions. So add the distance of
+        # the pixel's side to bottom to get the actual stop value.
+        self.y_stop = float(self.y_coordinates[-1] + self.y_axis_spacing)
 
     @property
     def y_axis_spacing(self):
@@ -504,30 +531,6 @@ class GeoRaster(SARRaster):
     @property
     def x_axis_label(self) -> str:
         return f"X Coordinate, EPSG:{self.epsg} (km)"
-
-    @property
-    def x_start(self) -> float:
-        return float(self.x_coordinates[0])
-
-    @property
-    def x_stop(self) -> float:
-        # X in meters (units are specified as meters in the product spec)
-        # For NISAR, geocoded grids are referenced by the upper-left corner
-        # of the pixel to match GDAL conventions. So add the distance of
-        # the pixel's side to far right side to get the actual stop value.
-        return float(self.x_coordinates[-1] + self.x_axis_spacing)
-
-    @property
-    def y_start(self) -> float:
-        return float(self.y_coordinates[0])
-
-    @property
-    def y_stop(self) -> float:
-        # Y in meters (units are specified as meters in the product spec)
-        # For NISAR, geocoded grids are referenced by the upper-left corner
-        # of the pixel to match GDAL conventions. So add the distance of
-        # the pixel's side to bottom to get the actual stop value.
-        return float(self.y_coordinates[-1] + self.y_axis_spacing)
 
 
 @overload
