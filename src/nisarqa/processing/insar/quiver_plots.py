@@ -801,42 +801,42 @@ def get_offset_values_in_projected_coordinates(
             if not np.isfinite(aztime) or not np.isfinite(srange):
                 x_tail_coords_shifted[i, j] = np.nan
                 y_tail_coords_shifted[i, j] = np.nan
+                continue
 
-            else:
-                xyz = isce3.geometry.rdr2geo_bracket(
-                    # az time in seconds since orbit.reference_epoch
-                    aztime=target_in_rdr_matrix[i, j, 0],
-                    # slant range in meters
-                    slant_range=target_in_rdr_matrix[i, j, 1],
-                    orbit=orbit,
-                    side=look_side,
-                    # Here, doppler is a scalar value -- not a LUT. Because
-                    # we know the target azimuth/range coordinates so we don't
-                    # need Doppler as a function of range & azimuth, it can
-                    # just be a scalar value. Since we care about the Doppler
-                    # of the image grid, use 0.0.
-                    doppler=0.0,
-                    # Technically the wavelength is not needed here since
-                    # Doppler is zero and the wavelength is just multiplied
-                    # by the Doppler. But since we already need the wavelength
-                    # for geo2rdr, might as well use it.
-                    wavelength=wavelength,
-                    # Ideally we would use the actual DEM, but we don't have
-                    # this information available so use a zero-height DEM.
-                    dem=isce3.geometry.DEMInterpolator(),
-                )
+            xyz = isce3.geometry.rdr2geo_bracket(
+                # az time in seconds since orbit.reference_epoch
+                aztime=target_in_rdr_matrix[i, j, 0],
+                # slant range in meters
+                slant_range=target_in_rdr_matrix[i, j, 1],
+                orbit=orbit,
+                side=look_side,
+                # Here, doppler is a scalar value -- not a LUT. Because
+                # we know the target azimuth/range coordinates so we don't
+                # need Doppler as a function of range & azimuth, it can
+                # just be a scalar value. Since we care about the Doppler
+                # of the image grid, use 0.0.
+                doppler=0.0,
+                # Technically the wavelength is not needed here since
+                # Doppler is zero and the wavelength is just multiplied
+                # by the Doppler. But since we already need the wavelength
+                # for geo2rdr, might as well use it.
+                wavelength=wavelength,
+                # Ideally we would use the actual DEM, but we don't have
+                # this information available so use a zero-height DEM.
+                dem=isce3.geometry.DEMInterpolator(),
+            )
 
-                # Once again, ignore the returned height
-                lon, lat, _ = ellipsoid.xyz_to_lon_lat(xyz)
+            # Once again, ignore the returned height
+            lon, lat, _ = ellipsoid.xyz_to_lon_lat(xyz)
 
-                # 5) Convert shifted LLH (x_1, y_1) back into projected
-                #    coordinates
-                # To convert from LLH back to the projected coordinates of the
-                # input arrays, use the forward() method of the same `proj`
-                # object we created above.
-                xyz = proj.forward([lon, lat, 0])
-                x_tail_coords_shifted[i, j] = xyz[0]
-                y_tail_coords_shifted[i, j] = xyz[1]
+            # 5) Convert shifted LLH (x_1, y_1) back into projected
+            #    coordinates
+            # To convert from LLH back to the projected coordinates of the
+            # input arrays, use the forward() method of the same `proj`
+            # object we created above.
+            xyz = proj.forward([lon, lat, 0])
+            x_tail_coords_shifted[i, j] = xyz[0]
+            y_tail_coords_shifted[i, j] = xyz[1]
 
     # 6) Compute new offset values in projected coordinates:
     #       (x_1 - x_0, y_1 - y_0)
