@@ -777,7 +777,7 @@ def decimate_raster_array_to_square_pixels_with_strides(
         Copy of raster_obj.data array that has been decimated along the
         first two dimensions to have approx. square pixels.
     ky, kx : int
-        The stride used for performing decimation in the X and Y directions,
+        The stride used for performing decimation in the Y and X directions,
         respectively.
     """
     # Decimate to square pixels.

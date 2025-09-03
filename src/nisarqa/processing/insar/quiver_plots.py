@@ -30,7 +30,6 @@ def plot_offsets_quiver_plot_to_pdf(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     report_pdf: PdfPages,
-    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[float, float]: ...
 
 
@@ -63,17 +62,16 @@ def plot_offsets_quiver_plot_to_pdf(
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the quiver plot to.
     quiver_projection_params : None or ParamsForAzRgOffsetsToProjected, optional
-        ** Strongly Recommended for GOFF and GUNW **
-        If None, or if offsets arrays are nisarqa.RadarRaster, this will
-        be ignored. Set this to None if the contents of the offset rasters
-        use the same coordinate grid as the raster image (e.g. both are
+        ** Strongly Recommend providing parameters for GOFF and GUNW **
+        Set to None if the contents of the offset rasters use the same
+        coordinate grid as the raster image (e.g. both are
         azimuth/range grid, such as for ROFF, RIFG, and RUNW).
         If offsets arrays are nisarqa.GeoRaster and these parameters are
         are provided, they will be used to modify the quiver arrows to
-        represent the total magnitude and direction of offset on the
-        projected coordinate grid. Note: The colormapped offset rasters
-        will still be plotted to represent total offset in az/range direction;
-        only the quiver arrows will be modified.
+        represent displacement direction and relative magnitude in
+        projected coordinates. Note: the plotted image (and colorbar) will
+        represent displacement magnitude in radar coordinates;
+        only the quiver arrows will be projected.
         Defaults to None.
 
     Returns
@@ -89,8 +87,8 @@ def plot_offsets_quiver_plot_to_pdf(
     offset in azimuth and slant range directions (respectively).
     Because of this, if `az_offset` and `rg_offset` come from GOFF or GUNW,
     and if `quiver_projection_params` is set to None, then the quiver arrows
-    will not be plotted in the correct direction/magnitude for the
-    projected X/Y image grid (i.e. they'll point the wrong direction).
+    will not be plotted in the correct direction/magnitude for the projected
+    X/Y image grid (i.e. they'll appear to point the wrong direction).
     """
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
@@ -137,33 +135,47 @@ def plot_offsets_quiver_plot_to_pdf(
     )
     assert stride1 == stride2
 
-    # For L2 products, we also need to decimate and downsamples the X and Y
-    # coordinate vectors to match `az_off` and `rg_off`
-    if isinstance(az_offset, nisarqa.GeoRaster):
+    # For L2 products where `quiver_projection_params` are provided,
+    # we need to adjust the geo grid parameters to match our
+    # freshly-decimated `az_off` and `rg_off`
+    reproject_params = {}
+    if quiver_projection_params is not None:
+        if isinstance(az_offset, nisarqa.RadarRaster):
+            raise TypeError(
+                "Input az and rg offset rasters are instances of"
+                f" nisarqa.RadarRaster, but {quiver_projection_params=}."
+                " It should not be set to None for rasters on the radar grid."
+            )
+
+        assert isinstance(az_offset, nisarqa.GeoRaster)
         y_coordinates = az_offset.y_coordinates
         x_coordinates = az_offset.x_coordinates
 
         # Modify with same strides as used above to decimate to square pixels
-        y_coords = y_coordinates[::ky1]
-        y_coords = y_coords[::stride1]
+        y_coords = y_coordinates[::ky1][::stride1]
 
-        # Modify with same stride as used above to downsample to size of axes
-        x_coords = x_coordinates[::kx1]
-        x_coords = x_coords[::stride1]
+        # Modify with same stride as used above to decimate to size of axes
+        x_coords = x_coordinates[::kx1][::stride1]
+
         assert az_off.shape[0] == len(y_coords)
         assert az_off.shape[1] == len(x_coords)
-    else:
-        assert isinstance(az_offset, nisarqa.RadarRaster)
-        y_coords = x_coords = None
+
+        reproject_params["geo_grid"] = nisarqa.GeoGrid(
+            epsg=az_offset.epsg,
+            x_spacing=az_offset.x_spacing * kx1 * stride1,
+            x_coordinates=x_coords,
+            y_spacing=az_offset.y_spacing * ky1 * stride1,
+            y_coordinates=y_coords,
+        )
+
+        reproject_params["quiver_projection_params"] = quiver_projection_params
 
     im, cbar_min, cbar_max = add_magnitude_image_and_quiver_plot_to_axes(
         ax=ax,
         az_off=az_off,
         rg_off=rg_off,
         params=params,
-        x_coordinates=x_coords,
-        y_coordinates=y_coords,
-        quiver_projection_params=quiver_projection_params,
+        **reproject_params,
     )
 
     # Add a colorbar to the figure
@@ -194,7 +206,6 @@ def plot_single_quiver_plot_to_png(
     rg_offset: nisarqa.RadarRaster,
     params: nisarqa.QuiverParamGroup,
     png_filepath: str | os.PathLike,
-    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[int, int]: ...
 
 
@@ -227,17 +238,16 @@ def plot_single_quiver_plot_to_png(
     png_filepath : path-like
         Filename (with path) for the image PNG.
     quiver_projection_params : None or ParamsForAzRgOffsetsToProjected, optional
-        ** Strongly Recommended for GOFF and GUNW **
-        If None, or if offsets arrays are nisarqa.RadarRaster, this will
-        be ignored. Set this to None if the contents of the offset rasters
-        use the same coordinate grid as the raster image (e.g. both are
+        ** Strongly Recommend providing parameters for GOFF and GUNW **
+        Set to None if the contents of the offset rasters use the same
+        coordinate grid as the raster image (e.g. both are
         azimuth/range grid, such as for ROFF, RIFG, and RUNW).
         If offsets arrays are nisarqa.GeoRaster and these parameters are
         are provided, they will be used to modify the quiver arrows to
-        represent the total magnitude and direction of offset on the
-        projected coordinate grid. Note: The colormapped offset rasters
-        will still be plotted to represent total offset in az/range direction;
-        only the quiver arrows will be modified.
+        represent displacement direction and relative magnitude in
+        projected coordinates. Note: the plotted image (and colorbar) will
+        represent displacement magnitude in radar coordinates;
+        only the quiver arrows will be projected.
         Defaults to None.
 
     Returns
@@ -253,8 +263,8 @@ def plot_single_quiver_plot_to_png(
     offset in azimuth and slant range directions (respectively).
     Because of this, if `az_offset` and `rg_offset` come from GOFF or GUNW,
     and if `quiver_projection_params` is set to None, then the quiver arrows
-    will not be plotted in the correct direction/magnitude for the
-    projected X/Y image grid (i.e. they'll point the wrong direction).
+    will not be plotted in the correct direction/magnitude for the projected
+    X/Y image grid (i.e. they'll appear to point the wrong direction).
     """
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
@@ -286,18 +296,36 @@ def plot_single_quiver_plot_to_png(
     az_off = az_offset.data[::y_decimation, ::x_decimation]
     rg_off = rg_offset.data[::y_decimation, ::x_decimation]
 
-    # For L2 products, we also need to downsample and decimate the X and Y
-    # coordinate vectors to match the new `az_off` and `rg_off`
-    if isinstance(az_offset, nisarqa.GeoRaster):
+    # For L2 products where `quiver_projection_params` are provided,
+    # we need to adjust the geo grid parameters to match our
+    # freshly-decimated `az_off` and `rg_off`
+    reproject_params = {}
+    if quiver_projection_params is not None:
+        if isinstance(az_offset, nisarqa.RadarRaster):
+            raise TypeError(
+                "Input az and rg offset rasters are instances of"
+                f" nisarqa.RadarRaster, but {type(quiver_projection_params)=}."
+                " It should not be set to None for rasters on the radar grid."
+            )
+
+        assert isinstance(az_offset, nisarqa.GeoRaster)
         x_coordinates = az_offset.x_coordinates
         y_coordinates = az_offset.y_coordinates
         x_coords = x_coordinates[::x_decimation]
         y_coords = y_coordinates[::y_decimation]
+
         assert az_off.shape[1] == len(x_coords)
         assert az_off.shape[0] == len(y_coords)
-    else:
-        assert isinstance(az_offset, nisarqa.RadarRaster)
-        x_coords = y_coords = None
+
+        reproject_params["geo_grid"] = nisarqa.GeoGrid(
+            epsg=az_offset.epsg,
+            x_spacing=az_offset.x_spacing * x_decimation,
+            x_coordinates=x_coords,
+            y_spacing=az_offset.y_spacing * y_decimation,
+            y_coordinates=y_coords,
+        )
+
+        reproject_params["quiver_projection_params"] = quiver_projection_params
 
     # Next, we need to add the background image + quiver plot arrows onto
     # an Axes, and then save this to a PNG with exact pixel dimensions as
@@ -307,9 +335,7 @@ def plot_single_quiver_plot_to_png(
         az_off=az_off,
         rg_off=rg_off,
         params=params,
-        x_coordinates=x_coords,
-        y_coordinates=y_coords,
-        quiver_projection_params=quiver_projection_params,
+        **reproject_params,
     )
 
     save_mpl_plot_to_png(
@@ -329,8 +355,7 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     quiver_projection_params: (
         None | nisarqa.ParamsForAzRgOffsetsToProjected
     ) = None,
-    x_coordinates: None | np.ndarray = None,
-    y_coordinates: None | np.ndarray = None,
+    geo_grid: None | nisarqa.GeoGrid = None,
 ) -> tuple[mpl.AxesImage, float, float]:
     """
     Compute the total offset magnitude and add as a quiver plot to an Axes.
@@ -355,24 +380,24 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     quiver_projection_params : None or ParamsForAzRgOffsetsToProjected
         ** Strongly Recommend `None` for ROFF, RIFG, RUNW **
         ** Strongly Recommend providing parameters for GOFF and GUNW **
-        If None, this will be ignored. Set this to None if the contents of
-        the offset rasters use the same coordinate grid as the raster image
-        (e.g. both are range Doppler coordinates, such as ROFF, RIFG, and RUNW).
+        Set to None if the contents of the offset rasters use the same
+        coordinate grid as the raster image (e.g. both are
+        azimuth/range grid, such as for ROFF, RIFG, and RUNW).
         If provided, function assumes `az_off` and `rg_off` are in projected
         coordinates but their contents represent offsets in azimuth and slant
         range (respectively); this is the case for GOFF and GUNW.
         These parameters will be used to modify the quiver arrows to
-        represent the magnitude and direction of total offset on the
-        projected coordinate grid. The colormapped offset rasters will
-        still be plotted to represent total offset in az/range direction;
-        only the quiver arrows will be modified.
+        represent displacement direction and relative magnitude in
+        projected coordinates. Note: the plotted image (and colorbar) will
+        represent displacement magnitude in radar coordinates;
+        only the quiver arrows will be projected.
         These parameters should correspond to `az_off` and `rg_off`.
-    x_coordinates, y_coordinates : None or numpy.ndarray, optional
-        1D arrays of the X and Y coordinates (respectively) for
-        `rg_offsets` and `az_offsets`.
-        If `quiver_projection_params` is None, these are ignored.
-        If `quiver_projection_params` is not None, these are required to
-        be arrays. Defaults to None.
+        Defaults to None.
+    geo_grid : None or nisarqa.GeoGrid, optional
+        GeoGrid parameters for `az_off` and `rg_off`.
+        If `quiver_projection_params` is None, this is ignored.
+        If `quiver_projection_params` is not None, this is required (it
+        cannot be None). Defaults to None.
 
     Returns
     -------
@@ -394,7 +419,7 @@ def add_magnitude_image_and_quiver_plot_to_axes(
 
     Warnings
     --------
-    If `az_offset` and `rg_offset` are in projected coordinates, but their
+    If `az_off` and `rg_off` are in projected coordinates, but their
     contents represent offsets in azimuth and slant range (respectively),
     and if `quiver_projection_params` is set to None, then the quiver arrows
     will not be plotted in the correct direction/magnitude for the projected
@@ -521,18 +546,23 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         # For L2 (GOFF, etc), `az_offsets_at_arrow_tails` indicates how many
         # meters to offset in the satellite's along-track direction, which
         # is NOT the same as the image grid's y-direction. So, do conversion.
-        if (x_coordinates is None) or (y_coordinates is None):
+        if geo_grid is None:
             raise ValueError(
-                f"`quiver_projection_params` was not None, but"
-                f" {x_coordinates=} and {y_coordinates=} (neither can be None)."
+                f"`quiver_projection_params` was not None, but {geo_grid=};"
+                " it cannot be None."
             )
 
         x_offsets_at_arrow_tails, y_offsets_at_arrow_tails = (
             get_offset_values_in_projected_coordinates(
                 az_offsets=az_offsets_at_arrow_tails,
                 rg_offsets=rg_offsets_at_arrow_tails,
-                x_coordinates=x_coordinates[::arrow_stride],
-                y_coordinates=y_coordinates[::arrow_stride],
+                geo_grid=nisarqa.GeoGrid(
+                    epsg=geo_grid.epsg,
+                    x_coordinates=geo_grid.x_coordinates[::arrow_stride],
+                    x_spacing=geo_grid.x_spacing * arrow_stride,
+                    y_coordinates=geo_grid.y_coordinates[::arrow_stride],
+                    y_spacing=geo_grid.y_spacing * arrow_stride,
+                ),
                 projection_params=quiver_projection_params,
             )
         )
@@ -582,8 +612,6 @@ class ParamsForAzRgOffsetsToProjected:
 
     Parameters
     ----------
-    epsg : int
-        EPSG of the offsets arrays and coordinate vectors.
     orbit : isce3.core.Orbit
         The trajectory of the radar antenna phase center over a time interval
         that includes the observation times of each point offset pixel.
@@ -607,7 +635,6 @@ class ParamsForAzRgOffsetsToProjected:
         Defaults to None.
     """
 
-    epsg: int
     orbit: isce3.core.Orbit
     wavelength: float
     look_side: isce3.core.LookSide | str
@@ -618,8 +645,7 @@ class ParamsForAzRgOffsetsToProjected:
 def get_offset_values_in_projected_coordinates(
     az_offsets: np.ndarray,
     rg_offsets: np.ndarray,
-    x_coordinates: None | np.ndarray,
-    y_coordinates: None | np.ndarray,
+    geo_grid: nisarqa.GeoGrid,
     projection_params: nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -643,9 +669,8 @@ def get_offset_values_in_projected_coordinates(
         2D array of the values of the along track offsets.
         Array should be geocoded, but the pixel values should represent
         offset in along azimuth direction (in meters).
-    x_coords, y_coords : numpy.ndarray
-        1D array of the X and Y coordinates (respectively) for
-        `rg_offsets` and `az_offsets`.
+    geo_grid : nisarqa.GeoGrid
+        GeoGrid parameters for `rg_offsets` and `az_offsets`.
     projection_params : ParamsForAzRgOffsetsToProjected
         Parameters used to convert the offsets rasters' pixel values from
         azimuth/range offset values (in meters) to values in the
@@ -661,9 +686,9 @@ def get_offset_values_in_projected_coordinates(
     # Variable renaming and unpacking
     rg_offsets_at_arrow_tails = rg_offsets
     az_offsets_at_arrow_tails = az_offsets
-    y_coords_values_at_arrow_tails = y_coordinates
-    x_coords_values_at_arrow_tails = x_coordinates
-    epsg = projection_params.epsg
+    epsg = geo_grid.epsg
+    x_coords_values_at_arrow_tails = geo_grid.x_coordinates
+    y_coords_values_at_arrow_tails = geo_grid.y_coordinates
     orbit = projection_params.orbit
     wavelength = projection_params.wavelength
     look_side = projection_params.look_side
@@ -697,13 +722,13 @@ def get_offset_values_in_projected_coordinates(
     # 6) Compute new offset values in projected coordinates:
     #    (x_1 - x_0, y_1 - y_0)
 
+    # Make the ISCE3 projection
+    proj = isce3.core.make_projection(epsg)
+
     for i, y_coord in enumerate(y_coords_values_at_arrow_tails):
         for j, x_coord in enumerate(x_coords_values_at_arrow_tails):
 
             # 1) Convert (x_0, y_0) arrow tail from projected coordinates to LLH
-
-            # Make the ISCE3 projection
-            proj = isce3.core.make_projection(epsg)
 
             # Use a dummy height value of 0 in computing the inverse projection.
             # ISCE3 projections are always 2-D transformations -- the height
