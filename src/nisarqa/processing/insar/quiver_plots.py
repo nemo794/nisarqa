@@ -730,27 +730,32 @@ def get_offset_values_in_projected_coordinates(
     geo2rdr_params = {} if (geo2rdr_params is None) else geo2rdr_params
 
     # Useful variables for the algorithm
-    num_arrows_x_direction = len(x_coords_values_at_arrow_tails)
-    num_arrows_y_direction = len(y_coords_values_at_arrow_tails)
-    target_in_rdr_matrix = np.zeros(
-        (num_arrows_y_direction, num_arrows_x_direction, 2), dtype=np.float64
+    num_arrows_x = len(x_coords_values_at_arrow_tails)
+    num_arrows_y = len(y_coords_values_at_arrow_tails)
+    target_in_rdr_aztime = np.zeros(
+        (num_arrows_y, num_arrows_x), dtype=np.float64
     )
-    if (rg_offsets_at_arrow_tails.shape[1] != num_arrows_x_direction) or (
-        rg_offsets_at_arrow_tails.shape[0] != num_arrows_y_direction
+    target_in_rdr_srange = np.zeros(
+        (num_arrows_y, num_arrows_x), dtype=np.float64
+    )
+
+    if (rg_offsets_at_arrow_tails.shape[1] != num_arrows_x) or (
+        rg_offsets_at_arrow_tails.shape[0] != num_arrows_y
     ):
         raise ValueError(
             f"{rg_offsets_at_arrow_tails.shape=}, but its dimensions must"
-            " correspond to the provided coordinate vectors where "
-            f"{len(y_coordinates)=} and {len(x_coordinates)=}"
+            " correspond to the provided coordinate vectors where"
+            f" {len(geo_grid.y_coordinates)=} and"
+            f" {len(geo_grid.x_coordinates)=}/"
         )
 
     # For projected coordinate point (x_0, y_0) at each arrow tail,
     # the basic algorithm to convert is:
     # 1) Convert (x_0, y_0) from projected coordinates into LLH
-    # 2) Run rdr2geo on the (x_0, y_0) LLH
+    # 2) Run geo2rdr on the (x_0, y_0) LLH
     # 3) Use the az/rng offset values (in meters) at the coordinate
     #    to offset ("shift") the point in the radar grid
-    # 4) Run geo2rdr to convert back to (x_1, y_1) LLH
+    # 4) Run rdr2geo to convert back to (x_1, y_1) LLH
     # 5) Convert (x_1, y_1) LLH back into projected coordinates
     # 6) Compute new offset values in projected coordinates:
     #    (x_1 - x_0, y_1 - y_0)
@@ -765,28 +770,25 @@ def get_offset_values_in_projected_coordinates(
 
             # Use a dummy height value of 0 in computing the inverse projection.
             # ISCE3 projections are always 2-D transformations -- the height
-            # has no effect on lon/lat. In ISCE3, the height valued is simply
+            # has no effect on lon/lat. In ISCE3, the height value is simply
             # passed through and copied to the output height value, so we
             # can ignore it.
             lon, lat, _ = proj.inverse([x_coord, y_coord, 0])
 
-            # 2) Run rdr2geo on the (x_0, y_0) LLH
+            # 2) Run geo2rdr on the (x_0, y_0) LLH
 
             # Get target (x,y,z) position of arrow tails in ECEF coordinates.
             # (ECEF = Earth-centered, Earth-fixed coordinate frame.)
             # Get the ellipsoid to convert the target position from LLH to ECEF
-            # Use isce3.core.WGS84_ELLIPSOID because we do not have the DEM.
-            # So, as an approximation, assume that each target falls on the
-            # surface of the WGS84 ellipsoid.
+            # Since we do not have a DEM, as an approximation, assume that
+            # each target falls on the surface of the WGS 84 ellipsoid.
             # (Ideally, we'd use the target height rather than assuming zero
             # height. But we don't have access to this information in the GOFF
             # input product, so a reasonable approx. is to use zero height.)
-            # Note: Using isce3.core.ProjectionBase.ellipsoid() provides the
-            # ellipsoid for that ISCE3 projection; that is not correct here.
             ellipsoid = isce3.core.WGS84_ELLIPSOID
 
-            # Note for future developers: Above for `proj.inverse()`, we did
-            # not care about height because it was simple passed through.
+            # When we used `proj.inverse()` above, we did not care
+            # about height because the height was simply passed through.
             # Here, for `ellipsoid.lon_lat_to_xyz()` we do care about height,
             # but we do not have a DEM in GOFF nor GUNW products.
             # So, assume each target falls on the WGS84 ellipsoid.
@@ -794,7 +796,7 @@ def get_offset_values_in_projected_coordinates(
 
             # Run geo2rdr to get the target position in radar coordinates.
             aztime, srange = isce3.geometry.geo2rdr_bracket(
-                xyz=np.array(target_xyz),
+                xyz=target_xyz,
                 orbit=orbit,
                 # NISAR products are zero-Doppler, so construct a zero-Doppler LUT
                 doppler=isce3.core.LUT2d(),
@@ -802,8 +804,8 @@ def get_offset_values_in_projected_coordinates(
                 side=look_side,
                 **geo2rdr_params,
             )
-            target_in_rdr_matrix[i, j, 0] = aztime
-            target_in_rdr_matrix[i, j, 1] = srange
+            target_in_rdr_aztime[i, j] = aztime
+            target_in_rdr_srange[i, j] = srange
 
     # 3) Use the az/rng offset values (in meters) at the coordinate
     #    to offset ("shift") the point in the radar grid
@@ -823,9 +825,7 @@ def get_offset_values_in_projected_coordinates(
         y_coordinates=ground_track_velocity.y_coord_vector,
         x_coordinates=ground_track_velocity.x_coord_vector,
         # assume zero-height again
-        h_vals_of_points=np.zeros(
-            (num_arrows_y_direction, num_arrows_x_direction)
-        ),
+        h_vals_of_points=np.zeros((num_arrows_y, num_arrows_x)),
         y_vals_of_points=Y_tail_vals_grid,
         x_vals_of_points=X_tail_vals_grid,
         method="cubic",  # GOFF Product Specs recommend "cubic"
@@ -836,25 +836,25 @@ def get_offset_values_in_projected_coordinates(
     )
 
     # Shift the radar grid's azimuth values
-    target_in_rdr_matrix[:, :, 0] += az_off_values_at_arrow_tail_in_seconds
+    target_in_rdr_aztime += az_off_values_at_arrow_tail_in_seconds
 
     # Shift the radar grid's range values
     # Note: range offset values were already in meters, so just add them
-    target_in_rdr_matrix[:, :, 1] += rg_offsets_at_arrow_tails
+    target_in_rdr_srange += rg_offsets_at_arrow_tails
 
-    # 4) Run geo2rdr to convert back to (x_1, y_1) LLH
+    # 4) Run rdr2geo to convert back to (x_1, y_1) LLH
     x_tail_coords_shifted = np.zeros(
-        (num_arrows_y_direction, num_arrows_x_direction),
+        (num_arrows_y, num_arrows_x),
         dtype=y_coords_values_at_arrow_tails.dtype,
     )
     y_tail_coords_shifted = np.zeros(
-        (num_arrows_y_direction, num_arrows_x_direction),
+        (num_arrows_y, num_arrows_x),
         dtype=y_coords_values_at_arrow_tails.dtype,
     )
-    for i in range(num_arrows_y_direction):
-        for j in range(num_arrows_x_direction):
-            aztime = target_in_rdr_matrix[i, j, 0]
-            srange = target_in_rdr_matrix[i, j, 1]
+    for i in range(num_arrows_y):
+        for j in range(num_arrows_x):
+            aztime = target_in_rdr_aztime[i, j]
+            srange = target_in_rdr_srange[i, j]
             # Skip NaN pixels (this is usually geocoding fill)
             if not np.isfinite(aztime) or not np.isfinite(srange):
                 x_tail_coords_shifted[i, j] = np.nan
@@ -863,9 +863,9 @@ def get_offset_values_in_projected_coordinates(
 
             xyz = isce3.geometry.rdr2geo_bracket(
                 # az time in seconds since orbit.reference_epoch
-                aztime=target_in_rdr_matrix[i, j, 0],
+                aztime=aztime,
                 # slant range in meters
-                slant_range=target_in_rdr_matrix[i, j, 1],
+                slant_range=srange,
                 orbit=orbit,
                 side=look_side,
                 # Here, doppler is a scalar value -- not a LUT. Because
