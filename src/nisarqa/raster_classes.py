@@ -426,13 +426,15 @@ class GeoGrid:
     epsg : int
         The EPSG code of the input raster.
     x_spacing : float
-        X spacing of pixels (in meters) of input array.
+        X posting of pixels (in meters) of input array.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values in the X direction for the
         input array, starting from the left side of the left-most pixel
         to the left side of the right-most pixel.
     y_spacing : float
-        Y spacing of pixels (in meters) of input array
+        Y posting of pixels (in meters) of input array.
+        Note: For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in the plot).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values in the Y direction for the
         input array, starting from the upper edge of the top-most pixel
@@ -527,13 +529,15 @@ class GeoRaster(GeoGrid, SARRaster):
     epsg : int
         The EPSG code of the input raster.
     x_spacing : float
-        X spacing of pixels (in meters) of input array.
+        X posting of pixels (in meters) of input array.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values in the X direction for the
         input array, starting from the left side of the left-most pixel
         to the left side of the right-most pixel.
     y_spacing : float
-        Y spacing of pixels (in meters) of input array
+        Y posting of pixels (in meters) of input array.
+        Note: For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in the plot).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values in the Y direction for the
         input array, starting from the upper edge of the top-most pixel
@@ -1028,6 +1032,22 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
 
     Parameters
     ----------
+    epsg : int
+        The EPSG code of the input raster.
+    x_spacing : float
+        X posting of pixels (in meters) of input array.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the X direction for the
+        input array, starting from the left side of the left-most pixel
+        to the left side of the right-most pixel.
+    y_spacing : float
+        Y posting of pixels (in meters) of input array.
+        Note: For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in the plot).
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values in the Y direction for the
+        input array, starting from the upper edge of the top-most pixel
+        to the upper edge of the bottom-most pixel.
     data : array_like
         Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
     units : str
@@ -1049,20 +1069,6 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
         Name of the band for `img`, e.g. 'LSAR'
     freq : str
         Name of the frequency for `img`, e.g. 'A' or 'B'
-    epsg : int
-        The EPSG code of the input raster.
-    x_spacing : float
-        X spacing of pixels (in meters) of input array.
-    x_coordinates : numpy.ndarray
-        1D vector of the coordinate values in the X direction for the
-        input array, starting from the left side of the left-most pixel
-        to the left side of the right-most pixel.
-    y_spacing : float
-        Y spacing of pixels (in meters) of input array
-    y_coordinates : numpy.ndarray
-        1D vector of the coordinate values in the Y direction for the
-        input array, starting from the upper edge of the top-most pixel
-        to the upper edge of the bottom-most pixel.
     stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
         Statistics of the `data` array.
 

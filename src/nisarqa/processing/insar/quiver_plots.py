@@ -567,13 +567,28 @@ def add_magnitude_image_and_quiver_plot_to_axes(
             )
         )
 
-        # NOTE: Invert the Y component because `matplotlib.pyplot.quiver()`
-        # after `matplotlib.pyplot.imshow()` will follow the coordinate
-        # convention of the raster i.e. row index downward.
-        # This is opposite to the coordinate system in which the offset was
-        # defined (i.e. +y upward), so the y offset needs to be inverted
-        # to properly plot the quivers on top of the image.
-        y_offsets_at_arrow_tails *= -1
+        # According to the documentation for `matplotlib.pyplot.quiver()`,
+        # when you pass angles='xy', the arrow offsets should be in the same
+        # coordinates as the arrow tail locations, i.e. the arrows will point
+        # from (x, y) to (x+u, y+v).
+        # Here, we are storing the arrow tail locations are in pixels,
+        # while the x and y offsets are in units of meters. So, what we
+        # actually want to plot are the arrow offsets in pixels (i.e. the
+        # same units as the arrow tail locations).
+        # So let's divide the offsets by the pixel spacing.
+
+        # Note: The y-coordinate posting of the coordinate grid of NISAR L2
+        # products is negative (the positive y-axis points up in the plot).
+        # That is, a postive-valued offset in meters will be a negative-valued
+        # offset in pixels. So, when you divide the offsets by the pixel
+        # spacing, it should flip the sign of the y component of the offsets.
+
+        # Conversely, the y-coordinate posting of NISAR L1 products is
+        # positive (the positive y-axis points down in the plot).
+        # So dividing by the pixel spacing should not flip the sign of the
+        # y component of the offsets when making quiver plots for L1 products.
+        y_offsets_at_arrow_tails /= geo_grid.y_spacing
+        x_offsets_at_arrow_tails /= geo_grid.x_spacing
 
     # Add the quiver arrows to the plot.
     # Multiply the start and end points for each arrow by the decimation factor;
@@ -588,6 +603,13 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         x_offsets_at_arrow_tails * arrow_stride,
         # y direction offset for each arrow's tip
         y_offsets_at_arrow_tails * arrow_stride,
+        # When you pass angles='xy', the arrow offsets are in the same
+        # coordinates as the arrow tail locations: "Arrow direction in
+        # data coordinates, i.e. the arrows point from (x, y) to (x+u, y+v).
+        # This is ideal for vector fields or gradient plots where the arrows
+        # should directly represent movements or gradients in the
+        # x and y directions.""
+        # https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.quiver.html
         angles="xy",
         scale_units="xy",
         # Use a scale less that 1 to exaggerate the arrows.
