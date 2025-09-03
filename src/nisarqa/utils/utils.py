@@ -876,102 +876,64 @@ def get_global_scratch_dir() -> Path:
     return set_global_scratch_dir._scratch_dir
 
 
-def interpolate_points_in_metadata_cube(
-    data: np.ndarray,
-    height_coordinates: np.ndarray,
-    y_coordinates: np.ndarray,
-    x_coordinates: np.ndarray,
-    h_vals_of_points: np.ndarray,
-    y_vals_of_points: np.ndarray,
-    x_vals_of_points: np.ndarray,
-    method: str = "cubic",
-) -> np.ndarray:
+def get_ground_track_velocity(
+    target_pos_ecef: tuple[float, float, float],
+    platform_pos_ecef: tuple[float, float, float],
+    platform_vel_ecef: tuple[float, float, float],
+) -> float:
     """
-    Interpolate value of each point (h, y, x) from a 3D data cube.
+    Get the beam footprint velocity at the target location.
 
     Parameters
     ----------
-    data : np.ndarray with shape (m,n,p)
-        3D NumPy array representing the metadata cube.
-        Note that for ease of use with GIS, metadata cubes are
-        oriented in HDF5 with:
-            axes 0 = height
-            axes 1 = y coordinates
-            axes 2 = x coordinates
-    height_coordinates : np.ndarray with shape (m,)
-        1D array of height values corresponding to the first axis of `data`.
-    y_coordinates : np.ndarray with shape (n,)
-        1D array of y-coordinates corresponding to the second axis of `data`.
-    x_coordinates : np.ndarray with shape (p,)
-        1D array of x-coordinates corresponding to the third axis of `data`.
-    h_vals_of_points : np.ndarray with shape (n,p)
-        Target height of each point to interpolate.
-    y_vals_of_points : np.ndarray with shape (n,p)
-        Target y-coordinate of each point to interpolate.
-    x_vals_of_points : np.ndarray with shape (n,p)
-        Target x-coordinate of each point to interpolate.
-    method : str, optional
-        Interpolation method. One of: "linear", "nearest", "slinear",
-        "cubic", "quintic", or "pchip". Default is "cubic", which is the
-        recommended interpolation method for NISAR metadata cubes per
-        the NISAR L2 product specification documents.
+    target_pos_ecef : (float, float, float)
+        The position of the target on the ground, in ECEF coordinates,
+        with distances in meters.
+    platform_pos_ecef : (float, float, float)
+        The position of the radar platform, in ECEF coordinates, with
+        distances in meters.
+    platform_vel_ecef : (float, float, float)
+        The velocity of the radar platform, in meters per second, in
+        the same coordinate system as `platform_pos_ecef`.
 
     Returns
     -------
-    interp_points : np.ndarray with shape (m,p)
-        Array containing the interpolated value of `data` at each point
-        (h, y, x).
+    float
+        The effective velocity of the radar beam footprint on the
+        ground at the target location, in meters per second.
+
+    Notes
+    -----
+    This algorithm is based upon the computation of ground track velocity
+    metadata cubes in ISCE3.
+    See: https://github.com/isce-framework/isce3/blob/89f94c90b2b5e5df4c10c84835aba9f397898150/cxx/isce3/geometry/metadataCubes.cpp#L125-L136
+    https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1369#issue-11641
+    https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1369#issuecomment-18911
+    There is some consideration to use a finite differences approach to
+    computing the ground track velocity using rdr2geo, but that has not
+    been properly assessed nor implemented in ISCE3 as of Sept 2025.
     """
-    log = nisarqa.get_logger()
+    # Geocentric radius of target and platform.
+    r_target = np.linalg.norm(target_pos_ecef)
+    r_platform = np.linalg.norm(platform_pos_ecef)
 
-    # The dimensions of `data` must match `height_coordinates`,
-    # `y_coordinates`, and `x_coordinates`.
-    if data.ndim != 3:
-        log.error(f"{data.shape=}, must be a 3D array")
-    if len(height_coordinates) != data.shape[0]:
-        log.error(f"{len(height_coordinates)=}, must match {data.shape[0]=}")
-    if len(y_coordinates) != data.shape[0]:
-        log.error(f"{len(height_coordinates)=}, must match {data.shape[1]=}")
-    if len(x_coordinates) != data.shape[0]:
-        log.error(f"{len(height_coordinates)=}, must match {data.shape[2]=}")
+    # Target-to-platform distance.
+    slant_range = np.linalg.norm(target_pos_ecef - platform_pos_ecef)
 
-    # There must be an h, y, and x value for each point to be interpolated.
-    if not (
-        h_vals_of_points.shape
-        == y_vals_of_points.shape
-        == x_vals_of_points.shape
-    ):
-        log.error(
-            f"{h_vals_of_points.shape=}, {y_vals_of_points.shape=}, and"
-            f" {x_vals_of_points.shape=}. They must all have the same shape."
-        )
+    # Compute the cosine of an angle in a triangle whose adjacent
+    # side lengths are `a` and `b`, and whose opposite side length
+    # is `c`, using the Law of Cosines.
+    def law_of_cosines(a: float, b: float, c: float) -> float:
+        return (a**2 + b**2 - c**2) / (2.0 * a * b)
 
-    # Note: during testing, it took ~1.2 sec to construct the interpolator,
-    # vs. ~0.0001 sec to interpolate each point. So, it is preferred to pass in
-    # entire arrays to be interpolated
+    # Scale the ground track velocity computation by cosine of the
+    # off-nadir angle of the target (see
+    # https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1369#issuecomment-18911).
+    cos_alpha = law_of_cosines(r_target, r_platform, slant_range)
 
-    # Create an interpolator function
-    interpolator = RegularGridInterpolator(
-        (height_coordinates, y_coordinates, x_coordinates),
-        data,
-        method=method,
-        bounds_error=False,
-        fill_value=np.nan,
-    )
+    platform_speed = np.linalg.norm(platform_vel_ecef)
 
-    points = np.column_stack(
-        (
-            h_vals_of_points.ravel(),
-            y_vals_of_points.ravel(),
-            x_vals_of_points.ravel(),
-        )
-    )
-
-    # Perform interpolation
-    interpolated_values = interpolator(points)
-
-    # Reshape the x the scalar values of the interpolated points
-    return interpolated_values.reshape(x_vals_of_points.shape)
+    return cos_alpha * platform_speed * r_target / r_platform
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -126,7 +126,6 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                     orbit=product.get_orbit(ref_or_sec="reference"),
                     wavelength=product.wavelength(freq=freq),
                     look_side=product.look_direction,
-                    ground_track_velocity=product.ground_track_velocity(),
                 )
             )
 

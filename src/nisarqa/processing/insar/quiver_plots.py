@@ -653,8 +653,6 @@ class ParamsForAzRgOffsetsToProjected:
     wavelength : float
         The radar central wavelength for the frequency subband of the offset,
         in meters.
-    ground_track_velocity : nisarqa.MetadataLUT3D
-        The input granule's ground track velocity metadata cube.
     geo2rdr_params : dict of [str, float] or None, optional
         An optional dict of parameters configuring the behavior of the
         root-finding routine used in geo2rdr (bracketing implementation).
@@ -671,7 +669,6 @@ class ParamsForAzRgOffsetsToProjected:
     orbit: isce3.core.Orbit
     wavelength: float
     look_side: isce3.core.LookSide | str
-    ground_track_velocity: nisarqa.MetadataLUT3D
     geo2rdr_params: Mapping[str, float] | None = None
 
 
@@ -725,19 +722,12 @@ def get_offset_values_in_projected_coordinates(
     orbit = projection_params.orbit
     wavelength = projection_params.wavelength
     look_side = projection_params.look_side
-    ground_track_velocity = projection_params.ground_track_velocity
     geo2rdr_params = projection_params.geo2rdr_params
     geo2rdr_params = {} if (geo2rdr_params is None) else geo2rdr_params
 
     # Useful variables for the algorithm
     num_arrows_x = len(x_coords_values_at_arrow_tails)
     num_arrows_y = len(y_coords_values_at_arrow_tails)
-    target_in_rdr_aztime = np.zeros(
-        (num_arrows_y, num_arrows_x), dtype=np.float64
-    )
-    target_in_rdr_srange = np.zeros(
-        (num_arrows_y, num_arrows_x), dtype=np.float64
-    )
 
     if (rg_offsets_at_arrow_tails.shape[1] != num_arrows_x) or (
         rg_offsets_at_arrow_tails.shape[0] != num_arrows_y
@@ -748,6 +738,15 @@ def get_offset_values_in_projected_coordinates(
             f" {len(geo_grid.y_coordinates)=} and"
             f" {len(geo_grid.x_coordinates)=}/"
         )
+
+    x_tail_coords_shifted = np.zeros(
+        (num_arrows_y, num_arrows_x),
+        dtype=y_coords_values_at_arrow_tails.dtype,
+    )
+    y_tail_coords_shifted = np.zeros(
+        (num_arrows_y, num_arrows_x),
+        dtype=y_coords_values_at_arrow_tails.dtype,
+    )
 
     # For projected coordinate point (x_0, y_0) at each arrow tail,
     # the basic algorithm to convert is:
@@ -804,57 +803,38 @@ def get_offset_values_in_projected_coordinates(
                 side=look_side,
                 **geo2rdr_params,
             )
-            target_in_rdr_aztime[i, j] = aztime
-            target_in_rdr_srange[i, j] = srange
 
-    # 3) Use the az/rng offset values (in meters) at the coordinate
-    #    to offset ("shift") the point in the radar grid
+            # 3) Use the az/rng offset values (in meters) at the coordinate
+            #    to offset ("shift") the point in the radar grid
 
-    # Azimuth Offsets are in meters, but azimuth on the radar grid is in
-    # seconds. So, convert `az_offsets_at_arrow_tails` from meters to seconds
-    # by using the ground track velocity (meters/second) metadata cube.
-    X_tail_vals_grid, Y_tail_vals_grid = np.meshgrid(
-        x_coords_values_at_arrow_tails, y_coords_values_at_arrow_tails
-    )
+            # Azimuth Offsets are in meters, but azimuth on the radar grid is in
+            # seconds. So, convert `az_offsets_at_arrow_tails` from meters to
+            # seconds by using the ground track velocity (meters/second).
 
-    # Constructing the interpolator is an expensive operation (1-2 seconds),
-    # so do this outside of the for loops.
-    grd_trk_vel_at_arrow_tail = nisarqa.interpolate_points_in_metadata_cube(
-        data=ground_track_velocity.data,
-        height_coordinates=ground_track_velocity.z_coord_vector,
-        y_coordinates=ground_track_velocity.y_coord_vector,
-        x_coordinates=ground_track_velocity.x_coord_vector,
-        # assume zero-height again
-        h_vals_of_points=np.zeros((num_arrows_y, num_arrows_x)),
-        y_vals_of_points=Y_tail_vals_grid,
-        x_vals_of_points=X_tail_vals_grid,
-        method="cubic",  # GOFF Product Specs recommend "cubic"
-    )
+            # Use the aztime of each target in radar coordinates to
+            # interpolate the orbit in order to get the
+            # platform position and velocity in ECEF coordinates.
+            platform_pos, platform_vel = orbit.interpolate(aztime)
 
-    az_off_values_at_arrow_tail_in_seconds = (
-        az_offsets_at_arrow_tails / grd_trk_vel_at_arrow_tail
-    )
+            grd_trk_vel_at_arrow_tail = nisarqa.get_ground_track_velocity(
+                target_xyz,  # ECEF position of target on the ground
+                platform_pos,  # az
+                platform_vel,
+            )
 
-    # Shift the radar grid's azimuth values
-    target_in_rdr_aztime += az_off_values_at_arrow_tail_in_seconds
+            az_off_val_at_arrow_tail_in_seconds = (
+                az_offsets_at_arrow_tails[i, j] / grd_trk_vel_at_arrow_tail
+            )
 
-    # Shift the radar grid's range values
-    # Note: range offset values were already in meters, so just add them
-    target_in_rdr_srange += rg_offsets_at_arrow_tails
+            # Shift the radar grid's azimuth values
+            aztime += az_off_val_at_arrow_tail_in_seconds
 
-    # 4) Run rdr2geo to convert back to (x_1, y_1) LLH
-    x_tail_coords_shifted = np.zeros(
-        (num_arrows_y, num_arrows_x),
-        dtype=y_coords_values_at_arrow_tails.dtype,
-    )
-    y_tail_coords_shifted = np.zeros(
-        (num_arrows_y, num_arrows_x),
-        dtype=y_coords_values_at_arrow_tails.dtype,
-    )
-    for i in range(num_arrows_y):
-        for j in range(num_arrows_x):
-            aztime = target_in_rdr_aztime[i, j]
-            srange = target_in_rdr_srange[i, j]
+            # Shift the radar grid's range values
+            # Note: range offset values were already in meters, so just add them
+            srange += rg_offsets_at_arrow_tails[i, j]
+
+            # 4) Run rdr2geo to convert back to (x_1, y_1) LLH
+
             # Skip NaN pixels (this is usually geocoding fill)
             if not np.isfinite(aztime) or not np.isfinite(srange):
                 x_tail_coords_shifted[i, j] = np.nan
@@ -898,6 +878,10 @@ def get_offset_values_in_projected_coordinates(
 
     # 6) Compute new offset values in projected coordinates:
     #       (x_1 - x_0, y_1 - y_0)
+    X_tail_vals_grid, Y_tail_vals_grid = np.meshgrid(
+        x_coords_values_at_arrow_tails, y_coords_values_at_arrow_tails
+    )
+
     offset_in_x_direction = x_tail_coords_shifted - X_tail_vals_grid
     offset_in_y_direction = y_tail_coords_shifted - Y_tail_vals_grid
 
