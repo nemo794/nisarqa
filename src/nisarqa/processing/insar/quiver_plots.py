@@ -174,6 +174,8 @@ def plot_offsets_quiver_plot_to_pdf(
         ax=ax,
         az_off=az_off,
         rg_off=rg_off,
+        x_posting=az_offset.x_axis_spacing * kx1 * stride1,
+        y_posting=az_offset.y_axis_spacing * ky1 * stride1,
         params=params,
         **reproject_params,
     )
@@ -299,7 +301,7 @@ def plot_single_quiver_plot_to_png(
     # For L2 products where `quiver_projection_params` are provided,
     # we need to adjust the geo grid parameters to match our
     # freshly-decimated `az_off` and `rg_off`
-    reproject_params = {}
+    kwargs = {}
     if quiver_projection_params is not None:
         if isinstance(az_offset, nisarqa.RadarRaster):
             raise TypeError(
@@ -317,7 +319,7 @@ def plot_single_quiver_plot_to_png(
         assert az_off.shape[1] == len(x_coords)
         assert az_off.shape[0] == len(y_coords)
 
-        reproject_params["geo_grid"] = nisarqa.GeoGrid(
+        kwargs["geo_grid"] = nisarqa.GeoGrid(
             epsg=az_offset.epsg,
             x_spacing=az_offset.x_spacing * x_decimation,
             x_coordinates=x_coords,
@@ -325,7 +327,7 @@ def plot_single_quiver_plot_to_png(
             y_coordinates=y_coords,
         )
 
-        reproject_params["quiver_projection_params"] = quiver_projection_params
+        kwargs["quiver_projection_params"] = quiver_projection_params
 
     # Next, we need to add the background image + quiver plot arrows onto
     # an Axes, and then save this to a PNG with exact pixel dimensions as
@@ -334,8 +336,10 @@ def plot_single_quiver_plot_to_png(
         add_magnitude_image_and_quiver_plot_to_axes,
         az_off=az_off,
         rg_off=rg_off,
+        x_posting=az_offset.x_axis_spacing * x_decimation,
+        y_posting=az_offset.y_axis_spacing * y_decimation,
         params=params,
-        **reproject_params,
+        **kwargs,
     )
 
     save_mpl_plot_to_png(
@@ -351,6 +355,8 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     ax: mpl.axes.Axes,
     az_off: np.ndarray,
     rg_off: np.ndarray,
+    x_posting: float,
+    y_posting: float,
     params: nisarqa.QuiverParamGroup,
     quiver_projection_params: (
         None | nisarqa.ParamsForAzRgOffsetsToProjected
@@ -375,6 +381,11 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         Along track offset raster array.
     rg_off : numpy.ndarray
         Slant range offset raster array.
+    x_posting, y_posting : float
+        Posting in the x and y directions (respectively) of `az_off`
+        and `rg_off`.
+        Note: For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in the plot).
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
     quiver_projection_params : None or ParamsForAzRgOffsetsToProjected
@@ -567,28 +578,28 @@ def add_magnitude_image_and_quiver_plot_to_axes(
             )
         )
 
-        # According to the documentation for `matplotlib.pyplot.quiver()`,
-        # when you pass angles='xy', the arrow offsets should be in the same
-        # coordinates as the arrow tail locations, i.e. the arrows will point
-        # from (x, y) to (x+u, y+v).
-        # Here, we are storing the arrow tail locations are in pixels,
-        # while the x and y offsets are in units of meters. So, what we
-        # actually want to plot are the arrow offsets in pixels (i.e. the
-        # same units as the arrow tail locations).
-        # So let's divide the offsets by the pixel spacing.
+    # According to the documentation for `matplotlib.pyplot.quiver()`,
+    # when you pass angles='xy', the arrow offsets should be in the same
+    # coordinates as the arrow tail locations, i.e. the arrows will point
+    # from (x, y) to (x+u, y+v).
+    # Here, we are storing the arrow tail locations are in pixels,
+    # while the x and y offsets are in units of meters. So, what we
+    # actually want to plot are the arrow offsets in pixels (i.e. the
+    # same units as the arrow tail locations).
+    # So let's divide the offsets by the pixel spacing.
 
-        # Note: The y-coordinate posting of the coordinate grid of NISAR L2
-        # products is negative (the positive y-axis points up in the plot).
-        # That is, a postive-valued offset in meters will be a negative-valued
-        # offset in pixels. So, when you divide the offsets by the pixel
-        # spacing, it should flip the sign of the y component of the offsets.
+    # Note: The y-coordinate posting of the coordinate grid of NISAR L2
+    # products is negative (the positive y-axis points up in the plot).
+    # That is, a postive-valued offset in meters will be a negative-valued
+    # offset in pixels. So, when you divide the offsets by the pixel
+    # spacing, it should flip the sign of the y component of the offsets.
 
-        # Conversely, the y-coordinate posting of NISAR L1 products is
-        # positive (the positive y-axis points down in the plot).
-        # So dividing by the pixel spacing should not flip the sign of the
-        # y component of the offsets when making quiver plots for L1 products.
-        y_offsets_at_arrow_tails /= geo_grid.y_spacing
-        x_offsets_at_arrow_tails /= geo_grid.x_spacing
+    # Conversely, the y-coordinate posting of NISAR L1 products is
+    # positive (the positive y-axis points down in the plot).
+    # So dividing by the pixel spacing should not flip the sign of the
+    # y component of the offsets when making quiver plots for L1 products.
+    y_offsets_at_arrow_tails /= y_posting
+    x_offsets_at_arrow_tails /= x_posting
 
     # Add the quiver arrows to the plot.
     # Multiply the start and end points for each arrow by the decimation factor;

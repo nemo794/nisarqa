@@ -481,7 +481,7 @@ class GeoGrid:
         # For NISAR, geocoded grids are referenced by the upper-left corner
         # of the pixel to match GDAL conventions. So add the distance of
         # the pixel's side to far right side to get the actual stop value.
-        self.x_stop = float(self.x_coordinates[-1] + self.x_axis_spacing)
+        self.x_stop = float(self.x_coordinates[-1] + self.x_spacing)
 
         self.y_start = float(self.y_coordinates[0])
 
@@ -489,31 +489,7 @@ class GeoGrid:
         # For NISAR, geocoded grids are referenced by the upper-left corner
         # of the pixel to match GDAL conventions. So add the distance of
         # the pixel's side to bottom to get the actual stop value.
-        self.y_stop = float(self.y_coordinates[-1] + self.y_axis_spacing)
-
-    @property
-    def y_axis_spacing(self):
-        return self.y_spacing
-
-    @property
-    def y_axis_limits(self) -> tuple[float, float]:
-        return (nisarqa.m2km(self.y_start), nisarqa.m2km(self.y_stop))
-
-    @property
-    def y_axis_label(self) -> str:
-        return f"Y Coordinate, EPSG:{self.epsg} (km)"
-
-    @property
-    def x_axis_spacing(self):
-        return self.x_spacing
-
-    @property
-    def x_axis_limits(self) -> tuple[float, float]:
-        return (nisarqa.m2km(self.x_start), nisarqa.m2km(self.x_stop))
-
-    @property
-    def x_axis_label(self) -> str:
-        return f"X Coordinate, EPSG:{self.epsg} (km)"
+        self.y_stop = float(self.y_coordinates[-1] + self.y_spacing)
 
 
 @dataclass
