@@ -344,7 +344,7 @@ class CoordinateGrid:
         Posting in Y direction of raster grid.
 
         Note: For NISAR L2 products, the y-coordinate posting of the
-        coordinate grid is negative (the positive y-axis points up in the plot).
+        coordinate grid is negative (the positive y-axis points up in QA plots).
         """
         pass
 
@@ -360,7 +360,7 @@ class CoordinateGrid:
 @dataclass
 class RadarGrid(CoordinateGrid):
     """
-    Attributes specific to range-Doppler products that define the radar grid.
+    Uniformly-spaced 2D grid in radar (azimuth time, slant range) coordinates.
 
     The attributes specified here are based on the needs of the QA code
     for generating and labeling plots, etc.
@@ -370,43 +370,41 @@ class RadarGrid(CoordinateGrid):
     zero_doppler_time : numpy.ndarray
         1D vector of zero Doppler azimuth times (in seconds) measured relative
         to a UTC epoch. These correspond to the center of each pixel
-        of the raster grid in the X direction.
+        of the raster grid in the Y direction.
     zero_doppler_time_spacing : float
         Time interval in the along-track direction of the raster, in seconds.
         This is same as the spacing between consecutive entries in the
         `zero_doppler_time` array.
     slant_range : numpy.ndarray
         1D vector of the slant range values (in meters), corresponding to
-        the center of each pixel of the raster grid in the Y direction.
+        the center of each pixel of the raster grid in the X direction.
     slant_range_spacing : float
         Slant range spacing of grid, in meters. Same as difference between
-        consecutive samples in slant_range array.
+        consecutive samples in `slant_range` array.
     ground_az_spacing : float
-        Scene center azimuth spacing of pixels of input array.
-        Units: meters
+        Scene center azimuth spacing of pixels of the grid, in meters.
     ground_range_spacing : float
-        Scene center ground range spacing of pixels of input array.
-        Units: meters
+        Scene center ground range spacing of pixels of the grid, in meters.
     epoch : str
-        The start of the epoch for this observation,
-        in the format 'YYYY-MM-DD HH:MM:SS'
+        The reference epoch for time coordinates in the grid,
+        in the format 'YYYY-MM-DDTHH:MM:SS'
 
     Attributes
     ----------
     az_start : float
-        The start time of the observation for this Radar Raster.
+        The start time of the radar grid.
         This corresponds to the upper edge of the top pixels.
         Units: seconds since epoch
     az_stop : float
-        The stopping time of the observation for this Radar Raster.
+        The stopping time of the radar grid.
         This corresponds to the lower side of the bottom pixels.
         Units: seconds since epoch
     rng_start : float
-        Start (near) distance of the range of input array
+        Start (near) range of the radar grid.
         This corresponds to the left side of the left-most pixels.
         Units: meters
     rng_stop : float
-        End (far) distance of the range of input array
+        End (far) range of the radar grid.
         This corresponds to the right side of the right-most pixels.
         Units: meters
 
@@ -439,20 +437,20 @@ class RadarGrid(CoordinateGrid):
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
         self.az_start = (
-            float(self.zero_doppler_time[0]) - 0.5 * self.ground_az_spacing
+            float(self.zero_doppler_time[0]) - 0.5 * self.zero_doppler_time_spacing
         )
         self.az_stop = (
-            float(self.zero_doppler_time[-1]) + 0.5 * self.ground_az_spacing
+            float(self.zero_doppler_time[-1]) + 0.5 * self.zero_doppler_time_spacing
         )
 
         # For NISAR, radar-domain grids are referenced by the center of the
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
         self.rng_start = (
-            float(self.slant_range[0]) - 0.5 * self.ground_range_spacing
+            float(self.slant_range[0]) - 0.5 * self.slant_range_spacing
         )
         self.rng_stop = (
-            float(self.slant_range[-1]) + 0.5 * self.ground_range_spacing
+            float(self.slant_range[-1]) + 0.5 * self.slant_range_spacing
         )
 
     @property
@@ -583,7 +581,7 @@ class RadarRaster(RadarGrid, SARRaster):
 @dataclass
 class GeoGrid(CoordinateGrid):
     """
-    Attributes specific to Geocoded products that define the geo grid.
+    Uniformly-spaced 2D grid in geocoded (e.g. projected) coordinates.
 
     The attributes specified here are based on the needs of the QA code
     for generating and labeling plots, etc.
@@ -591,16 +589,16 @@ class GeoGrid(CoordinateGrid):
     Parameters
     ----------
     epsg : int
-        The EPSG code of the input raster.
+        The EPSG code of the coordinate system.
     x_spacing : float
-        X posting of pixels (in meters) of input array.
+        X posting of pixels (in meters) of the grid.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
         of the raster grid in the X direction.
     y_spacing : float
-        Y posting of pixels (in meters) of input array.
+        Y posting of pixels (in meters) of the grid.
         Note: For NISAR L2 products, the y-coordinate posting of the
-        coordinate grid is negative (the positive y-axis points up in the plot).
+        coordinate grid is negative (the positive y-axis points up in QA plots).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
         of the raster grid in the Y direction.
@@ -608,16 +606,16 @@ class GeoGrid(CoordinateGrid):
     Attributes
     ----------
     x_start : float
-        The starting (West) X position of the input array
+        The starting (West) X position of the grid.
         This corresponds to the left side of the left-most pixels.
     x_stop : float
-        The stopping (East) X position of the input array
+        The stopping (East) X position of the grid.
         This corresponds to the right side of the right-most pixels.
     y_start : float
-        The starting (North) Y position of the input array
+        The starting (North) Y position of the grid.
         This corresponds to the upper edge of the top pixels.
     y_stop : float
-        The stopping (South) Y position of the input array
+        The stopping (South) Y position of the grid.
         This corresponds to the lower side of the bottom pixels.
 
     Notes
@@ -640,21 +638,21 @@ class GeoGrid(CoordinateGrid):
 
     def __post_init__(self):
         # Infer start and stop values
-        self.x_start = float(self.x_coordinates[0])
+        self.x_start = float(self.x_coordinates[0] - 0.5 * self.x_spacing)
 
         # X in meters (units are specified as meters in the product spec)
-        # For NISAR, geocoded grids are referenced by the upper-left corner
-        # of the pixel to match GDAL conventions. So add the distance of
+        # For NISAR, geocoded grids are referenced by the center
+        # of the pixel (different from GDAL conventions!). So add the distance of
         # the pixel's side to far right side to get the actual stop value.
-        self.x_stop = float(self.x_coordinates[-1] + self.x_spacing)
+        self.x_stop = float(self.x_coordinates[-1] + 0.5 * self.x_spacing)
 
-        self.y_start = float(self.y_coordinates[0])
+        self.y_start = float(self.y_coordinates[0] - 0.5 * self.y_spacing)
 
         # Y in meters (units are specified as meters in the product spec)
         # For NISAR, geocoded grids are referenced by the upper-left corner
         # of the pixel to match GDAL conventions. So add the distance of
         # the pixel's side to bottom to get the actual stop value.
-        self.y_stop = float(self.y_coordinates[-1] + self.y_spacing)
+        self.y_stop = float(self.y_coordinates[-1] + 0.5 * self.y_spacing)
 
     @property
     def x_posting(self):

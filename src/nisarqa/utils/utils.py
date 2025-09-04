@@ -23,7 +23,6 @@ import h5py
 import numpy as np
 from numpy.typing import ArrayLike
 from ruamel.yaml import YAML
-from scipy.interpolate import RegularGridInterpolator
 
 import nisarqa
 from nisarqa.utils.typing import RunConfigDict, T
@@ -906,12 +905,10 @@ def get_ground_track_velocity(
     -----
     This algorithm is based upon the computation of ground track velocity
     metadata cubes in ISCE3.
-    See: https://github.com/isce-framework/isce3/blob/89f94c90b2b5e5df4c10c84835aba9f397898150/cxx/isce3/geometry/metadataCubes.cpp#L125-L136
-    https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1369#issue-11641
-    https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1369#issuecomment-18911
-    There is some consideration to use a finite differences approach to
-    computing the ground track velocity using rdr2geo, but that has not
-    been properly assessed nor implemented in ISCE3 as of Sept 2025.
+    See:
+      * https://github.com/isce-framework/isce3/blob/89f94c90b2b5e5df4c10c84835aba9f397898150/cxx/isce3/geometry/metadataCubes.cpp#L125-L136
+      * https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1369#issue-11641
+      * https://github-fn.jpl.nasa.gov/isce-3/isce/pull/1369#issuecomment-18911
     """
     # Geocentric radius of target and platform.
     r_target = np.linalg.norm(target_pos_ecef)
