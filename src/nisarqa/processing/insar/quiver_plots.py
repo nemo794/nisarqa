@@ -138,7 +138,7 @@ def plot_offsets_quiver_plot_to_pdf(
     # For L2 products where `quiver_projection_params` are provided,
     # we need to adjust the geo grid parameters to match our
     # freshly-decimated `az_off` and `rg_off`
-    reproject_params = {}
+    kwargs = {}
     if quiver_projection_params is not None:
         if isinstance(az_offset, nisarqa.RadarRaster):
             raise TypeError(
@@ -160,24 +160,45 @@ def plot_offsets_quiver_plot_to_pdf(
         assert az_off.shape[0] == len(y_coords)
         assert az_off.shape[1] == len(x_coords)
 
-        reproject_params["geo_grid"] = nisarqa.GeoGrid(
+        x_posting = az_offset.x_spacing * kx1 * stride1
+        y_posting = az_offset.y_spacing * ky1 * stride1
+        kwargs["x_posting"] = x_posting
+        kwargs["y_posting"] = y_posting
+
+        kwargs["geo_grid"] = nisarqa.GeoGrid(
             epsg=az_offset.epsg,
-            x_spacing=az_offset.x_spacing * kx1 * stride1,
+            x_spacing=x_posting,
             x_coordinates=x_coords,
-            y_spacing=az_offset.y_spacing * ky1 * stride1,
+            y_spacing=y_posting,
             y_coordinates=y_coords,
         )
 
-        reproject_params["quiver_projection_params"] = quiver_projection_params
+        kwargs["quiver_projection_params"] = quiver_projection_params
+
+    if isinstance(az_offset, nisarqa.RadarRaster):
+        # TODO - improve me!
+        # Ideally, for correct y offsets in pixels we would compute:
+        #   <azimuth offset (m)> /
+        #       (ground track velocity (m/s) * azimuth pixel spacing (sec))
+        # However, this would require computing the ground track velocity
+        # for each quiver arrow in L1 products.
+        # For now, use `sceneCenterAlongTrackSpacing` as an approximation.
+        # (The approximation is because the spacing will vary in different
+        # parts of the image.)
+        # The spacing should be positive for L1 products, so we shouldn't
+        # need to worry about flipping the sign on the y-axis.
+        kwargs["y_posting"] = az_offset.ground_az_spacing * ky1 * stride1
+    else:
+        kwargs["y_posting"] = az_offset.y_posting * ky1 * stride1
+
+    kwargs["x_posting"] = az_offset.x_posting * kx1 * stride1
 
     im, cbar_min, cbar_max = add_magnitude_image_and_quiver_plot_to_axes(
         ax=ax,
         az_off=az_off,
         rg_off=rg_off,
-        x_posting=az_offset.x_axis_spacing * kx1 * stride1,
-        y_posting=az_offset.y_axis_spacing * ky1 * stride1,
         params=params,
-        **reproject_params,
+        **kwargs,
     )
 
     # Add a colorbar to the figure
@@ -319,15 +340,36 @@ def plot_single_quiver_plot_to_png(
         assert az_off.shape[1] == len(x_coords)
         assert az_off.shape[0] == len(y_coords)
 
+        x_posting = az_offset.x_spacing * x_decimation
+        y_posting = az_offset.y_spacing * y_decimation
+
         kwargs["geo_grid"] = nisarqa.GeoGrid(
             epsg=az_offset.epsg,
-            x_spacing=az_offset.x_spacing * x_decimation,
+            x_spacing=x_posting,
             x_coordinates=x_coords,
-            y_spacing=az_offset.y_spacing * y_decimation,
+            y_spacing=y_posting,
             y_coordinates=y_coords,
         )
 
         kwargs["quiver_projection_params"] = quiver_projection_params
+
+    if isinstance(az_offset, nisarqa.RadarRaster):
+        # TODO - improve me!
+        # Ideally, for correct y offsets in pixels we would compute:
+        #   <azimuth offset (m)> /
+        #       (ground track velocity (m/s) * azimuth pixel spacing (sec))
+        # However, this would require computing the ground track velocity
+        # for each quiver arrow in L1 products.
+        # For now, use `sceneCenterAlongTrackSpacing` as an approximation.
+        # (The approximation is because the spacing will vary in different
+        # parts of the image.)
+        # The spacing should be positive for L1 products, so we shouldn't
+        # need to worry about flipping the sign on the y-axis.
+        kwargs["y_posting"] = az_offset.ground_az_spacing * y_decimation
+    else:
+        kwargs["y_posting"] = az_offset.y_posting * y_decimation
+
+    kwargs["x_posting"] = az_offset.x_posting * x_decimation
 
     # Next, we need to add the background image + quiver plot arrows onto
     # an Axes, and then save this to a PNG with exact pixel dimensions as
@@ -336,8 +378,6 @@ def plot_single_quiver_plot_to_png(
         add_magnitude_image_and_quiver_plot_to_axes,
         az_off=az_off,
         rg_off=rg_off,
-        x_posting=az_offset.x_axis_spacing * x_decimation,
-        y_posting=az_offset.y_axis_spacing * y_decimation,
         params=params,
         **kwargs,
     )
@@ -538,10 +578,10 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     X, Y = np.meshgrid(x, y)
 
     # 2D grid of the starting x pixel indices in the image arrays for each arrow
-    pixel_indices_of_arrow_tails_in_x_direction = X * arrow_stride
+    arrow_tails_x_indices = X * arrow_stride
 
     # 2D grid of the starting y pixel indices in the image arrays for each arrow
-    pixel_indices_of_arrow_tails_in_y_direction = Y * arrow_stride
+    arrow_tails_y_indices = Y * arrow_stride
 
     # Determine the offsets in the image grid's X and Y directions
 
@@ -550,8 +590,8 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         # For L1 (ROFF, etc), `az_offsets_at_arrow_tails` indicates how many
         # meters to offset in the image grid's y-direction (aka along-track).
         # (Similar reasoning for slant range offsets and the x-direction.)
-        y_offsets_at_arrow_tails = az_offsets_at_arrow_tails
-        x_offsets_at_arrow_tails = rg_offsets_at_arrow_tails
+        arrow_heads_y_offsets = az_offsets_at_arrow_tails
+        arrow_heads_x_offsets = rg_offsets_at_arrow_tails
     else:
         # GOFF, GUNW
         # For L2 (GOFF, etc), `az_offsets_at_arrow_tails` indicates how many
@@ -563,7 +603,7 @@ def add_magnitude_image_and_quiver_plot_to_axes(
                 " it cannot be None."
             )
 
-        x_offsets_at_arrow_tails, y_offsets_at_arrow_tails = (
+        arrow_heads_x_offsets, arrow_heads_y_offsets = (
             get_offset_values_in_projected_coordinates(
                 az_offsets=az_offsets_at_arrow_tails,
                 rg_offsets=rg_offsets_at_arrow_tails,
@@ -598,8 +638,8 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     # positive (the positive y-axis points down in the plot).
     # So dividing by the pixel spacing should not flip the sign of the
     # y component of the offsets when making quiver plots for L1 products.
-    y_offsets_at_arrow_tails /= y_posting
-    x_offsets_at_arrow_tails /= x_posting
+    arrow_heads_y_offsets /= y_posting
+    arrow_heads_x_offsets /= x_posting
 
     # Add the quiver arrows to the plot.
     # Multiply the start and end points for each arrow by the decimation factor;
@@ -607,13 +647,13 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     # the full-resolution `total_offset` background image.
     ax.quiver(
         # starting pixel index in x direction for each arrow tail
-        pixel_indices_of_arrow_tails_in_x_direction,
+        arrow_tails_x_indices,
         # starting pixel index in y direction for each arrow tail
-        pixel_indices_of_arrow_tails_in_y_direction,
+        arrow_tails_y_indices,
         # x direction offset for each arrow's tip
-        x_offsets_at_arrow_tails * arrow_stride,
+        arrow_heads_x_offsets * arrow_stride,
         # y direction offset for each arrow's tip
-        y_offsets_at_arrow_tails * arrow_stride,
+        arrow_heads_y_offsets * arrow_stride,
         # When you pass angles='xy', the arrow offsets are in the same
         # coordinates as the arrow tail locations: "Arrow direction in
         # data coordinates, i.e. the arrows point from (x, y) to (x+u, y+v).
