@@ -632,8 +632,12 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     # positive (the positive y-axis points down in the plot).
     # So dividing by the pixel spacing should not flip the sign of the
     # y component of the offsets when making quiver plots for L1 products.
-    arrow_heads_y_offsets_in_pixels = arrow_heads_y_offsets / coord_grid.y_posting
-    arrow_heads_x_offsets_in_pixels = arrow_heads_x_offsets / coord_grid.x_posting
+    arrow_heads_y_offsets_in_pixels = (
+        arrow_heads_y_offsets / coord_grid.y_posting
+    )
+    arrow_heads_x_offsets_in_pixels = (
+        arrow_heads_x_offsets / coord_grid.x_posting
+    )
 
     # Add the quiver arrows to the plot.
     # Multiply the start and end points for each arrow by the decimation factor;
@@ -913,7 +917,6 @@ def get_offset_values_in_projected_coordinates(
             #       (x_1 - x_0, y_1 - y_0)
             arrow_x_offsets[i, j] = x_shift - x_coord
             arrow_y_offsets[i, j] = y_shift - y_coord
-
 
     return arrow_x_offsets, arrow_y_offsets
 

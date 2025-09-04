@@ -437,10 +437,12 @@ class RadarGrid(CoordinateGrid):
         # pixel, so +/- half the distance of the pixel's side to capture
         # the entire range.
         self.az_start = (
-            float(self.zero_doppler_time[0]) - 0.5 * self.zero_doppler_time_spacing
+            float(self.zero_doppler_time[0])
+            - 0.5 * self.zero_doppler_time_spacing
         )
         self.az_stop = (
-            float(self.zero_doppler_time[-1]) + 0.5 * self.zero_doppler_time_spacing
+            float(self.zero_doppler_time[-1])
+            + 0.5 * self.zero_doppler_time_spacing
         )
 
         # For NISAR, radar-domain grids are referenced by the center of the
