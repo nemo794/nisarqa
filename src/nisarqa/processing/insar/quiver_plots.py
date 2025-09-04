@@ -93,6 +93,17 @@ def plot_offsets_quiver_plot_to_pdf(
     # Validate input rasters
     nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
 
+    if quiver_projection_params is not None:
+        if isinstance(az_offset, nisarqa.RadarRaster):
+            raise TypeError(
+                "Input az and rg offset rasters are instances of"
+                f" nisarqa.RadarRaster, but {quiver_projection_params=}."
+                " It should not be set to None for rasters on the radar grid."
+            )
+        reproject_arrows = True
+    else:
+        reproject_arrows = False
+
     fig, ax = plt.subplots(
         ncols=1,
         nrows=1,
@@ -106,9 +117,11 @@ def plot_offsets_quiver_plot_to_pdf(
     # (`az_offset.name` is formatted like "ROFF_L_A_HH_layer1_alongTrackOffset".
     # The PDF page has two rasters, so remove the final layer name for title.)
     title = (
-        "Combined Pixel Offsets (meters)\n"
+        "Combined Azimuth and Slant Range Displacement (meters)\n"
         f"{'_'.join(az_offset.name.split('_')[:-1])}"
     )
+    if isinstance(az_offset, nisarqa.GeoRaster):
+        title = "Geocoded " + title
     fig.suptitle(title)
 
     # Grab the datasets into arrays in memory (with square pixels).
@@ -139,15 +152,7 @@ def plot_offsets_quiver_plot_to_pdf(
     # we need to adjust the geo grid parameters to match our
     # freshly-decimated `az_off` and `rg_off`
     kwargs = {}
-    if quiver_projection_params is not None:
-        if isinstance(az_offset, nisarqa.RadarRaster):
-            raise TypeError(
-                "Input az and rg offset rasters are instances of"
-                f" nisarqa.RadarRaster, but {quiver_projection_params=}."
-                " It should not be set to None for rasters on the radar grid."
-            )
-
-        assert isinstance(az_offset, nisarqa.GeoRaster)
+    if reproject_arrows:
         y_coordinates = az_offset.y_coordinates
         x_coordinates = az_offset.x_coordinates
 
@@ -213,6 +218,13 @@ def plot_offsets_quiver_plot_to_pdf(
         xlabel=az_offset.x_axis_label,
         ylabel=az_offset.y_axis_label,
     )
+
+    if reproject_arrows:
+        note = (
+            "* Arrows represent direction and relative magnitude\n"
+            "of the combined X and Y displacement on the geocoded grid"
+        )
+        ax.set_title(note, loc="right", color="blue", size=6, pad=1)
 
     # Append figure to the output PDF
     report_pdf.savefig(fig)

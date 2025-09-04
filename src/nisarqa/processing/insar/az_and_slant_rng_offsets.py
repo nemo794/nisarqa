@@ -337,7 +337,10 @@ def plot_range_and_az_offsets_to_pdf(az_offset, rg_offset, report_pdf):
         figsize=nisarqa.FIG_SIZE_TWO_PLOTS_PER_PAGE,
         sharey=True,
     )
-    fig.suptitle("Along Track Offsets and Slant Range Offsets (meters)")
+    title = "Along Track Offsets and Slant Range Offsets (meters)"
+    if isinstance(az_offset, nisarqa.GeoRaster):
+        title = "Geocoded " + title
+    fig.suptitle(title)
 
     # Decimate Along Track Offset raster and plot on left (ax1)
     az_img = downsample_img_to_size_of_axes(ax=ax1, arr=az_img, mode="decimate")
