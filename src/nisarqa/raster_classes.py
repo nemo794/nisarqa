@@ -433,6 +433,12 @@ class RadarGrid(CoordinateGrid):
     rng_stop: float = field(init=False)
 
     def __post_init__(self):
+
+        self.zero_doppler_time_spacing = float(self.zero_doppler_time_spacing)
+        self.slant_range_spacing = float(self.slant_range_spacing)
+        self.ground_az_spacing = float(self.ground_az_spacing)
+        self.ground_range_spacing = float(self.ground_range_spacing)
+
         # Infer start and stop values
 
         # For NISAR, radar-domain grids are referenced by the center of the
@@ -475,7 +481,7 @@ class RadarGrid(CoordinateGrid):
 
 
 @dataclass
-class RadarRaster(RadarGrid, SARRaster):
+class RadarRaster(SARRaster, RadarGrid):
     """
     A Raster with attributes specific to Radar products.
 
@@ -484,27 +490,6 @@ class RadarRaster(RadarGrid, SARRaster):
 
     Parameters
     ----------
-    zero_doppler_time : numpy.ndarray
-        1D vector of zero Doppler azimuth times (in seconds) measured relative
-        to a UTC epoch. These correspond to the center of each pixel
-        of the raster grid in the X direction.
-    zero_doppler_time_spacing : float
-        Time interval in the along-track direction of the raster, in seconds.
-        This is same as the spacing between consecutive entries in the
-        `zero_doppler_time` array.
-    slant_range : numpy.ndarray
-        1D vector of the slant range values (in meters), corresponding to
-        the center of each pixel of the raster grid in the Y direction.
-    slant_range_spacing : float
-        Slant range spacing of grid, in meters. Same as difference between
-        consecutive samples in slant_range array.
-    ground_az_spacing : float
-        Scene center azimuth spacing of pixels of the grid, in meters.
-    ground_range_spacing : float
-        Scene center ground range spacing of pixels of the grid, in meters.
-    epoch : str
-        The reference epoch for time coordinates in the grid,
-        in the format 'YYYY-MM-DDTHH:MM:SS'.
     data : array_like
         Raster data to be stored.
     units : str
@@ -526,6 +511,27 @@ class RadarRaster(RadarGrid, SARRaster):
         name of the band for `img`, e.g. 'LSAR'
     freq : str
         name of the frequency for `img`, e.g. 'A' or 'B'
+    zero_doppler_time : numpy.ndarray
+        1D vector of zero Doppler azimuth times (in seconds) measured relative
+        to a UTC epoch. These correspond to the center of each pixel
+        of the raster grid in the X direction.
+    zero_doppler_time_spacing : float
+        Time interval in the along-track direction of the raster, in seconds.
+        This is same as the spacing between consecutive entries in the
+        `zero_doppler_time` array.
+    slant_range : numpy.ndarray
+        1D vector of the slant range values (in meters), corresponding to
+        the center of each pixel of the raster grid in the Y direction.
+    slant_range_spacing : float
+        Slant range spacing of grid, in meters. Same as difference between
+        consecutive samples in slant_range array.
+    ground_az_spacing : float
+        Scene center azimuth spacing of pixels of the grid, in meters.
+    ground_range_spacing : float
+        Scene center ground range spacing of pixels of the grid, in meters.
+    epoch : str
+        The reference epoch for time coordinates in the grid,
+        in the format 'YYYY-MM-DDTHH:MM:SS'.
 
     Attributes
     ----------
@@ -552,7 +558,10 @@ class RadarRaster(RadarGrid, SARRaster):
     """
 
     def __post_init__(self):
-        # Initialize the start and stop attributes
+        # Make sure to initialize the start and stop attributes
+        RadarGrid.__post_init__(self)
+
+        # Now, follow MRO for standard __post_init__
         super().__post_init__()
 
     @property
@@ -639,6 +648,10 @@ class GeoGrid(CoordinateGrid):
     y_stop: float = field(init=False)
 
     def __post_init__(self):
+        self.epsg = int(self.epsg)
+        self.x_spacing = float(self.x_spacing)
+        self.y_spacing = float(self.y_spacing)
+
         # Infer start and stop values
 
         # For NISAR, geocoded grids are referenced by the center
@@ -682,7 +695,7 @@ class GeoGrid(CoordinateGrid):
 
 
 @dataclass
-class GeoRaster(GeoGrid, SARRaster):
+class GeoRaster(SARRaster, GeoGrid):
     """
     A Raster with attributes specific to Geocoded products.
 
@@ -691,20 +704,6 @@ class GeoRaster(GeoGrid, SARRaster):
 
     Parameters
     ----------
-    epsg : int
-        The EPSG code of the coordinate system.
-    x_spacing : float
-        X posting of pixels of the grid, in units matching `x_coordinates`.
-    x_coordinates : numpy.ndarray
-        1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction, in the units of `epsg`.
-    y_spacing : float
-        Y posting of pixels of the grid, in units matching `y_coordinates`.
-        Note: For NISAR L2 products, the y-coordinate posting of the
-        coordinate grid is negative (the positive y-axis points up in QA plots).
-    y_coordinates : numpy.ndarray
-        1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction, in the units of `epsg`.
     data : array_like
         Raster data to be stored, aka the input array.
     units : str
@@ -726,6 +725,20 @@ class GeoRaster(GeoGrid, SARRaster):
         name of the band for `data`, e.g. 'LSAR'
     freq : str
         name of the frequency for `data`, e.g. 'A' or 'B'
+    epsg : int
+        The EPSG code of the coordinate system.
+    x_spacing : float
+        X posting of pixels of the grid, in units matching `x_coordinates`.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values of the center of each pixel
+        of the raster grid in the X direction, in the units of `epsg`.
+    y_spacing : float
+        Y posting of pixels of the grid, in units matching `y_coordinates`.
+        Note: For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in QA plots).
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values of the center of each pixel
+        of the raster grid in the Y direction, in the units of `epsg`.
 
     Attributes
     ----------
@@ -748,7 +761,10 @@ class GeoRaster(GeoGrid, SARRaster):
     """
 
     def __post_init__(self):
-        # Initialize the start and stop attributes
+        # Make sure to initialize the start and stop attributes
+        GeoGrid.__post_init__(self)
+
+        # Now, follow MRO for standard __post_init__
         super().__post_init__()
 
     @property
@@ -1135,6 +1151,27 @@ class RadarRasterWithStats(RadarRaster, StatsMixin):
 
     Parameters
     ----------
+    data : array_like
+        Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
+    units : str
+        The units of the data. If `data` is numeric but unitless (e.g ratios),
+        by NISAR convention please use the string "1".
+    fill_value : int, float, complex, or None
+        The fill value for the dataset. In general, all imagery datasets should
+        have a `_FillValue` attribute. The exception might be RSLC (tbd).
+    name : str
+        Name for the dataset
+    stats_h5_group_path : str
+        Path in the STATS.h5 file for the group where all metrics and
+        statistics re: this raster should be saved.
+        Examples:
+            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
+            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
+            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
+    band : str
+        Name of the band for `img`, e.g. 'LSAR'
+    freq : str
+        Name of the frequency for `img`, e.g. 'A' or 'B'
     zero_doppler_time : numpy.ndarray
         1D vector of zero Doppler azimuth times (in seconds) measured relative
         to a UTC epoch. These correspond to the center of each pixel
@@ -1158,27 +1195,6 @@ class RadarRasterWithStats(RadarRaster, StatsMixin):
     epoch : str
         The reference epoch for time coordinates in the grid,
         in the format 'YYYY-MM-DDTHH:MM:SS'.
-    data : array_like
-        Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
-    units : str
-        The units of the data. If `data` is numeric but unitless (e.g ratios),
-        by NISAR convention please use the string "1".
-    fill_value : int, float, complex, or None
-        The fill value for the dataset. In general, all imagery datasets should
-        have a `_FillValue` attribute. The exception might be RSLC (tbd).
-    name : str
-        Name for the dataset
-    stats_h5_group_path : str
-        Path in the STATS.h5 file for the group where all metrics and
-        statistics re: this raster should be saved.
-        Examples:
-            RSLC/GSLC/GCOV: "/science/LSAR/QA/data/frequencyA/HH"
-            RUNW/GUNW: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/alongTrackOffset"
-            ROFF/GOFF: "/science/LSAR/QA/data/frequencyA/pixelOffsets/HH/layer1/alongTrackOffset"
-    band : str
-        Name of the band for `img`, e.g. 'LSAR'
-    freq : str
-        Name of the frequency for `img`, e.g. 'A' or 'B'
     stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
         Statistics of the `data` array.
 
@@ -1204,6 +1220,9 @@ class RadarRasterWithStats(RadarRaster, StatsMixin):
 
     def __post_init__(self):
         # Initialize the start and stop attributes
+        RadarRaster.__post_init__(self)
+
+        # Now, follow MRO for standard __post_init__
         super().__post_init__()
 
 
@@ -1214,20 +1233,6 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
 
     Parameters
     ----------
-    epsg : int
-        The EPSG code of the coordinate system.
-    x_spacing : float
-        X posting of pixels of the grid, in units matching `x_coordinates`.
-    x_coordinates : numpy.ndarray
-        1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction, in the units of `epsg`.
-    y_spacing : float
-        Y posting of pixels of the grid, in units matching `y_coordinates`.
-        Note: For NISAR L2 products, the y-coordinate posting of the
-        coordinate grid is negative (the positive y-axis points up in QA plots).
-    y_coordinates : numpy.ndarray
-        1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction, in the units of `epsg`.
     data : array_like
         Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
     units : str
@@ -1249,6 +1254,20 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
         Name of the band for `img`, e.g. 'LSAR'
     freq : str
         Name of the frequency for `img`, e.g. 'A' or 'B'
+    epsg : int
+        The EPSG code of the coordinate system.
+    x_spacing : float
+        X posting of pixels of the grid, in units matching `x_coordinates`.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values of the center of each pixel
+        of the raster grid in the X direction, in the units of `epsg`.
+    y_spacing : float
+        Y posting of pixels of the grid, in units matching `y_coordinates`.
+        Note: For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in QA plots).
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values of the center of each pixel
+        of the raster grid in the Y direction, in the units of `epsg`.
     stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
         Statistics of the `data` array.
 
@@ -1270,6 +1289,9 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
 
     def __post_init__(self):
         # Initialize the start and stop attributes
+        GeoRaster.__post_init__(self)
+
+        # Now, follow MRO for standard __post_init__
         super().__post_init__()
 
 

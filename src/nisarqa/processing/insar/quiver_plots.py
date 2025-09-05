@@ -152,7 +152,7 @@ def plot_offsets_quiver_plot_to_pdf(
     # we need to adjust the geo grid parameters to match our
     # freshly-decimated `az_off` and `rg_off`
     kwargs = {}
-    if reproject_arrows:
+    if isinstance(az_offset, nisarqa.GeoRaster):
         # `nisarqa.compare_raster_metadata` ensures that the `rg_offset`
         # has the same coordinate grid as `az_offset`.
         y_coordinates = az_offset.y_coordinates
@@ -168,10 +168,8 @@ def plot_offsets_quiver_plot_to_pdf(
 
         x_posting = az_offset.x_posting * kx1 * stride1
         y_posting = az_offset.y_posting * ky1 * stride1
-        kwargs["x_posting"] = x_posting
-        kwargs["y_posting"] = y_posting
 
-        kwargs["geo_grid"] = nisarqa.GeoGrid(
+        kwargs["coord_grid"] = nisarqa.GeoGrid(
             epsg=az_offset.epsg,
             x_spacing=x_posting,
             x_coordinates=x_coords,
@@ -181,23 +179,20 @@ def plot_offsets_quiver_plot_to_pdf(
 
         kwargs["quiver_projection_params"] = quiver_projection_params
 
-    if isinstance(az_offset, nisarqa.RadarRaster):
-        # TODO - improve me!
-        # Ideally, for correct y offsets in pixels we would compute:
-        #   <azimuth offset (m)> /
-        #       (ground track velocity (m/s) * azimuth pixel spacing (sec))
-        # However, this would require computing the ground track velocity
-        # for each quiver arrow in L1 products.
-        # For now, use `sceneCenterAlongTrackSpacing` as an approximation.
-        # (The approximation is because the spacing will vary in different
-        # parts of the image.)
-        # The spacing should be positive for L1 products, so we shouldn't
-        # need to worry about flipping the sign on the y-axis.
-        kwargs["y_posting"] = az_offset.ground_az_spacing * ky1 * stride1
     else:
-        kwargs["y_posting"] = az_offset.y_posting * ky1 * stride1
+        assert isinstance(az_offset, nisarqa.RadarRaster)
 
-    kwargs["x_posting"] = az_offset.x_posting * kx1 * stride1
+        kwargs["coord_grid"] = nisarqa.RadarGrid(
+            zero_doppler_time=az_offset.zero_doppler_time[::ky1][::stride1],
+            zero_doppler_time_spacing=az_offset.zero_doppler_time_spacing
+            * ky1
+            * stride1,
+            slant_range=az_offset.slant_range[::kx1][::stride1],
+            slant_range_spacing=az_offset.slant_range_spacing * kx1 * stride1,
+            ground_az_spacing=az_offset.ground_az_spacing * ky1 * stride1,
+            ground_range_spacing=az_offset.ground_range_spacing * kx1 * stride1,
+            epoch=az_offset.epoch,
+        )
 
     im, cbar_min, cbar_max = add_magnitude_image_and_quiver_plot_to_axes(
         ax=ax,
@@ -343,8 +338,9 @@ def plot_single_quiver_plot_to_png(
                 f" nisarqa.RadarRaster, but {type(quiver_projection_params)=}."
                 " It should be set to None for rasters on the radar grid."
             )
+        kwargs["quiver_projection_params"] = quiver_projection_params
 
-        assert isinstance(az_offset, nisarqa.GeoRaster)
+    if isinstance(az_offset, nisarqa.GeoRaster):
         x_coordinates = az_offset.x_coordinates
         y_coordinates = az_offset.y_coordinates
         x_coords = x_coordinates[::x_decimation]
@@ -356,33 +352,26 @@ def plot_single_quiver_plot_to_png(
         x_posting = az_offset.x_posting * x_decimation
         y_posting = az_offset.y_posting * y_decimation
 
-        kwargs["geo_grid"] = nisarqa.GeoGrid(
+        kwargs["coord_grid"] = nisarqa.GeoGrid(
             epsg=az_offset.epsg,
             x_spacing=x_posting,
             x_coordinates=x_coords,
             y_spacing=y_posting,
             y_coordinates=y_coords,
         )
-
-        kwargs["quiver_projection_params"] = quiver_projection_params
-
-    if isinstance(az_offset, nisarqa.RadarRaster):
-        # TODO - improve me!
-        # Ideally, for correct y offsets in pixels we would compute:
-        #   <azimuth offset (m)> /
-        #       (ground track velocity (m/s) * azimuth pixel spacing (sec))
-        # However, this would require computing the ground track velocity
-        # for each quiver arrow in L1 products.
-        # For now, use `sceneCenterAlongTrackSpacing` as an approximation.
-        # (The approximation is because the spacing will vary in different
-        # parts of the image.)
-        # The spacing should be positive for L1 products, so we shouldn't
-        # need to worry about flipping the sign on the y-axis.
-        kwargs["y_posting"] = az_offset.ground_az_spacing * y_decimation
     else:
-        kwargs["y_posting"] = az_offset.y_posting * y_decimation
+        assert isinstance(az_offset, nisarqa.RadarRaster)
 
-    kwargs["x_posting"] = az_offset.x_posting * x_decimation
+        kwargs["coord_grid"] = nisarqa.RadarGrid(
+            zero_doppler_time=az_offset.zero_doppler_time[::y_decimation],
+            zero_doppler_time_spacing=az_offset.zero_doppler_time_spacing
+            * y_decimation,
+            slant_range=az_offset.slant_range[::x_decimation],
+            slant_range_spacing=az_offset.slant_range_spacing * x_decimation,
+            ground_az_spacing=az_offset.ground_az_spacing * y_decimation,
+            ground_range_spacing=az_offset.ground_range_spacing * x_decimation,
+            epoch=az_offset.epoch,
+        )
 
     # Next, we need to add the background image + quiver plot arrows onto
     # an Axes, and then save this to a PNG with exact pixel dimensions as
@@ -409,10 +398,10 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     az_off: np.ndarray,
     rg_off: np.ndarray,
     params: nisarqa.QuiverParamGroup,
+    coord_grid: nisarqa.RadarGrid | nisarqa.GeoGrid,
     quiver_projection_params: (
         None | nisarqa.ParamsForAzRgOffsetsToProjected
     ) = None,
-    geo_grid: None | nisarqa.GeoGrid = None,
 ) -> tuple[mpl.AxesImage, float, float]:
     """
     Compute the total offset magnitude and add as a quiver plot to an Axes.
@@ -434,6 +423,8 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         Slant range offset raster array.
     params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
+    coord_grid : nisarqa.RadarGrid or nisarqa.GeoGrid
+        Coordinate grid for `az_off` and `rg_off`.
     quiver_projection_params : None or ParamsForAzRgOffsetsToProjected
         ** Strongly Recommend `None` for ROFF, RIFG, RUNW **
         ** Strongly Recommend providing parameters for GOFF and GUNW **
@@ -450,11 +441,6 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         only the quiver arrows will be projected.
         These parameters should correspond to `az_off` and `rg_off`.
         Defaults to None.
-    geo_grid : None or nisarqa.GeoGrid, optional
-        GeoGrid parameters for `az_off` and `rg_off`.
-        If `quiver_projection_params` is None, this is ignored.
-        If `quiver_projection_params` is not None, this is required (it
-        cannot be None). Defaults to None.
 
     Returns
     -------
@@ -574,11 +560,11 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     arrow_stride = int(max(np.shape(total_offset)) / params.arrow_density)
 
     # Only plot the arrows at the requested strides.
-    az_offsets_at_arrow_tails = az_off[::arrow_stride, ::arrow_stride]
-    rg_offsets_at_arrow_tails = rg_off[::arrow_stride, ::arrow_stride]
+    arrow_az_offsets = az_off[::arrow_stride, ::arrow_stride]
+    arrow_rg_offsets = rg_off[::arrow_stride, ::arrow_stride]
 
-    num_arrows_along_x = az_offsets_at_arrow_tails.shape[1]
-    num_arrows_along_y = az_offsets_at_arrow_tails.shape[0]
+    num_arrows_along_x = arrow_az_offsets.shape[1]
+    num_arrows_along_y = arrow_az_offsets.shape[0]
     x = np.arange(num_arrows_along_x)
     y = np.arange(num_arrows_along_y)
     X, Y = np.meshgrid(x, y)
@@ -592,28 +578,29 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     # Determine the offsets in the image grid's X and Y directions
 
     if quiver_projection_params is None:
-        # ROFF, RIFG, RUNW
-        # For L1 (ROFF, etc), `az_offsets_at_arrow_tails` indicates how many
+        # For L1 (ROFF, etc), `arrow_az_offsets` indicates how many
         # meters to offset in the image grid's y-direction (aka along-track).
         # (Similar reasoning for slant range offsets and the x-direction.)
-        arrow_heads_y_offsets = az_offsets_at_arrow_tails
-        arrow_heads_x_offsets = rg_offsets_at_arrow_tails
+
+        # For L2 (GOFF, etc), because `quiver_projection_params` was not
+        # provided, use the offsets values as-is, with no modifications.
+        arrow_y_offsets = arrow_az_offsets
+        arrow_x_offsets = arrow_rg_offsets
     else:
-        # GOFF, GUNW
-        # For L2 (GOFF, etc), `az_offsets_at_arrow_tails` indicates how many
+        # For L2 (GOFF, etc), `arrow_az_offsets` indicates how many
         # meters to offset in the satellite's along-track direction, which
         # is NOT the same as the image grid's y-direction. So, do conversion.
 
-        arrow_heads_x_offsets, arrow_heads_y_offsets = (
+        arrow_x_offsets, arrow_y_offsets = (
             get_offset_values_in_projected_coordinates(
-                az_offsets=az_offsets_at_arrow_tails,
-                rg_offsets=rg_offsets_at_arrow_tails,
+                az_offsets=arrow_az_offsets,
+                rg_offsets=arrow_rg_offsets,
                 geo_grid=nisarqa.GeoGrid(
-                    epsg=geo_grid.epsg,
-                    x_coordinates=geo_grid.x_coordinates[::arrow_stride],
-                    x_spacing=geo_grid.x_spacing * arrow_stride,
-                    y_coordinates=geo_grid.y_coordinates[::arrow_stride],
-                    y_spacing=geo_grid.y_spacing * arrow_stride,
+                    epsg=coord_grid.epsg,
+                    x_coordinates=coord_grid.x_coordinates[::arrow_stride],
+                    x_spacing=coord_grid.x_spacing * arrow_stride,
+                    y_coordinates=coord_grid.y_coordinates[::arrow_stride],
+                    y_spacing=coord_grid.y_spacing * arrow_stride,
                 ),
                 projection_params=quiver_projection_params,
             )
@@ -632,12 +619,26 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     # positive (the positive y-axis points down in the plot).
     # So dividing by the pixel spacing should not flip the sign of the
     # y component of the offsets when making quiver plots for L1 products.
-    arrow_heads_y_offsets_in_pixels = (
-        arrow_heads_y_offsets / coord_grid.y_posting
-    )
-    arrow_heads_x_offsets_in_pixels = (
-        arrow_heads_x_offsets / coord_grid.x_posting
-    )
+
+    if isinstance(coord_grid, nisarqa.RadarGrid):
+        # TODO - improve me!
+        # Ideally, for correct y offsets in pixels we would compute:
+        #   <azimuth offset (m)> /
+        #       (ground track velocity (m/s) * azimuth pixel spacing (sec))
+        # However, this would require computing the ground track velocity
+        # for each quiver arrow in L1 products.
+        # For now, use `sceneCenterAlongTrackSpacing` as an approximation.
+        # (The approximation is because the spacing will vary in different
+        # parts of the image.)
+        # The spacing should be positive for L1 products, so we shouldn't
+        # need to worry about flipping the sign on the y-axis.
+        tmp_y_posting = coord_grid.ground_az_spacing
+    else:
+        assert isinstance(coord_grid, nisarqa.GeoGrid)
+        tmp_y_posting = coord_grid.y_posting
+
+    arrow_y_offsets_in_pixels = arrow_y_offsets / tmp_y_posting
+    arrow_x_offsets_in_pixels = arrow_x_offsets / coord_grid.x_posting
 
     # Add the quiver arrows to the plot.
     # Multiply the start and end points for each arrow by the decimation factor;
@@ -648,10 +649,10 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         arrow_tails_x_indices,
         # starting pixel index in y direction for each arrow tail
         arrow_tails_y_indices,
-        # x offset for each arrow's tip
-        arrow_heads_x_offsets_in_pixels * arrow_stride,
-        # y offset for each arrow's tip
-        arrow_heads_y_offsets_in_pixels * arrow_stride,
+        # x offset direction for each arrow tip (autoscaling handles magnitude)
+        arrow_x_offsets_in_pixels,
+        # y offset direction for each arrow tip (autoscaling handles magnitude)
+        arrow_y_offsets_in_pixels,
         # When you pass angles='xy', the arrow offsets are in the same
         # coordinates as the arrow tail locations: "Arrow direction in
         # data coordinates, i.e. the arrows point from (x, y) to (x+u, y+v).
@@ -752,11 +753,11 @@ def get_offset_values_in_projected_coordinates(
     """
 
     # Variable renaming and unpacking
-    rg_offsets_at_arrow_tails = rg_offsets
-    az_offsets_at_arrow_tails = az_offsets
+    arrow_rg_offsets = rg_offsets
+    arrow_az_offsets = az_offsets
     epsg = geo_grid.epsg
-    x_coords_values_at_arrow_tails = geo_grid.x_coordinates
-    y_coords_values_at_arrow_tails = geo_grid.y_coordinates
+    arrow_tails_x = geo_grid.x_coordinates
+    arrow_tails_y = geo_grid.y_coordinates
     orbit = projection_params.orbit
     wavelength = projection_params.wavelength
     look_side = projection_params.look_side
@@ -764,14 +765,20 @@ def get_offset_values_in_projected_coordinates(
     geo2rdr_params = {} if (geo2rdr_params is None) else geo2rdr_params
 
     # Useful variables for the algorithm
-    num_arrows_x = len(x_coords_values_at_arrow_tails)
-    num_arrows_y = len(y_coords_values_at_arrow_tails)
+    num_arrows_x = len(arrow_tails_x)
+    num_arrows_y = len(arrow_tails_y)
 
-    if (rg_offsets_at_arrow_tails.shape[1] != num_arrows_x) or (
-        rg_offsets_at_arrow_tails.shape[0] != num_arrows_y
+    if arrow_rg_offsets.shape != arrow_az_offsets.shape:
+        raise ValueError(
+            f"{rg_offsets.data.shape=}, but it must have the same shape"
+            f" as {az_offsets.data.shape=}"
+        )
+
+    if (arrow_rg_offsets.shape[1] != num_arrows_x) or (
+        arrow_rg_offsets.shape[0] != num_arrows_y
     ):
         raise ValueError(
-            f"{rg_offsets_at_arrow_tails.shape=}, but its dimensions must"
+            f"{arrow_rg_offsets.shape=}, but its dimensions must"
             " correspond to the provided coordinate vectors where"
             f" {len(geo_grid.y_coordinates)=} and"
             f" {len(geo_grid.x_coordinates)=}"
@@ -779,11 +786,11 @@ def get_offset_values_in_projected_coordinates(
 
     arrow_x_offsets = np.zeros(
         (num_arrows_y, num_arrows_x),
-        dtype=y_coords_values_at_arrow_tails.dtype,
+        dtype=arrow_tails_y.dtype,
     )
     arrow_y_offsets = np.zeros(
         (num_arrows_y, num_arrows_x),
-        dtype=y_coords_values_at_arrow_tails.dtype,
+        dtype=arrow_tails_y.dtype,
     )
 
     # For projected coordinate point (x_0, y_0) at each arrow tail,
@@ -800,8 +807,8 @@ def get_offset_values_in_projected_coordinates(
     # Make the ISCE3 projection
     proj = isce3.core.make_projection(epsg)
 
-    for i, y_coord in enumerate(y_coords_values_at_arrow_tails):
-        for j, x_coord in enumerate(x_coords_values_at_arrow_tails):
+    for i, y_coord in enumerate(arrow_tails_y):
+        for j, x_coord in enumerate(arrow_tails_x):
 
             # 1) Convert (x_0, y_0) arrow tail from projected coordinates to LLH
 
@@ -842,11 +849,17 @@ def get_offset_values_in_projected_coordinates(
                 **geo2rdr_params,
             )
 
+            # Skip NaN pixels (this is usually geocoding fill)
+            if not np.isfinite(aztime) or not np.isfinite(srange):
+                arrow_x_offsets[i, j] = np.nan
+                arrow_y_offsets[i, j] = np.nan
+                continue
+
             # 3) Use the az/rng offset values (in meters) at the coordinate
             #    to offset ("shift") the point in the radar grid
 
             # Azimuth Offsets are in meters, but azimuth on the radar grid is in
-            # seconds. So, convert `az_offsets_at_arrow_tails` from meters to
+            # seconds. So, convert `arrow_az_offsets` from meters to
             # seconds by using the ground track velocity (meters/second).
 
             # Use the aztime of each target in radar coordinates to
@@ -861,7 +874,7 @@ def get_offset_values_in_projected_coordinates(
             )
 
             az_off_val_at_arrow_tail_in_seconds = (
-                az_offsets_at_arrow_tails[i, j] / grd_trk_vel_at_arrow_tail
+                arrow_az_offsets[i, j] / grd_trk_vel_at_arrow_tail
             )
 
             # Shift the radar grid's azimuth values
@@ -869,15 +882,9 @@ def get_offset_values_in_projected_coordinates(
 
             # Shift the radar grid's range values
             # Note: range offset values were already in meters, so just add them
-            srange += rg_offsets_at_arrow_tails[i, j]
+            srange += arrow_rg_offsets[i, j]
 
             # 4) Run rdr2geo to convert back to (x_1, y_1) LLH
-
-            # Skip NaN pixels (this is usually geocoding fill)
-            if not np.isfinite(aztime) or not np.isfinite(srange):
-                arrow_x_offsets[i, j] = np.nan
-                arrow_y_offsets[i, j] = np.nan
-                continue
 
             xyz = isce3.geometry.rdr2geo_bracket(
                 # az time in seconds since orbit.reference_epoch
@@ -913,6 +920,7 @@ def get_offset_values_in_projected_coordinates(
             # input arrays, use the forward() method of the same `proj`
             # object we created above.
             x_shift, y_shift, _ = proj.forward([lon, lat, 0])
+
             # 6) Compute new offset values in projected coordinates:
             #       (x_1 - x_0, y_1 - y_0)
             arrow_x_offsets[i, j] = x_shift - x_coord
