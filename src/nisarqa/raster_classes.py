@@ -345,6 +345,8 @@ class CoordinateGrid:
 
         Note: For NISAR L2 products, the y-coordinate posting of the
         coordinate grid is negative (the positive y-axis points up in QA plots).
+        For NISAR L1 products (i.e. radar grids), the y-coordinate posting
+        is positive (the positive y-axis points down in QA plots).
         """
         pass
 
@@ -497,14 +499,12 @@ class RadarRaster(RadarGrid, SARRaster):
         Slant range spacing of grid, in meters. Same as difference between
         consecutive samples in slant_range array.
     ground_az_spacing : float
-        Scene center azimuth spacing of pixels of input array.
-        Units: meters
+        Scene center azimuth spacing of pixels of the grid, in meters.
     ground_range_spacing : float
-        Scene center ground range spacing of pixels of input array.
-        Units: meters
+        Scene center ground range spacing of pixels of the grid, in meters.
     epoch : str
-        The start of the epoch for this observation,
-        in the format 'YYYY-MM-DD HH:MM:SS'
+        The reference epoch for time coordinates in the grid,
+        in the format 'YYYY-MM-DDTHH:MM:SS'.
     data : array_like
         Raster data to be stored.
     units : str
@@ -530,19 +530,19 @@ class RadarRaster(RadarGrid, SARRaster):
     Attributes
     ----------
     az_start : float
-        The start time of the observation for this Radar Raster.
+        The start time of the radar grid.
         This corresponds to the upper edge of the top pixels.
         Units: seconds since epoch
     az_stop : float
-        The stopping time of the observation for this Radar Raster.
+        The stopping time of the radar grid.
         This corresponds to the lower side of the bottom pixels.
         Units: seconds since epoch
     rng_start : float
-        Start (near) distance of the range of input array
+        Start (near) range of the radar grid.
         This corresponds to the left side of the left-most pixels.
         Units: meters
     rng_stop : float
-        End (far) distance of the range of input array
+        End (far) range of the radar grid.
         This corresponds to the right side of the right-most pixels.
         Units: meters
 
@@ -593,31 +593,31 @@ class GeoGrid(CoordinateGrid):
     epsg : int
         The EPSG code of the coordinate system.
     x_spacing : float
-        X posting of pixels (in meters) of the grid.
+        X posting of pixels of the grid, in units matching `x_coordinates`.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction.
+        of the raster grid in the X direction, in the units of `epsg`.
     y_spacing : float
-        Y posting of pixels (in meters) of the grid.
+        Y posting of pixels of the grid, in units matching `y_coordinates`.
         Note: For NISAR L2 products, the y-coordinate posting of the
         coordinate grid is negative (the positive y-axis points up in QA plots).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction.
+        of the raster grid in the Y direction, in the units of `epsg`.
 
     Attributes
     ----------
     x_start : float
-        The starting (West) X position of the grid.
+        The starting (typically West) X position of the grid.
         This corresponds to the left side of the left-most pixels.
     x_stop : float
-        The stopping (East) X position of the grid.
+        The stopping (typically East) X position of the grid.
         This corresponds to the right side of the right-most pixels.
     y_start : float
-        The starting (North) Y position of the grid.
+        The starting (typically North) Y position of the grid.
         This corresponds to the upper edge of the top pixels.
     y_stop : float
-        The stopping (South) Y position of the grid.
+        The stopping (typically South) Y position of the grid.
         This corresponds to the lower side of the bottom pixels.
 
     Notes
@@ -640,21 +640,29 @@ class GeoGrid(CoordinateGrid):
 
     def __post_init__(self):
         # Infer start and stop values
+
+        # For NISAR, geocoded grids are referenced by the center
+        # of the pixel (different from GDAL conventions!). So add half
+        # of the pixels' spacing to get the grid's far edges.
+        # Note: `isce3.product.GeoGridParameters` adopts the GDAL convention
+        # of referencing by the upper-left corner of the pixel, but the
+        # NISAR L2 product writers construct `xCoordinates` and `yCoordinates`
+        # to refer to the location of the center of the pixels.
         self.x_start = float(self.x_coordinates[0] - 0.5 * self.x_spacing)
 
-        # X in meters (units are specified as meters in the product spec)
-        # For NISAR, geocoded grids are referenced by the center
-        # of the pixel (different from GDAL conventions!). So add the distance of
-        # the pixel's side to far right side to get the actual stop value.
         self.x_stop = float(self.x_coordinates[-1] + 0.5 * self.x_spacing)
 
-        self.y_start = float(self.y_coordinates[0] - 0.5 * self.y_spacing)
+        # TODO: There is an open an issue in QA to rename x_spacing and
+        # y_spacing to x_posting and y_posting, so that QA can consistently
+        # use "spacing" when referring to the (positive-valued) width of
+        # a pixel and "posting" when referring to the (positive- or
+        # negative-valued) stride between points in a grid.
+        # (The spacing is the absolute value of the posting.)
+        # That has not happened yet, so ensure that we have the absolute value.
+        y_spacing = abs(self.y_spacing)
 
-        # Y in meters (units are specified as meters in the product spec)
-        # For NISAR, geocoded grids are referenced by the upper-left corner
-        # of the pixel to match GDAL conventions. So add the distance of
-        # the pixel's side to bottom to get the actual stop value.
-        self.y_stop = float(self.y_coordinates[-1] + 0.5 * self.y_spacing)
+        self.y_start = float(self.y_coordinates[0] - 0.5 * y_spacing)
+        self.y_stop = float(self.y_coordinates[-1] + 0.5 * y_spacing)
 
     @property
     def x_posting(self):
@@ -684,19 +692,19 @@ class GeoRaster(GeoGrid, SARRaster):
     Parameters
     ----------
     epsg : int
-        The EPSG code of the input raster.
+        The EPSG code of the coordinate system.
     x_spacing : float
-        X posting of pixels (in meters) of input array.
+        X posting of pixels of the grid, in units matching `x_coordinates`.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction.
+        of the raster grid in the X direction, in the units of `epsg`.
     y_spacing : float
-        Y posting of pixels (in meters) of input array.
+        Y posting of pixels of the grid, in units matching `y_coordinates`.
         Note: For NISAR L2 products, the y-coordinate posting of the
-        coordinate grid is negative (the positive y-axis points up in the plot).
+        coordinate grid is negative (the positive y-axis points up in QA plots).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction.
+        of the raster grid in the Y direction, in the units of `epsg`.
     data : array_like
         Raster data to be stored, aka the input array.
     units : str
@@ -722,16 +730,16 @@ class GeoRaster(GeoGrid, SARRaster):
     Attributes
     ----------
     x_start : float
-        The starting (West) X position of the input array
+        The starting (typically West) X position of the grid.
         This corresponds to the left side of the left-most pixels.
     x_stop : float
-        The stopping (East) X position of the input array
+        The stopping (typically East) X position of the grid.
         This corresponds to the right side of the right-most pixels.
     y_start : float
-        The starting (North) Y position of the input array
+        The starting (typically North) Y position of the grid.
         This corresponds to the upper edge of the top pixels.
     y_stop : float
-        The stopping (South) Y position of the input array
+        The stopping (typically South) Y position of the grid.
         This corresponds to the lower side of the bottom pixels.
 
     Notes
@@ -1148,8 +1156,8 @@ class RadarRasterWithStats(RadarRaster, StatsMixin):
         Scene center ground range spacing of pixels of input array.
         Units: meters
     epoch : str
-        The start of the epoch for this observation,
-        in the format 'YYYY-MM-DD HH:MM:SS'
+        The reference epoch for time coordinates in the grid,
+        in the format 'YYYY-MM-DDTHH:MM:SS'.
     data : array_like
         Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
     units : str
@@ -1173,6 +1181,25 @@ class RadarRasterWithStats(RadarRaster, StatsMixin):
         Name of the frequency for `img`, e.g. 'A' or 'B'
     stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
         Statistics of the `data` array.
+
+    Attributes
+    ----------
+    az_start : float
+        The start time of the radar grid.
+        This corresponds to the upper edge of the top pixels.
+        Units: seconds since epoch
+    az_stop : float
+        The stopping time of the radar grid.
+        This corresponds to the lower side of the bottom pixels.
+        Units: seconds since epoch
+    rng_start : float
+        Start (near) range of the radar grid.
+        This corresponds to the left side of the left-most pixels.
+        Units: meters
+    rng_stop : float
+        End (far) range of the radar grid.
+        This corresponds to the right side of the right-most pixels.
+        Units: meters
     """
 
     def __post_init__(self):
@@ -1188,19 +1215,19 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
     Parameters
     ----------
     epsg : int
-        The EPSG code of the input raster.
+        The EPSG code of the coordinate system.
     x_spacing : float
-        X posting of pixels (in meters) of input array.
+        X posting of pixels of the grid, in units matching `x_coordinates`.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction.
+        of the raster grid in the X direction, in the units of `epsg`.
     y_spacing : float
-        Y posting of pixels (in meters) of input array.
+        Y posting of pixels of the grid, in units matching `y_coordinates`.
         Note: For NISAR L2 products, the y-coordinate posting of the
-        coordinate grid is negative (the positive y-axis points up in the plot).
+        coordinate grid is negative (the positive y-axis points up in QA plots).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction.
+        of the raster grid in the Y direction, in the units of `epsg`.
     data : array_like
         Raster data to be stored. Can be a numpy.ndarray, h5py.Dataset, etc.
     units : str
@@ -1228,16 +1255,16 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
     Attributes
     ----------
     x_start : float
-        The starting (West) X position of the input array
+        The starting (typically West) X position of the grid.
         This corresponds to the left side of the left-most pixels.
     x_stop : float
-        The stopping (East) X position of the input array
+        The stopping (typically East) X position of the grid.
         This corresponds to the right side of the right-most pixels.
     y_start : float
-        The starting (North) Y position of the input array
+        The starting (typically North) Y position of the grid.
         This corresponds to the upper edge of the top pixels.
     y_stop : float
-        The stopping (South) Y position of the input array
+        The stopping (typically South) Y position of the grid.
         This corresponds to the lower side of the bottom pixels.
     """
 
