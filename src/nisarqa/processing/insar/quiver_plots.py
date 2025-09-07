@@ -810,6 +810,14 @@ def get_offset_values_in_projected_coordinates(
     for i, y_coord in enumerate(arrow_tails_y):
         for j, x_coord in enumerate(arrow_tails_x):
 
+            # Skip NaN pixels (this is usually geocoding fill)
+            if (not np.isfinite(arrow_rg_offsets[i, j])) or (
+                not np.isfinite(arrow_az_offsets[i, j])
+            ):
+                arrow_x_offsets[i, j] = np.nan
+                arrow_y_offsets[i, j] = np.nan
+                continue
+
             # 1) Convert (x_0, y_0) arrow tail from projected coordinates to LLH
 
             # Use a dummy height value of 0 in computing the inverse projection.
@@ -848,12 +856,6 @@ def get_offset_values_in_projected_coordinates(
                 side=look_side,
                 **geo2rdr_params,
             )
-
-            # Skip NaN pixels (this is usually geocoding fill)
-            if not np.isfinite(aztime) or not np.isfinite(srange):
-                arrow_x_offsets[i, j] = np.nan
-                arrow_y_offsets[i, j] = np.nan
-                continue
 
             # 3) Use the az/rng offset values (in meters) at the coordinate
             #    to offset ("shift") the point in the radar grid
