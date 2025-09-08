@@ -558,11 +558,8 @@ class RadarRaster(SARRaster, RadarGrid):
     """
 
     def __post_init__(self):
-        # Make sure to initialize the start and stop attributes
-        RadarGrid.__post_init__(self)
 
-        # Now, follow MRO for standard __post_init__
-        super().__post_init__()
+        RadarGrid.__post_init__(self)
 
     @property
     def y_axis_spacing(self):
@@ -761,11 +758,7 @@ class GeoRaster(SARRaster, GeoGrid):
     """
 
     def __post_init__(self):
-        # Make sure to initialize the start and stop attributes
         GeoGrid.__post_init__(self)
-
-        # Now, follow MRO for standard __post_init__
-        super().__post_init__()
 
     @property
     def y_axis_spacing(self):
@@ -1054,7 +1047,6 @@ class StatsMixin(IsComplex):
     stats: RasterStats | ComplexRasterStats
 
     def __post_init__(self) -> None:
-
         if self.is_complex:
             if not isinstance(self.stats, ComplexRasterStats):
                 raise TypeError(
@@ -1219,11 +1211,10 @@ class RadarRasterWithStats(RadarRaster, StatsMixin):
     """
 
     def __post_init__(self):
-        # Initialize the start and stop attributes
-        RadarRaster.__post_init__(self)
 
-        # Now, follow MRO for standard __post_init__
-        super().__post_init__()
+        # Call post init of all parent classes
+        RadarRaster.__post_init__(self)
+        StatsMixin.__post_init__(self)
 
 
 @dataclass
@@ -1288,11 +1279,10 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
     """
 
     def __post_init__(self):
-        # Initialize the start and stop attributes
-        GeoRaster.__post_init__(self)
 
-        # Now, follow MRO for standard __post_init__
-        super().__post_init__()
+        # Call post init of all parent classes
+        GeoRaster.__post_init__(self)
+        StatsMixin.__post_init__(self)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
