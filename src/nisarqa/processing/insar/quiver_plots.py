@@ -630,8 +630,6 @@ def add_magnitude_image_and_quiver_plot_to_axes(
         # For now, use `sceneCenterAlongTrackSpacing` as an approximation.
         # (The approximation is because the spacing will vary in different
         # parts of the image.)
-        # The spacing should be positive for L1 products, so we shouldn't
-        # need to worry about flipping the sign on the y-axis.
         tmp_y_posting = coord_grid.ground_az_spacing
     else:
         assert isinstance(coord_grid, nisarqa.GeoGrid)
@@ -770,8 +768,8 @@ def get_offset_values_in_projected_coordinates(
 
     if arrow_rg_offsets.shape != arrow_az_offsets.shape:
         raise ValueError(
-            f"{rg_offsets.data.shape=}, but it must have the same shape"
-            f" as {az_offsets.data.shape=}"
+            f"{rg_offsets.shape=}, but it must have the same shape"
+            f" as {az_offsets.shape=}"
         )
 
     if (arrow_rg_offsets.shape[1] != num_arrows_x) or (
@@ -811,8 +809,8 @@ def get_offset_values_in_projected_coordinates(
         for j, x_coord in enumerate(arrow_tails_x):
 
             # Skip NaN pixels (this is usually geocoding fill)
-            if (not np.isfinite(arrow_rg_offsets[i, j])) or (
-                not np.isfinite(arrow_az_offsets[i, j])
+            if (np.isnan(arrow_rg_offsets[i, j])) or (
+                np.isnan(arrow_az_offsets[i, j])
             ):
                 arrow_x_offsets[i, j] = np.nan
                 arrow_y_offsets[i, j] = np.nan
