@@ -602,14 +602,16 @@ class GeoGrid(CoordinateGrid):
         X posting of pixels of the grid, in units matching `x_coordinates`.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction, in the units of `epsg`.
+        of the raster grid in the X direction, in the units of the
+        coordinate reference system represented by `epsg`.
     y_spacing : float
         Y posting of pixels of the grid, in units matching `y_coordinates`.
         Note: For NISAR L2 products, the y-coordinate posting of the
         coordinate grid is negative (the positive y-axis points up in QA plots).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction, in the units of `epsg`.
+        of the raster grid in the Y direction, in the units of the
+        coordinate reference system represented by `epsg`.
 
     Attributes
     ----------
@@ -662,17 +664,10 @@ class GeoGrid(CoordinateGrid):
 
         self.x_stop = float(self.x_coordinates[-1] + 0.5 * self.x_spacing)
 
-        # TODO: There is an open an issue in QA to rename x_spacing and
-        # y_spacing to x_posting and y_posting, so that QA can consistently
-        # use "spacing" when referring to the (positive-valued) width of
-        # a pixel and "posting" when referring to the (positive- or
-        # negative-valued) stride between points in a grid.
-        # (The spacing is the absolute value of the posting.)
-        # That has not happened yet, so ensure that we have the absolute value.
-        y_spacing = abs(self.y_spacing)
-
-        self.y_start = float(self.y_coordinates[0] - 0.5 * y_spacing)
-        self.y_stop = float(self.y_coordinates[-1] + 0.5 * y_spacing)
+        # Use the posting (not the spacing) to capture the
+        # negative-valued stride of the y-coordinates for NISAR L2 products.
+        self.y_start = float(self.y_coordinates[0] - 0.5 * self.y_posting)
+        self.y_stop = float(self.y_coordinates[-1] + 0.5 * self.y_posting)
 
     @property
     def x_posting(self):
@@ -728,14 +723,16 @@ class GeoRaster(SARRaster, GeoGrid):
         X posting of pixels of the grid, in units matching `x_coordinates`.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction, in the units of `epsg`.
+        of the raster grid in the X direction, in the units of the
+        coordinate reference system represented by `epsg`.
     y_spacing : float
         Y posting of pixels of the grid, in units matching `y_coordinates`.
         Note: For NISAR L2 products, the y-coordinate posting of the
         coordinate grid is negative (the positive y-axis points up in QA plots).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction, in the units of `epsg`.
+        of the raster grid in the Y direction, in the units of the
+        coordinate reference system represented by `epsg`.
 
     Attributes
     ----------
@@ -1251,14 +1248,16 @@ class GeoRasterWithStats(GeoRaster, StatsMixin):
         X posting of pixels of the grid, in units matching `x_coordinates`.
     x_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the X direction, in the units of `epsg`.
+        of the raster grid in the X direction, in the units of the
+        coordinate reference system represented by `epsg`.
     y_spacing : float
         Y posting of pixels of the grid, in units matching `y_coordinates`.
         Note: For NISAR L2 products, the y-coordinate posting of the
         coordinate grid is negative (the positive y-axis points up in QA plots).
     y_coordinates : numpy.ndarray
         1D vector of the coordinate values of the center of each pixel
-        of the raster grid in the Y direction, in the units of `epsg`.
+        of the raster grid in the Y direction, in the units of the
+        coordinate reference system represented by `epsg`.
     stats : nisarqa.RasterStats or nisarqa.ComplexRasterStats
         Statistics of the `data` array.
 

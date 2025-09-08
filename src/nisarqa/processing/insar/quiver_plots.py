@@ -148,8 +148,7 @@ def plot_offsets_quiver_plot_to_pdf(
     )
     assert stride1 == stride2
 
-    # For L2 products where `quiver_projection_params` are provided,
-    # we need to adjust the geo grid parameters to match our
+    # Construct coordinate grid parameters to match our
     # freshly-decimated `az_off` and `rg_off`
     kwargs = {}
     if isinstance(az_offset, nisarqa.GeoRaster):
@@ -182,11 +181,11 @@ def plot_offsets_quiver_plot_to_pdf(
     else:
         assert isinstance(az_offset, nisarqa.RadarRaster)
 
+        zero_dop_spacing = az_offset.zero_doppler_time_spacing * ky1 * stride1
+
         kwargs["coord_grid"] = nisarqa.RadarGrid(
             zero_doppler_time=az_offset.zero_doppler_time[::ky1][::stride1],
-            zero_doppler_time_spacing=az_offset.zero_doppler_time_spacing
-            * ky1
-            * stride1,
+            zero_doppler_time_spacing=zero_dop_spacing,
             slant_range=az_offset.slant_range[::kx1][::stride1],
             slant_range_spacing=az_offset.slant_range_spacing * kx1 * stride1,
             ground_az_spacing=az_offset.ground_az_spacing * ky1 * stride1,
@@ -327,8 +326,7 @@ def plot_single_quiver_plot_to_png(
     az_off = az_offset.data[::y_decimation, ::x_decimation]
     rg_off = rg_offset.data[::y_decimation, ::x_decimation]
 
-    # For L2 products where `quiver_projection_params` are provided,
-    # we need to adjust the geo grid parameters to match our
+    # Construct coordinate grid parameters to match our
     # freshly-decimated `az_off` and `rg_off`
     kwargs = {}
     if quiver_projection_params is not None:
@@ -362,10 +360,11 @@ def plot_single_quiver_plot_to_png(
     else:
         assert isinstance(az_offset, nisarqa.RadarRaster)
 
+        zero_dop_spacing = az_offset.zero_doppler_time_spacing * y_decimation
+
         kwargs["coord_grid"] = nisarqa.RadarGrid(
             zero_doppler_time=az_offset.zero_doppler_time[::y_decimation],
-            zero_doppler_time_spacing=az_offset.zero_doppler_time_spacing
-            * y_decimation,
+            zero_doppler_time_spacing=zero_dop_spacing,
             slant_range=az_offset.slant_range[::x_decimation],
             slant_range_spacing=az_offset.slant_range_spacing * x_decimation,
             ground_az_spacing=az_offset.ground_az_spacing * y_decimation,
@@ -563,10 +562,10 @@ def add_magnitude_image_and_quiver_plot_to_axes(
     arrow_az_offsets = az_off[::arrow_stride, ::arrow_stride]
     arrow_rg_offsets = rg_off[::arrow_stride, ::arrow_stride]
 
-    num_arrows_along_x = arrow_az_offsets.shape[1]
-    num_arrows_along_y = arrow_az_offsets.shape[0]
-    x = np.arange(num_arrows_along_x)
-    y = np.arange(num_arrows_along_y)
+    num_arrows_x = arrow_az_offsets.shape[1]
+    num_arrows_y = arrow_az_offsets.shape[0]
+    x = np.arange(num_arrows_x)
+    y = np.arange(num_arrows_y)
     X, Y = np.meshgrid(x, y)
 
     # 2D grid of the starting x pixel indices in the image arrays for each arrow
