@@ -206,15 +206,15 @@ class NisarRadarProduct(NisarProduct):
         )
         kwargs["zero_doppler_time"] = h5_file[path][...]
 
+        # Use zeroDopplerTime's units attribute to get the epoch.
+        kwargs["epoch"] = self._get_epoch(ds=h5_file[path])
+
         path = _get_path_to_nearest_dataset(
             h5_file=h5_file,
             starting_path=raster_path,
             dataset_to_find="zeroDopplerTimeSpacing",
         )
         kwargs["zero_doppler_time_spacing"] = h5_file[path][...]
-
-        # Use zeroDopplerTime's units attribute to get the epoch.
-        kwargs["epoch"] = self._get_epoch(ds=h5_file[path])
 
         # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
         # 'Nominal ground range spacing in meters between consecutive pixels
