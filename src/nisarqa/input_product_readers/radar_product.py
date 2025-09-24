@@ -209,6 +209,8 @@ class NisarRadarProduct(NisarProduct):
         # Use zeroDopplerTime's units attribute to get the epoch.
         kwargs["epoch"] = self._get_epoch(ds=h5_file[path])
 
+        # From the xml Product Spec, zeroDopplerTimeSpacing is the
+        # '...spacing between consecutive entries in the zeroDopplerTime array'.
         path = _get_path_to_nearest_dataset(
             h5_file=h5_file,
             starting_path=raster_path,
