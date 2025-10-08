@@ -1,7 +1,7 @@
-# Instructions to Build the QA Product Specification .docx
+# Instructions to Build the QA Product Specification DOCX
 
 ## Update all Markdown files
-Please follow the [Process to update the Markdown files](process_to_update_the_markdown_files.md)
+Please follow the [Process to update the Markdown files](process_to_update_the_markdown_files.md).
 
 
 ## Install `pandoc`
@@ -12,7 +12,7 @@ Please follow the [Process to update the Markdown files](process_to_update_the_m
 conda install -c conda-forge pandoc
 ```
 
-## Concatonate the `.md` files and generate the intermediary DOCX
+## Concatenate the `.md` files and generate the intermediary DOCX
 
 `cd` into to `nisarqa/docs/product_specs` directory. 
 
@@ -26,12 +26,12 @@ pandoc --from=markdown_github+multiline_tables+table_captions *.md  -o nisarqa_p
 > `pandoc` has deprecated using `--from=markdown_github` in favor of the newer `--from=gfm`. However, `gfm` does not allow the `+multiline_tables` extension, which is required for the long descriptions in the tables to wrap to multiple lines within a cell. For now, keep using `--from=markdown_github`; it still worked with `pandoc` v3.4.
 
 
-## Prepare the final .docx product spec
+## Prepare the final DOCX product spec
 
 Open the intermediary `nisarqa_product_specs_tmp.docx` file in Word.
  * Select all (command-A), and copy to the clipboard.
 
-Open the final "front matter" .docx file, which contains the cover page, signature pages, NISAR style formats, etc.
+Open the final "front matter" DOCX file, which contains the cover page, signature pages, NISAR style formats, etc.
 * Scroll to the first page after the table of contents, which should be the beginning of Section 1.
 * Delete everything from Section 1 to the end.
 * Paste the clipboard contents verbatim into the body. (In effect, we're wholesale replacing to old body contents with the updated contents.)

@@ -1,23 +1,42 @@
 
 # Statistical Summary (QA HDF5)
 
-This statistical HDF5 file contains a variety of data, including:
+The QA HDF5 file contains a variety of metadata about the 
+input L1/L2 granule, including:
 
-* Statistics and metrics about the layers and datasets in the input L1/L2 granule.
-* The computed arrays used to generate the histograms and other plots in the QA report PDF
-* The processing parameters used by QA to generate all of the QA outputs
-    - This includes a copy of the final runconfig file settings
-* A copy of the input L1/L2 product's `identification` group
-    - [!Caution] The QA HDF5's `/science/LSAR/identification/` group 
-      is a copy of the input L1/L2 product's group.
+* Statistics and metrics of the layers and datasets.
+* The computed arrays used to generate the histograms and other 
+plots in the QA report PDF.
+* A copy of the final QA runconfig YAML, with all default values populated.
+    - Additional processing parameters dynamically calculated and/or used
+    by QA are provided as separate metadata.
+* A copy of the input granule's `runConfigurationContents` dataset.
+   - Note: QA copies this dataset's contents as-is, with no further processing. 
+   The format (e.g. JSON, YAML) may differ depending on the L1/L2 product type.
+* A copy of the input L1/L2 granule's `identification` group
+    - Note: The QA HDF5's `/science/LSAR/identification/` group 
+      is a copy of the input L1/L2 granule's group.
     - For the QA-specific software version, processing datetime, and 
-      runconfiguration contents, please see the 
+      run configuration contents, please see the 
       `/science/LSAR/QA/processing/` group.
 
-The contents of the QA HDF5 file for each product type is provided below.
+The contents of the QA HDF5 for each L1/L2 product type are documented in the 
+subsequent subsections.
 
-While all possible options for frequencies, polarizations, covariance terms, 
-etc. are noted in these tables, the actual QA HDF5 files will only include 
-the subset of these which correspond to the available frequencies, 
-polarizations, covariance terms, etc. found in the input L1/L2 science products.
+The top of each subsection notes all possible frequencies, polarizations, 
+covariance terms, etc. which could appear in QA HDF5s for that particular 
+product type. The tables in each subsection note all possible datasets 
+that could appear; for brevity of the documentation, only one
+combination of frequency/polarization/etc. for each dataset is included.
+
+The final contents of each QA HDF5 reflect the contents of its 
+input L1/L2 granule.
+
+For example:
+  * If the input granule contains data for Frequency A and Frequency B, 
+  then the QA HDF5 will similarly contain data for Frequency A and Frequency B. 
+  * If the input granule does not include VV polarization, then the QA HDF5
+  will similarly not contain VV polarization.
+  * If the input RSLC granule is not over a designated calibration site,
+  then there will be no results from the PTA and AbsCal calibration tools.
 

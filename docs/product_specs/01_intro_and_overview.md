@@ -8,10 +8,10 @@ and Level-2 (L2) L-band science data products. The QA products will
 contain quality metrics, summary statistics, and plots of science data; 
 they will be distributed publicly and freely through the NASA Alaska 
 Satellite Facility Distributed Active Archive Center alongside 
-the L1 and L2 products.
+the L1 and L2 granules.
 
 These QA parameters will provide the scientific community with a 
-comprehensive perspective on the quality of NISAR products at a global 
+comprehensive perspective on the quality of NISAR granules at a global 
 scale and enable efficient analysis without the need to download extensive 
 L1/L2 science data.
 
@@ -37,7 +37,7 @@ versions of the standard QA products using different parameter settings.
 
 The QA software version used to generate a given set of QA outputs can be 
 found on the cover page of the QA report PDF file and in the QA HDF5 file's 
-`/science/LSAR/QA/processing/QASoftwareVersion` Dataset. 
+`/science/LSAR/QA/processing/QASoftwareVersion` dataset. 
 This version number corresponds to a specific QA software tag: 
 https://github.com/isce-framework/nisarqa/tags.
 
@@ -58,7 +58,7 @@ Descriptions of the individual files in one set of QA products:
 | :---: | :----------- | -------------- | :-----: |
 | PNG | `<gran_id>.png` | Browse Image  | < 10 MB |
 | KML | `<gran_id>.kml` | Geolocation sidecar file for the PNG | < 5 KB |
-| PDF | `<gran_id>_QA_REPORT.pdf` | Graphical summary of the input product, including plots, histograms, and other assessments | < 3 MB |
+| PDF | `<gran_id>_QA_REPORT.pdf` | Graphical summary of the input granule, including plots, histograms, and other assessments | < 3 MB |
 | HDF5 | `<gran_id>_QA_STATS.h5` | HDF5 containing statistics, metrics, histograms, identification information, and more about the datasets in the input granule. Also includes QA processing parameters | 1-10 MB |
 | CSV | `<gran_id>_QA_SUMMARY.csv` | High level PASS/FAIL checks | < 5 KB |
 | TXT | `<gran_id>_QA_LOG.txt` | Log file. Contains full details of verification checks, in addition to typical log outputs | < 200 KB |
@@ -66,14 +66,14 @@ Descriptions of the individual files in one set of QA products:
 
 
 \* For NISAR mission processing, `<gran_id>` will be the complete 
-granule ID of the input L1/L2 product.
+granule ID of the input L1/L2 granule.
 
 
 
 ## Input NISAR L1/L2 Science Product Overview
 Each NASA SDS L0-L2 L-band product is distributed as a single Hierarchical 
 Data Format version 5 granule. For full descriptions, please see the 
-L1/L2 product specification documents, available from either the ASF DAAC or
+L1/L2 product specification documents, available from the ASF DAAC or
 the NISAR sample data website https://nisar.jpl.nasa.gov/data/sample-data/.
 
 ### NISAR Product Level Descriptions
@@ -96,9 +96,9 @@ quality of the eight NISAR L-band L1 and L2 products, nominally
 generated using the ISCE3 software (https://github.com/isce-framework/isce3). 
 The dependency graph and brief descriptions of each L1/L2 product are below, 
 which illustrates the upstream-to-downstream chain of the science products. 
-This is useful because issues that appear in QA reports for a downstream 
-product sometimes have their root cause traced back to the upstream input 
-product. For example, if a user sees an issue in a GUNW granule's QA report, 
+This is useful because an issue that appears in the QA report for a downstream 
+granule can sometimes have its root cause traced back to the upstream input 
+granule. For example, if a user sees an issue in a GUNW granule's QA report, 
 they might look at the upstream RIFG and RSLC granules' QA reports for insight.
 
 ![Product Dependency Graph](images/product_dependency.jpg)
@@ -127,7 +127,7 @@ The L1 products are on the range-Doppler (radar) grid and their acronyms
 begin with the letter "R". The L2 products are geocoded and their 
 acronyms begin with the letter "G".
 
-In practice, when viewing the QA report PDFs, the L2 products' imagery 
+In practice, when viewing the QA report PDFs, the L2 products' image 
 rasters appear as a geocoded version of the radar grid image surrounded 
 by geocoding fill. For the backscatter image plots in GSLC and GCOV PDFs, 
 the backscatter fill defaults to be colored blue; elsewhere it appears 

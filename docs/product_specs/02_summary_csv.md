@@ -25,7 +25,7 @@ If there is a fatal error, then the final row in the CSV (the
 
 Soft checks are meant to notify users of minor issues in the input granule;
 these issues should not halt the public release of a L1/L2 granule.
-For example, the NISAR sample products used to generate 
+For example, the NISAR sample granules used to generate 
 the example CSVs below were derived from ALOS-1 datasets; the conversion 
 from ALOS-1 to NISAR-format did not include metadata corresponding to 
 NISAR's `plannedObservationId` field in the `identification` group, 

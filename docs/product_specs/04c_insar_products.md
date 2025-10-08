@@ -15,11 +15,11 @@ Example Unwrapped Phase plots and histogram in the PDF:
 
 Example Connected Components plot and bar chart in the PDF: 
 
-![Example XXXX Plot in the PDF](images/report_cc.jpg)
+![Example Connected Components Plot in the PDF](images/report_cc.jpg)
 
 ### Unwrapped Coherence Magnitude (RUNW, GUNW)
 
-Example Unwrapped Coherence Magnitude plot and histogram  in the PDF: 
+Example Unwrapped Coherence Magnitude plot and histogram in the PDF: 
 
 ![Example Unwrapped Coherence Magnitude Plot in the PDF](images/report_unw_coh.jpg)
 
@@ -28,9 +28,13 @@ Example Unwrapped Coherence Magnitude plot and histogram  in the PDF:
 
 ### Wrapped Phase and Wrapped Coherence Magnitude (RIFG, GUNW)
 
-Note: Input GUNW products contain individual coherence magnitude layers for the unwrapped phase image and for the wrapped phase image, at postings matching the corresponding phase image. Both coherence magnitude layers are plotted in the GUNW QA report.
+Note: GUNW products contain individual coherence magnitude 
+layers for the unwrapped phase image and for the wrapped phase image, 
+at postings matching the corresponding phase image. 
+Both coherence magnitude layers are plotted in the GUNW QA report PDF.
 
-Example Wrapped Phase and Wrapped Coherence Magnitude plots and histograms in the PDF: 
+Example Wrapped Phase and Wrapped Coherence Magnitude plots and 
+histograms in the PDF: 
 
 ![Example Wrapped Phase and Wrapped Coherence Magnitude Plots in the PDF](images/report_wrapped_igram_coh.jpg)
 
@@ -40,7 +44,8 @@ Example Wrapped Phase and Wrapped Coherence Magnitude plots and histograms in th
 
 ### Ionosphere Phase Screen and Phase Screen Uncertainty (RUNW, GUNW)
 
-Example Ionosphere Phase Screen and Phase Screen Uncertainty plots and histograms in the PDF: 
+Example Ionosphere Phase Screen and Phase Screen Uncertainty plots and 
+histograms in the PDF: 
 
 ![Example Ionosphere Phase Screen and Phase Screen Uncertainty Plots in the PDF](images/report_iono_phs_screen.jpg)
 
@@ -50,7 +55,8 @@ Example Ionosphere Phase Screen and Phase Screen Uncertainty plots and histogram
 
 ### Along Track Offsets and Slant Range Offsets (RIFG, RUNW, GUNW, ROFF, GOFF)
 
-Example Along Track Offsets and Slant Range Offsets plots and histograms in the PDF: 
+Example Along Track Offsets and Slant Range Offsets plots and 
+histograms in the PDF: 
 
 ![Example Along Track Offsets and Slant Range Offsets Plots in the PDF](images/report_az_rng_offsets.jpg)
 
@@ -68,9 +74,12 @@ Example Combined Pixel Offsets plot in the PDF:
 
 ### Cross Offset Variance and Correlation Surface Peak (RIFG, RUNW, GUNW, ROFF, GOFF)
 
-Cross Offset Variance is only available in ROFF and GOFF products. Correlation Surface Peak is available in all RIFG, RUNW, GUNW, ROFF, GOFF products.
+Cross Offset Variance is only available in ROFF and GOFF products. 
+Correlation Surface Peak is available in all RIFG, RUNW, GUNW, ROFF, 
+GOFF products.
 
-Example Cross Offset Variance and Correlation Surface Peak plots and histograms in the PDF: 
+Example Cross Offset Variance and Correlation Surface Peak plots and 
+histograms in the PDF: 
 
 ![Example Cross Offset Variance and Correlation Surface Peak Plots in the PDF](images/report_offsets_cov_and_surf_peak.jpg)
 
@@ -80,10 +89,12 @@ Example Cross Offset Variance and Correlation Surface Peak plots and histograms 
 
 ### HSI Image (RIFG, RUNW, GUNW)
 
-For RIFG products, the Hue, Saturation, Intensity (HSI) image is constructed from the wrapped phase raster and the wrapped coherence magnitude raster.
+For RIFG products, the Hue, Saturation, Intensity (HSI) image is 
+constructed from the wrapped phase raster and the wrapped coherence 
+magnitude raster.
 
-For GUNW and RUNW products, the HSI image is constructed from the unwrapped phase raster 
-and the unwrapped coherence magnitude raster.
+For GUNW and RUNW products, the HSI image is constructed from the 
+unwrapped phase raster and the unwrapped coherence magnitude raster.
 
 
 Example HSI Plot in the PDF: 
@@ -93,7 +104,8 @@ Example HSI Plot in the PDF:
 
 ### Along Track and Slant Range Offset Variance (ROFF, GOFF)
 
-Example Along Track and Slant Range Offset Variance plots and histograms in the PDF: 
+Example Along Track and Slant Range Offset Variance plots and 
+histograms in the PDF: 
 
 ![Example Along Track and Slant Range Offset Variance Plots in the PDF](images/report_offsets_variance.jpg)
 

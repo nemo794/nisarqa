@@ -1,8 +1,12 @@
-import warnings
-import h5py
-import os
+#!/usr/bin/env python
+
 import argparse
+import os
+import warnings
+
+import h5py
 import numpy as np
+
 import nisarqa
 
 
@@ -55,31 +59,35 @@ def get_header(product_type: str) -> str:
         f"\n## {product_type.upper()} QA HDF5 Contents"
         f"\n\nEach QA HDF5 file includes a subset of the available options"
         " below, which will correspond to the available frequencies,"
-        f" polarizations, etc. in the input {product_type.upper()} product."
-        f"\n\n* Possible Frequency Groups: {_freqs(product_type)}"
+        f" polarizations, etc. in the input {product_type.upper()} granule."
+        f"\n\n* Possible Frequency groups: {_freqs(product_type)}"
     )
 
     if product_type == "gcov":
         header += (
-            "\n\n* Possible On- and Off-diagonal Covariance Term Groups:"
+            "\n\n* Possible On- and Off-diagonal Covariance Term groups:"
             f" {_pols(product_type)}"
         )
     else:
-        header += f"\n\n* Possible Polarization Groups: {_pols(product_type)}"
+        header += f"\n\n* Possible Polarization groups: {_pols(product_type)}"
 
     if product_type in ("rslc", "gslc"):
-        grps = ("`pointTargetAnalyzer`",)
+        grps = ("`pointTargetAnalyzer`\*",)
         if product_type == "rslc":
             grps += (
-                "`absoluteRadiometricCalibration`",
+                "`absoluteRadiometricCalibration`\*",
                 "`noiseEquivalentBackscatter`",
             )
 
-        header += f"\n\n* Possible CalTools groups: {', '.join(grps)}"
+        header += (
+            f"\n\n* Possible CalTools groups: {', '.join(grps)}"
+            "\n\t\t\*PTA and AbsCal results only possible for granules"
+            " over designated calibration sites."
+        )
 
     if product_type in ("roff", "goff"):
         layers = [f"`{l}`" for l in nisarqa.NISAR_LAYERS]
-        header += f"\n\n* Possible layer Groups: {', '.join(layers)}"
+        header += f"\n\n* Possible layer groups: {', '.join(layers)}"
 
     header += "\n\n"
 
@@ -87,7 +95,7 @@ def get_header(product_type: str) -> str:
 
 
 def get_spec_table(input_file: str, product_type: str) -> str:
-    """Generator to return the next Dataset from the input file"""
+    """Generator to return the next dataset from the input file"""
 
     def _get_string_rep(val):
         if np.issubdtype(val.dtype, np.bytes_):
@@ -100,17 +108,17 @@ def get_spec_table(input_file: str, product_type: str) -> str:
         # Table header for Markdown file
         spec = [
             (
-                f"\n|     | {product_type.upper()} QA HDF5 Dataset, Attributes, and additional metadata |"
+                f"\n|     | {product_type.upper()} QA HDF5 Dataset, Attributes, and Additional Metadata |"
                 "\n| :---: | --------------------------------------- |"
             )
         ]
 
-        # # Global Attributes
-        # spec.append(f"\n| Path: | **`/` _(Global Attributes)_** |")
-        # obj = in_f["/"]
-        # for key, val in obj.attrs.items():
-        #     spec.append(f"\n|    | _{key}:_ {_get_string_rep(val)} |")
-        # spec.append("\n|     |     |    |")
+        # Global Attributes
+        spec.append(f"\n| Path: | **`/` _(Global Attributes)_** |")
+        obj = in_f["/"]
+        for key, val in obj.attrs.items():
+            spec.append(f"\n|    | _{key}:_ {_get_string_rep(val)} |")
+        spec.append("\n|     |     |    |")
 
         # Datasets and their attributes
         def build_spec(name):
@@ -190,7 +198,7 @@ def main(input_file: str, out_dir: str) -> None:
         )
 
     filename = os.path.join(
-        out_dir, f"05{_doc_order(product_type)}_{product_type}_hdf5_spec.md"
+        out_dir, f"05{_doc_order(product_type)}_{product_type}_qa_hdf5_spec.md"
     )
 
     with open(filename, "w") as out_f:
@@ -204,7 +212,7 @@ def main(input_file: str, out_dir: str) -> None:
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Generate HDF5 specs of input file in markdown."
+        description="Generate HDF5 specs of input QA file in markdown."
     )
     parser.add_argument(
         "filename",
@@ -217,7 +225,7 @@ if __name__ == "__main__":
         "out_dir",
         help=(
             "Path to output directory to store the final Markdown file"
-            " containing the header and HDF5 file structure"
+            " containing the header and QA HDF5 file structure"
         ),
     )
 

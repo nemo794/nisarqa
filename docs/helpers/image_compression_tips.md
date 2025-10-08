@@ -2,7 +2,7 @@
 
 When adding new images to the repo, the developer must strike a balance between image file size, image pixel dimensions, and clarity. We want to keep images small in file size because we do not want to bloat the `nisarqa` repo, and once an image file is merged into the repo it will forever live in the git history. However, if an image is too small, blurry, or otherwise riddled with compression artifacts, it is not useful to the users.
 
-Furthermore, this balance must occur in the context that the images will be visualized in both the online GitHub format, and the .docx product spec. Images that appear small and/or uniform size through the GitHub interface, often end up very large and or inconsistently-sized in the .docx.
+Furthermore, this balance must occur in the context that the images will be visualized in both the online GitHub format, and the DOCX product spec. Images that appear small and/or uniform size through the GitHub interface, often end up very large and or inconsistently-sized in the DOCX.
 
 # Tips
 

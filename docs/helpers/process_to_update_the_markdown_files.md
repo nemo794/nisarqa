@@ -4,9 +4,9 @@
 
 As new QA PRs are drafted, the best practice is for the product specs to be updated in those PRs to keep them in sync. When preparing to cut a QA releases, the developer should do a final pass updating the product specs in advance of cutting the release.
 
-When updating the product specs, the author needs to be mindful that the output looks "nice" in both GitHub and in .docx output. To view correctly on the GitHub repository, the Markdown must be written in "GitHub-Flavored Markdown". When reformatting the Markdown files into .docx files via `pandoc`, not all formatting will translate correctly.
+When updating the product specs, the author needs to be mindful that the output looks "nice" in both GitHub and in DOCX output. To view correctly on the GitHub repository, the Markdown must be written in "GitHub-Flavored Markdown". When reformatting the Markdown files into DOCX files via `pandoc`, not all formatting will translate correctly.
 
-Guidance on how to correctly write and format the QA product spec Markdown files for viewing both GitHub and the .docx can be found here:
+Guidance on how to correctly write and format the QA product spec Markdown files for viewing both GitHub and the DOCX can be found here:
 [Tips for Writing Product Spec Markdown](helpers/style_guide_for_writing_markdown_specs.md)
 
 
@@ -24,7 +24,7 @@ python path/to/generate_stats_markdown.py /path/to/QA_STATS.h5 /path/to/output/d
 ```
 
 > [!IMPORTANT]
-> For the output directory, please use the existing `nisarqa/docs/product_specs/` directory. This is where the current version are stored; the Python script internally uses the correct naming convention to replace the old versions, and this way the .docx files can be smoothly generated with the updated files.
+> For the output directory, please use the existing `nisarqa/docs/product_specs/` directory. This is where the current version are stored; the Python script internally uses the correct naming convention to replace the old versions, and this way the DOCX files can be smoothly generated with the updated files.
 
 The [`generate_stats_markdown.py`](generate_stats_markdown.py) script automatically adds header information into each output Markdown file, iterates through the input product to parse the structure, formats the tables, and saves it with the correct file name in the `product_specs` directory. It also handles a few known edge cases.
 

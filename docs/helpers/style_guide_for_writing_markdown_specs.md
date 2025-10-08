@@ -1,8 +1,8 @@
 # Overview
 
-When writing the product spec Markdown files, the developer must be aware that the files will be displayed in both the online GitHub format, and the .docx format.
+When writing the product spec Markdown files, the developer must be aware that the files will be displayed in both the online GitHub format, and the DOCX format.
 
-In theory, GitHub-Flavored Markdown should translate nicely to both the GitHub interface and also in the .docx when converted via `pandoc`. In practice, there are bugs.
+In theory, GitHub-Flavored Markdown should translate nicely to both the GitHub interface and also in the DOCX when converted via `pandoc`. In practice, there are bugs.
 
 Here are some guidelines for writing the Markdown files for the QA products specs, and workarounds for the issues.
 
@@ -13,13 +13,13 @@ The section heading levels must be considered holistically for all of the produc
 
 In GitHub, each Markdown file is viewed independently, so section heading levels might seem to only be relative to the other headings within a single file.
 
-But, when these Markdown files are compiled into the .docx, the section heading levels are parsed by `pandoc` and used to construct the sections within the .docx, which in-turn are used to build the hierarchy of the .docx's table of contents. Fortunately, `pandoc` seems to handle this parsing quite well.
+But, when these Markdown files are compiled into the DOCX, the section heading levels are parsed by `pandoc` and used to construct the sections within the DOCX, which in-turn are used to build the hierarchy of the DOCX's table of contents. Fortunately, `pandoc` seems to handle this parsing quite well.
 
 There is an existing hierarchy established in the product specs Markdown files; pleaes be mindful of this hierarchy when making updates.
 
 
 # HTML tags
-HTML tags, tables, etc. seem to display nicely in the GitHub interface. However, in they do not seem to be recognized when `pandoc` converts to .docx.
+HTML tags, tables, etc. seem to display nicely in the GitHub interface. However, in they do not seem to be recognized when `pandoc` converts to DOCX.
 
 Suggest avoiding them, until a solution is found.
 
@@ -27,12 +27,12 @@ Suggest avoiding them, until a solution is found.
 # Tables
 Instead of taking screenshots of tables in other applications, recreate the tables using GitHub-Flavored Markdown pipe tables, https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/organizing-information-with-tables
 
-Tips for getting tables to display nicely in both GitHub and in the .docx:
+Tips for getting tables to display nicely in both GitHub and in the DOCX:
 
 * Horizontal Alignment of the columns
     - You can align text to the left, right, or center of a column by including colons `:` to the left, right, or on both sides of the hyphens within the header row.
 * Relative Column size:
-    - Having non-uniform sized columns in both GitHub and the .docx is finnicky.
+    - Having non-uniform sized columns in both GitHub and the DOCX is finnicky.
     - To do so, vary the number of hyphens in the header row. The more hyphens, the wider the column. (Minimum of three hyphens.)
     - For example, to have a medium-width column 1, a very wide column 2, and a narrow column 3, use this:
 
@@ -45,7 +45,7 @@ Tips for getting tables to display nicely in both GitHub and in the .docx:
 
 # Bulleted and Numbered Lists
 
-Even though GitHub is able to successfully parse both bulleted lists and numbered lists and display nicely-formatted lists, unfortunately `pandoc` is only able to understand bulleted lists when converting to .docx. Rephrased, **`pandoc` cannot convert numbered lists nicely.**
+Even though GitHub is able to successfully parse both bulleted lists and numbered lists and display nicely-formatted lists, unfortunately `pandoc` is only able to understand bulleted lists when converting to DOCX. Rephrased, **`pandoc` cannot convert numbered lists nicely.**
 
 To get around this, suggest using only bulleted lists. If you need a numbered sequence, the QA product specs currently uses a convention like this:
 
@@ -56,8 +56,8 @@ To get around this, suggest using only bulleted lists. If you need a numbered se
 
 * **Step 2:** Process the raster
     - Processing Steps:
-        - **Step 3i:** Reduce Size
-        - **Step 3ii:** Remove alpha channel
+        - **Step 3.i:** Reduce Size
+        - **Step 3.ii:** Remove alpha channel
             - Note 3
     - Note 4
 
