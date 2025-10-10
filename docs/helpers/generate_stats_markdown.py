@@ -3,6 +3,7 @@
 import argparse
 import os
 import warnings
+from collections.abc import Iterable
 
 import h5py
 import numpy as np
@@ -11,6 +12,23 @@ import nisarqa
 
 
 def _doc_order(prod_type: str) -> str:
+    """
+    Return the document order code corresponding to a given product type.
+
+    Parameters
+    ----------
+    prod_type : str
+        Product type name. Supported values are:
+        "RSLC", "GSLC", "GCOV", "RIFG", "RUNW", "GUNW", "ROFF", "GOFF".
+
+    Returns
+    -------
+    str
+        A single-letter code ("a"-"h") representing the order for the
+        product type's HDF5 Markdown spec to appear in the directory.
+        Example: RSLC should appear first, so it is assigned the letter "a".
+    """
+
     prod_type = prod_type.lower()
     if prod_type == "rslc":
         return "a"
@@ -33,6 +51,20 @@ def _doc_order(prod_type: str) -> str:
 
 
 def _freqs(prod_type: str) -> list[str]:
+    """
+    Return the list of possible frequency group names for the product type.
+
+    Parameters
+    ----------
+    prod_type : str
+        Product type name. Supported values are:
+        "RSLC", "GSLC", "GCOV", "RIFG", "RUNW", "GUNW", "ROFF", "GOFF".
+
+    Returns
+    -------
+    list of str
+        List of frequency group names, e.g. ["frequencyA", "frequencyB"].
+    """
     prod_type = prod_type.lower()
     if prod_type in ("rslc", "gslc", "gcov"):
         freqs = nisarqa.NISAR_FREQS
@@ -41,18 +73,99 @@ def _freqs(prod_type: str) -> list[str]:
     else:
         raise ValueError("Unsupported product type.")
 
-    freqs = [f"`frequency{f}`" for f in freqs]
-    return ", ".join(freqs)
+    return [f"frequency{f}" for f in freqs]
 
 
 def _pols(prod_type: str) -> list[str]:
+    """
+    Return the list of possible polarization group names for the product type.
+
+    Parameters
+    ----------
+    prod_type : str
+        Product type name. Supported values are:
+        "RSLC", "GSLC", "GCOV", "RIFG", "RUNW", "GUNW", "ROFF", "GOFF".
+
+    Returns
+    -------
+    list of str
+        List of polarization (or term) group names.
+        For non-GCOV, this will be e.g. ["HH", "HV"].
+        For GCOV, this will be e.g. ["HHHH", "HVHV"].
+    """
     prod_type = prod_type.lower()
-    pols = [f"`{p}`" for p in nisarqa.get_possible_pols(prod_type)]
-    return ", ".join(pols)
+    return list(nisarqa.get_possible_pols(prod_type))
+
+
+def _layers(prod_type: str) -> list[str]:
+    """
+    Return the list of possible layer group names for the product type.
+
+    Parameters
+    ----------
+    prod_type : str
+        Product type name. Supported values are: "ROFF", "GOFF".
+
+    Returns
+    -------
+    list of str
+        List of frequency group names, e.g. ["layer1", "layer2"].
+    """
+    prod_type = prod_type.lower()
+    if prod_type not in ("roff", "goff"):
+        raise ValueError(f"{prod_type=}, must be either ROFF or GOFF.")
+
+    layers = list(nisarqa.NISAR_LAYERS)
+    # Assert that the formatting of nisarqa.NISAR_LAYERS is as expected
+    assert "layer1" in layers
+    return layers
+
+
+def _reformat(names: Iterable[str]) -> str:
+    """
+    Format sequence of names as a comma-separated string, enclosed in backticks.
+
+    Parameters
+    ----------
+    names : Iterable of str
+        Sequence of names to format. Example: ["HH", "HV"].
+
+    Returns
+    -------
+    str
+        A single string with each name enclosed in backticks and separated
+        by commas. Example: "`HH`, `HV`".
+    """
+    reformatted = [f"`{n}`" for n in names]
+
+    return ", ".join(reformatted)
 
 
 def get_header(product_type: str) -> str:
+    """
+    Generate a formatted header for the Markdown file to detail the QA HDF5.
 
+    Parameters
+    ----------
+    product_type : str
+        Product type name. Supported values include:
+        "RSLC", "GSLC", "GCOV", "RIFG", "RUNW", "GUNW", "ROFF", "GOFF".
+
+    Returns
+    -------
+    str
+        A formatted Markdown string describing the possible groups
+        and data structures that may appear in the QA HDF5 file for
+        the specified product type.
+
+    Notes
+    -----
+    The generated header includes sections for:
+        - Frequency groups (based on available bands)
+        - Polarization or covariance term groups
+        - Calibration tool groups (for RSLC and GSLC)
+        - Layer groups (for ROFF and GOFF)
+    """
     product_type = product_type.lower()
 
     header = (
@@ -60,34 +173,47 @@ def get_header(product_type: str) -> str:
         f"\n\nEach QA HDF5 file includes a subset of the available options"
         " below, which will correspond to the available frequencies,"
         f" polarizations, etc. in the input {product_type.upper()} granule."
-        f"\n\n* Possible Frequency groups: {_freqs(product_type)}"
+        f"\n\n* Possible Frequency groups: {_reformat(_freqs(product_type))}"
     )
 
     if product_type == "gcov":
         header += (
             "\n\n* Possible On- and Off-diagonal Covariance Term groups:"
-            f" {_pols(product_type)}"
+            f" {_reformat(_pols(product_type))}"
         )
+
+        pols = [p[:2] for p in _pols(product_type) if p[:2] == p[:-2]]
+        header += (
+            "\n\n* Possible Polarization groups (for e.g. calibration"
+            f" information): {_reformat(pols)}"
+        )
+
     else:
-        header += f"\n\n* Possible Polarization groups: {_pols(product_type)}"
+        header += (
+            "\n\n* Possible Polarization groups:"
+            f"{_reformat(_pols(product_type))}"
+        )
 
     if product_type in ("rslc", "gslc"):
-        grps = ("`pointTargetAnalyzer`\*",)
+        grps = ("`pointTargetAnalyzer`",)
+        abscal = ""
         if product_type == "rslc":
             grps += (
-                "`absoluteRadiometricCalibration`\*",
+                "`absoluteRadiometricCalibration`",
                 "`noiseEquivalentBackscatter`",
             )
+            abscal = "and AbsCal "
 
         header += (
             f"\n\n* Possible CalTools groups: {', '.join(grps)}"
-            "\n\t\t\*PTA and AbsCal results only possible for granules"
+            f"\n   - Note: PTA {abscal}results only possible for granules"
             " over designated calibration sites."
         )
 
     if product_type in ("roff", "goff"):
-        layers = [f"`{l}`" for l in nisarqa.NISAR_LAYERS]
-        header += f"\n\n* Possible layer groups: {', '.join(layers)}"
+        header += (
+            f"\n\n* Possible layer groups: {_reformat(_layers(product_type))}"
+        )
 
     header += "\n\n"
 
@@ -95,9 +221,45 @@ def get_header(product_type: str) -> str:
 
 
 def get_spec_table(input_file: str, product_type: str) -> str:
-    """Generator to return the next dataset from the input file"""
+    """
+    Generate a Markdown-formatted table with the contents of a NISAR QA HDF5.
 
-    def _get_string_rep(val):
+    This function inspects the structure and attributes of an input QA HDF5
+    file and produces a formatted Markdown table summarizing datasets,
+    attributes, and metadata.
+
+    It is used to create detailed documentation tables for QA product
+    specifications.
+
+    Parameters
+    ----------
+    input_file : str
+        Path to the input QA HDF5 file.
+    product_type : str
+        Product type name. Supported values include:
+        "RSLC", "GSLC", "GCOV", "RIFG", "RUNW", "GUNW", "ROFF", "GOFF".
+
+    Returns
+    -------
+    str
+        Markdown-formatted specification table describing the datasets
+        contained within the input QA HDF5 file, including their
+        attributes and metadata.
+
+    Notes
+    -----
+    The output Markdown includes:
+        - Global (root-level) attributes
+        - Dataset paths, dimensions, and data types
+        - Dataset-specific attributes
+        - Selective filtering to include only one representative
+          frequency, polarization, or layer group.
+    """
+
+    def _get_string_rep(val: np.bytes_) -> str:
+        """
+        Convert a Fixed-length byte-string to a standard Python string object.
+        """
         if np.issubdtype(val.dtype, np.bytes_):
             return nisarqa.byte_string_to_python_str(val)
         else:
@@ -108,37 +270,143 @@ def get_spec_table(input_file: str, product_type: str) -> str:
         # Table header for Markdown file
         spec = [
             (
-                f"\n|     | {product_type.upper()} QA HDF5 Dataset, Attributes, and Additional Metadata |"
+                f"\n|     | {product_type.upper()} QA HDF5 Datasets,"
+                " Attributes, and Additional Metadata |"
                 "\n| :---: | --------------------------------------- |"
             )
         ]
 
-        # Global Attributes
-        spec.append(f"\n| Path: | **`/` _(Global Attributes)_** |")
+        # Add Global Attributes section
+        spec.append(f"\n| Path | **`/` _(Root Group - Global Attributes)_** |")
         obj = in_f["/"]
         for key, val in obj.attrs.items():
             spec.append(f"\n|    | _{key}:_ {_get_string_rep(val)} |")
         spec.append("\n|     |     |    |")
 
-        # Datasets and their attributes
+        # Add datasets and their attributes
+
+        # Lists to track which datasets must be included or excluded.
+        must_include = []
+        do_not_include = []
+        prod_type = product_type.upper()
+
+        # Identify mandatory dataset paths based on product type.
+        if prod_type == "RSLC":
+            must_include += [
+                "/absoluteRadiometricCalibration/data/",
+                "/noiseEquivalentBackscatter/data/",
+            ]
+        if prod_type in ("RSLC", "GSLC"):
+            must_include += ["/pointTargetAnalyzer/data/"]
+
+        def _include(grp_to_display: str, all_grps: list[str]) -> None:
+            """
+            Mark one group for inclusion and exclude all others.
+
+            Parameters
+            ----------
+            grp_to_display : str
+                The name of the group to which is required to be included
+                in the specification.
+            all_grps : list of str
+                List of all possible group names, including `grp_to_display`.
+                The `grp_to_display` will be added to `must_include`,
+                and all others to `do_not_include`.
+            """
+            nonlocal must_include, do_not_include
+            if grp_to_display not in all_grps:
+                raise ValueError(f"{grp_to_display=}, must be in {all_grps=}")
+            must_include += [f"/{grp_to_display}/"]
+            # Make a shallow copy to avoid mutating the input list.
+            dup = list(all_grps)
+            dup.remove(grp_to_display)
+            do_not_include += [f"/{d}/" for d in dup]
+
+        # Include only one representative frequency, polarization, and layer
+        # group for brevity in the generated documentation.
+        _include(grp_to_display="frequencyA", all_grps=_freqs(prod_type))
+
+        # QA HDF5 for all product types have "HH" polarization groups.
+        # (Even though GCOV uses terms (e.g. "HHHH") for its image layers,
+        # its RFI group contains pols, e.g. ../frequencyA/HH/rfiLikelihood.)
+        if prod_type == "GCOV":
+            pols = [p[:2] for p in _pols(prod_type) if p[:2] == p[:-2]]
+        else:
+            pols = _pols(prod_type)
+        _include(grp_to_display="HH", all_grps=pols)
+
+        if prod_type == "GCOV":
+            _include(grp_to_display="HHHH", all_grps=_pols(prod_type))
+
+        if prod_type in ("ROFF", "GOFF"):
+            _include(grp_to_display="layer1", all_grps=_layers(prod_type))
+
         def build_spec(name):
+            """
+            Visitor function used with `h5py.File.visit` to build the
+            specification table for all datasets.
+
+            Parameters
+            ----------
+            name : str
+                Full HDF5 path for the object being visited.
+
+            Notes
+            -----
+            - Only includes datasets matching paths in `must_include`.
+            - Skips datasets under groups listed in `do_not_include`.
+            - Records dataset name, dimensionality, dtype, and attributes.
+            """
+            for required in must_include:
+                if required in name:
+                    must_include.remove(required)
+            for skip in do_not_include:
+                if skip in name:
+                    return
+
             obj = in_f[name]
             if isinstance(obj, h5py.Dataset):
-                spec.append(f"\n| Path: | **`{name}`** |")
+                spec.append(f"\n| Path | **`{name}`** |")
+
+                # Retrieve dataset dtype and format for display.
+                dtype = obj.dtype
+                if np.issubdtype(dtype, np.bytes_):
+                    dtype = "fixed-length byte string"
+
+                # Describe dataset dimensionality.
+                ndim = obj.ndim
+                if ndim == 0:
+                    ndim = "scalar"
+                else:
+                    ndim = f"{ndim}-D array"
+
+                # Append dataset summary
                 spec.append(
-                    f"\n|    | _Product type:_ {product_type.upper()} QA |"
+                    f"\n|    | {prod_type.upper()} QA dataset, **ndim:** {ndim}, **dtype:** {dtype} |"
                 )
+
+                # Iterate through each dataset attribute and add to the
+                # Markdown table.
                 for key, val in obj.attrs.items():
                     if key == "subswathStartIndex":
-                        v = "Starting index for the subswath used to generate this plot"
+                        v = (
+                            "Starting index for the subswath used to"
+                            " generate this plot"
+                        )
                     elif key == "subswathStopIndex":
-                        v = "Stopping index for the subswath used to generate this plot"
+                        v = (
+                            "Stopping index for the subswath used to"
+                            " generate this plot"
+                        )
                     elif key == "epsg":
                         v = "EPSG code"
                     elif key == "frameCoveragePercentage":
                         v = "Percentage of NISAR frame containing processed data"
                     elif key == "thresholdPercentage":
-                        v = "Threshold percentage used to determine if the product is full frame or partial frame"
+                        v = (
+                            "Threshold percentage used to determine if"
+                            " the product is full frame or partial frame"
+                        )
                     else:
                         try:
                             v = _get_string_rep(val)
@@ -154,29 +422,20 @@ def get_spec_table(input_file: str, product_type: str) -> str:
                         else:
                             raise ValueError("ACK")
 
-                    # Escape special characters
+                    # Escape Markdown-sensitive characters.
                     v = v.replace("<", r"\<")
                     v = v.replace(">", r"\>")
 
                     spec.append(f"\n|    | _{key}:_ {v} |")
 
-                # Include the dtype
-                dtype = obj.dtype
-                if np.issubdtype(dtype, np.bytes_):
-                    dtype = "fixed-length byte string"
-                spec.append(f"\n|    | _dtype:_ {dtype} |")
-
-                # Include the number of dimensions
-                ndim = obj.ndim
-                if ndim == 0:
-                    ndim = "scalar"
-                else:
-                    ndim = f"{ndim}-D array"
-                spec.append(f"\n|    | _ndim:_ {ndim} |")
-
         in_f.visit(build_spec)
 
     spec.append("\n\n\n")
+    if must_include != []:
+        raise ValueError(
+            "Input QA product is missing datasets that under these"
+            f" groups which are required for the spec: {must_include}"
+        )
 
     return "".join(spec)
 

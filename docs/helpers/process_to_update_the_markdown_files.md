@@ -14,7 +14,7 @@ Guidance on how to correctly write and format the QA product spec Markdown files
 
 First, locate a sample QA HDF5 file with a representative internal file structure for that QA HDF5 file type. Tips:
 * If updating the QA HDF5 product specs for e.g. all eight L1/L2 QA HDF5 products, locate a unique QA HDF5 file for each L1/L2 type.
-* When selecting these files, the contents and size of the e.g. imagery Datasets do not matter; this script only looks at the internal structure, descriptions, attributes, etc. However, it is useful to consider if the chosen sample files should be for single-pol observations, dual-pol, quad-pol, multi-frequency, etc. 
+* When selecting these files, the contents and size of the e.g. image datasets do not matter; this script only looks at the internal structure, descriptions, attributes, etc. However, it is useful to consider if the chosen sample files should be for single-pol observations, dual-pol, quad-pol, multi-frequency, etc. 
 * When selecting RSLC and GSLC QA HDF5 files, please chose samples with outputs from the AbsCal and PTA Caltools.
 
 Use the [`nisarqa/docs/helpers/generate_stats_markdown.py`](generate_stats_markdown.py) script to auto-generate updated Markdown product specs using the input QA HDF5 file:
