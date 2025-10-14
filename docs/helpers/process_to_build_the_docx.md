@@ -16,14 +16,20 @@ conda install -c conda-forge pandoc
 
 `cd` into to `nisarqa/docs/product_specs` directory. 
 
-Then, build a temporary, intermediary docx. This will contain all of the "content" of the final product specs, but lack the front matter and the correct formatting.
+Then, build a temporary, intermediary docx. This will contain all of the 
+"content" of the final product specs, but lack the front matter and 
+the correct formatting.
 
 ```bash
 pandoc --from=markdown_github+multiline_tables+table_captions *.md  -o nisarqa_product_specs_tmp.docx -V linkcolor=blue
 ```
 
 > [!CAUTION]
-> `pandoc` has deprecated using `--from=markdown_github` in favor of the newer `--from=gfm`. However, `gfm` does not allow the `+multiline_tables` extension, which is required for the long descriptions in the tables to wrap to multiple lines within a cell. For now, keep using `--from=markdown_github`; it still worked with `pandoc` v3.4.
+> `pandoc` has deprecated using `--from=markdown_github` in favor of the 
+newer `--from=gfm`. However, `gfm` does not allow the `+multiline_tables` 
+extension, which is required for the long descriptions in the tables to 
+wrap to multiple lines within a cell. For now, keep using 
+`--from=markdown_github`; it still worked with `pandoc` v3.4.
 
 
 ## Prepare the final DOCX product spec
@@ -31,13 +37,20 @@ pandoc --from=markdown_github+multiline_tables+table_captions *.md  -o nisarqa_p
 Open the intermediary `nisarqa_product_specs_tmp.docx` file in Word.
  * Select all (command-A), and copy to the clipboard.
 
-Open the final "front matter" DOCX file, which contains the cover page, signature pages, NISAR style formats, etc.
-* Scroll to the first page after the table of contents, which should be the beginning of Section 1.
+Open the final "front matter" DOCX file, which contains the cover page, 
+signature pages, NISAR style formats, etc.
+* Scroll to the first page after the table of contents, which should be 
+the beginning of Section 1.
 * Delete everything from Section 1 to the end.
-* Paste the clipboard contents verbatim into the body. (In effect, we're wholesale replacing to old body contents with the updated contents.)
-* Scroll up to the table of contents. Right-click, and "update field". This should rebuild the TOC with the new material
-* In the Word document, under the "View" section, in the Macros dropdown select View Macros. Run the `TableStyleAndCenterImages` macro. (Will take ~4-8 minutes.)
-    - If this macro does not exist, then copy-paste the code (below) into the Visual Basic Editor (VBA) in Word, and that Macro should appear.
+* Paste the clipboard contents verbatim into the body. (In effect, we're 
+wholesale replacing to old body contents with the updated contents.)
+* Scroll up to the table of contents. Right-click, and "update field". 
+This should rebuild the TOC with the new material
+* In the Word document, under the "View" section, in the Macros dropdown 
+select View Macros. Run the `TableStyleAndCenterImages` macro. (Will take 
+~4-8 minutes.)
+    - If this macro does not exist, then copy-paste the code (below) into 
+    the Visual Basic Editor (VBA) in Word, and that Macro should appear.
 * Update the front matter with dates, revision history, etc.
 
 

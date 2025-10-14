@@ -1,6 +1,7 @@
 import argparse
 import os
 from typing import Optional
+
 from PIL import Image
 
 
@@ -115,7 +116,10 @@ def reformat_image(
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
-        description="Resize and/or reformat images. Useful for compressing large images to small images."
+        description=(
+            "Resize and/or reformat images."
+            " Useful for compressing large images to small images."
+        )
     )
     parser.add_argument("filename", help="Path to the input image file")
 
