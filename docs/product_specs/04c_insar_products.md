@@ -87,21 +87,6 @@ histograms in the PDF:
 
 
 
-### HSI Image (RIFG, RUNW, GUNW)
-
-For RIFG products, the Hue, Saturation, Intensity (HSI) image is 
-constructed from the wrapped phase raster and the wrapped coherence 
-magnitude raster.
-
-For GUNW and RUNW products, the HSI image is constructed from the 
-unwrapped phase raster and the unwrapped coherence magnitude raster.
-
-
-Example HSI Plot in the PDF: 
-
-![Example HSI Plot in the PDF](images/report_hsi.jpg)
-
-
 ### Along Track and Slant Range Offset Variance (ROFF, GOFF)
 
 Example Along Track and Slant Range Offset Variance plots and 
