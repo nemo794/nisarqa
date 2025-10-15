@@ -1,21 +1,20 @@
 import argparse
 import os
+import warnings
 from typing import Optional
 
 from PIL import Image
 
 
-def reformat_image(
-    source_image_path: str,
-    output_image_dir: Optional[str] = None,
-    output_extension: str = "jpg",
-    output_image_path: Optional[str] = None,
+def png2jpg(
+    source_filepath: str,
+    output_filepath: Optional[str] = None,
     max_size: Optional[tuple[float, float]] = None,
-    do_not_optimize: bool = False,
-    quality: float = "keep",
+    optimize: bool = True,
+    quality: float = 75,
 ) -> None:
     """
-    Reduce the shape size and compress a PNG into a JPG.
+    Reduce the shape size and compress a PNG into a JPEG.
 
     If converting from an image with an alpha channel, the transparent
     pixels will be colored opaque white.
@@ -23,55 +22,54 @@ def reformat_image(
     Suggestion: Do not reduce the size of ROFF and GOFF browse images; the
     quiver arrows do not appear crisp after conversion to jpg.
 
-    For supported file formats, see:
-    https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html
-
     Parameters
     ----------
-    source_image_path : str
+    source_filepath : str
         Filepath to the source image to be processed.
-    output_image_dir : str or None, optional
-        Filepath (with extension) for the directory to save the processed image.
-        The format of the output file is determined from `output_format`.
-        The filename will be the same at the input image's filename.
-        If None, and if `output_image_path` is None, the processed image
-        will be saved to the same path and filename as `source_image_path`,
-        but using the extension of `output_format`.
-        Defaults to None.
-    output_extension : str, optional
-        Format for the output processed image. Defaults to "jpg".
-        Can be overridden by `output_image_path`.
-    output_image_path : str or None, optional
-        Filepath (with extension) for saving the processed image.
-        The format of the output file is determined from the extension.
-        If provided, this parameter will override both `output_image_dir`
-        and `output_format`.
-        If None, processed image will be saved per `source_image_path`.
+    output_filepath : str or None, optional
+        Filepath (with ".jpg" extension) for saving the processed image.
+        If filepath does not end with ".jpg", it will be updated to do so.
+        If None, processed image will be saved to the same filepath
+        as `source_filepath` but with an extension of ".jpg".
         Defaults to None.
     max_size : None or pair of float, optional
         Maximum pixel dimensions of the output image, in the format:
             (<max width>, <max height>)
         If None, then the image dimensions will not be altered.
         Defaults to None.
-    do_not_optimize : bool, optional
-        If False, indicates that the encoder should make an extra
+    optimize : bool, optional
+        If True, indicates that the encoder should make an extra
         pass over the image in order to select optimal encoder settings.
-        If True, this optimization is skipped.
-        Defaults to False.
+        Defaults to True.
         See: https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#jpeg-saving
-    quality : float or str, optional
+    quality : float, optional
         The image quality, on a scale from 0 (worst) to 95 (best), or the
-        string keep. The default is 75. Values above 95 should be avoided;
+        string 'keep'. Values above 95 should be avoided;
         100 disables portions of the JPEG compression algorithm, and
         results in large files with hardly any gain in image quality.
-        The value keep is only valid for JPEG files and will retain the
-        original image quality level, subsampling, and qtables.
-        Defaults to "keep".
+        Defaults to 75.
         See: https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#jpeg-saving
     """
 
+    # Prepare output filename
+    if output_filepath is not None:
+        out_path, out_ext = os.path.splitext(output_filepath)
+        if out_ext.lower() != ".jpg":
+            out_file = os.path.join(out_path, ".jpg")
+        else:
+            out_file = output_filepath
+    else:
+        filepath_and_name, in_ext = os.path.splitext(source_filepath)
+        if in_ext.lower() != ".png":
+            warnings.warn(
+                f"Input file has an extension of '{in_ext=}'."
+                " Only PNG files have been tested for this function."
+                " Undefined behavior might occur."
+            )
+        out_file = f"{filepath_and_name}.jpg"
+
     # Open the image
-    img = Image.open(source_image_path)
+    img = Image.open(source_filepath)
 
     # Resize
     if max_size is not None:
@@ -91,24 +89,8 @@ def reformat_image(
     else:
         raise Exception(
             "Only grayscale and RGBA input files currently supported: ",
-            source_image_path,
+            source_filepath,
         )
-
-    # Prepare output filename
-    out_file = ""
-    if output_image_path is not None:
-        out_file = output_image_path
-    elif output_image_dir is not None:
-        filename_with_extension = os.path.basename(source_image_path)
-        filename, _ = os.path.splitext(filename_with_extension)
-        out_file = os.path.join(
-            output_image_dir, f"{filename}.{output_extension}"
-        )
-    else:
-        filepath_and_name, _ = os.path.splitext(source_image_path)
-        out_file = f"{filepath_and_name}.{output_extension}"
-
-    optimize = not do_not_optimize
 
     bkgd.save(out_file, optimize=optimize, quality=quality)
 
@@ -117,54 +99,31 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description=(
-            "Resize and/or reformat images."
+            "Resize and/or reformat images from PNG to JPEG."
             " Useful for compressing large images to small images."
         )
     )
-    parser.add_argument("filename", help="Path to the input image file")
 
     parser.add_argument(
         "--input",
         "-i",
-        dest="source_image_path",
+        dest="source_filepath",
         type=str,
         help="Filepath to the source image to be processed.",
     )
 
-    msg = """Filepath (with extension) for the directory to save the processed image.
-        The filename will be the same at the input image's filename.
-        The format of the output file is determined from `--ext`.
-        If not provided, and if `--out-file` is not provided, the processed image
-        will be saved to the same path and filename as `--input`,
-        but using the extension of `--ext`."""
+    msg = """Filepath (with ".jpg" extension) for saving the processed image.
+        If filepath does not end with ".jpg", it will be updated to do so.
+        If None, processed image will be saved to the same filepath
+        as `source_filepath` but with an extension of ".jpg"."""
     parser.add_argument(
-        "--out-dir",
+        "--out-file",
+        "--out",
         "-o",
-        dest="output_image_dir",
+        dest="output_filepath",
         type=str,
         default=None,
         help=msg,
-    )
-
-    msg = """Format for the output processed image. Defaults to "jpg".
-        Can be overridden by `--out-file`."""
-    parser.add_argument(
-        "--out-ext",
-        "--oe",
-        "--ext",
-        dest="output_extension",
-        type=str,
-        default="jpg",
-        help=msg,
-    )
-
-    msg = """Filepath (with extension) for saving the processed image.
-        The format of the output file is determined from the extension.
-        If provided, this parameter will override both `output_image_dir`
-        and `output_format`.
-        If not provided, processed image will be saved per `source_image_path`."""
-    parser.add_argument(
-        "--out-file", dest="output_image_path", type=str, default=None, help=msg
     )
 
     msg = """Maximum pixel dimensions of the output image, in the order:
@@ -216,12 +175,12 @@ if __name__ == "__main__":
 
     input_file = args.filename
 
-    reformat_image(
-        source_image_path=args.source_image_path,
+    png2jpg(
+        source_filepath=args.source_filepath,
         output_image_dir=args.output_image_dir,
         output_extension=args.output_extension,
-        output_image_path=args.output_image_path,
+        output_filepath=args.output_filepath,
         max_size=args.max_size,
-        do_not_optimize=args.do_not_optimize,
+        do_not_optimize=not args.do_not_optimize,
         quality=quality,
     )

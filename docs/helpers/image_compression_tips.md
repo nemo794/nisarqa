@@ -22,52 +22,32 @@ balance for use in the documentation. Use the tips as starting
 points to strike that balance. Update this list as better methods are found.
 
 ## Image File Size
+
 - Aim for 15-40 KB per image.
 In rare cases (e.g. browse images), it is okay to go over, but try to 
 keep them under or around 100KB.
 - [`nisarqa/docs/helpers/reformat_image.py`](reformat_image.py) is a 
-helper script provided to either resize large PNGs to smaller JPEGs, 
-and/or convert between file formats. Even without shrinking the pixel 
+helper script provided to resize large PNGs to smaller JPEGs.
+Even without shrinking the pixel 
 dimensions, using this script to convert from PNG to JPEG format with 
 opimization enabled and a minor reduction in quality (e.g. 80) can 
 dramatically reduce the file size with minimal impact to the clarity 
 of the image. The script can be called from the command line, or 
 imported into Python.
 
-## Browse Images
-- Nomimal NISAR QA browse images are much too large to use directly 
-in the documentation; they are ~2048x2048 pixels, and 1-10 MB. 
-**Do not use these.**
-- Use `nisarqa` to generate new browse images; but use the `longest_side_max` 
-parameter in the runconfig to the reduce the pixel dimensions of the 
-generated browse image. (Every product type contains this parameter in 
-its QA runconfig.)This method produces the most-accurate and crispest 
-representation of browse images, but at a smaller size.
-    - Do not use `.../reformat_image.py` to reduce the pixel dimensions 
-    of the browse images; it leads to undesirable interpolation.
-    - Suggested Pixel Dimensions:
-        - **set `longest_side_max` to 400**
-    - Product-specific notes:
-        - **ROFF and GOFF**: Because of the quiver plot arrows, the 
-        ROFF and GOFF browse PNGs do not convert to JPG nicely.
-            - _Keep reducing `longest_side_max` until you get a small-enough 
-            PNG output, and use the PNG._
-        - **RSLC, RIFG, RUNW**: These compress very nicely from PNG to JPG. 
-            - _Use [`.../reformat_image.py`](reformat_image.py) to convert 
-            from PNG to JPG, but do not reduce the pixel dimensions._
-        - **GSLC, GCOV**: These compress nicely from PNG to JPG, but doing 
-        so means that the transparent alpha channel is colored opaque white. 
-            - _If the file size is small enough, suggest leaving them as PNG._
-        - **GUNW**: These compress nicely from PNG to JPG, but doing so means 
-        that the transparent alpha channel is colored opaque white. 
-        Regardless, the GUNW PNG file size is quite large, so suggest to:
-            - _Use [`.../reformat_image.py`](reformat_image.py) to convert 
-            from PNG to JPG, but do not reduce the pixel dimensions._
-- If using [`.../reformat_image.py`](reformat_image.py) to convert from 
-PNG to JPG, it worked well to have optimization enabled, set `quality` to 85, 
-and have `max_size` be None.
+## Image File Location and Naming
 
-## Converting PDF pages to images
+Currently, all images used in the product specs documentation are stored here:
+
+```bash
+nisarqa/docs/product_specs/images/
+```
+
+If updating an existing image, suggest using the same filename as the original existing image. Otherwise, you'll need to update all references to that image throughout the QA documentation.
+
+
+## Saving PDF pages for the QA specs
+
 - Step 1) Export the individual PDF pages to PNG
     - There are Python packages to do this
     - In a pinch, use Preview on Mac to `File > Export..` the first page of a 
@@ -82,4 +62,40 @@ the quality to ~80. (Pages from the PDF compress _really_ nicely.)
         - Cover page: max of (2000, 1000)
         - Azimuth Spectra page: max of (600, 600)
         - Misc. Images: max of (700, 700)
+
+
+## Saving Browse Images for the QA specs
+
+- Nomimal NISAR browse images are too large to use directly in the QA
+documentation; they are ~2048x2048 pixels (~1-10 MB), which will 
+bloat the `nisarqa` repo. **Do not use these.**
+- Instead, use `nisarqa` to generate new browse images for use in the specs. 
+When doing this, adjust the `longest_side_max` parameter in each QA runconfig 
+to the reduce the pixel dimensions of the generated browse image. 
+(Every product type's QA runconfig contains this parameter.)
+This method produces the most-accurate and crispest representation of 
+browse images, but at a smaller size.
+    - Suggested Pixel Dimensions:
+        - **set `longest_side_max` to 400** in the `nisarqa` runconfig.
+    - Product-specific notes:
+        - **ROFF and GOFF**: Because of the quiver plot arrows, the 
+        ROFF and GOFF browse PNGs do not convert to JPG nicely.
+            - _Keep reducing `longest_side_max` lower than 400 until you get a small-enough PNG output, and then use that PNG for the specs._
+        - **RSLC, RIFG, RUNW**: These compress very nicely from PNG to JPG. 
+            - _Use [`.../reformat_image.py`](reformat_image.py) to convert 
+            from PNG to JPG, but do not reduce the pixel dimensions._
+        - **GSLC, GCOV**: These compress nicely from PNG to JPG, but doing 
+        so means that the transparent alpha channel is colored opaque white. 
+            - _If the file size is small enough, suggest leaving them as PNG._
+        - **GUNW**: These compress nicely from PNG to JPG, but doing so means 
+        that the transparent alpha channel is colored opaque white. 
+        Regardless, the GUNW PNG file size is quite large, so suggest to:
+            - _Use [`.../reformat_image.py`](reformat_image.py) to convert 
+            from PNG to JPG, but do not reduce the pixel dimensions._
+- If using [`.../reformat_image.py`](reformat_image.py) to convert from 
+PNG to JPG, it worked well to have optimization enabled, set `quality` to 85, 
+and have `max_size` be None.
+- [!CAUTION] Do not use `.../reformat_image.py` to reduce the pixel dimensions 
+of the browse images; it leads to undesirable interpolation.
+Adjust `longest_side_max` parameter in the `nisarqa` runconfig instead.
 
