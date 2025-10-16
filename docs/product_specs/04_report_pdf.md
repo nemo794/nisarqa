@@ -19,6 +19,11 @@ This section of the documention is organized by product type and
 then by feature. 
 The relevant product types noted in parentheses in the subsection titles.
 
+_Images in this section are from NISAR surrogate data generated
+from either ALOS/PALSAR data or from ALOS-2/PALSAR-2 data (as noted). 
+The original ALOS/PALSAR data products are provided by JAXA. The original 
+ALOS-2/PALSAR-2 data products are provided by JAXA._
+
 
 ## Cover Page (All L1/L2 products)
 

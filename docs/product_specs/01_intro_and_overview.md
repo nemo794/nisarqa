@@ -64,17 +64,15 @@ Descriptions of the individual files in one set of QA products:
 | TXT | `<gran_id>_QA_LOG.txt` | Log file. Contains full details of verification checks, in addition to typical log outputs | < 200 KB |
 
 
-
 \* For NISAR mission processing, `<gran_id>` will be the complete 
-granule ID of the input L1/L2 granule.
-
+granule ID of the input L1/L2 granule. See Appendix A [RD1] for details 
+on the syntax.
 
 
 ## Input NISAR L1/L2 Science Product Overview
 Each NASA SDS L0-L2 L-band product is distributed as a single Hierarchical 
-Data Format version 5 granule. For full descriptions, please see the 
-L1/L2 product specification documents, available from the ASF DAAC or
-the NISAR sample data website https://nisar.jpl.nasa.gov/data/sample-data/.
+Data Format version 5 granule (Appendix A [RD2]). For full descriptions, please see the 
+L1/L2 product specification documents (Appendix A [RD3]-[RD10]).
 
 ### NISAR Product Level Descriptions
 
@@ -134,6 +132,8 @@ the backscatter fill defaults to be colored blue; elsewhere it appears
 translucent, white, or another color as appropriate.
 
 ![Geocoding Intuition](images/geocoding.jpg)
+
+_Images from ALOS/PALSAR-derived NISAR surrogate data. The original ALOS/PALSAR data products are provided by JAXA._
 
 ## How to Use this Documentation
 

@@ -4,7 +4,8 @@
 
 ### Unwrapped Phase (RUNW, GUNW)
 
-Example Unwrapped Phase plots and histogram in the PDF: 
+Example Unwrapped Phase plots and histogram in the PDF 
+(generated from ALOS/PALSAR data): 
 
 ![Example Unwrapped Phase Plots in the PDF](images/report_unw_igram.jpg)
 
@@ -13,13 +14,15 @@ Example Unwrapped Phase plots and histogram in the PDF:
 
 ### Connected Components (RUNW, GUNW)
 
-Example Connected Components plot and bar chart in the PDF: 
+Example Connected Components plot and bar chart in the PDF 
+(generated from ALOS/PALSAR data): 
 
 ![Example Connected Components Plot in the PDF](images/report_cc.jpg)
 
 ### Unwrapped Coherence Magnitude (RUNW, GUNW)
 
-Example Unwrapped Coherence Magnitude plot and histogram in the PDF: 
+Example Unwrapped Coherence Magnitude plot and histogram in the PDF 
+(generated from ALOS/PALSAR data): 
 
 ![Example Unwrapped Coherence Magnitude Plot in the PDF](images/report_unw_coh.jpg)
 
@@ -34,7 +37,7 @@ at postings matching the corresponding phase image.
 Both coherence magnitude layers are plotted in the GUNW QA report PDF.
 
 Example Wrapped Phase and Wrapped Coherence Magnitude plots and 
-histograms in the PDF: 
+histograms in the PDF (generated from ALOS/PALSAR data): 
 
 ![Example Wrapped Phase and Wrapped Coherence Magnitude Plots in the PDF](images/report_wrapped_igram_coh.jpg)
 
@@ -45,7 +48,7 @@ histograms in the PDF:
 ### Ionosphere Phase Screen and Phase Screen Uncertainty (RUNW, GUNW)
 
 Example Ionosphere Phase Screen and Phase Screen Uncertainty plots and 
-histograms in the PDF: 
+histograms in the PDF (generated from ALOS/PALSAR data): 
 
 ![Example Ionosphere Phase Screen and Phase Screen Uncertainty Plots in the PDF](images/report_iono_phs_screen.jpg)
 
@@ -56,7 +59,7 @@ histograms in the PDF:
 ### Along Track Offsets and Slant Range Offsets (RIFG, RUNW, GUNW, ROFF, GOFF)
 
 Example Along Track Offsets and Slant Range Offsets plots and 
-histograms in the PDF: 
+histograms in the PDF (generated from ALOS-2/PALSAR-2 data): 
 
 ![Example Along Track Offsets and Slant Range Offsets Plots in the PDF](images/report_az_rng_offsets.jpg)
 
@@ -66,12 +69,14 @@ histograms in the PDF:
 
 ### Combined Azimuth and Slant Range Displacement (Quiver Plots) (ROFF, GOFF)
 
-ROFF: Example Combined Azimuth and Slant Range Displacement plot in the PDF:
+ROFF: Example Combined Azimuth and Slant Range Displacement plot in the PDF 
+(generated from ALOS-2/PALSAR-2 data):
 
 ![Example Combined Pixel Offsets Plot in the ROFF PDF](images/report_offsets_quiver_roff.jpg)
 
 
-GOFF: Example Combined Azimuth and Slant Range Displacement plot in the PDF: 
+GOFF: Example Combined Azimuth and Slant Range Displacement plot in the PDF 
+(generated from ALOS-2/PALSAR-2 data): 
 
 ![Example Geocoded Combined Pixel Offsets Plot in the GOFF PDF](images/report_offsets_quiver_goff.jpg)
 
@@ -105,7 +110,7 @@ Correlation Surface Peak is available in all RIFG, RUNW, GUNW, ROFF,
 GOFF products.
 
 Example Cross Offset Variance and Correlation Surface Peak plots and 
-histograms in the PDF: 
+histograms in the PDF (generated from ALOS-2/PALSAR-2 data): 
 
 ![Example Cross Offset Variance and Correlation Surface Peak Plots in the PDF](images/report_offsets_cov_and_surf_peak.jpg)
 
@@ -116,7 +121,7 @@ histograms in the PDF:
 ### Along Track and Slant Range Offset Variance (ROFF, GOFF)
 
 Example Along Track and Slant Range Offset Variance plots and 
-histograms in the PDF: 
+histograms in the PDF (generated from ALOS-2/PALSAR-2 data): 
 
 ![Example Along Track and Slant Range Offset Variance Plots in the PDF](images/report_offsets_variance.jpg)
 

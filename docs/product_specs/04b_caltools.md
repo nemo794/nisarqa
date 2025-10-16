@@ -38,7 +38,7 @@ in RSLC and GSLC image granules, and provide metrics such as
 Peak-to-Sidelobe Ratio (PSLR) and Integrated Sidelobe Ratio (ISLR) 
 for image quality assessment.
 
-Example impulse response plots in the PDF:
+Example impulse response plots in the PDF (generated from ALOS/PALSAR data):
 
 ![Example impulse response plots](images/report_pta_impulse_response_rslc.jpg)
 
@@ -48,7 +48,7 @@ between expected and apparent positions of surveyed targets in both
 range-Doppler and geocoded image granules in order to calibrate azimuth 
 and range delays and evaluate geolocation accuracy.
 
-Example CR offsets scatterplots in the PDF:
+Example CR offsets scatterplots in the PDF (generated from ALOS/PALSAR data):
 
 ![Example CR offsets scatterplots](images/report_pta_cr_offsets_rslc.jpg)
 

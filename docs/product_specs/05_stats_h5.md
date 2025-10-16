@@ -1,7 +1,7 @@
 
 # Statistical Summary (QA HDF5)
 
-The QA HDF5 file contains a variety of metadata about the 
+The QA HDF5 file (See Appendix A [RD1]) contains a variety of metadata about the 
 input L1/L2 granule, including:
 
 * Statistics and metrics of the layers and datasets.

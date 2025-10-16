@@ -19,6 +19,11 @@ represents approximately the same number of meters on the ground.
 To simplify this reduction, rows and/or columns in the original science data
 raster are often truncated.
 
+_Images in this section are from NISAR surrogate data generated
+from either ALOS/PALSAR data or from ALOS-2/PALSAR-2 data (as noted). 
+The original ALOS/PALSAR data products are provided by JAXA. The original 
+ALOS-2/PALSAR-2 data products are provided by JAXA._
+
 ## RSLC and GSLC Browse Image
 RSLC and GSLC browse images are generated from the SLC image layer(s).
 The image layer(s) are multilooked and image processed to produce the 
@@ -60,11 +65,11 @@ Reduced-resolution plots of the image layer(s) used to form
 the browse image are plotted in the `REPORT.pdf`. Each plot details the
 coordinates, colorbar, and more.
 
-Example RSLC Browse Image (reduced size), from ALOS-1 derived data:
+Example RSLC Browse Image (reduced size), generated from ALOS/PALSAR data:
 
 ![Example RSLC Browse Image](images/browse_RSLC_compressed.jpg)
 
-Example GSLC Browse Image (reduced size), from ALOS-1 derived data:
+Example GSLC Browse Image (reduced size), generated from ALOS/PALSAR data:
 
 ![Example GSLC Browse Image](images/BROWSE_GSLC_small.png)
 
@@ -93,7 +98,7 @@ Reduced-resolution plots of the image layer(s) used to form
 the browse image are plotted in the `REPORT.pdf`. Each plot details the
 coordinates, colorbar, and more.
 
-Example GCOV Browse Image (reduced size), from ALOS-1 derived data:
+Example GCOV Browse Image (reduced size), generated from ALOS/PALSAR data:
 
 ![Example GCOV Browse Image](images/BROWSE_GCOV_small.png)
 
@@ -104,7 +109,7 @@ Image Layer.
 A reduced-size copy of this image is plotted in the `REPORT.pdf`, 
 where details about the coordinates, colorbar, and more can be found.
 
-Example RIFG Browse Image (reduced size), from ALOS-2 derived data:
+Example RIFG Browse Image (reduced size), generated from ALOS/PALSAR data:
 
 ![Example RIFG Browse Image](images/browse_RIFG_compressed.jpg)
 
@@ -116,11 +121,11 @@ to the interval [0, 7pi).
 A reduced-size copy of this image is plotted in the `REPORT.pdf`, 
 where details about the coordinates, colorbar, and more can be found.
 
-Example RUNW Browse Image (reduced size), from ALOS-2 derived data:
+Example RUNW Browse Image (reduced size), generated from ALOS/PALSAR data:
 
 ![Example RUNW Browse Image](images/browse_RUNW_compressed.jpg)
 
-Example GUNW Browse Image (reduced size), from ALOS-2 derived data:
+Example GUNW Browse Image (reduced size), generated from ALOS/PALSAR data:
 
 ![Example GUNW Browse Image](images/browse_GUNW_compressed.jpg)
 
@@ -143,11 +148,11 @@ A reduced-size copy of the browse image is plotted in the `REPORT.pdf`,
 where details about the coordinates, colorbar, additional processing
 for the GOFF quiver arrows, and more can be found.
 
-Example ROFF Browse Image (reduced size), from ALOS-2 derived data:
+Example ROFF Browse Image (reduced size), generated from ALOS-2/PALSAR-2 data:
 
 ![Example ROFF Browse Image](images/BROWSE_ROFF_small.png)
 
-Example GOFF Browse Image (reduced size), from ALOS-2 derived data:
+Example GOFF Browse Image (reduced size), generated from ALOS-2/PALSAR-2 data:
 
 ![Example GOFF Browse Image](images/BROWSE_GOFF_small.png)
 

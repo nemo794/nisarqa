@@ -59,15 +59,15 @@ and plotted in the PDF, using this strategy:
 
 Relevant processing parameters can be found in the QA HDF5 output file.
 
-Example RSLC Backscatter Plot in the PDF:
+Example RSLC Backscatter Plot in the PDF (generated from ALOS/PALSAR data):
 
 ![Example RSLC Backscatter Plot in the PDF](images/report_backscatter_rslc.jpg)
 
-Example GSLC Backscatter Plot in the PDF: 
+Example GSLC Backscatter Plot in the PDF (generated from ALOS/PALSAR data): 
 
 ![Example GSLC Backscatter Plot in PDF](images/report_backscatter_gslc.jpg)
 
-Example GCOV Backscatter Plot in PDF: 
+Example GCOV Backscatter Plot in PDF (generated from ALOS/PALSAR data): 
 
 ![Example GCOV Backscatter Plot in the PDF](images/report_backscatter_gcov.jpg)
 
@@ -103,7 +103,7 @@ For each frequency group in the input granule, if multiple images are
 available then their power histograms will be plotted on the 
 same figure in the PDF.
 
-Example RSLC Backscatter Power Histogram in the PDF:
+Example RSLC Backscatter Power Histogram in the PDF(generated from ALOS/PALSAR data):
 
 ![Example RSLC Backscatter Power Histogram in the PDF](images/report_power_histogram_rslc.jpg)
 
@@ -131,7 +131,7 @@ For each frequency group in the input granule, if there are multiple
 images available then their phase histograms will be plotted on the 
 same figure in the PDF.
 
-Example RSLC Phase Histogram in the PDF:
+Example RSLC Phase Histogram in the PDF (generated from ALOS/PALSAR data):
 
 ![Example RSLC Phase Histogram in the PDF](images/report_phase_histogram_rslc.jpg)
 
@@ -149,7 +149,7 @@ spectra for computational efficiency.
 The actual decimation stride along the azimuth axis used to compute the 
 range spectra can be found in the QA processing parameters in the QA HDF5.
 
-Example RSLC Range Power Spectra in the PDF:
+Example RSLC Range Power Spectra in the PDF (generated from ALOS/PALSAR data):
 
 ![Example RSLC Range Power Spectra in the PDF](images/report_range_spectra_rslc.jpg)
 
@@ -167,7 +167,7 @@ samples for each of near-, mid-, and far-range subswaths.
 These contiguous ranges sample subswaths are noted in the plots' 
 subtitles, and in the QA HDF5.
 
-Example RSLC Azimuth Power Spectra in the PDF:
+Example RSLC Azimuth Power Spectra in the PDF (generated from ALOS/PALSAR data):
 
 ![Example RSLC Azimuth Power Spectra in the PDF](images/report_az_spectra_rslc.jpg)
 
