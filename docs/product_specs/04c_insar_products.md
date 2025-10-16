@@ -64,12 +64,38 @@ histograms in the PDF:
 
 
 
-### Combined Pixel Offsets (Quiver Plots) (ROFF, GOFF)
+### Combined Azimuth and Slant Range Displacement (Quiver Plots) (ROFF, GOFF)
 
-Example Combined Pixel Offsets plot in the PDF: 
+ROFF: Example Combined Azimuth and Slant Range Displacement plot in the PDF:
 
-![Example Combined Pixel Offsets Plot in the PDF](images/report_offsets_quiver.jpg)
+![Example Combined Pixel Offsets Plot in the ROFF PDF](images/report_offsets_quiver_roff.jpg)
 
+
+GOFF: Example Combined Azimuth and Slant Range Displacement plot in the PDF: 
+
+![Example Geocoded Combined Pixel Offsets Plot in the GOFF PDF](images/report_offsets_quiver_goff.jpg)
+
+
+In both ROFF and GOFF products, the Along-Track Offset and Slant-Range 
+Offset layers represent displacement in the satellite’s along-track and 
+slant range directions, respectively.
+
+For GOFF products, although these layers are geocoded onto a projected 
+coordinate grid, their pixel values still represent offsets from the 
+satellite’s perspective — that is, in the range-Doppler coordinate system. 
+These pixel values do not represent displacements in the projected (map) 
+coordinate grid.
+
+Because of this distinction, the quiver plots in the GOFF Browse Image PNG 
+and QA PDF products undergo additional processing. Similar to ROFF 
+products, the quiver plot background image (and associated colorbar) 
+displays the combined displacement magnitude in radar coordinates to 
+accurately reflect the underlying offsets layers.
+
+However, for visualization purposes, the GOFF QA SAS applies an additional 
+transformation to the quiver arrows so that they indicate the direction 
+and relative magnitude of the combined X and Y displacements in projected 
+coordinates (i.e., on the geocoded grid).
 
 
 ### Cross Offset Variance and Correlation Surface Peak (RIFG, RUNW, GUNW, ROFF, GOFF)

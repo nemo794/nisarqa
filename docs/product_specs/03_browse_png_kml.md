@@ -140,7 +140,8 @@ The priorizitation order for the selecting which layer group to use
 for the browse image is 3, 2, 1, 4, 5, 6, 7.
 
 A reduced-size copy of the browse image is plotted in the `REPORT.pdf`, 
-where details about the coordinates, colorbar, and more can be found.
+where details about the coordinates, colorbar, additional processing
+for the GOFF quiver arrows, and more can be found.
 
 Example ROFF Browse Image (reduced size), from ALOS-2 derived data:
 
