@@ -32,27 +32,48 @@ wrap to multiple lines within a cell. For now, keep using
 `--from=markdown_github`; it still worked with `pandoc` v3.4.
 
 
-## Prepare the final DOCX product spec
+## Prepare the DOCX version of the QA product spec
 
-Open the intermediary `nisarqa_product_specs_tmp.docx` file in Word.
- * Select all (command-A), and copy to the clipboard.
+Open the "front matter" DOCX file, which contains the cover page, 
+signature pages, NISAR style formats, etc. This is DOCX located:
 
-Open the final "front matter" DOCX file, which contains the cover page, 
-signature pages, NISAR style formats, etc.
+```
+nisarqa/docs/helpers/nisarqa_product_specs_front_matter_template.docx
+```
+
 * Scroll to the first page after the table of contents, which should be 
 the beginning of Section 1.
-* Delete everything from Section 1 to the end.
-* Paste the clipboard contents verbatim into the body. (In effect, we're 
-wholesale replacing to old body contents with the updated contents.)
-* Scroll up to the table of contents. Right-click, and "update field". 
-This should rebuild the TOC with the new material
+* If needed, delete everything from Section 1 to the end (it should 
+already be deleted).
+* Update the front matter with dates, revision history, names, etc.
+    - Check with JPL/NISAR Mission management for the most-recent released
+    version of the QA specs. When updating the front matter, ensure that
+    the new version is incremented correctly from the most-recent previous
+    version.
+* Save, and `git commit` this updated front matter to the `nisarqa` repo.
+    - **Commit this front matter prior to copy-pasting the full spec!**
+    - To keep the GitHub repo small, and to avoid having a DOCX fall out of
+    sync with the markdown files within the same `nisarqa` repo,
+    let's only store the front matter portion the repo.
+    - Each final DOCX will need to go through JPL and the NISAR Mission's 
+    official processes for documentation, and should be tracked exclusively
+    within those processes.
+
+Next, open the intermediary `nisarqa_product_specs_tmp.docx` file in Word.
+
+* Select all (command-A on Mac), and copy the entire contents of the 
+intermediary file to the clipboard.
+* Click over to the front matter DOCX. Paste the clipboard contents 
+verbatim into the body of the front matter DOCX. 
+* Scroll up to the table of contents. Right-click, and do "Update Field". 
+This should rebuild the table of contents with the new material.
 * In the Word document, under the "View" section, in the Macros dropdown 
 select View Macros. Run the `TableStyleAndCenterImages` macro. (Will take 
 ~4-8 minutes.)
     - If this macro does not exist, then copy-paste the code (below) into 
     the Visual Basic Editor (VBA) in Word, and that Macro should appear.
-* Update the front matter with dates, revision history, etc.
-
+* This is the final QA product specs DOCX! Save with the appropriate filename,
+and follow the required JPL / NISAR mission procedures for this spec.
 
 Macro for formatting the tables and images in Word:
 ```
@@ -92,7 +113,7 @@ Sub TableStyleAndCenterImages()
                 tx = cl.Range.Text
                 ' Remove the paragraph mark and cell marker
                 tx = Left(tx, Len(tx) - 2)
-                If tx = "Path:" Then
+                If tx = "Path" Then
                     isSpecTable = True
                     ' If so, color the row pale blue
                     rw.Shading.ForegroundPatternColor = wdColorPaleBlue
@@ -103,9 +124,14 @@ Sub TableStyleAndCenterImages()
         Next rw
         If isSpecTable Then
             tb.Rows(3).Shading.ForegroundPatternColor = wdColorAutomatic
-                    'tb.PreferredWidthType = wdPreferredWidthPoints
-                    'tb.Columns(1).Width = InchesToPoints(1.2)
+            tb.PreferredWidthType = wdPreferredWidthPoints
+                    
+            ' Set first column narrow (0.8")
+            tb.Columns(1).Width = InchesToPoints(0.8)
 
+            'Set second column to fill remaining width
+            '(6.5 inches total, to allow for 1" page margins)
+            tb.Columns(2).Width = InchesToPoints(5.7)
         End If
     Next tb
     
