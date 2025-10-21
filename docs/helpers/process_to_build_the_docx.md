@@ -68,12 +68,86 @@ verbatim into the body of the front matter DOCX.
 * Scroll up to the table of contents. Right-click, and do "Update Field". 
 This should rebuild the table of contents with the new material.
 * In the Word document, under the "View" section, in the Macros dropdown 
+select View Macros. Run the `ConvertDollarMathToEquations` macro. 
+(Should take seconds.)
+    - If this macro does not exist, then copy-paste the code (below) into 
+    the Visual Basic Editor (VBA) in Word, and that Macro should appear.
+* In the Word document, under the "View" section, in the Macros dropdown 
 select View Macros. Run the `TableStyleAndCenterImages` macro. (Will take 
 ~4-8 minutes.)
     - If this macro does not exist, then copy-paste the code (below) into 
     the Visual Basic Editor (VBA) in Word, and that Macro should appear.
 * This is the final QA product specs DOCX! Save with the appropriate filename,
 and follow the required JPL / NISAR mission procedures for this spec.
+
+
+Macro for converting Markdown (LaTeX) equations to Word equations:
+```
+Sub ConvertDollarMathToEquations()
+    Dim rngSearch As Range
+    Dim rngMath As Range
+    Dim eqText As String
+    Dim oMath As oMath
+
+    Set rngSearch = ActiveDocument.Content
+
+    With rngSearch.Find
+        .ClearFormatting
+        .Text = "\$[!\$]@\$"   ' match $...$ where ... has no $
+        .MatchWildcards = True
+        .Forward = True
+        .Wrap = wdFindStop
+    End With
+
+    Do While rngSearch.Find.Execute
+        Set rngMath = rngSearch.Duplicate
+
+        ' Extract the inner text (strip leading/trailing $)
+        eqText = rngMath.Text
+        If Len(eqText) > 2 Then
+            eqText = Mid(eqText, 2, Len(eqText) - 2)
+        Else
+            eqText = ""
+        End If
+        eqText = Trim(eqText)
+
+        ' === Convert common LaTeX-style tokens ===
+        eqText = Replace(eqText, "\cdot", "·")    ' middle dot
+        eqText = Replace(eqText, "\times", "?")   ' multiplication sign
+        eqText = Replace(eqText, "\pm", "±")
+        eqText = Replace(eqText, "\ge", "≥")
+        eqText = Replace(eqText, "\le", "≤")
+        eqText = Replace(eqText, "\neq", "≠")
+        ' (you can add more as needed)
+
+        ' Replace the text in the document
+        rngMath.Text = eqText
+
+        ' Re-establish range after replacement
+        Set rngMath = rngMath.Duplicate
+        rngMath.MoveEndWhile Cset:=vbCr & vbLf, Count:=wdBackward
+
+        ' Create math object if valid
+        If Len(eqText) > 0 And InStr(eqText, vbCr) = 0 Then
+            On Error Resume Next
+            Set oMath = ActiveDocument.OMaths.Add(rngMath)
+            If Err.Number = 0 Then
+                oMath.BuildUp
+            Else
+                Debug.Print "Skipping equation due to error on text: " & eqText
+                Err.Clear
+            End If
+            On Error GoTo 0
+        End If
+
+        ' Continue searching
+        rngSearch.Start = rngMath.End
+        rngSearch.End = ActiveDocument.Content.End
+    Loop
+
+    MsgBox "Conversion complete.", vbInformation
+End Sub
+```
 
 Macro for formatting the tables and images in Word:
 ```
