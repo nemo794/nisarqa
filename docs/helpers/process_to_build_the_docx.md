@@ -78,62 +78,79 @@ and follow the required JPL / NISAR mission procedures for this spec.
 Macro for formatting the tables and images in Word:
 ```
 Sub TableStyleAndCenterImages()
-    
     ' Apply the "NISAR table" style format to all tables
     Dim tbl As Table
-    For Each tbl In ActiveDocument.Tables
-        tbl.Style = "NISAR table"
-    tbl.AutoFitBehavior wdAutoFitWindow
-    tbl.Range.Font.Size = 9
-    Next
-
-  ' Center all images horizontally
-  Dim objInLineShape As InlineShape
-  Dim objDoc As Document
-  Set objDoc = ActiveDocument
-  For Each objInLineShape In objDoc.InlineShapes
-    objInLineShape.Select
-    Selection.ParagraphFormat.Alignment = wdAlignParagraphCenter
-  Next objInLineShape
-  
-  ' For the product spec tables, set the "Path" rows to light blue color
-  Dim tb As Table
+    Dim tb As Table
     Dim rw As Row
     Dim cl As Cell
+    Dim txt1 As String
+    Dim txt2 As String
+    Dim slashPos As Long
     Dim tx As String
-    ' Loop through the tables in the document
-    For Each tb In ActiveDocument.Tables
-        Dim isSpecTable As Boolean
+    Dim isSpecTable As Boolean
+    Dim objDoc As Document
+    Dim objInLineShape As InlineShape
+
+    Set objDoc = ActiveDocument
+
+    ' Apply "NISAR table" style
+    For Each tbl In objDoc.Tables
+        tbl.Style = "NISAR table"
+        tbl.AutoFitBehavior wdAutoFitWindow
+        tbl.Range.Font.Size = 9
+    Next tbl
+
+    ' Center all images horizontally
+    For Each objInLineShape In objDoc.InlineShapes
+        objInLineShape.Range.ParagraphFormat.Alignment = wdAlignParagraphCenter
+    Next objInLineShape
+
+    ' For product spec tables
+    For Each tb In objDoc.Tables
         isSpecTable = False
-        ' Loop through the rows of the table
+
+        ' Loop through rows
         For Each rw In tb.Rows
-            ' Loop through the cells of the row
-            For Each cl In rw.Cells
-                ' Get the text of the cell
-                tx = cl.Range.Text
-                ' Remove the paragraph mark and cell marker
-                tx = Left(tx, Len(tx) - 2)
-                If tx = "Path" Then
-                    isSpecTable = True
-                    ' If so, color the row pale blue
-                    rw.Shading.ForegroundPatternColor = wdColorPaleBlue
-                    ' And exit the cell loop
-                    Exit For
+            txt1 = rw.Cells(1).Range.Text
+            txt1 = Left(txt1, Len(txt1) - 2)  ' Remove end-of-cell markers
+
+            If txt1 = "Path" Then
+                isSpecTable = True
+                rw.Shading.ForegroundPatternColor = wdColorPaleBlue
+
+                txt2 = rw.Cells(2).Range.Text
+                txt2 = Left(txt2, Len(txt2) - 2)
+
+                ' Insert a space after the last "/" only if > 80 characters
+                ' Warning: If font or font size or spec table width (below) are
+                ' updated, then the value of 80 will need to be adjusted.
+                If Len(txt2) > 90 Then
+                    slashPos = InStrRev(txt2, "/")
+                    ' Search for the next slash, starting from the character *before* the last slash
+                    slashPos = InStrRev(txt2, "/", slashPos - 1)
+                      If slashPos > 0 And slashPos < Len(txt2) Then
+                        txt2 = Left(txt2, slashPos) & vbNewLine & Mid(txt2, slashPos + 1)
+                        rw.Cells(2).Range.Text = txt2
+                    End If
+                ElseIf Len(txt2) > 80 Then
+                    slashPos = InStrRev(txt2, "/")
+                    If slashPos > 0 And slashPos < Len(txt2) Then
+                        txt2 = Left(txt2, slashPos) & vbNewLine & Mid(txt2, slashPos + 1)
+                        rw.Cells(2).Range.Text = txt2
+                    End If
                 End If
-            Next cl
+            End If
         Next rw
+
+        ' Adjust table formatting if spec table
         If isSpecTable Then
             tb.Rows(3).Shading.ForegroundPatternColor = wdColorAutomatic
             tb.PreferredWidthType = wdPreferredWidthPoints
-                    
-            ' Set first column narrow (0.8")
-            tb.Columns(1).Width = InchesToPoints(0.8)
 
-            'Set second column to fill remaining width
-            '(6.5 inches total, to allow for 1" page margins)
-            tb.Columns(2).Width = InchesToPoints(5.7)
+            tb.Columns(1).Width = InchesToPoints(0.7)
+            tb.Columns(2).Width = InchesToPoints(5.8)
         End If
     Next tb
-    
+
 End Sub
 ```

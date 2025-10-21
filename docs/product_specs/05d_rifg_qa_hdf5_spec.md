@@ -5,7 +5,7 @@ Each QA HDF5 file includes a subset of the available options below, which will c
 
 * Possible Frequency groups: `frequencyA`
 
-* Possible Polarization groups:`HH`, `VV`, `HV`, `VH`
+* Possible Polarization groups: `HH`, `VV`, `HV`, `VH`
 
 
 |     | RIFG QA HDF5 Datasets, Attributes, and Additional Metadata |

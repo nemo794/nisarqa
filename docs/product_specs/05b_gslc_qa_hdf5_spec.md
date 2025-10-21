@@ -5,7 +5,7 @@ Each QA HDF5 file includes a subset of the available options below, which will c
 
 * Possible Frequency groups: `frequencyA`, `frequencyB`
 
-* Possible Polarization groups:`HH`, `VV`, `HV`, `VH`, `RH`, `RV`, `LH`, `LV`
+* Possible Polarization groups: `HH`, `VV`, `HV`, `VH`, `RH`, `RV`, `LH`, `LV`
 
 * Possible CalTools groups: `pointTargetAnalyzer`
    - Note: PTA results only possible for granules over designated calibration sites.

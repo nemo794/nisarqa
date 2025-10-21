@@ -191,7 +191,7 @@ def get_header(product_type: str) -> str:
     else:
         header += (
             "\n\n* Possible Polarization groups:"
-            f"{_reformat(_pols(product_type))}"
+            f" {_reformat(_pols(product_type))}"
         )
 
     if product_type in ("rslc", "gslc"):
