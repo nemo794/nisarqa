@@ -58,13 +58,15 @@ already be deleted).
     - Each final DOCX will need to go through JPL and the NISAR Mission's 
     official processes for documentation, and should be tracked exclusively
     within those processes.
+* Do "Save As" to save a new copy with a new name.
+    - Important to "Save As", so that the template is not altered.
 
 Next, open the intermediary `nisarqa_product_specs_tmp.docx` file in Word.
 
 * Select all (command-A on Mac), and copy the entire contents of the 
 intermediary file to the clipboard.
-* Click over to the front matter DOCX. Paste the clipboard contents 
-verbatim into the body of the front matter DOCX. 
+* Click over to the new copy of the front matter DOCX. Paste the clipboard 
+contents verbatim into the body of the front matter DOCX. 
 * Scroll up to the table of contents. Right-click, and do "Update Field". 
 This should rebuild the table of contents with the new material.
 * In the Word document, under the "View" section, in the Macros dropdown 
