@@ -91,3 +91,14 @@ numbered sequence, the QA product specs currently uses a convention like this:
 * **Step 3:** Output to file
 ```
 
+# Equations
+
+GitHub's documentation says that mathematical expressions should 
+be rendered using MathJax in Markdown files: https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/writing-mathematical-expressions
+
+Unfortunately, `pandoc` does not do anything for equations when converting 
+to DOCX. Instead, please use the Word VBA macro to reformat the 
+Markdown equations for DOCX, located in: [Process to Build the DOCX](helpers/helpers/process_to_build_the_docx.md)
+
+Reminder: For any new equation, visually double-check that it appear correctly
+in both GitHub and in the final DOCX.
