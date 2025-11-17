@@ -13,6 +13,7 @@ from ..plotting_utils import (
     downsample_img_to_size_of_axes,
     format_axes_ticks_and_labels,
     format_cbar_ticks_for_multiples_of_pi,
+    plot_2d_array_and_save_to_png,
 )
 from ..processing_utils import get_phase_array
 from .histograms import process_two_histograms
@@ -26,6 +27,7 @@ def process_ionosphere_phase_screen(
     params_iono_phs_uncert: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
+    png_kml_params: nisarqa.PNGandKMLParams,
 ) -> None:
     """
     Process all ionosphere phase screen and uncertainty layers, and plot to PDF.
@@ -37,6 +39,8 @@ def process_ionosphere_phase_screen(
     params_iono_phs_screen : nisarqa.ThresholdParamGroup
         A structure containing the parameters for checking the percentage
         of invalid pixels in the ionosphere phase screen layer.
+        If `params_iono_phs_screen.output_individual_pngs` is True, then
+        a PNG+KML pair will be output for each available raster.
     params_iono_phs_uncert : nisarqa.ThresholdParamGroup
         A structure containing the parameters for checking the percentage
         of invalid pixels in the ionosphere phase screen uncertainty layer.
@@ -44,6 +48,10 @@ def process_ionosphere_phase_screen(
         The output PDF file to append the unwrapped phase image plots to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
+    png_kml_params : nisarqa.PNGandKMLParams, optional
+        Parameters for generating the PNG+KML pairs. Only required if
+        `params_iono_phs_screen.output_individual_pngs` is True.
+        Defaults to None.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
@@ -85,6 +93,41 @@ def process_ionosphere_phase_screen(
                     stats_h5=stats_h5,
                     sharey=False,
                 )
+
+                if params_iono_phs_screen.output_individual_pngs:
+
+                    suffix = f"{freq}_{pol}_iono_rewrapped"
+                    png = png_kml_params.get_png_filepath_with_suffix(suffix)
+
+                    iono_rewrapped, cbar_min_max = get_phase_array(
+                        phs_or_complex_raster=iono_phs,
+                        make_square_pixels=False,  # we'll do this while downsampling
+                        rewrap=7,
+                    )
+
+                    png = png_kml_params.get_png_filepath_with_suffix(suffix)
+                    plot_2d_array_and_save_to_png(
+                        arr=iono_rewrapped,
+                        cmap="twilight_shifted",
+                        sample_spacing=(
+                            iono_phs.y_ground_spacing,
+                            iono_phs.x_ground_spacing,
+                        ),
+                        longest_side_max=png_kml_params.longest_side_max,
+                        png_filepath=png,
+                        vmin=cbar_min_max[0],
+                        vmax=cbar_min_max[1],
+                    )
+
+                    png_bs = png_kml_params.get_png_basename_with_suffix(suffix)
+                    kml_bs = png_kml_params.get_kml_basename_with_suffix(suffix)
+
+                    nisarqa.write_latlonquad_to_kml(
+                        llq=product.get_browse_latlonquad(),
+                        output_dir=png_kml_params.out_dir,
+                        png_filename=png_bs,
+                        kml_filename=kml_bs,
+                    )
 
 
 @overload

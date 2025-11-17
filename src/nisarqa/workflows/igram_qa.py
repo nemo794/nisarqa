@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional, overload
 
 import h5py
@@ -130,15 +132,6 @@ def igram_qa(
     if root_params.workflows.qa_reports:
         log.info("Beginning processing of `qa_reports` items...")
 
-        log.info(f"Beginning processing of browse KML...")
-        nisarqa.write_latlonquad_to_kml(
-            llq=product.get_browse_latlonquad(),
-            output_dir=out_dir,
-            kml_filename=root_params.get_kml_browse_filename(),
-            png_filename=root_params.get_browse_png_filename(),
-        )
-        log.info(f"Browse image kml file saved to {browse_file_kml}")
-
         with (
             h5py.File(stats_file, mode="w") as stats_h5,
             PdfPages(report_file) as report_pdf,
@@ -153,10 +146,18 @@ def igram_qa(
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
+            png_kml_params = nisarqa.PNGandKMLParams(
+                out_dir=root_params.get_output_dir(),
+                browse_png_basename=str(root_params.get_browse_png_filename()),
+                browse_kml_basename=str(root_params.get_kml_browse_filename()),
+                longest_side_max=root_params.browse.longest_side_max,
+            )
+
+            # This is the primary Browse Image PNG+KML
             save_igram_product_browse_png(
                 product=product,
                 params=root_params.browse,
-                browse_png=browse_file_png,
+                png_and_kml_params=png_kml_params,
             )
 
             if isinstance(product, nisarqa.UnwrappedGroup):
@@ -179,6 +180,7 @@ def igram_qa(
                     params=root_params.coh_mag,
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
+                    png_kml_params=png_kml_params,
                 )
 
             if isinstance(product, nisarqa.WrappedGroup):
@@ -197,6 +199,7 @@ def igram_qa(
                     params_iono_phs_uncert=root_params.iono_phs_uncert,
                     report_pdf=report_pdf,
                     stats_h5=stats_h5,
+                    png_kml_params=png_kml_params,
                 )
 
             # Plot azimuth offsets and slant range offsets (RIFG, RUNW, & GUNW)
@@ -235,7 +238,7 @@ def igram_qa(
 def save_igram_product_browse_png(
     product: nisarqa.WrappedGroup,
     params: nisarqa.IgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    png_and_kml_params: PNGandKMLParams,
 ) -> None: ...
 
 
@@ -243,11 +246,13 @@ def save_igram_product_browse_png(
 def save_igram_product_browse_png(
     product: nisarqa.UnwrappedGroup,
     params: nisarqa.UNWIgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    png_and_kml_params: PNGandKMLParams,
 ) -> None: ...
 
 
-def save_igram_product_browse_png(product, params, browse_png):
+def save_igram_product_browse_png(
+    product, params, png_and_kml_params: PNGandKMLParams
+):
     """
     Save the browse PNG for interferogram products (RIFG, RUNW, GUNW).
 
@@ -257,8 +262,8 @@ def save_igram_product_browse_png(product, params, browse_png):
         Input NISAR product. Must be either a RIFG, RUNW, or GUNW product.
     params : nisarqa.IgramBrowseParamGroup or nisarqa.UNWIgramBrowseParamGroup
         A structure containing the processing parameters for the browse PNG.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    png_and_kml_params : nisarqa.PNGandKMLParams
+        Parameters for the browse PNG and KML pair(s).
     """
 
     product_type = product.product_type
@@ -274,7 +279,7 @@ def save_igram_product_browse_png(product, params, browse_png):
             product=product,
             freq=freq,
             pol=pol,
-            png_filepath=browse_png,
+            png_filepath=png_and_kml_params.get_browse_png_filepath(),
             longest_side_max=params.longest_side_max,
         )
     else:
@@ -283,8 +288,15 @@ def save_igram_product_browse_png(product, params, browse_png):
             freq=freq,
             pol=pol,
             params=params,
-            png_filepath=browse_png,
+            png_filepath=png_and_kml_params.get_browse_png_filepath(),
         )
+
+    nisarqa.write_latlonquad_to_kml(
+        llq=product.get_browse_latlonquad(),
+        output_dir=png_and_kml_params.out_dir,
+        kml_filename=png_and_kml_params.browse_kml_basename,
+        png_filename=png_and_kml_params.browse_png_basename,
+    )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

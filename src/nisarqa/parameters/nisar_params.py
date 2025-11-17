@@ -1220,6 +1220,24 @@ class ValidationGroupParamGroup(YamlParamGroup):
         return ["runconfig", "groups", "qa", "validation"]
 
 
+@dataclass(frozen=True)
+class OutputIndivPNGsParam(YamlParamGroup):
+
+    output_individual_pngs: bool = field(
+        default=True,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="output_individual_pngs",
+                descr="""True to output one PNG+KML pair per raster image;
+                these will be generated in addition to the standard browse image PNG+KML.
+                The filename of each additional file will include a suffix noting
+                that image's frequency and polarization, and/or other distinguishing info.
+                False to not generate these additional PNG+KML pairs.""",
+            )
+        },
+    )
+
+
 @dataclass
 class RootParamGroup(ABC):
     """Abstract Base Class for all NISAR Products' *RootParamGroup"""

@@ -185,11 +185,14 @@ def write_latlonquad_to_kml(
         expected to be placed in the same directory.
     kml_filename : str, optional
         The output filename of the KML file, specified relative to
-        `output_dir`. Defaults to 'BROWSE.kml'.
+        `output_dir`. Defaults to 'BROWSE.kml'. Must end with ".kml".
     png_filename : str, optional
         The filename of the corresponding PNG file, specified relative
         to `output_dir`. Defaults to 'BROWSE.png'.
     """
+
+    if not kml_filename.endswith(".kml"):
+        raise ValueError(f"{kml_filename=}, must end with '.kml'")
 
     # Construct LatLonQuad coordinates string in correct format for KML.
     # The coordinates are specified in counter-clockwise order with the first
@@ -220,6 +223,45 @@ def write_latlonquad_to_kml(
     ).strip()
     with open(Path(output_dir, kml_filename), "w") as f:
         f.write(kml_file)
+
+
+@dataclass(frozen=True)
+class PNGandKMLParams:
+    """
+    Save the browse PNG for interferogram products (RIFG, RUNW, GUNW).
+
+    Parameters
+    ----------
+    browse_png_basename : path-like
+        Filename (with path) for the primary browse image PNG.
+    browse_png_basename : path-like
+        Filename (with path) for the primary browse image KML.
+    longest_side_max : int
+        The maximum number of pixels allowed for the longest side of the
+        2D browse PNG(s).
+    """
+
+    out_dir: str | os.Pathlike
+    browse_png_basename: str
+    browse_kml_basename: str
+    longest_side_max: int
+
+    def get_png_basename_with_suffix(self, suffix: str) -> str:
+        base_png = Path(self.browse_png_basename)
+        return str(base_png.with_stem(f"{base_png.stem}_{suffix}"))
+
+    def get_png_filepath_with_suffix(self, suffix: str) -> Path:
+        return Path(self.out_dir) / self.get_png_basename_with_suffix(suffix)
+
+    def get_kml_basename_with_suffix(self, suffix: str) -> str:
+        base_kml = Path(self.browse_kml_basename)
+        return str(base_kml.with_stem(f"{base_kml.stem}_{suffix}"))
+
+    def get_kml_filepath_with_suffix(self, suffix: str) -> Path:
+        return Path(self.out_dir) / self.get_kml_basename_with_suffix(suffix)
+
+    def get_browse_png_filepath(self) -> Path:
+        return Path(self.out_dir, self.browse_png_basename)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

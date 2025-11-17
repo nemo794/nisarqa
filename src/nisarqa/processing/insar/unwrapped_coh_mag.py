@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
@@ -10,6 +12,7 @@ import nisarqa
 from ..plotting_utils import (
     downsample_img_to_size_of_axes,
     format_axes_ticks_and_labels,
+    plot_2d_array_and_save_to_png,
 )
 from .histograms import process_single_histogram
 
@@ -21,6 +24,7 @@ def process_unw_coh_mag(
     params: nisarqa.ThresholdParamGroup,
     report_pdf: PdfPages,
     stats_h5: h5py.File,
+    png_kml_params: nisarqa.PNGandKMLParams | None = None,
 ) -> None:
     """
     Process unwrapped coherence magnitude layer: metrics to STATS h5, plots to PDF.
@@ -32,10 +36,16 @@ def process_unw_coh_mag(
     params : nisarqa.ThresholdParamGroup
         A structure containing processing parameters to generate the
         coherence magnitude layer plots.
+        If `params.output_individual_pngs` is True, then
+        a PNG+KML pair will be output for each available raster.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the coherence magnitude image plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
+    png_kml_params : nisarqa.PNGandKMLParams, optional
+        Parameters for generating the PNG+KML pairs. Only required if
+        `params.output_individual_pngs` is True.
+        Defaults to None.
     """
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
@@ -51,6 +61,34 @@ def process_unw_coh_mag(
                 plot_unwrapped_coh_mag_to_pdf(
                     coh_raster=coh_mag, report_pdf=report_pdf
                 )
+
+                if params.output_individual_pngs:
+
+                    suffix = f"{freq}_{pol}_unw_coh"
+                    png = png_kml_params.get_png_filepath_with_suffix(suffix)
+
+                    plot_2d_array_and_save_to_png(
+                        arr=coh_mag.data,
+                        cmap="gray",
+                        sample_spacing=(
+                            coh_mag.y_ground_spacing,
+                            coh_mag.x_ground_spacing,
+                        ),
+                        longest_side_max=png_kml_params.longest_side_max,
+                        png_filepath=png,
+                        vmin=0.0,
+                        vmax=1.0,
+                    )
+
+                    png_bs = png_kml_params.get_png_basename_with_suffix(suffix)
+                    kml_bs = png_kml_params.get_kml_basename_with_suffix(suffix)
+
+                    nisarqa.write_latlonquad_to_kml(
+                        llq=product.get_browse_latlonquad(),
+                        output_dir=png_kml_params.out_dir,
+                        png_filename=png_bs,
+                        kml_filename=kml_bs,
+                    )
 
                 # Plot Histogram
                 process_single_histogram(

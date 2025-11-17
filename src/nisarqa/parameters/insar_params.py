@@ -12,6 +12,7 @@ from .nisar_params import (
     HDF5Attrs,
     HDF5ParamGroup,
     InputFileGroupParamGroup,
+    OutputIndivPNGsParam,
     ProductPathGroupParamGroup,
     RootParamGroup,
     SoftwareConfigParamGroup,
@@ -635,28 +636,28 @@ class GUNWWrappedIgramParamGroup(ZeroIsValidThreshold99ParamGroup):
 
 
 @dataclass(frozen=True)
-class RIFGCohMagLayerParamGroup(ThresholdParamGroup):
+class RIFGCohMagLayerParamGroup(ThresholdParamGroup, OutputIndivPNGsParam):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "rifg", "qa_reports", "coh_mag"]
 
 
 @dataclass(frozen=True)
-class RUNWCohMagLayerParamGroup(ThresholdParamGroup):
+class RUNWCohMagLayerParamGroup(ThresholdParamGroup, OutputIndivPNGsParam):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "runw", "qa_reports", "coh_mag"]
 
 
 @dataclass(frozen=True)
-class GUNWCohMagLayerParamGroup(Threshold99ParamGroup):
+class GUNWCohMagLayerParamGroup(Threshold99ParamGroup, OutputIndivPNGsParam):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "coh_mag"]
 
 
 @dataclass(frozen=True)
-class IonoPhaseScreenParamGroupMixin:
+class IonoPhaseScreenParamGroupMixin(OutputIndivPNGsParam):
     """
     Mixin for the ionosphere phase screen image in the report PDF.
 
