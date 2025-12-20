@@ -92,6 +92,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.RadarRaster,
     iono_uncertainty_raster: nisarqa.RadarRaster,
     report_pdf: PdfPages,
+    rewrap: float | None = None,
 ) -> None: ...
 
 
@@ -100,6 +101,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster: nisarqa.GeoRaster,
     iono_uncertainty_raster: nisarqa.GeoRaster,
     report_pdf: PdfPages,
+    rewrap: float | None = None,
 ) -> None: ...
 
 
@@ -107,6 +109,7 @@ def plot_ionosphere_phase_screen_to_pdf(
     iono_raster,
     iono_uncertainty_raster,
     report_pdf,
+    rewrap=None,
 ):
     """
     Create and append plots of ionosphere phase screen and uncertainty to PDF.
@@ -125,6 +128,11 @@ def plot_ionosphere_phase_screen_to_pdf(
         correspond to `iono_raster`.
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output PDF file to append the offsets plots to.
+    rewrap : float or None, optional
+        The multiple of pi to rewrap the ionosphere phase screen image.
+        If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+        Defaults to None.
 
     Notes
     -----
@@ -154,17 +162,12 @@ def plot_ionosphere_phase_screen_to_pdf(
 
     # Plot the ionosphere phase screen raster on the left-side plot.
 
-    # Rewrap the ionosphere phase screen array to (-pi, pi]
-    # Step 1: Rewrap to [0, 2pi) via `get_phase_array()`.
+    # Rewrap via `get_phase_array()`.
     iono_arr, cbar_min_max = get_phase_array(
         phs_or_complex_raster=iono_raster,
         make_square_pixels=True,
-        rewrap=2.0,
+        rewrap=rewrap,
     )
-
-    # Step 2: adjust to (-pi, pi].
-    iono_arr = np.where(iono_arr > np.pi, iono_arr - (2.0 * np.pi), iono_arr)
-    cbar_min_max = [-np.pi, np.pi]
 
     epsilon = 1e-6
     iono_arr_min = np.nanmin(iono_arr)

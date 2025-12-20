@@ -399,64 +399,6 @@ class IgramBrowseParamGroup(YamlParamGroup):
 
 
 @dataclass(frozen=True)
-class UNWIgramBrowseParamGroup(IgramBrowseParamGroup, HDF5ParamGroup):
-    """
-    Parameters to generate the Browse Image PNG for RUNW or GUNW.
-
-    Parameters
-    ----------
-    longest_side_max : int, optional
-        The maximum number of pixels allowed for the longest side of the final
-        2D multilooked browse image. Defaults to 2048 pixels.
-    rewrap : float or None, optional
-        The multiple of pi to rewrap the unwrapped phase image when generating
-        the browse PNG. If None, no rewrapping will occur.
-        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
-        Defaults to 7.
-    """
-
-    rewrap: Optional[float | int] = field(
-        default=7,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="rewrap",
-                descr="""The multiple of pi to rewrap the unwrapped phase image
-                    when generating the browse PNG. If None, no rewrapping will occur.
-                    Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).""",
-            ),
-            "hdf5_attrs": HDF5Attrs(
-                name="browseImageRewrap",
-                units="1",
-                descr=(
-                    "The multiple of pi for rewrapping the unwrapped phase"
-                    " layer for the browse PNG. 'None' if no rewrapping"
-                    " occurred. Example: If `browseImageRewrap` is 3, the"
-                    " unwrapped phase was rewrapped to the interval [0, 3pi)."
-                ),
-                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
-            ),
-        },
-    )
-
-    def __post_init__(self):
-        # VALIDATE INPUTS
-
-        super().__post_init__()
-
-        # validate rewrap
-        if not isinstance(self.rewrap, (float, int)) and (
-            self.rewrap is not None
-        ):
-            raise TypeError(
-                f"{self.rewrap=} is {type(self.rewrap)}; "
-                "must be float, int, or None."
-            )
-
-        if (self.rewrap is not None) and (self.rewrap <= 0):
-            raise ValueError(f"{self.rewrap=}; must be a positive value.")
-
-
-@dataclass(frozen=True)
 class RIFGIgramBrowseParamGroup(IgramBrowseParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -464,14 +406,14 @@ class RIFGIgramBrowseParamGroup(IgramBrowseParamGroup):
 
 
 @dataclass(frozen=True)
-class RUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
+class RUNWIgramBrowseParamGroup(IgramBrowseParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "runw", "qa_reports", "browse_png"]
 
 
 @dataclass(frozen=True)
-class GUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
+class GUNWIgramBrowseParamGroup(IgramBrowseParamGroup):
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "browse_png"]
@@ -486,7 +428,7 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
     ----------
     rewrap : float or None, optional
         The multiple of pi to rewrap the unwrapped phase image in the report
-        PDF. If None, no rewrapping will occur.
+        PDF and primary browse PNG. If None, no rewrapping will occur.
         Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
     """
 
@@ -495,8 +437,8 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="rewrap",
-                descr="""The multiple of pi to rewrap the unwrapped phase image in the report
-                    PDF. If None, no rewrapping will occur.
+                descr="""The multiple of pi to rewrap the unwrapped phase image
+                    for plotting. If None, no rewrapping will occur.
                     Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).""",
             ),
             "hdf5_attrs": HDF5Attrs(
@@ -504,7 +446,7 @@ class UNWPhaseImageParamGroup(YamlParamGroup, HDF5ParamGroup):
                 units="1",
                 descr=(
                     "The multiple of pi for rewrapping the unwrapped phase"
-                    " image in the report PDF. 'None' if no"
+                    " image for plotting. 'None' if no"
                     " rewrapping occurred. Example: If `phaseImageRewrap`=3,"
                     " the image was rewrapped to the interval [0, 3pi)."
                 ),
@@ -662,11 +604,41 @@ class IonoPhaseScreenParamGroupMixin:
 
     Parameters
     ----------
+    rewrap : float or None, optional
+        The multiple of pi to rewrap the ionosphere phase screen
+        layer for plotting. If None, no rewrapping will occur.
+        Suggest setting to the same value as for the unwrapped phase image.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+        Defaults to 7.
     nan_threshold, fill_threshold, total_invalid_threshold : float, optional
         Threshold values for alerting users to possible malformed datasets.
         See `ThresholdParamGroup` docstring for complete description.
         Default for NaN, fill, and total invalid thresholds: -1.
     """
+
+    rewrap: Optional[float | int] = field(
+        default=7,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="rewrap",
+                descr="""The multiple of pi to rewrap the ionosphere phase screen
+                    layer for plotting. If None, no rewrapping will occur.
+                    Suggest setting to the same value as for the unwrapped phase image.
+                    Ex: If 3 is provided, the layer is rewrapped to the interval [0, 3pi).""",
+            ),
+            "hdf5_attrs": HDF5Attrs(
+                name="ionospherePhaseScreenRewrap",
+                units="1",
+                descr=(
+                    "The multiple of pi for rewrapping the ionosphere phase screen"
+                    " layer for plotting. 'None' if no rewrapping occurred."
+                    " Example: If `ionospherePhaseScreenRewrap` is 3, the"
+                    " ionosphere phase screen image was rewrapped to the interval [0, 3pi)."
+                ),
+                group_path=nisarqa.STATS_H5_QA_PROCESSING_GROUP,
+            ),
+        },
+    )
 
     # The InSAR team decided that when the coherence is very low, then the
     # InSAR workflow would set all pixels in the ionosphere phase screen layer

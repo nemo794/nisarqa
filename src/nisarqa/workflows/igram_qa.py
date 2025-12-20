@@ -234,20 +234,26 @@ def igram_qa(
 @overload
 def save_igram_product_browse_png(
     product: nisarqa.WrappedGroup,
-    params: nisarqa.IgramBrowseParamGroup,
     browse_png: str | os.PathLike,
+    longest_side_max: int | None = None,
 ) -> None: ...
 
 
 @overload
 def save_igram_product_browse_png(
     product: nisarqa.UnwrappedGroup,
-    params: nisarqa.UNWIgramBrowseParamGroup,
     browse_png: str | os.PathLike,
+    longest_side_max: int | None = None,
+    rewrap: float | None = None,
 ) -> None: ...
 
 
-def save_igram_product_browse_png(product, params, browse_png):
+def save_igram_product_browse_png(
+    product: nisarqa.WrappedGroup | nisarqa.UnwrappedGroup,
+    browse_png: str | os.PathLike,
+    longest_side_max: int | None = None,
+    rewrap: float | None = None,
+) -> None:
     """
     Save the browse PNG for interferogram products (RIFG, RUNW, GUNW).
 
@@ -255,10 +261,13 @@ def save_igram_product_browse_png(product, params, browse_png):
     ----------
     product : nisarqa.WrappedGroup or nisarqa.UnwrappedGroup
         Input NISAR product. Must be either a RIFG, RUNW, or GUNW product.
-    params : nisarqa.IgramBrowseParamGroup or nisarqa.UNWIgramBrowseParamGroup
-        A structure containing the processing parameters for the browse PNG.
     browse_png : path-like
         Filename (with path) for the browse image PNG.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the PNG.
+        If None, the longest edge of the source phase image will be used.
+        Defaults to None.
+
     """
 
     product_type = product.product_type
