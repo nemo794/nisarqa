@@ -11,6 +11,28 @@ from nisarqa.utils.typing import T
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
+def _log_if_bad_string_value(val: str | list[str], ds_name: str) -> bool:
+
+    log = nisarqa.get_logger()
+
+    if isinstance(val, str):
+        val = [val]
+
+    for v in val:
+        if v.upper() in (
+            "",
+            "0",
+            "['0']",
+            "['']",
+            "['' '' '' '' '']",
+            "NONE",
+            "(NOT SPECIFIED)",
+        ):
+            log.error(
+                f"Value is {val!r}, which is not valid."
+                f" Path: {ds_name}"
+            )
+
 
 def dataset_sanity_checks(product: nisarqa.NisarProduct) -> None:
     """
@@ -23,10 +45,184 @@ def dataset_sanity_checks(product: nisarqa.NisarProduct) -> None:
     """
     with h5py.File(product.filepath, "r") as f:
 
+        check_string_type_metadata(h5_file=f)
+
         identification_sanity_checks(
             id_group=f[product.identification_path],
             product_type=product.product_type,
         )
+
+
+def check_string_type_metadata(h5_file: h5py.File) -> None:
+
+    log = nisarqa.get_logger()
+
+    def check_string_type(path: str) -> None:
+        """Check if string datasets or attributes have placeholder values."""
+
+        # Check dataset
+
+        # `complex64` is a special data type; it is neither a HDF5 group nor
+        # dataset, so we just need to skip it.
+        if path.endswith("complex64"):
+            return
+
+        ds = h5_file[path]
+        if isinstance(ds, h5py.Group):
+
+            # TODO - check attributes for None/Empty and/or if string then correct string type
+
+            return
+        
+        # Ensure dataset's values were populated with 
+        if ds.size is None:
+            assert isinstance(ds[()], h5py.Empty)
+            log.error(f"Dataset's value is {ds[()]}. Dataset: {ds.name}")
+
+
+        dtype = ds.dtype
+        string_info = h5py.check_string_dtype(dtype)
+
+        if string_info is None:
+            # dataset is not a string dtype. (It could be int, float, etc.)
+
+            # TODO - check attributes for None/Empty and/or if string then correct string type
+            pass
+        else:
+            # dataset is a string type
+            if string_info.length is None:
+                # Variable length string
+                log.error(
+                    "Dataset is a variable-length string, should be"
+                    f" fixed-length byte string. Dataset: {ds.name}"
+                )
+            elif string_info.length == 0:
+                # empty string
+                log.error(f"Dataset is the empty string. Dataset: {ds.name}")
+            else:
+                assert string_info.length > 0
+
+                ds_val = nisarqa.byte_string_to_python_str(ds[()])
+                if isinstance(ds_val, str):
+                    ds_val = [ds_val]
+                for val in ds_val:
+                    _log_if_bad_string_value(val=val, ds_name=ds.name)
+
+            # TODO - check attributes for None/Empty and/or if string then correct string type
+
+    h5_file.visit(check_string_type)
+
+
+import h5py
+import numpy as np
+
+def check_string_type_metadata(h5_file: h5py.File) -> None:
+    """
+    Iterate through an HDF5 file to validate that all groups and datasets, 
+    including their attributes, are populated and use correct string types.
+
+    Parameters
+    ----------
+    h5_file : h5py.File
+        The opened HDF5 file object to be inspected.
+
+    Returns
+    -------
+    None
+    """
+    log = nisarqa.get_logger()
+
+    def _validate_string_logic(name: str, dtype: h5py.Datatype, value_provider, label: str) -> None:
+        """
+        Unified logic to validate HDF5 string types and content.
+
+        Parameters
+        ----------
+        name : str
+            Path or name of the object.
+        dtype : h5py.Datatype
+            The HDF5 datatype to check.
+        value_provider : callable
+            A function/lambda that returns the actual value when called.
+            Used to avoid reading data unless the type check passes.
+        label : str
+            Context label for logging (e.g., "Dataset" or "Attribute").
+        """
+
+        string_info = h5py.check_string_dtype(dtype)
+        if string_info is None:
+            # object is not a string dtype. (It could be int, float, etc.)
+            return
+
+        if string_info.length is None:
+            log.error(f"{label} is variable-length string; should be fixed-length. Path: {name}")
+        elif string_info.length == 0:
+            log.error(f"{label} is an empty string. Path: {name}")
+        else:
+            # ONLY for strings do we read the value to check content.
+            # Fixed-length strings are usually small metadata fields.
+            raw_val = value_provider()
+            ds_val = nisarqa.byte_string_to_python_str(raw_val)
+            
+            vals = [ds_val] if isinstance(ds_val, (str, bytes)) else ds_val
+            for val in vals:
+                _log_if_bad_string_value(val=val, ds_name=name)
+
+    def _check_attributes(item_name: str, item: h5py.HLObject) -> None:
+        """Check all attributes of a specific HDF5 object."""
+        for attr_name, attr_val in item.attrs.items():
+            if attr_val is None or isinstance(attr_val, h5py.Empty):
+                log.error(f"Attribute '{attr_name}' is empty. Path: {item_name}")
+                continue
+
+            attr_id = item.attrs.get_id(attr_name)
+            _validate_string_logic(
+                name=f"{item_name} -> {attr_name}",
+                dtype=attr_id.dtype,
+                value_provider=lambda: attr_val, # Attributes are small; safe to pass
+                label="Attribute"
+            )
+
+    def visitor_func(path: str) -> None:
+        """Visitor function for h5py.visit."""
+
+        # `complex64` is a special data type; it is neither a HDF5 group nor
+        # dataset, so we just need to skip it.
+        if path.endswith("complex64"):
+            return
+
+        obj = h5_file[path]
+        
+        # 1. Always check attributes (This is safe for large datasets)
+        _check_attributes(path, obj)
+
+        # 2. Dataset-specific validation
+        if isinstance(obj, h5py.Dataset):
+            # Check if dataset is a 'null' space (Empty) without reading data.
+            # This occurs is when a dataset is written with a Python value of `None`,
+            # although there could be other causes.
+            # h5py datasets with no data have a shape of None or use the Empty class
+            if obj.shape is None:
+                log.error(f"Dataset has a null (Empty) space. Dataset: {obj.name}")
+                return
+
+            # Check if storage was actually allocated (0 bytes means uninitialized/empty)
+            if obj.id.get_storage_size() == 0:
+                log.error(f"Dataset has no allocated storage (empty). Dataset: {obj.name}")
+                return
+
+            # 3. String Type/Content Check
+            # _validate_string_logic only calls the lambda if it confirms it's a string dtype
+            _validate_string_logic(
+                name=obj.name,
+                dtype=obj.dtype,
+                value_provider=lambda: obj[()], # Only called if dtype is string
+                label="Dataset"
+            )
+
+    # Check root, then visit
+    _check_attributes("/", h5_file)
+    h5_file.visit(visitor_func)
 
 
 def identification_sanity_checks(
@@ -443,25 +639,13 @@ def identification_sanity_checks(
         if _dataset_exists(ds_name):
             data = _get_string_dataset(ds_name=ds_name)
             if data is not None:
-                # TODO: Use a regex for more flexible pattern matching.
-                if data in (
-                    "",
-                    "0",
-                    "['0']",
-                    "['']",
-                    "['' '' '' '' '']",
-                    "None",
-                    "(NOT SPECIFIED)",
-                ):
-                    log.error(
-                        f"Dataset value is {data!r}, which is not a valid value."
-                        f" Dataset: {_full_path(ds_name)}"
-                    )
+                ds_full_path = _full_path(ds_name)
+                if _log_if_bad_string_value(val=data, ds_name=ds_full_path):
                     passes = False
                 else:
                     log.warning(
                         f"Dataset value is {data!r}, but it has not be automatically"
-                        f" verified during checks. Dataset: {_full_path(ds_name)}"
+                        f" verified during checks. Dataset: {ds_full_path}"
                     )
             else:
                 passes = False
