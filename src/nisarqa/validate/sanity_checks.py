@@ -13,6 +13,7 @@ from nisarqa.utils.typing import T
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
+
 def _log_if_bad_string_value(val: str | list[str], path: str) -> bool:
     """
     Log an error if value is a known invalid string.
@@ -72,7 +73,7 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
     """
     Check that all datasets and attributes meet certain NISAR conventions.
 
-    Iterate through an HDF5 file to validate that all groups and datasets, 
+    Iterate through an HDF5 file to validate that all groups and datasets,
     including their attributes, meet certain NISAR conventions:
         1) populated (not empty)
         2) if string, that they are not variable-length strings and that
@@ -110,7 +111,8 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
         name: str,
         dtype_: h5py.Datatype,
         value_provider: Callable[[], Any],
-        label: str) -> None:
+        label: str,
+    ) -> None:
         """
         Unified logic to validate HDF5 string types and content.
 
@@ -144,7 +146,7 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
             # Fixed-length strings are usually small metadata fields.
             raw_val = value_provider()
             ds_val = nisarqa.byte_string_to_python_str(raw_val)
-            
+
             vals = [ds_val] if isinstance(ds_val, (str, bytes)) else ds_val
             for val in vals:
                 _log_if_bad_string_value(val=val, path=name)
@@ -153,7 +155,9 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
         """Check all attributes of a specific HDF5 object."""
         for attr_name, attr_val in item.attrs.items():
             if attr_val is None or isinstance(attr_val, h5py.Empty):
-                log.error(f"Attribute '{attr_name}' is empty. Path: {item_name}")
+                log.error(
+                    f"Attribute '{attr_name}' is empty. Path: {item_name}"
+                )
                 continue
 
             attr_id = item.attrs.get_id(attr_name)
@@ -177,9 +181,15 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
                 # Check attributes which should use a half-precision dtype
                 if attr_name in half_precision_match:
 
-                    incorrect_c32 = (nisarqa.is_complex32(item) and attr_id.dtype != np.float16)
-                    incorrect_c64 = (item.dtype == np.complex64 and attr_id.dtype != np.float32)
-                    if  incorrect_c32 or incorrect_c64:
+                    incorrect_c32 = (
+                        nisarqa.is_complex32(item)
+                        and attr_id.dtype != np.float16
+                    )
+                    incorrect_c64 = (
+                        item.dtype == np.complex64
+                        and attr_id.dtype != np.float32
+                    )
+                    if incorrect_c32 or incorrect_c64:
                         log.error(
                             f"Attribute has dtype {attr_id.dtype}, which does"
                             f" not match the half-precision of its dataset's"
@@ -198,9 +208,8 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
                     name=f"{item_name} -> {attr_name}",
                     dtype_=attr_id.dtype,
                     value_provider=lambda: attr_val,
-                    label="Attribute"
+                    label="Attribute",
                 )
-
 
     def visitor_func(path: str) -> None:
         """Visitor function for h5py.visit."""
@@ -210,7 +219,7 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
             return
 
         obj = h5_file[path]
-        
+
         # 1. Always check attributes (This is safe for large datasets)
         _check_attributes(path, obj)
 
@@ -241,8 +250,9 @@ def check_metadata_conventions(h5_file: h5py.File) -> None:
             _validate_string_logic(
                 name=obj.name,
                 dtype_=obj.dtype,
-                value_provider=lambda: obj[()], # Only called if dtype is string
-                label="Dataset"
+                # Only called if dtype is string
+                value_provider=lambda: obj[()],
+                label="Dataset",
             )
 
             # 2c. Numeric Type/Content Check

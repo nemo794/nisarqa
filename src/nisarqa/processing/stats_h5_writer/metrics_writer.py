@@ -591,10 +591,11 @@ def get_stats_name_descr(stat: str, component: str | None) -> tuple[str, str]:
             ),
         )
 
+
 def get_list_of_real_stats_names() -> list[str]:
     """
     Return a list of the names of all statistics for real-valued datasets.
-    
+
     These names are per NISAR conventions, for min/max/mean/std statistics.
     """
 
@@ -608,7 +609,7 @@ def get_list_of_real_stats_names() -> list[str]:
 def get_list_of_imag_stats_names() -> list[str]:
     """
     Return a list of the names of all statistics for complex-valued datasets.
-    
+
     These names are per NISAR conventions, for min/max/mean/std statistics.
     """
 
