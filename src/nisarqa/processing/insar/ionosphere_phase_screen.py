@@ -102,7 +102,7 @@ def process_ionosphere_phase_screen(
                     iono_rewrapped, cbar_min_max = get_phase_array(
                         phs_or_complex_raster=iono_phs,
                         make_square_pixels=False,  # we'll do this while downsampling
-                        rewrap=7,
+                        rewrap=2,
                     )
 
                     png = png_kml_params.get_png_filepath_with_suffix(suffix)
