@@ -12,6 +12,8 @@ from .nisar_params import (
     HDF5Attrs,
     HDF5ParamGroup,
     InputFileGroupParamGroup,
+    L1RadarBrowse4326ParamGroup,
+    L2GeoBrowse4326ParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
     SoftwareConfigParamGroup,
@@ -24,6 +26,7 @@ from .nisar_params import (
     ZeroIsValidThreshold99ParamGroup,
     ZeroIsValidThresholdParamGroup,
 )
+from .rslc_caltools_params import DynamicAncillaryFileParamGroup
 
 objects_to_skip = nisarqa.get_all(__name__)
 
@@ -1644,6 +1647,8 @@ class RIFGRootParamGroup(RootParamGroup):
         QA Workflows parameters.
     input_f : RIFGInputFileGroupParamGroup or None, optional
         Input File Group parameters.
+    anc_files : DynamicAncillaryFileParamGroup or None, optional
+        Dynamic Ancillary File Group parameters for QA
     prodpath : RIFGProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
     software_config : RIFGSoftwareConfigParamGroup or None, optional
@@ -1660,12 +1665,15 @@ class RIFGRootParamGroup(RootParamGroup):
         Parameters for correlation surface peak layer plots.
     browse : RIFGIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
+    browse_4326 : L1RadarBrowse4326ParamGroup or None, optional
+        Browse 4326 Group parameters for RIFG QA (EPSG 4326 browse images).
     """
 
     workflows: RIFGWorkflowsParamGroup
 
     # Shared parameters
     input_f: Optional[RIFGInputFileGroupParamGroup] = None
+    anc_files: Optional[DynamicAncillaryFileParamGroup] = None
     prodpath: Optional[RIFGProductPathGroupParamGroup] = None
     software_config: Optional[RIFGSoftwareConfigParamGroup] = None
     validation: Optional[RIFGValidationParamGroup] = None
@@ -1675,6 +1683,7 @@ class RIFGRootParamGroup(RootParamGroup):
     az_rng_offsets: Optional[RIFGAzAndRangeOffsetsParamGroup] = None
     corr_surface_peak: Optional[RIFGCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[RIFGIgramBrowseParamGroup] = None
+    browse_4326: Optional[L1RadarBrowse4326ParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1689,6 +1698,11 @@ class RIFGRootParamGroup(RootParamGroup):
                 flag_param_grp_req=flag_any_workflows_true,
                 root_param_grp_attr_name="input_f",
                 param_grp_cls_obj=RIFGInputFileGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="anc_files",
+                param_grp_cls_obj=DynamicAncillaryFileParamGroup,
             ),
             Grp(
                 flag_param_grp_req=flag_any_workflows_true,
@@ -1730,6 +1744,11 @@ class RIFGRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RIFGIgramBrowseParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="browse_4326",
+                param_grp_cls_obj=L1RadarBrowse4326ParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1740,6 +1759,7 @@ class RIFGRootParamGroup(RootParamGroup):
         # the groups will appear in the runconfig.
         return {
             "input_f": RIFGInputFileGroupParamGroup,
+            "anc_files": DynamicAncillaryFileParamGroup,
             "prodpath": RIFGProductPathGroupParamGroup,
             "workflows": RIFGWorkflowsParamGroup,
             "software_config": RIFGSoftwareConfigParamGroup,
@@ -1749,6 +1769,7 @@ class RIFGRootParamGroup(RootParamGroup):
             "az_rng_offsets": RIFGAzAndRangeOffsetsParamGroup,
             "corr_surface_peak": RIFGCorrSurfacePeakLayerParamGroup,
             "browse": RIFGIgramBrowseParamGroup,
+            "browse_4326": L1RadarBrowse4326ParamGroup,
         }
 
 
@@ -1770,6 +1791,8 @@ class RUNWRootParamGroup(RootParamGroup):
         QA Workflows parameters.
     input_f : RUNWInputFileGroupParamGroup or None, optional
         Input File Group parameters.
+    anc_files : DynamicAncillaryFileParamGroup or None, optional
+        Dynamic Ancillary File Group parameters for QA
     prodpath : RUNWProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
     software_config : RUNWSoftwareConfigParamGroup or None, optional
@@ -1792,11 +1815,14 @@ class RUNWRootParamGroup(RootParamGroup):
         Parameters for correlation surface peak layer plots.
     browse : RUNWIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
+    browse_4326 : L1RadarBrowse4326ParamGroup or None, optional
+        Browse 4326 Group parameters for RUNW QA (EPSG 4326 browse images).
     """
 
     # Shared parameters
     workflows: RUNWWorkflowsParamGroup
     input_f: Optional[RUNWInputFileGroupParamGroup] = None
+    anc_files: Optional[DynamicAncillaryFileParamGroup] = None
     prodpath: Optional[RUNWProductPathGroupParamGroup] = None
     software_config: Optional[RUNWSoftwareConfigParamGroup] = None
     validation: Optional[RUNWValidationParamGroup] = None
@@ -1809,6 +1835,7 @@ class RUNWRootParamGroup(RootParamGroup):
     az_rng_offsets: Optional[RUNWAzAndRangeOffsetsParamGroup] = None
     corr_surface_peak: Optional[RUNWCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[RUNWIgramBrowseParamGroup] = None
+    browse_4326: Optional[L1RadarBrowse4326ParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1823,6 +1850,11 @@ class RUNWRootParamGroup(RootParamGroup):
                 flag_param_grp_req=flag_any_workflows_true,
                 root_param_grp_attr_name="input_f",
                 param_grp_cls_obj=RUNWInputFileGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="anc_files",
+                param_grp_cls_obj=DynamicAncillaryFileParamGroup,
             ),
             Grp(
                 flag_param_grp_req=flag_any_workflows_true,
@@ -1879,6 +1911,11 @@ class RUNWRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RUNWIgramBrowseParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="browse_4326",
+                param_grp_cls_obj=L1RadarBrowse4326ParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -1889,6 +1926,7 @@ class RUNWRootParamGroup(RootParamGroup):
         # the groups will appear in the runconfig.
         return {
             "input_f": RUNWInputFileGroupParamGroup,
+            "anc_files": DynamicAncillaryFileParamGroup,
             "prodpath": RUNWProductPathGroupParamGroup,
             "workflows": RUNWWorkflowsParamGroup,
             "software_config": RUNWSoftwareConfigParamGroup,
@@ -1901,6 +1939,7 @@ class RUNWRootParamGroup(RootParamGroup):
             "az_rng_offsets": RUNWAzAndRangeOffsetsParamGroup,
             "corr_surface_peak": RUNWCorrSurfacePeakLayerParamGroup,
             "browse": RUNWIgramBrowseParamGroup,
+            "browse_4326": L1RadarBrowse4326ParamGroup,
         }
 
 
@@ -1948,6 +1987,8 @@ class GUNWRootParamGroup(RootParamGroup):
         Parameters for correlation surface peak layer plots.
     browse : GUNWIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
+    browse_4326 : L2GeoBrowse4326ParamGroup or None, optional
+        Browse 4326 Group parameters for GUNW QA (EPSG 4326 browse images).
     """
 
     workflows: GUNWWorkflowsParamGroup
@@ -1967,6 +2008,7 @@ class GUNWRootParamGroup(RootParamGroup):
     az_rng_offsets: Optional[GUNWAzAndRangeOffsetsParamGroup] = None
     corr_surface_peak: Optional[GUNWCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[GUNWIgramBrowseParamGroup] = None
+    browse_4326: Optional[L2GeoBrowse4326ParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -2042,6 +2084,11 @@ class GUNWRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=GUNWIgramBrowseParamGroup,
             ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="browse_4326",
+                param_grp_cls_obj=L2GeoBrowse4326ParamGroup,
+            ),
         )
 
         return grps_to_parse
@@ -2065,6 +2112,7 @@ class GUNWRootParamGroup(RootParamGroup):
             "az_rng_offsets": GUNWAzAndRangeOffsetsParamGroup,
             "corr_surface_peak": GUNWCorrSurfacePeakLayerParamGroup,
             "browse": GUNWIgramBrowseParamGroup,
+            "browse_4326": L2GeoBrowse4326ParamGroup,
         }
 
 
@@ -2086,6 +2134,8 @@ class ROFFRootParamGroup(RootParamGroup):
         QA Workflows parameters.
     input_f : ROFFInputFileGroupParamGroup or None, optional
         Input File Group parameters.
+    anc_files : DynamicAncillaryFileParamGroup or None, optional
+        Dynamic Ancillary File Group parameters for QA
     prodpath : ROFFProductPathGroupParamGroup or None, optional
         Product Path Group parameters.
     software_config : ROFFSoftwareConfigParamGroup or None, optional
@@ -2096,6 +2146,8 @@ class ROFFRootParamGroup(RootParamGroup):
         Along track and slant range offsets layers Groups parameters.
     quiver : ROFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
+    browse_4326 : L1RadarBrowse4326ParamGroup or None, optional
+        Browse 4326 Group parameters for ROFF QA (EPSG 4326 browse images).
     variances : ROFFVarianceLayersParamGroup or None, optional
         Parameters for azimuth and slant range variance layers' plots.
     cross_variance : ROFFCrossOffsetVarianceLayerParamGroup
@@ -2108,12 +2160,14 @@ class ROFFRootParamGroup(RootParamGroup):
 
     # Shared parameters
     input_f: Optional[ROFFInputFileGroupParamGroup] = None
+    anc_files: Optional[DynamicAncillaryFileParamGroup] = None
     prodpath: Optional[ROFFProductPathGroupParamGroup] = None
     software_config: Optional[ROFFSoftwareConfigParamGroup] = None
     validation: Optional[ROFFValidationParamGroup] = None
 
     az_rng_offsets: Optional[ROFFAzAndRangeOffsetsParamGroup] = None
     quiver: Optional[ROFFQuiverParamGroup] = None
+    browse_4326: Optional[L1RadarBrowse4326ParamGroup] = None
     variances: Optional[ROFFVarianceLayersParamGroup] = None
     cross_variance: Optional[ROFFCrossOffsetVarianceLayerParamGroup] = None
     corr_surface_peak: Optional[ROFFCorrSurfacePeakLayerParamGroup] = None
@@ -2131,6 +2185,11 @@ class ROFFRootParamGroup(RootParamGroup):
                 flag_param_grp_req=flag_any_workflows_true,
                 root_param_grp_attr_name="input_f",
                 param_grp_cls_obj=ROFFInputFileGroupParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="anc_files",
+                param_grp_cls_obj=DynamicAncillaryFileParamGroup,
             ),
             Grp(
                 flag_param_grp_req=flag_any_workflows_true,
@@ -2159,6 +2218,11 @@ class ROFFRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="browse_4326",
+                param_grp_cls_obj=L1RadarBrowse4326ParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="variances",
                 param_grp_cls_obj=ROFFVarianceLayersParamGroup,
             ),
@@ -2182,12 +2246,14 @@ class ROFFRootParamGroup(RootParamGroup):
         # the groups will appear in the runconfig.
         return {
             "input_f": ROFFInputFileGroupParamGroup,
+            "anc_files": DynamicAncillaryFileParamGroup,
             "prodpath": ROFFProductPathGroupParamGroup,
             "workflows": ROFFWorkflowsParamGroup,
             "software_config": ROFFSoftwareConfigParamGroup,
             "validation": ROFFValidationParamGroup,
             "az_rng_offsets": ROFFAzAndRangeOffsetsParamGroup,
             "quiver": ROFFQuiverParamGroup,
+            "browse_4326": L1RadarBrowse4326ParamGroup,
             "variances": ROFFVarianceLayersParamGroup,
             "cross_variance": ROFFCrossOffsetVarianceLayerParamGroup,
             "corr_surface_peak": ROFFCorrSurfacePeakLayerParamGroup,
@@ -2222,6 +2288,8 @@ class GOFFRootParamGroup(RootParamGroup):
         Along track and slant range offsets layers Groups parameters.
     quiver : GOFFQuiverParamGroup or None, optional
         Quiver plots and browse image group parameters.
+    browse_4326 : L2GeoBrowse4326ParamGroup or None, optional
+        Browse 4326 Group parameters for GOFF QA (EPSG 4326 browse images).
     variances : GOFFVarianceLayersParamGroup or None, optional
         Parameters for *Variance layers' plots.
     cross_variance : GOFFCrossOffsetVarianceLayerParamGroup
@@ -2240,6 +2308,7 @@ class GOFFRootParamGroup(RootParamGroup):
 
     az_rng_offsets: Optional[GOFFAzAndRangeOffsetsParamGroup] = None
     quiver: Optional[GOFFQuiverParamGroup] = None
+    browse_4326: Optional[L2GeoBrowse4326ParamGroup] = None
     variances: Optional[GOFFVarianceLayersParamGroup] = None
     cross_variance: Optional[GOFFCrossOffsetVarianceLayerParamGroup] = None
     corr_surface_peak: Optional[GOFFCorrSurfacePeakLayerParamGroup] = None
@@ -2285,6 +2354,11 @@ class GOFFRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="browse_4326",
+                param_grp_cls_obj=L2GeoBrowse4326ParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="variances",
                 param_grp_cls_obj=GOFFVarianceLayersParamGroup,
             ),
@@ -2314,6 +2388,7 @@ class GOFFRootParamGroup(RootParamGroup):
             "validation": GOFFValidationParamGroup,
             "az_rng_offsets": GOFFAzAndRangeOffsetsParamGroup,
             "quiver": GOFFQuiverParamGroup,
+            "browse_4326": L2GeoBrowse4326ParamGroup,
             "variances": GOFFVarianceLayersParamGroup,
             "cross_variance": GOFFCrossOffsetVarianceLayerParamGroup,
             "corr_surface_peak": GOFFCorrSurfacePeakLayerParamGroup,

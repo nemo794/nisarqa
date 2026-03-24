@@ -989,6 +989,212 @@ class WorkflowsParamGroup(YamlParamGroup):
 
 
 @dataclass(frozen=True)
+class Browse4326ParamGroup(YamlParamGroup):
+    """
+    Parameters for generating EPSG 4326 (lat/lon) version of browse products.
+
+    This corresponds to the `qa_reports: browse_4326` runconfig group.
+
+    This is an abstract base class. Product-specific subclasses should be
+    used: L1RadarBrowse4326ParamGroup for Level-1 radar products or
+    L2GeoBrowse4326ParamGroup for Level-2 geocoded products.
+
+    Parameters
+    ----------
+    output_browse_4326 : bool, optional
+        True to generate a version of the nominal browse PNG+KML in EPSG 4328
+        (lon/lat) coordinate system for accurate geolocation in GIS software.
+        The EPSG 4326 PNG+KML version will be in addition to the standard
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        Defaults to False.
+    longest_side_max : int, optional
+        Maximum number of pixels for the longest side of the output
+        EPSG 4326 browse image PNG. Defaults to 2048.
+    """
+
+    output_browse_4326: bool = field(
+        default=False,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="output_browse_4326",
+                descr="""True to generate a version of the nominal browse PNG+KML in EPSG 4328
+        (lon/lat) coordinate system for accurate geolocation in GIS software.
+        The EPSG 4326 PNG+KML version will be in addition to the standard
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+                False to only generate standard browse outputs.""",
+            )
+        },
+    )
+
+    longest_side_max: int = field(
+        default=2048,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="longest_side_max",
+                descr="""Maximum number of pixels for the longest side of the output
+                EPSG 4326 browse image PNG.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # Validate output_browse_4326
+        if not isinstance(self.output_browse_4326, bool):
+            raise TypeError(
+                f"`output_browse_4326` must be bool: {self.output_browse_4326}"
+            )
+
+        # Validate longest_side_max
+        if not isinstance(self.longest_side_max, int):
+            raise TypeError(
+                f"`longest_side_max` must be int: {self.longest_side_max}"
+            )
+        if self.longest_side_max <= 0:
+            raise ValueError(
+                f"`longest_side_max` must be positive: {self.longest_side_max}"
+            )
+
+    @staticmethod
+    def get_path_to_group_in_runconfig():
+        return ["runconfig", "groups", "qa", "qa_reports", "browse_4326"]
+
+
+@dataclass(frozen=True)
+class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
+    """
+    Parameters for generating EPSG 4326 version of browse products for L1.
+
+    Extends Browse4326ParamGroup with Level-1 specific parameters for
+    ISCE3 geocoding (RSLC, RIFG, RUNW, ROFF).
+
+    Parameters
+    ----------
+    output_browse_4326 : bool, optional
+        True to generate a version of the nominal browse PNG+KML in EPSG 4328
+        (lon/lat) coordinate system for accurate geolocation in GIS software.
+        The EPSG 4326 PNG+KML version will be in addition to the standard
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        Defaults to False.
+    longest_side_max : int, optional
+        Maximum number of pixels for the longest side of the output
+        EPSG 4326 browse image PNG. Defaults to 2048.
+    resample : str, optional
+        Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
+        'bicubic', 'nearest', 'biquintic'. Defaults to 'biquintic'.
+    margin_in_km : float, optional
+        Margin in kilometers to add around the bounding polygon to account
+        for topography when geocoding. Defaults to 5.0.
+    """
+
+    resample: str = field(
+        default="biquintic",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="resample",
+                descr="""Resampling method for ISCE3 geocoding. Options: 'sinc',
+                'bilinear', 'bicubic', 'nearest', 'biquintic'.""",
+            )
+        },
+    )
+
+    margin_in_km: float = field(
+        default=5.0,
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="margin_in_km",
+                descr="""Margin in kilometers to add around the bounding polygon
+                to account for topography when geocoding.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # Call parent validation
+        super().__post_init__()
+
+        # Validate resample
+        valid_resample = ["sinc", "bilinear", "bicubic", "nearest", "biquintic"]
+        if self.resample not in valid_resample:
+            raise ValueError(
+                f"`resample` must be one of {valid_resample}: {self.resample}"
+            )
+
+        # Validate margin_in_km
+        if not isinstance(self.margin_in_km, (int, float)):
+            raise TypeError(
+                f"`margin_in_km` must be numeric: {self.margin_in_km}"
+            )
+        if self.margin_in_km <= 0:
+            raise ValueError(
+                f"`margin_in_km` must be positive: {self.margin_in_km}"
+            )
+
+
+@dataclass(frozen=True)
+class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
+    """
+    Parameters for generating EPSG 4326 version of browse products for L2.
+
+    Extends Browse4326ParamGroup with Level-2 specific parameters for
+    GDAL reprojection (GSLC, GCOV, GUNW, GOFF).
+
+    Parameters
+    ----------
+    output_browse_4326 : bool, optional
+        True to generate a version of the nominal browse PNG+KML in EPSG 4328
+        (lon/lat) coordinate system for accurate geolocation in GIS software.
+        The EPSG 4326 PNG+KML version will be in addition to the standard
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        Defaults to False.
+    longest_side_max : int, optional
+        Maximum number of pixels for the longest side of the output
+        EPSG 4326 browse image PNG. Defaults to 2048.
+    resample : str, optional
+        Resampling algorithm for GDAL reprojection. Options: 'near',
+        'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
+        Defaults to 'cubic'.
+    """
+
+    resample: str = field(
+        default="cubic",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="resample",
+                descr="""Resampling algorithm for GDAL reprojection. Options: 'near',
+                'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.""",
+            )
+        },
+    )
+
+    def __post_init__(self):
+        # Call parent validation
+        super().__post_init__()
+
+        # Validate resample
+        valid_resample = [
+            "near",
+            "bilinear",
+            "cubic",
+            "cubicspline",
+            "lanczos",
+            "average",
+            "mode",
+        ]
+        if self.resample not in valid_resample:
+            raise ValueError(
+                f"`resample` must be one of {valid_resample}: {self.resample}"
+            )
+
+
+@dataclass(frozen=True)
 class InputFileGroupParamGroup(YamlParamGroup):
     """
     Parameters from the Input File Group runconfig group.

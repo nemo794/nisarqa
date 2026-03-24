@@ -8,6 +8,7 @@ import nisarqa
 
 from .nisar_params import (
     InputFileGroupParamGroup,
+    L2GeoBrowse4326ParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
     SoftwareConfigParamGroup,
@@ -111,12 +112,15 @@ class GCOVRootParamGroup(RootParamGroup):
         Validation Group parameters for QA
     backscatter_img : BackscatterImageParamGroup or None, optional
         Covariance Term Magnitude Image Group parameters for GCOV QA
+    browse_4326 : L2GeoBrowse4326ParamGroup or None, optional
+        Browse 4326 Group parameters for GCOV QA (EPSG 4326 browse images)
     histogram : GCOVHistogramParamGroup or None, optional
         Histogram Group parameters for GCOV QA
     """
 
     # QA parameters
     backscatter_img: Optional[BackscatterImageParamGroup] = None
+    browse_4326: Optional[L2GeoBrowse4326ParamGroup] = None
     histogram: Optional[GCOVHistogramParamGroup] = None
 
     @staticmethod
@@ -155,6 +159,11 @@ class GCOVRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
+                root_param_grp_attr_name="browse_4326",
+                param_grp_cls_obj=L2GeoBrowse4326ParamGroup,
+            ),
+            Grp(
+                flag_param_grp_req=workflows.qa_reports,
                 root_param_grp_attr_name="histogram",
                 param_grp_cls_obj=GCOVHistogramParamGroup,
             ),
@@ -173,6 +182,7 @@ class GCOVRootParamGroup(RootParamGroup):
             "software_config": SoftwareConfigParamGroup,
             "validation": ValidationGroupParamGroup,
             "backscatter_img": BackscatterImageParamGroup,
+            "browse_4326": L2GeoBrowse4326ParamGroup,
             "histogram": GCOVHistogramParamGroup,
         }
 
