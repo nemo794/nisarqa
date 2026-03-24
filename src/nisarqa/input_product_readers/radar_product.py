@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from functools import cached_property
 
 import h5py
-import shapely
 
 import nisarqa
 
@@ -34,88 +33,6 @@ class NisarRadarProduct(NisarProduct):
     @cached_property
     def _coordinate_grid_metadata_group_path(self) -> str:
         return "/".join([self._metadata_group_path, "geolocationGrid"])
-
-    def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
-        # Shapely boundary coords is a tuple of coordinate lists of
-        # form ([x...], [y...])
-        coords = shapely.from_wkt(self.bounding_polygon).boundary.coords
-        # Rezip the coordinates to a list of (x, y) tuples.
-        # Lon/lat values in the bounding polygon are in units of degrees.
-        coords = [nisarqa.LonLat(c[0], c[1]) for c in zip(*coords.xy)]
-
-        # Workaround for bug in ISCE3 generated products. We expect 41 points
-        # (10 along each side + endpoint same as start point), but there
-        # are 42 points (41 points in expected order + duplicated endpoint).
-        # So if the endpoint is duplicated, we drop it here to handle this bug.
-        # (See https://github-fn.jpl.nasa.gov/isce-3/isce/issues/1486)
-        if coords[-1] == coords[-2]:
-            coords = coords[:-1]
-
-        # Drop last (same as first) coordinate
-        if coords[-1] != coords[0]:
-            msg = (
-                "Input product's boundingPolygon is not closed"
-                " (endpoint does not match start point)"
-            )
-            nisarqa.get_logger().warning(msg)
-        coords = coords[:-1]
-
-        if len(coords) < 4:
-            raise ValueError("Not enough coordinates for bounding polygon")
-        if len(coords) % 4 != 0:
-            raise ValueError("Bounding polygon requires evenly spaced corners")
-
-        # Corners are assumed to start at the 0th index and be evenly spaced
-        corners = [coords[len(coords) // 4 * i] for i in range(4)]
-
-        # Reorder the corners for the LatLonQuad constructor.
-        input_spec_version = nisarqa.Version.from_string(
-            self.product_spec_version
-        )
-        if input_spec_version <= nisarqa.Version(1, 1, 0):
-            # products <= v1.1.0 use the "old style" bounding polygon order:
-            # the boundingPolygon is specified in clockwise order in the
-            # image coordinate system, starting at the upper-left of the image.
-            geo_corners = nisarqa.LatLonQuad(
-                ul=corners[0],
-                ur=corners[1],
-                ll=corners[3],
-                lr=corners[2],
-                normalize_longitudes=True,
-            )
-        else:
-            # boundingPolygon is specifed in counter-clockwise order in
-            # map coordinates (not necessarily in the image coordinate system),
-            # with the first point representing the start-time, near-range
-            # corner (aka the upper-left of the image).
-
-            # In the left-looking case, the counter-clockwise orientation of
-            # points in map coordinates corresponds to a counter-clockwise
-            # orientation of points in image coordinates, so the order of the
-            # corners must be reversed.
-            if self.look_direction == "Left":
-                geo_corners = nisarqa.LatLonQuad(
-                    ul=corners[0],
-                    ur=corners[3],
-                    ll=corners[1],
-                    lr=corners[2],
-                    normalize_longitudes=True,
-                )
-            else:
-                # In the right-looking case, the counter-clockwise orientation
-                # of points in map coordinates corresponds to a clockwise
-                # orientation of points in image coordinates, so the corners
-                # are already in the correct ordering.
-                assert self.look_direction == "Right"
-                geo_corners = nisarqa.LatLonQuad(
-                    ul=corners[0],
-                    ur=corners[1],
-                    ll=corners[3],
-                    lr=corners[2],
-                    normalize_longitudes=True,
-                )
-
-        return geo_corners
 
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str, *, parse_stats: bool

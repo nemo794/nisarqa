@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from functools import cached_property
 
 import h5py
-import isce3
 import numpy as np
 
 import nisarqa
@@ -29,24 +28,6 @@ class NisarGeoProduct(NisarProduct):
     @property
     def is_geocoded(self) -> bool:
         return True
-
-    def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
-        epsg = self.epsg
-        proj = isce3.core.make_projection(epsg)
-
-        geo_corners = ()
-        for y in self.browse_y_range:
-            for x in self.browse_x_range:
-                # Use a dummy height value in computing the inverse projection.
-                # isce3 projections are always 2-D transformations -- the height
-                # has no effect on lon/lat
-                lon, lat, _ = proj.inverse([x, y, 0])
-
-                # convert lon/lat radians to degrees suitable for LatLonQuad
-                point = nisarqa.LonLat(np.rad2deg(lon), np.rad2deg(lat))
-                geo_corners += (point,)
-
-        return nisarqa.LatLonQuad(*geo_corners, normalize_longitudes=True)
 
     @cached_property
     def _data_group_path(self) -> str:

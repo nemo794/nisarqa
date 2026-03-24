@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import Any, Optional, Sequence, overload
 
 import h5py
+import isce3
 import numpy as np
 import numpy.typing as npt
 
@@ -611,6 +612,60 @@ class RadarRaster(SARRaster, RadarGrid):
 
         RadarGrid.__post_init__(self)
 
+    def get_isce3_radar_grid_parameters(
+        self,
+        wavelength: float,
+        look_side: isce3.core.LookSide | str,
+    ) -> isce3.product.RadarGridParameters:
+        """
+        Generate ISCE3 RadarGridParameters for this RadarRaster.
+
+        This method constructs an isce3.product.RadarGridParameters object
+        from the radar coordinate information stored in this RadarRaster.
+
+        Parameters
+        ----------
+        wavelength : float
+            The radar central wavelength, in meters.
+        look_side : isce3.core.LookSide or {'left', 'right'}
+            The look direction of the radar (left-looking or right-looking).
+
+        Returns
+        -------
+        isce3.product.RadarGridParameters
+            ISCE3 radar grid parameters object representing this raster's
+            coordinate system.
+        """
+        # Parse the epoch string to create an ISCE3 DateTime object
+        ref_epoch = isce3.core.DateTime(self.epoch)
+
+        # Convert look_side to ISCE3 LookSide enum if it's a string
+        if isinstance(look_side, str):
+            if look_side.lower() == "left":
+                look_side = isce3.core.LookSide.Left
+            elif look_side.lower() == "right":
+                look_side = isce3.core.LookSide.Right
+            else:
+                raise ValueError(f"Invalid look_side string: {look_side}")
+
+        # Compute PRF from zero doppler time spacing
+        prf = 1.0 / self.zero_doppler_time_spacing
+
+        # Create the RadarGridParameters object
+        radar_grid = isce3.product.RadarGridParameters(
+            sensing_start=float(self.zero_doppler_time[0]),
+            wavelength=float(wavelength),
+            prf=float(prf),
+            starting_range=float(self.slant_range[0]),
+            range_pixel_spacing=float(self.slant_range_spacing),
+            lookside=look_side,
+            length=len(self.zero_doppler_time),
+            width=len(self.slant_range),
+            ref_epoch=ref_epoch,
+        )
+
+        return radar_grid
+
     @property
     def y_ground_spacing(self) -> float:
         return self.ground_az_spacing
@@ -808,6 +863,40 @@ class GeoRaster(SARRaster, GeoGrid):
 
     def __post_init__(self):
         GeoGrid.__post_init__(self)
+
+    def get_isce3_geo_grid_parameters(self) -> isce3.product.GeoGridParameters:
+        """
+        Generate ISCE3 GeoGridParameters for this GeoRaster.
+
+        This method constructs an isce3.product.GeoGridParameters object
+        from the geocoded coordinate information stored in this GeoRaster.
+
+        Returns
+        -------
+        isce3.product.GeoGridParameters
+            ISCE3 geo grid parameters object representing this raster's
+            coordinate system.
+
+        Notes
+        -----
+        ISCE3's GeoGridParameters uses the GDAL convention where coordinates
+        reference the upper-left corner of pixels, while NISAR products
+        reference pixel centers.
+        """
+
+        # ISCE3 GeoGridParameters expects the starting coordinates to represent
+        # the upper-left corner of the first pixel (GDAL convention).
+        geogrid = isce3.product.GeoGridParameters(
+            start_x=self.x_start,
+            start_y=self.y_start,
+            spacing_x=float(self.x_posting),
+            spacing_y=float(self.y_posting),
+            width=len(self.x_coordinates),
+            length=len(self.y_coordinates),
+            epsg=int(self.epsg),
+        )
+
+        return geogrid
 
     @property
     def y_ground_spacing(self) -> float:

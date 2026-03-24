@@ -57,19 +57,6 @@ class NisarProduct(ABC):
         """True if product is geocoded; False if range Doppler grid."""
         pass
 
-    @abstractmethod
-    def get_browse_latlonquad(self) -> nisarqa.LatLonQuad:
-        """
-        Create a LatLonQuad for the corners of the input product.
-
-        Returns
-        -------
-        llq : LatLonQuad
-            A LatLonQuad object containing the four corner coordinates for this
-            product's browse image, in degrees.
-        """
-        pass
-
     @cached_property
     def bounding_polygon(self) -> str:
         """Bounding polygon WKT string."""

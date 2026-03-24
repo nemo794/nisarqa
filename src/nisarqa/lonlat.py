@@ -5,7 +5,9 @@ import textwrap
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
+import isce3
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -137,7 +139,8 @@ class LatLonQuad:
     ----------
     ul, ur, ll, lr : LonLat
         The upper-left, upper-right, lower-left, and lower-right corners,
-        in degrees.
+        in degrees, for the entire extent of the image (not just for
+        the coordinates at pixel centers).
     normalize_longitudes : bool, optional
         True to modify the longitudes values during post init so the absolute
         difference between any adjacent pair of longitudes is <= 180 degrees.
@@ -220,6 +223,207 @@ def write_latlonquad_to_kml(
     ).strip()
     with open(Path(output_dir, kml_filename), "w") as f:
         f.write(kml_file)
+
+
+def compute_latlonquad_from_radar_coords(
+    slant_range: np.ndarray,
+    zero_doppler_time: np.ndarray,
+    orbit: isce3.core.Orbit,
+    wavelength: float,
+    look_side: isce3.core.LookSide | str,
+    ellipsoid: Optional[isce3.core.Ellipsoid] = None,
+) -> LatLonQuad:
+    """
+    Compute LatLonQuad for a range-Doppler raster.
+
+    The provided arguements should all be consistent with each other for a
+    given raster on the range Doppler grid (e.g. NISAR Level-1 products).
+
+    Parameters
+    ----------
+    slant_range : numpy.ndarray
+        1D array of slant range values (in meters) for the given raster.
+        Values should correspond to pixel centers.
+    zero_doppler_time : numpy.ndarray
+        1D array of zero Doppler time values (in seconds since orbit reference
+        epoch) for the given raster.
+        Values should correspond to pixel centers.
+    orbit : isce3.core.Orbit
+        The trajectory of the radar antenna phase center.
+    wavelength : float
+        The radar central wavelength, in meters.
+    look_side : isce3.core.LookSide or {'left', 'right'}
+        The look direction of the radar (left-looking or right-looking).
+    ellipsoid : isce3.core.Ellipsoid, optional
+        The reference ellipsoid. If None, defaults to WGS84.
+
+    Returns
+    -------
+    LatLonQuad
+        A LatLonQuad object for the given raster with longitude normalization
+        applied for proper antimeridian handling.
+
+    Notes
+    -----
+    - The corners are defined in the raster's native radar-grid perspective:
+      ul (upper-left), ur (upper-right), ll (lower-left), lr (lower-right).
+    - This function uses ISCE3's rdr2geo_bracket with a zero-height DEM
+      interpolator. For accurate results over terrain, update function
+      to use a DEM.
+    - NISAR products are zero-Doppler, so a zero-Doppler LUT is used.
+    """
+    if ellipsoid is None:
+        ellipsoid = isce3.core.WGS84_ELLIPSOID
+
+    # Zero-height DEM (approximation because no DEM is provided)
+    # TODO: add optional DEM input parameter?
+    dem = isce3.geometry.DEMInterpolator(epsg=4326)
+
+    # NISAR products are zero-Doppler
+    doppler = 0.0
+
+    # NISAR coordinate vectors provide values for pixel-centers.
+    # KMLs require values for pixel edges. Adjust:
+    half_az_spacing = (zero_doppler_time[1] - zero_doppler_time[0]) / 2
+    half_rg_spacing = (slant_range[1] - slant_range[0]) / 2
+
+    # Define the four corners in radar coordinates
+    # ul: upper-left (first azimuth, first range)
+    # ur: upper-right (first azimuth, last range)
+    # ll: lower-left (last azimuth, first range)
+    # lr: lower-right (last azimuth, last range)
+    first_az = zero_doppler_time[0] - half_az_spacing
+    first_rg = slant_range[0] - half_rg_spacing
+    last_az = zero_doppler_time[-1] + half_az_spacing
+    last_rg = slant_range[-1] + half_rg_spacing
+
+    corners_radar = {
+        "ul": (first_az, first_rg),
+        "ur": (first_az, last_rg),
+        "ll": (last_az, first_rg),
+        "lr": (last_az, last_rg),
+    }
+
+    corners_lonlat = {}
+
+    for corner_name, (aztime, srange) in corners_radar.items():
+        # Convert from radar coordinates (aztime, slant_range) to ECEF XYZ
+        xyz = isce3.geometry.rdr2geo_bracket(
+            aztime=aztime,
+            slant_range=srange,
+            orbit=orbit,
+            side=look_side,
+            doppler=doppler,
+            wavelength=wavelength,
+            dem=dem,
+        )
+
+        # Convert from ECEF XYZ to geodetic lon/lat (in radians)
+        lon_rad, lat_rad, _ = ellipsoid.xyz_to_lon_lat(xyz)
+
+        # Convert from radians to degrees
+        lon_deg = np.rad2deg(lon_rad)
+        lat_deg = np.rad2deg(lat_rad)
+
+        corners_lonlat[corner_name] = LonLat(lon=lon_deg, lat=lat_deg)
+
+    # Create and return LatLonQuad with longitude normalization
+    return LatLonQuad(
+        ul=corners_lonlat["ul"],
+        ur=corners_lonlat["ur"],
+        ll=corners_lonlat["ll"],
+        lr=corners_lonlat["lr"],
+        normalize_longitudes=True,
+    )
+
+
+def compute_latlonquad_from_geo_coords(
+    x_coords: np.ndarray,
+    y_coords: np.ndarray,
+    epsg: int,
+) -> LatLonQuad:
+    """
+    Compute LatLonQuad for a geocoded raster.
+
+    The provided arguements should all be consistent with each other for a
+    given raster on a geocoded grid (e.g. NISAR Level-2 products).
+
+    Parameters
+    ----------
+    x_coords : numpy.ndarray
+        1D array of X coordinate values (in units corresponding to `epsg`)
+        for the given raster. Values should correspond to pixel centers.
+    y_coords : numpy.ndarray
+        1D array of Y coordinate values (in units corresponding to `epsg`)
+        for the given raster. Values should correspond to pixel centers.
+    epsg : int
+        The EPSG code of the projected coordinate system for the given raster
+        (e.g., 32610 for UTM Zone 10N, or 3413 for NSIDC Sea Ice Polar
+        Stereographic North).
+
+    Returns
+    -------
+    LatLonQuad
+        A LatLonQuad object for the given raster, with longitude normalization
+        applied for proper antimeridian handling.
+
+    Notes
+    -----
+    - The corners are defined in the raster's native projected-grid perspective:
+      ul (upper-left), ur (upper-right), ll (lower-left), lr (lower-right).
+    - ISCE3 projections are always 2-D transformations; height values are
+      passed through unchanged, so we use a dummy height value of 0.
+    - For EPSG 4326 (already in lon/lat), this function still works correctly
+      as the projection inverse is essentially a pass-through.
+    """
+    # Create the ISCE3 projection object for the given EPSG code
+    proj = isce3.core.make_projection(epsg)
+
+    # NISAR coordinate vectors provide values for pixel-centers.
+    # KMLs require values for pixel edges. Adjust:
+    half_x_spacing = (x_coords[1] - x_coords[0]) / 2
+    half_y_spacing = abs(y_coords[1] - y_coords[0]) / 2
+
+    # Define the four corners in projected coordinates
+    # Note: Y coordinates typically decrease from north to south in many projections
+    # ul: upper-left (first Y, first X)
+    # ur: upper-right (first Y, last X)
+    # ll: lower-left (last Y, first X)
+    # lr: lower-right (last Y, last X)
+    first_x = x_coords[0] - half_x_spacing
+    first_y = y_coords[0] - half_y_spacing
+    last_x = x_coords[-1] + half_x_spacing
+    last_y = y_coords[-1] + half_y_spacing
+
+    corners_proj = {
+        "ul": (first_x, first_y),
+        "ur": (first_x, last_y),
+        "ll": (last_x, first_y),
+        "lr": (last_x, last_y),
+    }
+
+    corners_lonlat = {}
+
+    for corner_name, (x, y) in corners_proj.items():
+        # Convert from projected coordinates to lon/lat
+        # Use dummy height of 0; ISCE3 projections are 2-D tranformations --
+        # the height has no effect on lon/lat
+        lon_rad, lat_rad, _ = proj.inverse([x, y, 0])
+
+        # Convert from radians to degrees
+        lon_deg = np.rad2deg(lon_rad)
+        lat_deg = np.rad2deg(lat_rad)
+
+        corners_lonlat[corner_name] = LonLat(lon=lon_deg, lat=lat_deg)
+
+    # Create and return LatLonQuad with longitude normalization
+    return LatLonQuad(
+        ul=corners_lonlat["ul"],
+        ur=corners_lonlat["ur"],
+        ll=corners_lonlat["ll"],
+        lr=corners_lonlat["lr"],
+        normalize_longitudes=True,
+    )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
