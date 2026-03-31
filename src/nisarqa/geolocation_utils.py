@@ -185,7 +185,7 @@ def geocode_radar_raster(
     orbit: isce3.core.Orbit,
     geogrid: isce3.product.GeoGridParameters,
     dem_file: str | os.PathLike | None = None,
-    resample: str = "biquintic",
+    resample: str = "bilinear",
 ) -> np.ndarray:
     """
     Geocode a radar-grid raster array onto the given geogrid.
@@ -212,7 +212,7 @@ def geocode_radar_raster(
         Defaults to None.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
-        'bicubic', 'nearest', 'biquintic'. Default: 'biquintic'.
+        'bicubic', 'nearest', 'biquintic'. Default: 'bilinear'.
 
     Returns
     -------
@@ -259,8 +259,6 @@ def geocode_radar_raster(
     utc_now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
 
     # Setup temporary file paths
-    # TODO - test if isce3.io.Raster can load a numpy array directly
-    # (i.e. remove the input file creation.)
     input_file = scratch / f"input_{utc_now}.tif"
     output_file = scratch / f"output_{utc_now}.tif"
     dem_filepath = None
@@ -316,23 +314,7 @@ def geocode_radar_raster(
         geocode_obj.doppler = isce3.core.LUT2d()  # Zero-Doppler for NISAR
         geocode_obj.threshold_geo2rdr = 1.0e-8
         geocode_obj.numiter_geo2rdr = 25
-
-        # Set data interpolator based on resample parameter
-        # TODO - can we skip this mapping and instead simply pass the str
-        # to `geocode_obj.data_interpolator`?
-        resample_map = {
-            "sinc": isce3.core.DataInterpMethod.SINC,
-            "bilinear": isce3.core.DataInterpMethod.BILINEAR,
-            "bicubic": isce3.core.DataInterpMethod.BICUBIC,
-            "nearest": isce3.core.DataInterpMethod.NEAREST,
-            "biquintic": isce3.core.DataInterpMethod.BIQUINTIC,
-        }
-        if resample not in resample_map:
-            raise ValueError(
-                f"Invalid resample method: {resample}. "
-                f"Must be one of {list(resample_map.keys())}"
-            )
-        geocode_obj.data_interpolator = resample_map[resample]
+        geocode_obj.data_interpolator = resample
 
         # Set the output geocoding object's geogrid
         geocode_obj.geogrid(

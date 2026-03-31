@@ -1002,16 +1002,17 @@ class Browse4326ParamGroup(YamlParamGroup):
     Parameters
     ----------
     output_browse_4326 : bool, optional
-        True to generate a version of the nominal browse PNG+KML in EPSG 4328
-        (lon/lat) coordinate system for accurate geolocation in GIS software.
+        True to generate a version of the standard browse PNG+KML that is
+        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
         suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        The `longest_side_max` runconfig parameter which determines the shape
+        of the standard browse PNG will be reused for the EPSG 4326 PNG.
         Defaults to False.
-    longest_side_max : int, optional
-        Maximum number of pixels for the longest side of the output
-        EPSG 4326 browse image PNG. Defaults to 2048.
     """
 
     output_browse_4326: bool = field(
@@ -1019,26 +1020,16 @@ class Browse4326ParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="output_browse_4326",
-                descr="""True to generate a version of the nominal browse PNG+KML in EPSG 4328
-        (lon/lat) coordinate system for accurate geolocation in GIS software.
+                descr="""True to generate a version of the standard browse PNG+KML that is
+        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
         suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
-                False to only generate standard browse outputs.""",
-            )
-        },
-    )
-
-    # TODO - for RSLC/GSLC/GCOV, update docstring to mention the interaction
-    # of this `longest_side_max` with the browse image param group.
-    longest_side_max: int = field(
-        default=2048,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="longest_side_max",
-                descr="""Maximum number of pixels for the longest side of the output
-                EPSG 4326 browse image PNG.""",
+        The `longest_side_max` runconfig parameter which determines the shape
+        of the standard browse PNG will be reused for the EPSG 4326 PNG.""",
             )
         },
     )
@@ -1048,16 +1039,6 @@ class Browse4326ParamGroup(YamlParamGroup):
         if not isinstance(self.output_browse_4326, bool):
             raise TypeError(
                 f"`output_browse_4326` must be bool: {self.output_browse_4326}"
-            )
-
-        # Validate longest_side_max
-        if not isinstance(self.longest_side_max, int):
-            raise TypeError(
-                f"`longest_side_max` must be int: {self.longest_side_max}"
-            )
-        if self.longest_side_max <= 0:
-            raise ValueError(
-                f"`longest_side_max` must be positive: {self.longest_side_max}"
             )
 
     @staticmethod
@@ -1076,16 +1057,17 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
     Parameters
     ----------
     output_browse_4326 : bool, optional
-        True to generate a version of the nominal browse PNG+KML in EPSG 4328
-        (lon/lat) coordinate system for accurate geolocation in GIS software.
+        True to generate a version of the standard browse PNG+KML that is
+        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
         suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        The `longest_side_max` runconfig parameter which determines the shape
+        of the standard browse PNG will be reused for the EPSG 4326 PNG.
         Defaults to False.
-    longest_side_max : int, optional
-        Maximum number of pixels for the longest side of the output
-        EPSG 4326 browse image PNG. Defaults to 2048.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
         'bicubic', 'nearest', 'biquintic'. Defaults to 'bilinear'.
@@ -1149,16 +1131,17 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
     Parameters
     ----------
     output_browse_4326 : bool, optional
-        True to generate a version of the nominal browse PNG+KML in EPSG 4328
-        (lon/lat) coordinate system for accurate geolocation in GIS software.
+        True to generate a version of the standard browse PNG+KML that is
+        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
         suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        The `longest_side_max` runconfig parameter which determines the shape
+        of the standard browse PNG will be reused for the EPSG 4326 PNG.
         Defaults to False.
-    longest_side_max : int, optional
-        Maximum number of pixels for the longest side of the output
-        EPSG 4326 browse image PNG. Defaults to 2048.
     resample : str, optional
         Resampling algorithm for GDAL reprojection. Options: 'near',
         'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.

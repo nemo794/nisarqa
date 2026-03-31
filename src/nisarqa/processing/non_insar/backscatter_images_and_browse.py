@@ -336,7 +336,7 @@ def process_backscatter_imgs_and_browse(
                     fill_value=browse_raster_metadata["fill_value"],
                     geogrid=qa_geogrid,
                     output_epsg=4326,
-                    longest_side_max=browse_4326_params.longest_side_max,
+                    longest_side_max=params.longest_side_max,
                     resample=browse_4326_params.resample,
                 )
             else:
@@ -366,7 +366,7 @@ def process_backscatter_imgs_and_browse(
                 isce3_geogrid = nisarqa.compute_geogrid(
                     bounding_polygon=product.bounding_polygon,
                     epsg=4326,  # lon/lat
-                    longest_side_max=browse_4326_params.longest_side_max,
+                    longest_side_max=params.longest_side_max,
                     margin_in_km=browse_4326_params.margin_in_km,
                 )
 
