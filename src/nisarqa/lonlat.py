@@ -386,10 +386,6 @@ def compute_latlonquad_from_geo_coords(
 
     # Define the four corners in projected coordinates
     # Note: Y coordinates typically decrease from north to south in many projections
-    # ul: upper-left (first Y, first X)
-    # ur: upper-right (first Y, last X)
-    # ll: lower-left (last Y, first X)
-    # lr: lower-right (last Y, last X)
     first_x = x_coords[0] - half_x_spacing
     first_y = y_coords[0] - half_y_spacing
     last_x = x_coords[-1] + half_x_spacing
@@ -397,8 +393,8 @@ def compute_latlonquad_from_geo_coords(
 
     corners_proj = {
         "ul": (first_x, first_y),
-        "ur": (first_x, last_y),
-        "ll": (last_x, first_y),
+        "ur": (last_x, first_y),
+        "ll": (first_x, last_y),
         "lr": (last_x, last_y),
     }
 

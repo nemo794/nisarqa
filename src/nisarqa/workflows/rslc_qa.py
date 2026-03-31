@@ -144,6 +144,10 @@ def rslc_qa(
                     r"RSLC Backscatter Coefficient ($\beta^0$)"
                 )
 
+                dem = None
+                if root_params.anc_files is not None:
+                    dem = root_params.anc_files.dem_file
+
                 log.info("Beginning processing of backscatter images...")
                 nisarqa.process_backscatter_imgs_and_browse(
                     product=product,
@@ -155,6 +159,8 @@ def rslc_qa(
                     out_dir=out_dir,
                     browse_filename=root_params.get_browse_png_filename(),
                     kml_filename=root_params.get_kml_browse_filename(),
+                    browse_4326_params=root_params.browse_4326,
+                    dem_file=dem,
                 )
                 log.info("Processing of backscatter images complete.")
 

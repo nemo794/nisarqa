@@ -530,6 +530,61 @@ class RadarGrid(CoordinateGrid):
     def y_pixel_centers(self):
         return self.zero_doppler_time
 
+    def get_isce3_radar_grid_parameters(
+        self,
+        wavelength: float,
+        look_side: isce3.core.LookSide | str,
+    ) -> isce3.product.RadarGridParameters:
+        """
+        Generate ISCE3 RadarGridParameters for this RadarRaster.
+
+        This method constructs an isce3.product.RadarGridParameters object
+        from the radar coordinate information stored in this RadarRaster.
+
+        Parameters
+        ----------
+        wavelength : float
+            The radar central wavelength, in meters.
+        look_side : isce3.core.LookSide or {'left', 'right'}
+            The look direction of the radar (left-looking or right-looking).
+
+        Returns
+        -------
+        isce3.product.RadarGridParameters
+            ISCE3 radar grid parameters object representing this raster's
+            coordinate system.
+        """
+        # Parse the epoch string to create an ISCE3 DateTime object
+        ref_epoch = isce3.core.DateTime(self.epoch)
+
+        # Convert look_side to ISCE3 LookSide enum if it's a string
+        # TODO - check if it is ok to skip conversion and pass the string
+        if isinstance(look_side, str):
+            if look_side.lower() == "left":
+                look_side = isce3.core.LookSide.Left
+            elif look_side.lower() == "right":
+                look_side = isce3.core.LookSide.Right
+            else:
+                raise ValueError(f"Invalid look_side string: {look_side}")
+
+        # Compute PRF from zero doppler time spacing
+        prf = 1.0 / self.zero_doppler_time_spacing
+
+        # Create the RadarGridParameters object
+        radar_grid = isce3.product.RadarGridParameters(
+            sensing_start=float(self.zero_doppler_time[0]),
+            wavelength=float(wavelength),
+            prf=float(prf),
+            starting_range=float(self.slant_range[0]),
+            range_pixel_spacing=float(self.slant_range_spacing),
+            lookside=look_side,
+            length=len(self.zero_doppler_time),
+            width=len(self.slant_range),
+            ref_epoch=ref_epoch,
+        )
+
+        return radar_grid
+
 
 @dataclass
 class RadarRaster(SARRaster, RadarGrid):
@@ -611,60 +666,6 @@ class RadarRaster(SARRaster, RadarGrid):
     def __post_init__(self):
 
         RadarGrid.__post_init__(self)
-
-    def get_isce3_radar_grid_parameters(
-        self,
-        wavelength: float,
-        look_side: isce3.core.LookSide | str,
-    ) -> isce3.product.RadarGridParameters:
-        """
-        Generate ISCE3 RadarGridParameters for this RadarRaster.
-
-        This method constructs an isce3.product.RadarGridParameters object
-        from the radar coordinate information stored in this RadarRaster.
-
-        Parameters
-        ----------
-        wavelength : float
-            The radar central wavelength, in meters.
-        look_side : isce3.core.LookSide or {'left', 'right'}
-            The look direction of the radar (left-looking or right-looking).
-
-        Returns
-        -------
-        isce3.product.RadarGridParameters
-            ISCE3 radar grid parameters object representing this raster's
-            coordinate system.
-        """
-        # Parse the epoch string to create an ISCE3 DateTime object
-        ref_epoch = isce3.core.DateTime(self.epoch)
-
-        # Convert look_side to ISCE3 LookSide enum if it's a string
-        if isinstance(look_side, str):
-            if look_side.lower() == "left":
-                look_side = isce3.core.LookSide.Left
-            elif look_side.lower() == "right":
-                look_side = isce3.core.LookSide.Right
-            else:
-                raise ValueError(f"Invalid look_side string: {look_side}")
-
-        # Compute PRF from zero doppler time spacing
-        prf = 1.0 / self.zero_doppler_time_spacing
-
-        # Create the RadarGridParameters object
-        radar_grid = isce3.product.RadarGridParameters(
-            sensing_start=float(self.zero_doppler_time[0]),
-            wavelength=float(wavelength),
-            prf=float(prf),
-            starting_range=float(self.slant_range[0]),
-            range_pixel_spacing=float(self.slant_range_spacing),
-            lookside=look_side,
-            length=len(self.zero_doppler_time),
-            width=len(self.slant_range),
-            ref_epoch=ref_epoch,
-        )
-
-        return radar_grid
 
     @property
     def y_ground_spacing(self) -> float:
@@ -792,6 +793,135 @@ class GeoGrid(CoordinateGrid):
     def y_pixel_centers(self):
         return self.y_coordinates
 
+    def to_isce3_geo_grid_parameters(self) -> isce3.product.GeoGridParameters:
+        """
+        Generate ISCE3 GeoGridParameters for this GeoRaster.
+
+        This method constructs an isce3.product.GeoGridParameters object
+        from the geocoded coordinate information stored in this GeoRaster.
+
+        Returns
+        -------
+        isce3.product.GeoGridParameters
+            ISCE3 geo grid parameters object representing this raster's
+            coordinate system.
+
+        Notes
+        -----
+        ISCE3's GeoGridParameters uses the GDAL convention where coordinate
+        values reference the upper-left corner of pixels, while NISAR products
+        reference pixel centers.
+        """
+
+        # ISCE3 GeoGridParameters expects the starting coordinates to represent
+        # the upper-left corner of the first pixel (GDAL convention).
+        geogrid = isce3.product.GeoGridParameters(
+            start_x=self.x_start,
+            start_y=self.y_start,
+            spacing_x=float(self.x_posting),
+            spacing_y=float(self.y_posting),
+            width=len(self.x_coordinates),
+            length=len(self.y_coordinates),
+            epsg=int(self.epsg),
+        )
+
+        return geogrid
+
+    @classmethod
+    def from_isce3_geo_grid(
+        cls, isce3_geogrid: isce3.product.GeoGridParameters
+    ) -> GeoGrid:
+        """
+        Construct a nisarqa.GeoGrid from a ISCE3 GeoGridParameters instance.
+
+        ISCE3 GeoGridParameters uses upper-left corner convention (like GDAL),
+        but nisarqa.GeoGrid uses pixel center convention.
+
+        Parameters
+        ----------
+        isce3_geogrid : isce3.product.GeoGridParameters
+            An ISCE3 GeoGridParameters instance, which uses the upper-left
+            corner convention (like GDAL).
+
+        Returns
+        -------
+        qa_geogrid : nisarqa.GeoGrid
+            A nisarqa GeoGridParameters instance, which uses the pixel center
+            convention.
+        """
+        # Convert from corner to center coordinates:
+        # geogrid.start_x = x-coordinate of upper-left corner of upper-left pixel
+        # geogrid.start_y = y-coordinate of upper-left corner of upper-left pixel
+        # geogrid.spacing_x = pixel width (x spacing)
+        # geogrid.spacing_y = pixel height (y spacing, negative for north-up)
+
+        # Calculate pixel center coordinates
+        x_coords = (
+            isce3_geogrid.start_x
+            + (np.arange(isce3_geogrid.width) + 0.5) * isce3_geogrid.spacing_x
+        )
+        y_coords = (
+            isce3_geogrid.start_y
+            + (np.arange(isce3_geogrid.length) + 0.5) * isce3_geogrid.spacing_y
+        )
+
+        epsg = str(isce3_geogrid.epsg)
+
+        return cls(
+            epsg=epsg,
+            x_axis_posting=isce3_geogrid.spacing_x,
+            x_coordinates=x_coords,
+            y_axis_posting=abs(isce3_geogrid.spacing_y),
+            y_coordinates=y_coords,
+        )
+
+    @classmethod
+    def from_coordinates(
+        cls,
+        x_coords: np.ndarray,
+        y_coords: np.ndarray,
+        epsg: int,
+    ) -> GeoGrid:
+        """
+        Construct a GeoGrid from coordinate vectors.
+
+        The provided arguements should all be consistent with each other for a
+        given raster on a geocoded grid (e.g. NISAR Level-2 products).
+
+        Parameters
+        ----------
+        x_coords : numpy.ndarray
+            1D array of X coordinate values (in units corresponding to `epsg`)
+            for the given raster. Values should correspond to pixel centers.
+        y_coords : numpy.ndarray
+            1D array of Y coordinate values (in units corresponding to `epsg`)
+            for the given raster. Values should correspond to pixel centers.
+        epsg : int
+            The EPSG code of the projected coordinate system for the given raster
+            (e.g., 32610 for UTM Zone 10N, or 3413 for NSIDC Sea Ice Polar
+            Stereographic North).
+
+        Returns
+        -------
+        LatLonQuad
+            A LatLonQuad object for the given raster, with longitude normalization
+            applied for proper antimeridian handling.
+
+        Returns
+        -------
+        qa_geogrid : nisarqa.GeoGrid
+            A nisarqa GeoGridParameters instance, which uses the pixel center
+            convention.
+        """
+
+        return cls(
+            epsg=epsg,
+            x_axis_posting=x_coords[1] - x_coords[0],
+            x_coordinates=x_coords,
+            y_axis_posting=abs(y_coords[1] - y_coords[0]),
+            y_coordinates=y_coords,
+        )
+
 
 @dataclass
 class GeoRaster(SARRaster, GeoGrid):
@@ -863,40 +993,6 @@ class GeoRaster(SARRaster, GeoGrid):
 
     def __post_init__(self):
         GeoGrid.__post_init__(self)
-
-    def get_isce3_geo_grid_parameters(self) -> isce3.product.GeoGridParameters:
-        """
-        Generate ISCE3 GeoGridParameters for this GeoRaster.
-
-        This method constructs an isce3.product.GeoGridParameters object
-        from the geocoded coordinate information stored in this GeoRaster.
-
-        Returns
-        -------
-        isce3.product.GeoGridParameters
-            ISCE3 geo grid parameters object representing this raster's
-            coordinate system.
-
-        Notes
-        -----
-        ISCE3's GeoGridParameters uses the GDAL convention where coordinates
-        reference the upper-left corner of pixels, while NISAR products
-        reference pixel centers.
-        """
-
-        # ISCE3 GeoGridParameters expects the starting coordinates to represent
-        # the upper-left corner of the first pixel (GDAL convention).
-        geogrid = isce3.product.GeoGridParameters(
-            start_x=self.x_start,
-            start_y=self.y_start,
-            spacing_x=float(self.x_posting),
-            spacing_y=float(self.y_posting),
-            width=len(self.x_coordinates),
-            length=len(self.y_coordinates),
-            epsg=int(self.epsg),
-        )
-
-        return geogrid
 
     @property
     def y_ground_spacing(self) -> float:

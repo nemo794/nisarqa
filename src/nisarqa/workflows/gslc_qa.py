@@ -144,6 +144,8 @@ def gslc_qa(
                     out_dir=out_dir,
                     browse_filename=root_params.get_browse_png_filename(),
                     kml_filename=root_params.get_kml_browse_filename(),
+                    browse_4326_params=root_params.browse_4326,
+                    dem_file=root_params.anc_files.dem_file,
                 )
                 log.info("Processing of Backscatter images complete.")
 

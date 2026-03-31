@@ -144,6 +144,8 @@ def gcov_qa(
                 out_dir=out_dir,
                 browse_filename=root_params.get_browse_png_filename(),
                 kml_filename=root_params.get_kml_browse_filename(),
+                browse_4326_params=root_params.browse_4326,
+                dem_file=None,  # GCOV doesn't need DEM (L2 product)
             )
             log.info("Processing of Backscatter images complete.")
 

@@ -1255,7 +1255,9 @@ class RSLCRootParamGroup(RootParamGroup):
                 param_grp_cls_obj=AbsCalParamGroup,
             ),
             Grp(
-                flag_param_grp_req=workflows.abs_cal or workflows.point_target,
+                flag_param_grp_req=workflows.qa_reports
+                or workflows.point_target
+                or workflows.abs_cal,
                 root_param_grp_attr_name="anc_files",
                 param_grp_cls_obj=RSLCDynamicAncillaryFileParamGroup,
             ),

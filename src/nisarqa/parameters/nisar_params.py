@@ -1030,6 +1030,8 @@ class Browse4326ParamGroup(YamlParamGroup):
         },
     )
 
+    # TODO - for RSLC/GSLC/GCOV, update docstring to mention the interaction
+    # of this `longest_side_max` with the browse image param group.
     longest_side_max: int = field(
         default=2048,
         metadata={
@@ -1086,14 +1088,14 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
         EPSG 4326 browse image PNG. Defaults to 2048.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
-        'bicubic', 'nearest', 'biquintic'. Defaults to 'biquintic'.
+        'bicubic', 'nearest', 'biquintic'. Defaults to 'bilinear'.
     margin_in_km : float, optional
         Margin in kilometers to add around the bounding polygon to account
         for topography when geocoding. Defaults to 5.0.
     """
 
     resample: str = field(
-        default="biquintic",
+        default="bilinear",
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="resample",

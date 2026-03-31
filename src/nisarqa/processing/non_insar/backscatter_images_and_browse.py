@@ -2,18 +2,65 @@ from __future__ import annotations
 
 import functools
 import os
+from dataclasses import replace
 from pathlib import Path
 
 import h5py
+import isce3
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
+from numpy.typing import ArrayLike
 
 import nisarqa
 
 from ..plotting_utils import apply_image_correction, invert_gamma_correction
 
 objects_to_skip = nisarqa.get_all(name=__name__)
+
+
+def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
+    """
+    Get the vector of center coordinates for a multilooked array.
+
+    For odd nlooks, the center falls on a pixel. For even nlooks, the center
+    falls between two pixels and requires interpolation.
+
+    Parameters
+    ----------
+    coords : array_like
+        1D array of coordinate values (e.g., x_coordinates, slant_range)
+        where values correspond to pixel center.
+    nlooks : int
+        Number of looks (multilook window size).
+
+    Returns
+    -------
+    numpy.ndarray
+        Coordinate values at the centers of the multilooked blocks
+    """
+    coords = coords.copy()
+
+    # truncate the coords array
+    truncation_amount = len(coords) % nlooks
+    if truncation_amount > 0:
+        trunc_coords = coords[:-truncation_amount]
+    else:
+        trunc_coords = coords
+
+    if nlooks % 2 == 1:
+        # Odd nlooks: center falls exactly on a pixel
+        center_idx = nlooks // 2
+        decimated = trunc_coords[center_idx::nlooks]
+    else:
+        # Even nlooks: center falls between two pixels, need to interpolate
+        left_idx = nlooks // 2 - 1
+        right_idx = nlooks // 2
+        left_coords = trunc_coords[left_idx::nlooks]
+        right_coords = trunc_coords[right_idx::nlooks]
+        decimated = (left_coords + right_coords) / 2.0
+
+    return decimated
 
 
 def process_backscatter_imgs_and_browse(
@@ -27,6 +74,8 @@ def process_backscatter_imgs_and_browse(
     kml_filename: str,
     input_raster_represents_power: bool = False,
     plot_title_prefix: str = "Backscatter Coefficient",
+    browse_4326_params: nisarqa.Browse4326ParamGroup | None = None,
+    dem_file: str | os.PathLike | None = None,
 ) -> None:
     """
     Generate Backscatter Image plots for the Report PDF and browse product.
@@ -68,6 +117,17 @@ def process_backscatter_imgs_and_browse(
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
         "GCOV Backscatter Coefficient (gamma-0)".
         Defaults to "Backscatter Coefficient".
+    browse_4326_params : Browse4326ParamGroup or None, optional
+        Parameters for generating EPSG 4326 browse images. If None or if
+        `output_browse_4326` is False, no EPSG 4326 browse will be generated.
+        Defaults to None.
+    dem_file : path-like or None, optional
+        Digital Elevation Model (DEM) file path in a GDAL-compatible raster
+        format. Will be ignored if `browse_4326_params.output_browse_4326`
+        is False or if `product` is a Level-2 Geocoded product.
+        Used for Level-1 products when geocoding the EPSG 4326 browse; if None,
+        a zero-height DEM will be used.
+        Defaults to None.
     """
 
     # Select which layers will be needed for the browse image.
@@ -81,6 +141,9 @@ def process_backscatter_imgs_and_browse(
     # At the end of the loop below, the keys of this dict should exactly
     # match the set of TxRx polarizations needed to form the browse image
     pol_imgs_for_browse = {}
+    browse_raster_metadata = (
+        None  # Store raster metadata for corner computation
+    )
 
     # Process each image in the dataset
 
@@ -93,11 +156,13 @@ def process_backscatter_imgs_and_browse(
                     f"`get_multilooked_backscatter_img` for Frequency {freq}"
                     f" Polarization {pol}"
                 ):
-                    multilooked_img = get_multilooked_backscatter_img(
-                        img=img,
-                        params=params,
-                        stats_h5=stats_h5,
-                        input_raster_represents_power=input_raster_represents_power,
+                    multilooked_img, nlooks = (
+                        get_multilooked_backscatter_img_with_nlooks(
+                            img=img,
+                            params=params,
+                            stats_h5=stats_h5,
+                            input_raster_represents_power=input_raster_represents_power,
+                        )
                     )
 
                 corrected_img, orig_vmin, orig_vmax = apply_image_correction(
@@ -179,13 +244,63 @@ def process_backscatter_imgs_and_browse(
                     # ...keep the multilooked, color-corrected image in memory
                     pol_imgs_for_browse[pol] = corrected_img
 
-    # Construct the browse image
+                    # Store original raster metadata for corner computation
+                    # Only need to store once, since all browse rasters share the same grid
+                    if browse_raster_metadata is None:
+                        # Get coordinate vectors at the centers of the multilooked blocks
+                        decimated_x = _get_multilooked_center_coordinates(
+                            img.x_pixel_centers,
+                            nlooks[1],
+                        )
+                        msg = f"{corrected_img.shape[1]=}, should equal {len(decimated_x)=}"
+                        assert corrected_img.shape[1] == len(decimated_x), msg
+
+                        decimated_y = _get_multilooked_center_coordinates(
+                            img.y_pixel_centers,
+                            nlooks[0],
+                        )
+
+                        msg = f"{corrected_img.shape[0]=}, should equal {len(decimated_y)=}"
+                        assert corrected_img.shape[0] == len(decimated_y), msg
+
+                        if isinstance(img, nisarqa.RadarRaster):
+                            browse_raster_metadata = {
+                                "slant_range": decimated_x,
+                                "zero_doppler_time": decimated_y,
+                                "wavelength": product.wavelength(freq=freq),
+                                "epoch": img.epoch,
+                            }
+                        else:  # GeoRaster
+                            browse_raster_metadata = {
+                                "x_coordinates": decimated_x,
+                                "y_coordinates": decimated_y,
+                                "epsg": img.epsg,
+                                "fill_value": img.fill_value,
+                            }
+
+    # Construct the nominal browse image (in input's native coordinate system)
     browse_path = Path(out_dir, browse_filename)
     product.save_browse(pol_imgs=pol_imgs_for_browse, filepath=browse_path)
 
-    # Generate the KML that corresponds to the browse image
+    # Compute accurate corners for browse using decimated coordinate vectors
+    if isinstance(img, nisarqa.RadarRaster):
+        corrected_llq = nisarqa.compute_latlonquad_from_radar_coords(
+            slant_range=browse_raster_metadata["slant_range"],
+            zero_doppler_time=browse_raster_metadata["zero_doppler_time"],
+            orbit=product.get_orbit(),
+            wavelength=browse_raster_metadata["wavelength"],
+            look_side=product.look_direction,
+        )
+    else:  # geo
+        corrected_llq = nisarqa.compute_latlonquad_from_geo_coords(
+            x_coords=browse_raster_metadata["x_coordinates"],
+            y_coords=browse_raster_metadata["y_coordinates"],
+            epsg=browse_raster_metadata["epsg"],
+        )
+
+    # Generate the KML with corrected corners
     nisarqa.write_latlonquad_to_kml(
-        llq=product.get_browse_latlonquad(),
+        llq=corrected_llq,
         output_dir=out_dir,
         kml_filename=kml_filename,
         png_filename=browse_filename,
@@ -194,8 +309,110 @@ def process_backscatter_imgs_and_browse(
     log.info(f"Browse image PNG file saved to {browse_path}")
     log.info(f"Browse image KML file saved to {Path(out_dir, kml_filename)}")
 
+    # Generate EPSG 4326 browse if requested
+    if browse_4326_params is not None and browse_4326_params.output_browse_4326:
+        log.info("Generating EPSG 4326 browse...")
+        pol_imgs_4326 = {}
 
-def get_multilooked_backscatter_img(
+        for pol, img_arr in pol_imgs_for_browse.items():
+
+            if product.is_geocoded:
+                # Level-2: Reproject using GDAL
+
+                decimated_x = browse_raster_metadata["x_coordinates"]
+                decimated_y = browse_raster_metadata["y_coordinates"]
+
+                # Create GeoGrid for the multilooked browse image
+                qa_geogrid = nisarqa.GeoGrid(
+                    epsg=browse_raster_metadata["epsg"],
+                    x_axis_posting=decimated_x[1] - decimated_x[0],
+                    x_coordinates=decimated_x,
+                    y_axis_posting=decimated_y[1] - decimated_y[0],
+                    y_coordinates=decimated_y,
+                )
+
+                geocoded_arr, qa_geogrid_4326 = nisarqa.reproject_geo_raster(
+                    image_array=img_arr,
+                    fill_value=browse_raster_metadata["fill_value"],
+                    geogrid=qa_geogrid,
+                    output_epsg=4326,
+                    longest_side_max=browse_4326_params.longest_side_max,
+                    resample=browse_4326_params.resample,
+                )
+            else:
+                # Level-1: Geocode using ISCE3
+                decimated_az = browse_raster_metadata["zero_doppler_time"]
+                decimated_rg = browse_raster_metadata["slant_range"]
+                epoch = isce3.core.DateTime(browse_raster_metadata["epoch"])
+
+                lookside = (
+                    isce3.core.LookSide.Right
+                    if product.look_direction.lower() == "right"
+                    else isce3.core.LookSide.Left
+                )
+
+                browse_radargrid = isce3.product.RadarGridParameters(
+                    sensing_start=decimated_az[0],
+                    wavelength=browse_raster_metadata["wavelength"],
+                    prf=1.0 / (decimated_az[1] - decimated_az[0]),
+                    starting_range=decimated_rg[0],
+                    range_pixel_spacing=decimated_rg[1] - decimated_rg[0],
+                    lookside=lookside,
+                    length=len(decimated_az),
+                    width=len(decimated_rg),
+                    ref_epoch=epoch,
+                )
+
+                isce3_geogrid = nisarqa.compute_geogrid(
+                    bounding_polygon=product.bounding_polygon,
+                    epsg=4326,  # lon/lat
+                    longest_side_max=browse_4326_params.longest_side_max,
+                    margin_in_km=browse_4326_params.margin_in_km,
+                )
+
+                geocoded_arr = nisarqa.geocode_radar_raster(
+                    radar_array=img_arr,
+                    radargrid=browse_radargrid,
+                    orbit=product.get_orbit(),
+                    geogrid=isce3_geogrid,
+                    dem_file=dem_file,
+                    resample=browse_4326_params.resample,
+                )
+
+                qa_geogrid_4326 = nisarqa.GeoGrid.from_isce3_geo_grid(
+                    isce3_geogrid=isce3_geogrid
+                )
+
+            pol_imgs_4326[pol] = geocoded_arr
+
+        # Save EPSG 4326 browse PNG
+        browse_filename_4326 = str(browse_filename).replace(".png", "_4326.png")
+        browse_path_4326 = Path(out_dir, browse_filename_4326)
+        product.save_browse(pol_imgs=pol_imgs_4326, filepath=browse_path_4326)
+
+        # Compute LatLonQuad for EPSG 4326 browse using stored grid info
+        llq_4326 = nisarqa.compute_latlonquad_from_geo_coords(
+            x_coords=qa_geogrid_4326.x_pixel_centers,
+            y_coords=qa_geogrid_4326.y_pixel_centers,
+            epsg=4326,
+        )
+
+        # Generate EPSG 4326 KML
+        kml_filename_4326 = str(kml_filename).replace(".kml", "_4326.kml")
+        nisarqa.write_latlonquad_to_kml(
+            llq=llq_4326,
+            output_dir=out_dir,
+            kml_filename=kml_filename_4326,
+            png_filename=browse_filename_4326,
+        )
+
+        log.info(f"EPSG 4326 browse PNG saved to {browse_path_4326}")
+        log.info(
+            f"EPSG 4326 browse KML saved to {Path(out_dir, kml_filename_4326)}"
+        )
+
+
+def get_multilooked_backscatter_img_with_nlooks(
     img, params, stats_h5, input_raster_represents_power=False
 ):
     """
@@ -225,6 +442,9 @@ def get_multilooked_backscatter_img(
     -------
     out_img : numpy.ndarray
         The multilooked Backscatter Image
+    nlooks : tuple of int
+        The number of looks applied along (azimuth/Y, range/X) axes.
+        Format: (num_rows, num_cols)
     """
     log = nisarqa.get_logger()
     log.info(f"Beginning multilooking for backscatter image {img.name}...")
@@ -307,6 +527,49 @@ def get_multilooked_backscatter_img(
     log.debug(f"Final multilooked image shape: {out_img.shape}")
     log.info(f"Multilooking complete for backscatter image {img.name}.")
 
+    return out_img, nlooks
+
+
+def get_multilooked_backscatter_img(
+    img, params, stats_h5, input_raster_represents_power=False
+):
+    """
+    Generate the multilooked Backscatter Image array for a single
+    polarization image.
+
+    This is a convenience wrapper around `get_multilooked_backscatter_img_with_nlooks()`
+    that maintains backward compatibility by discarding the nlooks return value.
+
+    Parameters
+    ----------
+    img : RadarRaster or GeoRaster
+        The raster to be processed
+    params : BackscatterImageParamGroup
+        A structure containing the parameters for processing
+        and outputting the backscatter image(s).
+    stats_h5 : h5py.File
+        The output file to save QA metrics, etc. to
+    input_raster_represents_power : bool, optional
+        The input dataset rasters associated with these histogram parameters
+        should have their pixel values represent either power or root power.
+        If `True`, then QA SAS assumes the input data already represents
+        power and uses the pixels' magnitudes for computations.
+        If `False`, then QA SAS assumes the input data represents root power
+        aka magnitude and will handle the full computation to power using
+        the formula:  power = abs(<magnitude>)^2 .
+        Defaults to False (root power).
+
+    Returns
+    -------
+    out_img : numpy.ndarray
+        The multilooked Backscatter Image
+    """
+    out_img, _ = get_multilooked_backscatter_img_with_nlooks(
+        img=img,
+        params=params,
+        stats_h5=stats_h5,
+        input_raster_represents_power=input_raster_represents_power,
+    )
     return out_img
 
 
@@ -453,4 +716,5 @@ def compute_multilooked_backscatter_by_tiling(
     return multilook_img
 
 
+__all__ = nisarqa.get_all(__name__, objects_to_skip)
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
