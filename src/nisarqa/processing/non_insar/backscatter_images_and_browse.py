@@ -284,12 +284,14 @@ def process_backscatter_imgs_and_browse(
 
     # Compute accurate corners for browse using decimated coordinate vectors
     if isinstance(img, nisarqa.RadarRaster):
+
         corrected_llq = nisarqa.compute_latlonquad_from_radar_coords(
             slant_range=browse_raster_metadata["slant_range"],
             zero_doppler_time=browse_raster_metadata["zero_doppler_time"],
             orbit=product.get_orbit(),
             wavelength=browse_raster_metadata["wavelength"],
             look_side=product.look_direction,
+            dem_file=dem_file,
         )
     else:  # geo
         corrected_llq = nisarqa.compute_latlonquad_from_geo_coords(

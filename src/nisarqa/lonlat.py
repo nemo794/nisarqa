@@ -232,6 +232,7 @@ def compute_latlonquad_from_radar_coords(
     wavelength: float,
     look_side: isce3.core.LookSide | str,
     ellipsoid: Optional[isce3.core.Ellipsoid] = None,
+    dem_file: str | os.PathLike | None = None,
 ) -> LatLonQuad:
     """
     Compute LatLonQuad for a range-Doppler raster.
@@ -256,6 +257,9 @@ def compute_latlonquad_from_radar_coords(
         The look direction of the radar (left-looking or right-looking).
     ellipsoid : isce3.core.Ellipsoid, optional
         The reference ellipsoid. If None, defaults to WGS84.
+    dem_file : path-like or None, optional
+        Digital Elevation Model (DEM) file path in a GDAL-compatible raster
+        format. If None, a zero-height DEM will be used. Defaults to None.
 
     Returns
     -------
@@ -267,17 +271,16 @@ def compute_latlonquad_from_radar_coords(
     -----
     - The corners are defined in the raster's native radar-grid perspective:
       ul (upper-left), ur (upper-right), ll (lower-left), lr (lower-right).
-    - This function uses ISCE3's rdr2geo_bracket with a zero-height DEM
-      interpolator. For accurate results over terrain, update function
-      to use a DEM.
-    - NISAR products are zero-Doppler, so a zero-Doppler LUT is used.
     """
     if ellipsoid is None:
         ellipsoid = isce3.core.WGS84_ELLIPSOID
 
-    # Zero-height DEM (approximation because no DEM is provided)
-    # TODO: add optional DEM input parameter?
-    dem = isce3.geometry.DEMInterpolator(epsg=4326)
+    # Use provided DEM file or default to zero-height DEM
+    if dem_file is None:
+        dem = isce3.geometry.DEMInterpolator(epsg=4326)
+    else:
+        dem_raster = isce3.io.Raster(dem_file)
+        dem = isce3.geometry.DEMInterpolator(dem_raster)
 
     # NISAR products are zero-Doppler
     doppler = 0.0
@@ -326,6 +329,10 @@ def compute_latlonquad_from_radar_coords(
         lat_deg = np.rad2deg(lat_rad)
 
         corners_lonlat[corner_name] = LonLat(lon=lon_deg, lat=lat_deg)
+
+    if dem_file is not None:
+        # Close the raster
+        del dem_raster
 
     # Create and return LatLonQuad with longitude normalization
     return LatLonQuad(
