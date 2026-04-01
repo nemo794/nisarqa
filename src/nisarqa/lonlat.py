@@ -266,45 +266,38 @@ def compute_latlonquad_from_radar_coords(
     LatLonQuad
         A LatLonQuad object for the given raster with longitude normalization
         applied for proper antimeridian handling.
-
-    Notes
-    -----
-    - The corners are defined in the raster's native radar-grid perspective:
-      ul (upper-left), ur (upper-right), ll (lower-left), lr (lower-right).
     """
     if ellipsoid is None:
         ellipsoid = isce3.core.WGS84_ELLIPSOID
 
     # Use provided DEM file or default to zero-height DEM
     if dem_file is None:
+        # Per specification, KML lonlatquads use EPSG 4326
         dem = isce3.geometry.DEMInterpolator(epsg=4326)
     else:
-        dem_raster = isce3.io.Raster(dem_file)
+        # ISCE3 requires a str; it does not understand Path objects.
+        dem_raster = isce3.io.Raster(str(dem_file))
         dem = isce3.geometry.DEMInterpolator(dem_raster)
 
     # NISAR products are zero-Doppler
     doppler = 0.0
 
+    # Define the four corners in radar coordinates
     # NISAR coordinate vectors provide values for pixel-centers.
     # KMLs require values for pixel edges. Adjust:
     half_az_spacing = (zero_doppler_time[1] - zero_doppler_time[0]) / 2
     half_rg_spacing = (slant_range[1] - slant_range[0]) / 2
 
-    # Define the four corners in radar coordinates
-    # ul: upper-left (first azimuth, first range)
-    # ur: upper-right (first azimuth, last range)
-    # ll: lower-left (last azimuth, first range)
-    # lr: lower-right (last azimuth, last range)
     first_az = zero_doppler_time[0] - half_az_spacing
     first_rg = slant_range[0] - half_rg_spacing
     last_az = zero_doppler_time[-1] + half_az_spacing
     last_rg = slant_range[-1] + half_rg_spacing
 
     corners_radar = {
-        "ul": (first_az, first_rg),
-        "ur": (first_az, last_rg),
-        "ll": (last_az, first_rg),
-        "lr": (last_az, last_rg),
+        "ul": (first_az, first_rg),  # upper-left corner
+        "ur": (first_az, last_rg),  # upper-right corner
+        "ll": (last_az, first_rg),  # lower-left corner
+        "lr": (last_az, last_rg),  # lower-right corner
     }
 
     corners_lonlat = {}
@@ -331,8 +324,8 @@ def compute_latlonquad_from_radar_coords(
         corners_lonlat[corner_name] = LonLat(lon=lon_deg, lat=lat_deg)
 
     if dem_file is not None:
-        # Close the raster
-        del dem_raster
+        # Explicitly close the ISCE3 Rasters
+        dem = None
 
     # Create and return LatLonQuad with longitude normalization
     return LatLonQuad(
@@ -376,10 +369,6 @@ def compute_latlonquad_from_geo_coords(
 
     Notes
     -----
-    - The corners are defined in the raster's native projected-grid perspective:
-      ul (upper-left), ur (upper-right), ll (lower-left), lr (lower-right).
-    - ISCE3 projections are always 2-D transformations; height values are
-      passed through unchanged, so we use a dummy height value of 0.
     - For EPSG 4326 (already in lon/lat), this function still works correctly
       as the projection inverse is essentially a pass-through.
     """
@@ -388,27 +377,20 @@ def compute_latlonquad_from_geo_coords(
 
     # NISAR coordinate vectors provide values for pixel-centers.
     # KMLs require values for pixel edges. Adjust:
-    half_x_spacing = (x_coords[1] - x_coords[0]) / 2
-    half_y_spacing = abs(y_coords[1] - y_coords[0]) / 2
-
-    # Define the four corners in projected coordinates
-    # Note: Y coordinates typically decrease from north to south in many projections
-    first_x = x_coords[0] - half_x_spacing
-    first_y = y_coords[0] - half_y_spacing
-    last_x = x_coords[-1] + half_x_spacing
-    last_y = y_coords[-1] + half_y_spacing
-
+    geogrid = nisarqa.GeoGrid.from_coordinates(
+        x_coords=x_coords, y_coords=y_coords, epsg=epsg
+    )
     corners_proj = {
-        "ul": (first_x, first_y),
-        "ur": (last_x, first_y),
-        "ll": (first_x, last_y),
-        "lr": (last_x, last_y),
+        "ul": (geogrid.x_start, geogrid.y_start),  # upper-left corner
+        "ur": (geogrid.x_stop, geogrid.y_start),  # upper-right corner
+        "ll": (geogrid.x_start, geogrid.y_stop),  # lower-left corner
+        "lr": (geogrid.x_stop, geogrid.y_stop),  # lower-right corner
     }
 
     corners_lonlat = {}
 
     for corner_name, (x, y) in corners_proj.items():
-        # Convert from projected coordinates to lon/lat
+        # Convert to lon/lat
         # Use dummy height of 0; ISCE3 projections are 2-D tranformations --
         # the height has no effect on lon/lat
         lon_rad, lat_rad, _ = proj.inverse([x, y, 0])

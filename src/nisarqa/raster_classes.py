@@ -918,7 +918,7 @@ class GeoGrid(CoordinateGrid):
             epsg=epsg,
             x_axis_posting=x_coords[1] - x_coords[0],
             x_coordinates=x_coords,
-            y_axis_posting=abs(y_coords[1] - y_coords[0]),
+            y_axis_posting=y_coords[1] - y_coords[0],
             y_coordinates=y_coords,
         )
 

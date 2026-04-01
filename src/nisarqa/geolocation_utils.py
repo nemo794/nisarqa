@@ -188,19 +188,18 @@ def geocode_radar_raster(
     resample: str = "bilinear",
 ) -> np.ndarray:
     """
-    Geocode a radar-grid raster array onto the given geogrid.
+    Geocode a range-Doppler grid image array onto a given geogrid.
 
-    This function is used for Level-1 products (RSLC, RIFG, RUNW, ROFF).
-    It uses ISCE3's geocoding functionality to transform data from
-    radar coordinates (range-Doppler) to geographic coordinates (lon/lat).
+    This function geocodes data from range-Doppler coordinates
+    to geographic/projected coordinates.
 
     Parameters
     ----------
     radar_array : array-like
-        RadarRaster whose `data` image will be be geocoded.
-        Should be real-valued (float).
+        Input range-Doppler image array (e.g. NISAR Level-1) to be geocoded.
+        Must be real-valued (float).
     radargrid : isce3.product.RadarGridParameters
-        ISCE3 radargrid parameters specifying the radar grid associated
+        ISCE3 radargrid parameters specifying the range-Doppler grid associated
         with the input `radar_array`.
     orbit : isce3.core.Orbit
         The trajectory of the radar antenna phase center.
@@ -384,7 +383,7 @@ def reproject_geo_raster(
     output_epsg: int,
     longest_side_max: int = 2048,
     resample: str = "cubic",
-) -> tuple[np.ndarray, tuple[float, float, float, float]]:
+) -> tuple[np.ndarray, nisarqa.GeoGrid]:
     """
     Reproject a geocoded raster array.
 
@@ -496,7 +495,6 @@ def reproject_geo_raster(
             dstSRS=f"EPSG:{output_epsg}",
             resampleAlg=resample,
             format="GTiff",
-            # TODO - make the no data value more general
             dstNodata=fill_value,
         )
         gdal.Warp(reprojected_file, source_file, options=warp_options)
@@ -572,5 +570,4 @@ def reproject_geo_raster(
             resized_file.unlink(missing_ok=True)
 
 
-__all__ = nisarqa.get_all(__name__, objects_to_skip)
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

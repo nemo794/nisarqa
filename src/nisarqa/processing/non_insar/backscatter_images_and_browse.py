@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import functools
 import os
-from dataclasses import replace
 from pathlib import Path
 
 import h5py
@@ -61,6 +60,80 @@ def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
         decimated = (left_coords + right_coords) / 2.0
 
     return decimated
+
+
+def _compute_browse_raster_metadata(
+    img: nisarqa.RadarRaster | nisarqa.GeoRaster,
+    nlooks: tuple[int, int],
+    wavelength: float | None = None,
+    corrected_img: ArrayLike | None = None,
+) -> dict[str, str | float | ArrayLike]:
+    """
+    Compute browse raster metadata with decimated coordinate vectors.
+
+    This function computes the coordinate vectors for a multilooked/decimated
+    browse image and packages them into a metadata dictionary appropriate for
+    the product type (radar vs geocoded).
+
+    Parameters
+    ----------
+    img : nisarqa.RadarRaster or nisarqa.GeoRaster
+        The original (pre-multilook) raster image.
+    nlooks : tuple of int
+        Number of looks along each axis: (num_looks_rows, num_looks_cols).
+    wavelength : float or None, optional
+        The radar central wavelength, in meters. Required for RadarRasters,
+        ignored for GeoRasters. Defaults to None.
+    corrected_img : array_like or None, optional
+        The multilooked/decimated 2D image array. If provided,
+        verification checks will be performed to ensure the image dimensions
+        match the decimated coordinate vectors. If None, checks are skipped.
+        Defaults to None.
+
+    Returns
+    -------
+    dict
+        Dictionary containing browse raster metadata.
+        For radar products, contains keys: 'slant_range', 'zero_doppler_time',
+        'wavelength', 'epoch'.
+        For geocoded products, contains keys: 'x_coordinates', 'y_coordinates',
+        'epsg', 'fill_value'.
+    """
+    # Get coordinate vectors at the centers of the multilooked blocks
+    decimated_x = _get_multilooked_center_coordinates(
+        img.x_pixel_centers,
+        nlooks[1],
+    )
+
+    decimated_y = _get_multilooked_center_coordinates(
+        img.y_pixel_centers,
+        nlooks[0],
+    )
+
+    # Validate dimensions if corrected_img is provided
+    if corrected_img is not None:
+        msg = f"{corrected_img.shape[1]=}, should equal {len(decimated_x)=}"
+        assert corrected_img.shape[1] == len(decimated_x), msg
+
+        msg = f"{corrected_img.shape[0]=}, should equal {len(decimated_y)=}"
+        assert corrected_img.shape[0] == len(decimated_y), msg
+
+    if isinstance(img, nisarqa.RadarRaster):
+        browse_raster_metadata = {
+            "slant_range": decimated_x,
+            "zero_doppler_time": decimated_y,
+            "wavelength": wavelength,
+            "epoch": img.epoch,
+        }
+    else:  # GeoRaster
+        browse_raster_metadata = {
+            "x_coordinates": decimated_x,
+            "y_coordinates": decimated_y,
+            "epsg": img.epsg,
+            "fill_value": img.fill_value,
+        }
+
+    return browse_raster_metadata
 
 
 def process_backscatter_imgs_and_browse(
@@ -141,16 +214,13 @@ def process_backscatter_imgs_and_browse(
     # At the end of the loop below, the keys of this dict should exactly
     # match the set of TxRx polarizations needed to form the browse image
     pol_imgs_for_browse = {}
-    browse_raster_metadata = (
-        None  # Store raster metadata for corner computation
-    )
+
+    # Store raster metadata for corner computation
+    browse_raster_metadata: dict[str, float | str | ArrayLike] | None = None
 
     # Process each image in the dataset
-
     for freq in product.freqs:
         for pol in product.get_pols(freq=freq):
-            # Open the *SARRaster image
-
             with product.get_raster(freq=freq, pol=pol) as img:
                 with nisarqa.log_runtime(
                     f"`get_multilooked_backscatter_img` for Frequency {freq}"
@@ -182,9 +252,38 @@ def process_backscatter_imgs_and_browse(
                         filepath=Path(out_dir, _indiv_path(browse_filename)),
                     )
 
+                    indiv_browse_metadata = _compute_browse_raster_metadata(
+                        img=img,
+                        nlooks=nlooks,
+                        wavelength=product.wavelength(freq=freq),
+                    )
+
                     # Generate the KML that corresponds to the individual PNG
+                    # Compute accurate corners for browse using decimated coordinate vectors
+                    if isinstance(img, nisarqa.RadarRaster):
+                        sr = indiv_browse_metadata["slant_range"]
+                        zdt = indiv_browse_metadata["zero_doppler_time"]
+                        corrected_llq = (
+                            nisarqa.compute_latlonquad_from_radar_coords(
+                                slant_range=sr,
+                                zero_doppler_time=zdt,
+                                orbit=product.get_orbit(),
+                                wavelength=indiv_browse_metadata["wavelength"],
+                                look_side=product.look_direction,
+                                dem_file=dem_file,
+                            )
+                        )
+                    else:  # geo
+                        corrected_llq = (
+                            nisarqa.compute_latlonquad_from_geo_coords(
+                                x_coords=indiv_browse_metadata["x_coordinates"],
+                                y_coords=indiv_browse_metadata["y_coordinates"],
+                                epsg=indiv_browse_metadata["epsg"],
+                            )
+                        )
+
                     nisarqa.write_latlonquad_to_kml(
-                        llq=product.get_browse_latlonquad(),
+                        llq=corrected_llq,
                         output_dir=out_dir,
                         kml_filename=_indiv_path(kml_filename),
                         png_filename=_indiv_path(browse_filename),
@@ -247,36 +346,14 @@ def process_backscatter_imgs_and_browse(
                     # Store original raster metadata for corner computation
                     # Only need to store once, since all browse rasters share the same grid
                     if browse_raster_metadata is None:
-                        # Get coordinate vectors at the centers of the multilooked blocks
-                        decimated_x = _get_multilooked_center_coordinates(
-                            img.x_pixel_centers,
-                            nlooks[1],
+                        browse_raster_metadata = (
+                            _compute_browse_raster_metadata(
+                                img=img,
+                                nlooks=nlooks,
+                                wavelength=product.wavelength(freq=freq),
+                                corrected_img=corrected_img,
+                            )
                         )
-                        msg = f"{corrected_img.shape[1]=}, should equal {len(decimated_x)=}"
-                        assert corrected_img.shape[1] == len(decimated_x), msg
-
-                        decimated_y = _get_multilooked_center_coordinates(
-                            img.y_pixel_centers,
-                            nlooks[0],
-                        )
-
-                        msg = f"{corrected_img.shape[0]=}, should equal {len(decimated_y)=}"
-                        assert corrected_img.shape[0] == len(decimated_y), msg
-
-                        if isinstance(img, nisarqa.RadarRaster):
-                            browse_raster_metadata = {
-                                "slant_range": decimated_x,
-                                "zero_doppler_time": decimated_y,
-                                "wavelength": product.wavelength(freq=freq),
-                                "epoch": img.epoch,
-                            }
-                        else:  # GeoRaster
-                            browse_raster_metadata = {
-                                "x_coordinates": decimated_x,
-                                "y_coordinates": decimated_y,
-                                "epsg": img.epsg,
-                                "fill_value": img.fill_value,
-                            }
 
     # Construct the nominal browse image (in input's native coordinate system)
     browse_path = Path(out_dir, browse_filename)
@@ -321,16 +398,11 @@ def process_backscatter_imgs_and_browse(
             if product.is_geocoded:
                 # Level-2: Reproject using GDAL
 
-                decimated_x = browse_raster_metadata["x_coordinates"]
-                decimated_y = browse_raster_metadata["y_coordinates"]
-
                 # Create GeoGrid for the multilooked browse image
-                qa_geogrid = nisarqa.GeoGrid(
+                qa_geogrid = nisarqa.GeoGrid.from_coordinates(
+                    x_coords=browse_raster_metadata["x_coordinates"],
+                    y_coords=browse_raster_metadata["y_coordinates"],
                     epsg=browse_raster_metadata["epsg"],
-                    x_axis_posting=decimated_x[1] - decimated_x[0],
-                    x_coordinates=decimated_x,
-                    y_axis_posting=decimated_y[1] - decimated_y[0],
-                    y_coordinates=decimated_y,
                 )
 
                 geocoded_arr, qa_geogrid_4326 = nisarqa.reproject_geo_raster(
@@ -718,5 +790,4 @@ def compute_multilooked_backscatter_by_tiling(
     return multilook_img
 
 
-__all__ = nisarqa.get_all(__name__, objects_to_skip)
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

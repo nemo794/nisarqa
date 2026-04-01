@@ -59,6 +59,7 @@ class GCOV(NonInsarGeoProduct):
         source_group = self._source_data_swaths_freq_path(freq=freq)
 
         with h5py.File(self.filepath) as f:
+            assert source_group in f
             try:
                 center_freq = f[source_group]["centerFrequency"][()]
             except KeyError as e:

@@ -13,34 +13,8 @@ objects_to_skip = nisarqa.get_all(name=__name__)
 
 @dataclass
 class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
-    @cached_property
-    def browse_x_range(self) -> tuple[float, float]:
-        # All rasters used for the browse should have the same grid specs
-        # So, WLOG parse the specs from the first one of them.
-        layers = self.get_layers_for_browse()
-        freq = next(iter(layers.keys()))
-        pol = layers[freq][0]
-
-        with self.get_raster(freq=freq, pol=pol) as img:
-            x_start = img.x_start
-            x_stop = img.x_stop
-
-        return (x_start, x_stop)
 
     @cached_property
-    def browse_y_range(self) -> tuple[float, float]:
-        # All rasters used for the browse should have the same grid specs
-        # So, WLOG parse the specs from the first one of them.
-        layers = self.get_layers_for_browse()
-        freq = next(iter(layers.keys()))
-        pol = layers[freq][0]
-
-        with self.get_raster(freq=freq, pol=pol) as img:
-            y_start = img.y_start
-            y_stop = img.y_stop
-
-        return (y_start, y_stop)
-
     def _source_data_path(self) -> str:
         """
         Get the path to the sourceData group.
@@ -57,6 +31,7 @@ class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
 
         return f"{self._metadata_group_path}/sourceData"
 
+    @cached_property
     def _source_data_swaths_path(self) -> str:
         """
         Get the path to the sourceData/swaths group.
@@ -87,9 +62,9 @@ class NonInsarGeoProduct(NonInsarProduct, NisarGeoProduct):
         source_data_path : str
             Path to the sourceData group.
                 Standard Format:
-                    "/science/<band>/<product_type>/metadata/sourceData/swaths"
+                    "/science/<band>/<product_type>/metadata/sourceData/swaths/frequency<freq>"
                 Example:
-                    "/science/LSAR/GCOV/metadata/sourceData/swaths"
+                    "/science/LSAR/GCOV/metadata/sourceData/swaths/frequencyA"
         """
         if freq not in ("A", "B"):
             raise ValueError(f"{freq=}, must be either 'A' or 'B'")

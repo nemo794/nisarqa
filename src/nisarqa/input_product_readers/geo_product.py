@@ -59,36 +59,6 @@ class NisarGeoProduct(NisarProduct):
 
             return f[proj_path][...]
 
-    @property
-    @abstractmethod
-    def browse_x_range(self) -> tuple[float, float]:
-        """
-        Get the x range coordinates for the browse image.
-
-        Returns
-        -------
-        x_range : tuple of float
-            The range of the x coordinates for the browse image.
-            Format:
-                (<x_start>, <x_stop>)
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def browse_y_range(self) -> tuple[float, float]:
-        """
-        Get the y range coordinates for the browse image.
-
-        Returns
-        -------
-        y_range : tuple of float
-            The range of the y coordinates for the browse image.
-            Format:
-                (<y_start>, <y_stop>)
-        """
-        pass
-
     def _get_raster_from_path(
         self, h5_file: h5py.File, raster_path: str, *, parse_stats: bool
     ) -> nisarqa.GeoRaster | nisarqa.GeoRasterWithStats:

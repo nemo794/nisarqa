@@ -489,4 +489,3 @@ class NonInsarProduct(NisarProduct):
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
-__all__ = nisarqa.get_all(__name__, objects_to_skip)

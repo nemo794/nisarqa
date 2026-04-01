@@ -37,24 +37,6 @@ class GSLC(SLCProduct, NonInsarGeoProduct):
             in hertz.
         """
 
-    def center_freq(self, freq: str) -> float:
-        """
-        The processed center frequency for input product's Frequency `freq`.
-
-        For GCOV products, this is read from the `centerFrequency` dataset
-        in the metadata sourceData swaths group.
-
-        Parameters
-        ----------
-        freq : str
-            Must be either "A" or "B".
-
-        Returns
-        -------
-        center_freq : float
-            The processed center frequency for input product's Frequency `freq`,
-            in hertz.
-        """
         freq_group = self.get_freq_path(freq=freq)
 
         with h5py.File(self.filepath) as f:
