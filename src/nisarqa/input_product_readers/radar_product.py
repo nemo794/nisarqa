@@ -87,12 +87,78 @@ class NisarRadarProduct(NisarProduct):
             errmsg = f"Input file does not contain raster {raster_path}"
             raise nisarqa.DatasetNotFoundError(errmsg)
 
+        # Get dataset object and check for correct dtype
+        dataset = _get_dataset_handle(h5_file, raster_path)
+
+        # Collect grid parameters
+        # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
+        # 'Nominal along track spacing in meters between consecutive lines
+        # near mid swath of the RSLC image.'
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="sceneCenterAlongTrackSpacing",
+        )
+        ground_az_spacing = h5_file[path][...]
+
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="zeroDopplerTime",
+        )
+        zero_doppler_time = h5_file[path][...]
+
+        # Use zeroDopplerTime's units attribute to get the epoch.
+        epoch = self._get_epoch(ds=h5_file[path])
+
+        # From the xml Product Spec, zeroDopplerTimeSpacing is the
+        # '...spacing between consecutive entries in the zeroDopplerTime array'.
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="zeroDopplerTimeSpacing",
+        )
+        zero_doppler_time_spacing = h5_file[path][...]
+
+        # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
+        # 'Nominal ground range spacing in meters between consecutive pixels
+        # near mid swath of the RSLC image.'
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="sceneCenterGroundRangeSpacing",
+        )
+        ground_range_spacing = h5_file[path][...]
+
+        # Range in meters (units are specified as meters in the product spec)
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="slantRange",
+        )
+        slant_range = h5_file[path][...]
+
+        path = _get_path_to_nearest_dataset(
+            h5_file=h5_file,
+            starting_path=raster_path,
+            dataset_to_find="slantRangeSpacing",
+        )
+        slant_range_spacing = h5_file[path][...]
+
+        # Create the RadarGrid instance
+        radar_grid = nisarqa.RadarGrid(
+            zero_doppler_time=zero_doppler_time,
+            zero_doppler_time_spacing=zero_doppler_time_spacing,
+            slant_range=slant_range,
+            slant_range_spacing=slant_range_spacing,
+            ground_az_spacing=ground_az_spacing,
+            ground_range_spacing=ground_range_spacing,
+            epoch=epoch,
+        )
+
         # Arguments to pass to the constructor of `RadarRaster` or
         # `RadarRasterWithStats`
         kwargs = {}
-
-        # Get dataset object and check for correct dtype
-        dataset = _get_dataset_handle(h5_file, raster_path)
 
         if self.use_cache:
             kwargs["data"] = _get_or_create_cached_memmap(
@@ -104,72 +170,13 @@ class NisarRadarProduct(NisarProduct):
 
         kwargs["units"] = _get_units(dataset)
         kwargs["fill_value"] = _get_fill_value(dataset)
-
-        # From the xml Product Spec, sceneCenterAlongTrackSpacing is the
-        # 'Nominal along track spacing in meters between consecutive lines
-        # near mid swath of the RSLC image.'
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="sceneCenterAlongTrackSpacing",
-        )
-        ground_az_spacing = h5_file[path][...]
-        kwargs["ground_az_spacing"] = ground_az_spacing
-
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="zeroDopplerTime",
-        )
-        kwargs["zero_doppler_time"] = h5_file[path][...]
-
-        # Use zeroDopplerTime's units attribute to get the epoch.
-        kwargs["epoch"] = self._get_epoch(ds=h5_file[path])
-
-        # From the xml Product Spec, zeroDopplerTimeSpacing is the
-        # '...spacing between consecutive entries in the zeroDopplerTime array'.
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="zeroDopplerTimeSpacing",
-        )
-        kwargs["zero_doppler_time_spacing"] = h5_file[path][...]
-
-        # From the xml Product Spec, sceneCenterGroundRangeSpacing is the
-        # 'Nominal ground range spacing in meters between consecutive pixels
-        # near mid swath of the RSLC image.'
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="sceneCenterGroundRangeSpacing",
-        )
-        ground_range_spacing = h5_file[path][...]
-        kwargs["ground_range_spacing"] = ground_range_spacing
-
-        # Range in meters (units are specified as meters in the product spec)
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="slantRange",
-        )
-        kwargs["slant_range"] = h5_file[path][...]
-
-        path = _get_path_to_nearest_dataset(
-            h5_file=h5_file,
-            starting_path=raster_path,
-            dataset_to_find="slantRangeSpacing",
-        )
-        kwargs["slant_range_spacing"] = h5_file[path][...]
-
-        # Construct Name
         kwargs["name"] = self._get_raster_name(raster_path)
-
         kwargs["stats_h5_group_path"] = self._get_stats_h5_group_path(
             raster_path
         )
-
         kwargs["band"] = self.band
         kwargs["freq"] = "A" if "frequencyA" in raster_path else "B"
+        kwargs["grid"] = radar_grid
 
         if parse_stats:
             # Construct Stats

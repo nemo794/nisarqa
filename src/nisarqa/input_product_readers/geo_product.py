@@ -109,23 +109,10 @@ class NisarGeoProduct(NisarProduct):
             errmsg = f"Input file does not contain raster {raster_path}"
             raise nisarqa.DatasetNotFoundError(errmsg)
 
-        # Arguments to pass to the constructor of `GeoRaster` or `GeoRasterWithStats`
-        kwargs = {}
-
         # Get dataset object and check for correct dtype
         dataset = _get_dataset_handle(h5_file, raster_path)
 
-        if self.use_cache:
-            kwargs["data"] = _get_or_create_cached_memmap(
-                input_file=self.filepath,
-                dataset_path=raster_path,
-            )
-        else:
-            kwargs["data"] = dataset
-
-        kwargs["units"] = _get_units(dataset)
-        kwargs["fill_value"] = _get_fill_value(dataset)
-
+        # Collect grid parameters
         # From the xml Product Spec, xCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive pixels'
 
@@ -142,14 +129,13 @@ class NisarGeoProduct(NisarProduct):
             dataset_to_find="xCoordinateSpacing",
         )
         x_posting = float(h5_file[path][...])
-        kwargs["x_axis_posting"] = x_posting
 
         path = _get_path_to_nearest_dataset(
             h5_file=h5_file,
             starting_path=raster_path,
             dataset_to_find="xCoordinates",
         )
-        kwargs["x_coordinates"] = h5_file[path][...]
+        x_coordinates = h5_file[path][...]
 
         # From the xml Product Spec, yCoordinateSpacing is the
         # 'Nominal spacing in meters between consecutive lines'.
@@ -164,26 +150,43 @@ class NisarGeoProduct(NisarProduct):
             dataset_to_find="yCoordinateSpacing",
         )
         y_posting = float(h5_file[path][...])
-        kwargs["y_axis_posting"] = y_posting
 
         path = _get_path_to_nearest_dataset(
             h5_file=h5_file,
             starting_path=raster_path,
             dataset_to_find="yCoordinates",
         )
-        kwargs["y_coordinates"] = h5_file[path][...]
+        y_coordinates = h5_file[path][...]
 
-        # Construct Name
+        # Create the GeoGrid instance
+        geo_grid = nisarqa.GeoGrid(
+            epsg=self.epsg,
+            x_axis_posting=x_posting,
+            x_coordinates=x_coordinates,
+            y_axis_posting=y_posting,
+            y_coordinates=y_coordinates,
+        )
+
+        # Arguments to pass to the constructor of `GeoRaster` or `GeoRasterWithStats`
+        kwargs = {}
+
+        if self.use_cache:
+            kwargs["data"] = _get_or_create_cached_memmap(
+                input_file=self.filepath,
+                dataset_path=raster_path,
+            )
+        else:
+            kwargs["data"] = dataset
+
+        kwargs["units"] = _get_units(dataset)
+        kwargs["fill_value"] = _get_fill_value(dataset)
         kwargs["name"] = self._get_raster_name(raster_path)
-
         kwargs["stats_h5_group_path"] = self._get_stats_h5_group_path(
             raster_path
         )
-
         kwargs["band"] = self.band
         kwargs["freq"] = "A" if "frequencyA" in raster_path else "B"
-
-        kwargs["epsg"] = self.epsg
+        kwargs["grid"] = geo_grid
 
         if parse_stats:
             kwargs["stats"] = _parse_dataset_stats_from_h5(
