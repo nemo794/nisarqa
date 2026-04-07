@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import functools
 import os
+from dataclasses import replace
 from pathlib import Path
 
 import h5py
@@ -18,48 +20,48 @@ from ..plotting_utils import apply_image_correction, invert_gamma_correction
 objects_to_skip = nisarqa.get_all(name=__name__)
 
 
-def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
-    """
-    Get the vector of center coordinates for a multilooked array.
+# def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
+#     """
+#     Get the vector of center coordinates for a multilooked array.
 
-    For odd nlooks, the center falls on a pixel. For even nlooks, the center
-    falls between two pixels and requires interpolation.
+#     For odd nlooks, the center falls on a pixel. For even nlooks, the center
+#     falls between two pixels and requires interpolation.
 
-    Parameters
-    ----------
-    coords : array_like
-        1D array of coordinate values (e.g., x_coordinates, slant_range)
-        where values correspond to pixel center.
-    nlooks : int
-        Number of looks (multilook window size).
+#     Parameters
+#     ----------
+#     coords : array_like
+#         1D array of coordinate values (e.g., x_coordinates, slant_range)
+#         where values correspond to pixel center.
+#     nlooks : int
+#         Number of looks (multilook window size).
 
-    Returns
-    -------
-    numpy.ndarray
-        Coordinate values at the centers of the multilooked blocks
-    """
-    coords = coords.copy()
+#     Returns
+#     -------
+#     numpy.ndarray
+#         Coordinate values at the centers of the multilooked blocks
+#     """
+#     coords = coords.copy()
 
-    # truncate the coords array
-    truncation_amount = len(coords) % nlooks
-    if truncation_amount > 0:
-        trunc_coords = coords[:-truncation_amount]
-    else:
-        trunc_coords = coords
+#     # truncate the coords array
+#     truncation_amount = len(coords) % nlooks
+#     if truncation_amount > 0:
+#         trunc_coords = coords[:-truncation_amount]
+#     else:
+#         trunc_coords = coords
 
-    if nlooks % 2 == 1:
-        # Odd nlooks: center falls exactly on a pixel
-        center_idx = nlooks // 2
-        decimated = trunc_coords[center_idx::nlooks]
-    else:
-        # Even nlooks: center falls between two pixels, need to interpolate
-        left_idx = nlooks // 2 - 1
-        right_idx = nlooks // 2
-        left_coords = trunc_coords[left_idx::nlooks]
-        right_coords = trunc_coords[right_idx::nlooks]
-        decimated = (left_coords + right_coords) / 2.0
+#     if nlooks % 2 == 1:
+#         # Odd nlooks: center falls exactly on a pixel
+#         center_idx = nlooks // 2
+#         decimated = trunc_coords[center_idx::nlooks]
+#     else:
+#         # Even nlooks: center falls between two pixels, need to interpolate
+#         left_idx = nlooks // 2 - 1
+#         right_idx = nlooks // 2
+#         left_coords = trunc_coords[left_idx::nlooks]
+#         right_coords = trunc_coords[right_idx::nlooks]
+#         decimated = (left_coords + right_coords) / 2.0
 
-    return decimated
+#     return decimated
 
 
 def _compute_browse_raster_metadata(
@@ -215,8 +217,8 @@ def process_backscatter_imgs_and_browse(
     # match the set of TxRx polarizations needed to form the browse image
     pol_imgs_for_browse = {}
 
-    # Store raster metadata for corner computation
-    browse_raster_metadata: dict[str, float | str | ArrayLike] | None = None
+    # Store browse grid one time
+    primary_browse_grid = None
 
     # Process each image in the dataset
     for freq in product.freqs:
@@ -252,42 +254,25 @@ def process_backscatter_imgs_and_browse(
                         filepath=Path(out_dir, _indiv_path(browse_filename)),
                     )
 
-                    indiv_browse_metadata = _compute_browse_raster_metadata(
-                        img=img,
-                        nlooks=nlooks,
-                        wavelength=product.wavelength(freq=freq),
-                    )
-
                     # Generate the KML that corresponds to the individual PNG
                     # Compute accurate corners for browse using decimated coordinate vectors
-                    if isinstance(img, nisarqa.RadarRaster):
-                        sr = indiv_browse_metadata["slant_range"]
-                        zdt = indiv_browse_metadata["zero_doppler_time"]
-                        corrected_llq = (
-                            nisarqa.compute_latlonquad_from_radar_coords(
-                                slant_range=sr,
-                                zero_doppler_time=zdt,
-                                orbit=product.get_orbit(),
-                                wavelength=indiv_browse_metadata["wavelength"],
-                                look_side=product.look_direction,
-                                dem_file=dem_file,
-                            )
-                        )
-                    else:  # geo
-                        corrected_llq = (
-                            nisarqa.compute_latlonquad_from_geo_coords(
-                                x_coords=indiv_browse_metadata["x_coordinates"],
-                                y_coords=indiv_browse_metadata["y_coordinates"],
-                                epsg=indiv_browse_metadata["epsg"],
-                            )
-                        )
-
-                    nisarqa.write_latlonquad_to_kml(
-                        llq=corrected_llq,
-                        output_dir=out_dir,
-                        kml_filename=_indiv_path(kml_filename),
-                        png_filename=_indiv_path(browse_filename),
+                    indiv_grid = img.grid.downsample(
+                        y_stride=nlooks[0],
+                        x_stride=nlooks[1],
+                        mode="multilook",
                     )
+                    llq_kwargs = {
+                        "output_dir": out_dir,
+                        "kml_filename": _indiv_path(kml_filename),
+                        "png_filename": _indiv_path(browse_filename),
+                    }
+                    if isinstance(img, nisarqa.RadarRaster):
+                        llq_kwargs["orbit"] = product.get_orbit()
+                        llq_kwargs["wavelength"] = product.wavelength(freq=freq)
+                        llq_kwargs["look_side"] = product.look_direction
+                        llq_kwargs["dem_file"] = dem_file
+
+                    indiv_grid.save_kml(**llq_kwargs)
 
                 if params.gamma is not None:
                     inverse_func = functools.partial(
@@ -343,47 +328,40 @@ def process_backscatter_imgs_and_browse(
                     # ...keep the multilooked, color-corrected image in memory
                     pol_imgs_for_browse[pol] = corrected_img
 
-                    # Store original raster metadata for corner computation
-                    # Only need to store once, since all browse rasters share the same grid
-                    if browse_raster_metadata is None:
-                        browse_raster_metadata = (
-                            _compute_browse_raster_metadata(
-                                img=img,
-                                nlooks=nlooks,
-                                wavelength=product.wavelength(freq=freq),
-                                corrected_img=corrected_img,
-                            )
+                    # Save the primary browse KML. Do this once, since all
+                    # primary browse rasters share the same grid.
+                    if primary_browse_grid is None:
+
+                        primary_browse_grid = img.grid.downsample(
+                            y_stride=nlooks[0],
+                            x_stride=nlooks[1],
+                            mode="multilook",
                         )
+                        llq_kwargs = {
+                            "output_dir": out_dir,
+                            "kml_filename": kml_filename,
+                            "png_filename": browse_filename,
+                        }
+                        if isinstance(img, nisarqa.RadarRaster):
+                            llq_kwargs["orbit"] = product.get_orbit()
+                            llq_kwargs["wavelength"] = product.wavelength(
+                                freq=freq
+                            )
+                            llq_kwargs["look_side"] = product.look_direction
+                            llq_kwargs["dem_file"] = dem_file
+
+                        primary_browse_grid.save_kml(**llq_kwargs)
+
+                        # KLUDGE -- Keep these values, in case we make
+                        # a browse 4326. There's probably a more Pythonic
+                        # way to store them.
+                        primary_browse_freq = freq
+                        primary_browse_fill = img.fill_value
 
     # Construct the nominal browse image (in input's native coordinate system)
     browse_path = Path(out_dir, browse_filename)
     product.save_browse(pol_imgs=pol_imgs_for_browse, filepath=browse_path)
 
-    # Compute accurate corners for browse using decimated coordinate vectors
-    if isinstance(img, nisarqa.RadarRaster):
-
-        corrected_llq = nisarqa.compute_latlonquad_from_radar_coords(
-            slant_range=browse_raster_metadata["slant_range"],
-            zero_doppler_time=browse_raster_metadata["zero_doppler_time"],
-            orbit=product.get_orbit(),
-            wavelength=browse_raster_metadata["wavelength"],
-            look_side=product.look_direction,
-            dem_file=dem_file,
-        )
-    else:  # geo
-        corrected_llq = nisarqa.compute_latlonquad_from_geo_coords(
-            x_coords=browse_raster_metadata["x_coordinates"],
-            y_coords=browse_raster_metadata["y_coordinates"],
-            epsg=browse_raster_metadata["epsg"],
-        )
-
-    # Generate the KML with corrected corners
-    nisarqa.write_latlonquad_to_kml(
-        llq=corrected_llq,
-        output_dir=out_dir,
-        kml_filename=kml_filename,
-        png_filename=browse_filename,
-    )
     log = nisarqa.get_logger()
     log.info(f"Browse image PNG file saved to {browse_path}")
     log.info(f"Browse image KML file saved to {Path(out_dir, kml_filename)}")
@@ -397,44 +375,21 @@ def process_backscatter_imgs_and_browse(
 
             if product.is_geocoded:
                 # Level-2: Reproject using GDAL
-
-                # Create GeoGrid for the multilooked browse image
-                qa_geogrid = nisarqa.GeoGrid.from_coordinates(
-                    x_coords=browse_raster_metadata["x_coordinates"],
-                    y_coords=browse_raster_metadata["y_coordinates"],
-                    epsg=browse_raster_metadata["epsg"],
-                )
-
                 geocoded_arr, qa_geogrid_4326 = nisarqa.reproject_geo_raster(
                     image_array=img_arr,
-                    fill_value=browse_raster_metadata["fill_value"],
-                    geogrid=qa_geogrid,
+                    fill_value=primary_browse_fill,
+                    geogrid=primary_browse_grid,
                     output_epsg=4326,
                     longest_side_max=params.longest_side_max,
                     resample=browse_4326_params.resample,
                 )
             else:
                 # Level-1: Geocode using ISCE3
-                decimated_az = browse_raster_metadata["zero_doppler_time"]
-                decimated_rg = browse_raster_metadata["slant_range"]
-                epoch = isce3.core.DateTime(browse_raster_metadata["epoch"])
-
-                lookside = (
-                    isce3.core.LookSide.Right
-                    if product.look_direction.lower() == "right"
-                    else isce3.core.LookSide.Left
-                )
-
-                browse_radargrid = isce3.product.RadarGridParameters(
-                    sensing_start=decimated_az[0],
-                    wavelength=browse_raster_metadata["wavelength"],
-                    prf=1.0 / (decimated_az[1] - decimated_az[0]),
-                    starting_range=decimated_rg[0],
-                    range_pixel_spacing=decimated_rg[1] - decimated_rg[0],
-                    lookside=lookside,
-                    length=len(decimated_az),
-                    width=len(decimated_rg),
-                    ref_epoch=epoch,
+                browse_radargrid = (
+                    primary_browse_grid.get_isce3_radar_grid_parameters(
+                        wavelength=product.wavelength(freq=primary_browse_freq),
+                        look_side=product.look_direction,
+                    )
                 )
 
                 isce3_geogrid = nisarqa.compute_geogrid(
@@ -464,17 +419,9 @@ def process_backscatter_imgs_and_browse(
         browse_path_4326 = Path(out_dir, browse_filename_4326)
         product.save_browse(pol_imgs=pol_imgs_4326, filepath=browse_path_4326)
 
-        # Compute LatLonQuad for EPSG 4326 browse using stored grid info
-        llq_4326 = nisarqa.compute_latlonquad_from_geo_coords(
-            x_coords=qa_geogrid_4326.x_pixel_centers,
-            y_coords=qa_geogrid_4326.y_pixel_centers,
-            epsg=4326,
-        )
-
         # Generate EPSG 4326 KML
         kml_filename_4326 = str(kml_filename).replace(".kml", "_4326.kml")
-        nisarqa.write_latlonquad_to_kml(
-            llq=llq_4326,
+        qa_geogrid_4326.save_kml(
             output_dir=out_dir,
             kml_filename=kml_filename_4326,
             png_filename=browse_filename_4326,

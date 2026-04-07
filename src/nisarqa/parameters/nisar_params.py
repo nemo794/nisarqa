@@ -1070,10 +1070,14 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
         Defaults to False.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
-        'bicubic', 'nearest', 'biquintic'. Defaults to 'bilinear'.
+        'bicubic', 'nearest', 'biquintic'.
+        Ignored if `output_browse_4326` is False.
+        Defaults to 'bilinear'.
     margin_in_km : float, optional
         Margin in kilometers to add around the bounding polygon to account
-        for topography when geocoding. Defaults to 5.0.
+        for topography when geocoding.
+        Ignored if `output_browse_4326` is False.
+        Defaults to 5.0.
     """
 
     resample: str = field(
@@ -1082,7 +1086,8 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="resample",
                 descr="""Resampling method for ISCE3 geocoding. Options: 'sinc',
-                'bilinear', 'bicubic', 'nearest', 'biquintic'.""",
+                'bilinear', 'bicubic', 'nearest', 'biquintic'.
+                Ignored if `output_browse_4326` is False.""",
             )
         },
     )
@@ -1093,7 +1098,8 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="margin_in_km",
                 descr="""Margin in kilometers to add around the bounding polygon
-                to account for topography when geocoding.""",
+                to account for topography when geocoding.
+                Ignored if `output_browse_4326` is False.""",
             )
         },
     )
@@ -1145,6 +1151,7 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
     resample : str, optional
         Resampling algorithm for GDAL reprojection. Options: 'near',
         'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
+        Ignored if `output_browse_4326` is False.
         Defaults to 'cubic'.
     """
 
@@ -1154,7 +1161,8 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="resample",
                 descr="""Resampling algorithm for GDAL reprojection. Options: 'near',
-                'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.""",
+                'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
+                Ignored if `output_browse_4326` is False.""",
             )
         },
     )

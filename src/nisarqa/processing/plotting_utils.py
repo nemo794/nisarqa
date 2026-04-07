@@ -31,7 +31,7 @@ def plot_2d_array_and_save_to_png(
     *,
     vmin: float | None = None,
     vmax: float | None = None,
-) -> None:
+) -> tuple[int, int]:
     """
     Plot a 2D raster to square pixels, and save to PNG.
 
@@ -64,6 +64,12 @@ def plot_2d_array_and_save_to_png(
         using `matplotlib.imshow()`. These define the data range that the
         colormap covers. If None, the min and max values (respectively) of the
         input array will be used.
+
+    Returns
+    -------
+    ky, kx : int
+        The decimation stride value used in the Y axis direction and X axis
+        direction (respectively).
     """
     if sample_spacing is None:
         sample_spacing = (1, 1)
@@ -95,6 +101,8 @@ def plot_2d_array_and_save_to_png(
         raster_shape=np.shape(arr),
         png_filepath=png_filepath,
     )
+
+    return ky, kx
 
 
 def format_cbar_ticks_for_multiples_of_pi(
@@ -254,7 +262,8 @@ def downsample_img_to_size_of_axes_with_stride(
     mode : str, optional
         Downsampling algorithm. One of:
             "decimate" : (default) Pure decimation. For example, if the
-                downsampling stride is determined to be `3`, then every 3rd row
+                downsampling stride is determined to be `3`, then starting
+                with and including row 0 and column 0, every 3rd row
                 and 3rd column will be extracted to form the downsampled image.
             "multilook" : Naive, unweighted multilooking. For example,
                 if the downsampling stride is determined to be `3`,

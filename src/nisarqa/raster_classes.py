@@ -358,6 +358,71 @@ class CoordinateGrid(ABC):
         """
         pass
 
+    def _downsample(
+        self, y_stride: int, x_stride: int, mode: str
+    ) -> tuple[np.ndarray, np.ndarray, float, float]:
+        """
+        Downsample this CoordinateGrid's properties by given strides and mode.
+
+        Parameters
+        ----------
+        y_stride, x_stride : int
+            Stride for downsampling along the Y (azimuth) or X (slant range)
+            axis, respectively.
+        mode : str, optional
+            Downsampling algorithm. One of:
+                "decimate" : (default) Pure decimation. For example, if
+                    `y_stride` is 3 and `x_stride` is 4, then rows 0, 3, ...,
+                    and columns 0, 4, ... will be extracted to form
+                    the downsampled grid.
+                "multilook" : Naive, unweighted multilooking. For example, if
+                    `y_stride` is 3 and `x_stride` is 4,
+                    then every 3-by-4 window (12 pixels total) will be averaged
+                    to form the output pixel.
+                    Note that if any of those 12 input pixels is NaN, then the
+                    output pixel will be NaN.
+
+        Returns
+        -------
+        y_coords, x_coords, y_posting, x_posting :
+            Downsampled copies of the instance's properties.
+
+        Notes
+        -----
+        - Coordinates whose index is greater than the largest integer
+        multiple of the Y and X stride (along their respective axis)
+        will be truncated/ignored.
+        """
+        if y_stride < 1:
+            raise ValueError(f"{y_stride=}, must be >= 1.")
+        if x_stride < 1:
+            raise ValueError(f"{x_stride=}, must be >= 1.")
+
+        # Downsample to the correct size along the X and Y directions.
+        if mode == "decimate":
+            y_coords = self.y_pixel_centers[::y_stride]
+            x_coords = self.x_pixel_centers[::x_stride]
+
+        elif mode == "multilook":
+            y_coords = _get_multilooked_center_coordinates(
+                coords=self.y_pixel_centers, nlooks=y_stride
+            )
+            x_coords = _get_multilooked_center_coordinates(
+                coords=self.x_pixel_centers, nlooks=x_stride
+            )
+        else:
+            raise ValueError(
+                f"`{mode=}`, only 'decimate' and 'multilook' supported."
+            )
+
+        y_post = self.y_posting * y_stride
+        assert np.isclose(y_post, y_coords[1] - y_coords[0])
+
+        x_post = self.x_posting * x_stride
+        assert np.isclose(x_post, x_coords[1] - x_coords[0])
+
+        return y_coords, x_coords, y_post, x_post
+
 
 @dataclass
 class SARRaster(Raster, ABC):
@@ -434,6 +499,50 @@ class SARRaster(Raster, ABC):
     def x_axis_label(self) -> str:
         """Label for the X direction (range for range-Doppler rasters)."""
         pass
+
+
+def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
+    """
+    Get the vector of center coordinates for a multilooked array.
+
+    For odd nlooks, the center falls on a pixel. For even nlooks, the center
+    falls between two pixels and requires interpolation.
+
+    Parameters
+    ----------
+    coords : array_like
+        1D array of coordinate values (e.g., x_coordinates, slant_range)
+        where values correspond to pixel center.
+    nlooks : int
+        Number of looks (multilook window size).
+
+    Returns
+    -------
+    numpy.ndarray
+        Coordinate values at the centers of the multilooked blocks
+    """
+    coords = coords.copy()
+
+    # truncate the coords array
+    truncation_amount = len(coords) % nlooks
+    if truncation_amount > 0:
+        trunc_coords = coords[:-truncation_amount]
+    else:
+        trunc_coords = coords
+
+    if nlooks % 2 == 1:
+        # Odd nlooks: center falls exactly on a pixel
+        center_idx = nlooks // 2
+        decimated = trunc_coords[center_idx::nlooks]
+    else:
+        # Even nlooks: center falls between two pixels, need to interpolate
+        left_idx = nlooks // 2 - 1
+        right_idx = nlooks // 2
+        left_coords = trunc_coords[left_idx::nlooks]
+        right_coords = trunc_coords[right_idx::nlooks]
+        decimated = (left_coords + right_coords) / 2.0
+
+    return decimated
 
 
 @dataclass
@@ -610,6 +719,101 @@ class RadarGrid(CoordinateGrid):
         )
 
         return radar_grid
+
+    def downsample(self, y_stride: int, x_stride: int, mode: str) -> RadarGrid:
+        """
+        Downsample grid by the given strides and mode.
+
+        Parameters
+        ----------
+        y_stride, x_stride : int
+            Stride for downsampling along the Y (azimuth) or X (slant range)
+            axis, respectively.
+        mode : str, optional
+            Downsampling algorithm. One of:
+                "decimate" : (default) Pure decimation. For example, if
+                    `y_stride` is 3 and `x_stride` is 4, then rows 0, 3, ...,
+                    and columns 0, 4, ... will be extracted to form
+                    the downsampled grid.
+                "multilook" : Naive, unweighted multilooking. For example, if
+                    `y_stride` is 3 and `x_stride` is 4,
+                    then every 3-by-4 window (12 pixels total) will be averaged
+                    to form the output pixel.
+                    Note that if any of those 12 input pixels is NaN, then the
+                    output pixel will be NaN.
+
+        Returns
+        -------
+        downsampled_grid : RadarGrid
+            Copy of this RadarGrid instance which has been downsampled.
+
+        Notes
+        -----
+        - Coordinates whose index is greater than the largest integer
+        multiple of the Y and X stride (along their respective axis)
+        will be truncated/ignored.
+        """
+
+        zdt_coords, sr_coords, zdt_spacing, sr_spacing = self._downsample(
+            y_stride=y_stride, x_stride=x_stride, mode=mode
+        )
+
+        grd_az_spacing = self.ground_az_spacing * y_stride
+        grd_rg_spacing = self.ground_range_spacing * x_stride
+
+        return RadarGrid(
+            zero_doppler_time=zdt_coords,
+            zero_doppler_time_spacing=zdt_spacing,
+            slant_range=sr_coords,
+            slant_range_spacing=sr_spacing,
+            ground_az_spacing=grd_az_spacing,
+            ground_range_spacing=grd_rg_spacing,
+            epoch=self.epoch,
+        )
+
+    def get_latlonquad(
+        self, orbit, wavelength, look_side, dem_file
+    ) -> nisarqa.LatLonQuad:
+        """
+        Get the LatLonQuad for this RadarGrid.
+        """
+        return nisarqa.compute_latlonquad_from_radar_coords(
+            slant_range=self.slant_range,
+            zero_doppler_time=self.zero_doppler_time,
+            orbit=orbit,
+            wavelength=wavelength,
+            look_side=look_side,
+            dem_file=dem_file,
+        )
+
+    def save_kml(
+        self,
+        *,
+        orbit,
+        wavelength,
+        look_side,
+        dem_file,
+        output_dir,
+        kml_filename,
+        png_filename,
+    ) -> None:
+        """
+        Save a KML with a lonlatquad corresponding to this RadarGrid.
+        """
+
+        llq = self.get_latlonquad(
+            orbit=orbit,
+            wavelength=wavelength,
+            look_side=look_side,
+            dem_file=dem_file,
+        )
+
+        nisarqa.write_latlonquad_to_kml(
+            llq=llq,
+            output_dir=output_dir,
+            kml_filename=kml_filename,
+            png_filename=png_filename,
+        )
 
 
 @dataclass
@@ -913,6 +1117,74 @@ class GeoGrid(CoordinateGrid):
             y_coordinates=y_coords,
         )
 
+    def downsample(self, y_stride: int, x_stride: int, mode: str) -> GeoGrid:
+        """
+        Downsample grid by the given strides and mode.
+
+        Parameters
+        ----------
+        y_stride, x_stride : int
+            Stride for downsampling along the Y (azimuth) or X (slant range)
+            axis, respectively.
+        mode : str, optional
+            Downsampling algorithm. One of:
+                "decimate" : (default) Pure decimation. For example, if
+                    `x_stride` is 3 and `y_stride` is 4, then starting
+                    with and including row 0 and column 0, every 3rd row and
+                    4th column will be extracted to form the downsampled image.
+                "multilook" : Naive, unweighted multilooking. For example, if
+                    `x_stride` is 3 and `y_stride` is 4,
+                    then every 3-by-4 window (12 pixels total) will be averaged
+                    to form the output pixel.
+                    Note that if any of those 12 input pixels is NaN, then the
+                    output pixel will be NaN.
+
+        Returns
+        -------
+        downsampled_grid : GeoGrid
+            Copy of this GeoGrid instance which has been downsampled.
+        """
+
+        y_coords, x_coords, y_posting, x_posting = self._downsample(
+            y_stride=y_stride, x_stride=x_stride, mode=mode
+        )
+
+        return GeoGrid(
+            epsg=self.epsg,
+            x_axis_posting=x_posting,
+            x_coordinates=x_coords,
+            y_axis_posting=y_posting,
+            y_coordinates=y_coords,
+        )
+
+    def get_latlonquad(self) -> nisarqa.LatLonQuad:
+        """
+        Get the LatLonQuad for this Geogrid.
+        """
+        return nisarqa.compute_latlonquad_from_geo_coords(
+            x_coords=self.x_coordinates,
+            y_coords=self.y_coordinates,
+            epsg=self.epsg,
+        )
+
+    def save_kml(
+        self,
+        *,
+        output_dir,
+        kml_filename,
+        png_filename,
+    ) -> None:
+        """
+        Save a KML with a lonlatquad corresponding to this GeoGrid.
+        """
+
+        nisarqa.write_latlonquad_to_kml(
+            llq=self.get_latlonquad(),
+            output_dir=output_dir,
+            kml_filename=kml_filename,
+            png_filename=png_filename,
+        )
+
 
 @dataclass
 class GeoRaster(SARRaster):
@@ -1096,6 +1368,17 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
                 raise ValueError(
                     f"Values do not match for `{field_name}` field. `raster1`"
                     f" has value {r1_val}, but `raster2` has value {r2_val}."
+                )
+        elif isinstance(r1_val, nisarqa.CoordinateGrid):
+            for grid_f in fields(r1_val):
+                field_name = grid_f.name
+                grid1_val = getattr(r1_val, field_name)
+                grid2_val = getattr(r2_val, field_name)
+            if grid1_val != grid2_val:
+                raise ValueError(
+                    f"Values do not match for Coordinate Grid's `{field_name}`"
+                    f" field. `raster1`'s grid has value {r1_val},"
+                    f" but `raster2`'s grid has value {r2_val}."
                 )
         else:
             if np.any(np.abs(r1_val - r2_val) > 1e-6):

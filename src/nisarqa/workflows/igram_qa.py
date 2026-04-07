@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Optional, overload
 
 import h5py
+import isce3
 from matplotlib.backends.backend_pdf import PdfPages
 
 import nisarqa
@@ -130,15 +132,6 @@ def igram_qa(
     if root_params.workflows.qa_reports:
         log.info("Beginning processing of `qa_reports` items...")
 
-        log.info(f"Beginning processing of browse KML...")
-        nisarqa.write_latlonquad_to_kml(
-            llq=product.get_browse_latlonquad(),
-            output_dir=out_dir,
-            kml_filename=root_params.get_kml_browse_filename(),
-            png_filename=root_params.get_browse_png_filename(),
-        )
-        log.info(f"Browse image kml file saved to {browse_file_kml}")
-
         with (
             h5py.File(stats_file, mode="w") as stats_h5,
             PdfPages(report_file) as report_pdf,
@@ -153,10 +146,21 @@ def igram_qa(
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
-            save_igram_product_browse_png(
+            # Generate the browse PNG, KML, and optionally EPSG 4326 products
+            log.info("Generating browse products...")
+            dem = None
+            if (
+                hasattr(root_params, "anc_files")
+                and root_params.anc_files is not None
+            ):
+                dem = root_params.anc_files.dem_file
+            save_igram_product_browse(
                 product=product,
                 params=root_params.browse,
-                browse_png=browse_file_png,
+                out_dir=out_dir,
+                browse_filename=root_params.get_browse_png_filename(),
+                kml_filename=root_params.get_kml_browse_filename(),
+                dem_file=dem,
             )
 
             if isinstance(product, nisarqa.UnwrappedGroup):
@@ -232,24 +236,38 @@ def igram_qa(
 
 
 @overload
-def save_igram_product_browse_png(
+def save_igram_product_browse(
     product: nisarqa.WrappedGroup,
     params: nisarqa.IgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    *,
+    out_dir: str | os.PathLike,
+    browse_filename: str,
+    kml_filename: str,
+    dem_file: str | os.PathLike | None = None,
 ) -> None: ...
 
 
 @overload
-def save_igram_product_browse_png(
+def save_igram_product_browse(
     product: nisarqa.UnwrappedGroup,
     params: nisarqa.UNWIgramBrowseParamGroup,
-    browse_png: str | os.PathLike,
+    *,
+    out_dir: str | os.PathLike,
+    browse_filename: str,
+    kml_filename: str,
+    dem_file: str | os.PathLike | None = None,
 ) -> None: ...
 
 
-def save_igram_product_browse_png(product, params, browse_png):
+def save_igram_product_browse(
+    product, params, *, out_dir, browse_filename, kml_filename, dem_file=None
+):
     """
-    Save the browse PNG for interferogram products (RIFG, RUNW, GUNW).
+    Save browse PNG and KML for interferogram products (RIFG, RUNW, GUNW).
+
+    This function generates the browse PNG image and its corresponding KML file
+    with accurate corner coordinates. It also generates EPSG 4326 browse products
+    if configured.
 
     Parameters
     ----------
@@ -257,9 +275,20 @@ def save_igram_product_browse_png(product, params, browse_png):
         Input NISAR product. Must be either a RIFG, RUNW, or GUNW product.
     params : nisarqa.IgramBrowseParamGroup or nisarqa.UNWIgramBrowseParamGroup
         A structure containing the processing parameters for the browse PNG.
-    browse_png : path-like
-        Filename (with path) for the browse image PNG.
+    out_dir : path-like
+        The directory where the browse PNG and KML files will be saved.
+    browse_filename : str
+        Filename (without path) for the browse image PNG.
+    kml_filename : str
+        Filename (without path) for the browse image KML.
+    dem_file : path-like or None, optional
+        Path to a Digital Elevation Model (DEM) file in a GDAL-compatible
+        raster format which will be used for computing accurate geolocation.
+        Used for radar products (RIFG, RUNW); ignored for geocoded products.
+        If None, a zero-height DEM will be used.
+        Defaults to None.
     """
+    log = nisarqa.get_logger()
 
     product_type = product.product_type
     if product_type not in ("RIFG", "RUNW", "GUNW"):
@@ -269,21 +298,28 @@ def save_igram_product_browse_png(product, params, browse_png):
 
     freq, pol = product.get_browse_freq_pol()
 
+    # Generate the browse PNG and get decimation info
     if product_type == "RIFG":
-        nisarqa.make_wrapped_phase_png(
-            product=product,
-            freq=freq,
-            pol=pol,
-            png_filepath=browse_png,
-            longest_side_max=params.longest_side_max,
-        )
-    else:
-        nisarqa.make_unwrapped_phase_png(
+        nisarqa.make_wrapped_phase_browse(
             product=product,
             freq=freq,
             pol=pol,
             params=params,
-            png_filepath=browse_png,
+            out_dir=out_dir,
+            browse_filename=browse_filename,
+            kml_filename=kml_filename,
+            dem_file=dem_file,
+        )
+    else:
+        nisarqa.make_unwrapped_phase_browse(
+            product=product,
+            freq=freq,
+            pol=pol,
+            params=params,
+            out_dir=out_dir,
+            browse_filename=browse_filename,
+            kml_filename=kml_filename,
+            dem_file=dem_file,
         )
 
 

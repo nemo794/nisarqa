@@ -150,48 +150,22 @@ def plot_offsets_quiver_plot_to_pdf(
 
     # Construct coordinate grid parameters to match our
     # freshly-decimated `az_off` and `rg_off`
+    # WLOG, use az_offset. (`nisarqa.compare_raster_metadata` ensured that
+    # the `rg_offset` has the same coordinate grid as `az_offset`.)
     kwargs = {}
+
+    # First, decimate using the same strides used to decimate to square pixels
+    tmp_grid = az_offset.grid.downsample(
+        y_stride=ky1, x_stride=kx1, mode="decimate"
+    )
+
+    # Second, decimate using the same strides used to decimate to size of axes
+    kwargs["coord_grid"] = tmp_grid.downsample(
+        y_stride=stride1, x_stride=stride1, mode="decimate"
+    )
+
     if isinstance(az_offset, nisarqa.GeoRaster):
-        # `nisarqa.compare_raster_metadata` ensures that the `rg_offset`
-        # has the same coordinate grid as `az_offset`.
-        y_coordinates = az_offset.y_coordinates
-        x_coordinates = az_offset.x_coordinates
-
-        # Modify with same strides as used above to decimate to square pixels
-        # and size of axes
-        y_coords = y_coordinates[::ky1][::stride1]
-        x_coords = x_coordinates[::kx1][::stride1]
-
-        assert az_off.shape[0] == len(y_coords)
-        assert az_off.shape[1] == len(x_coords)
-
-        x_posting = az_offset.x_posting * kx1 * stride1
-        y_posting = az_offset.y_posting * ky1 * stride1
-
-        kwargs["coord_grid"] = nisarqa.GeoGrid(
-            epsg=az_offset.epsg,
-            x_axis_posting=x_posting,
-            x_coordinates=x_coords,
-            y_axis_posting=y_posting,
-            y_coordinates=y_coords,
-        )
-
         kwargs["quiver_projection_params"] = quiver_projection_params
-
-    else:
-        assert isinstance(az_offset, nisarqa.RadarRaster)
-
-        zero_dop_spacing = az_offset.zero_doppler_time_spacing * ky1 * stride1
-
-        kwargs["coord_grid"] = nisarqa.RadarGrid(
-            zero_doppler_time=az_offset.zero_doppler_time[::ky1][::stride1],
-            zero_doppler_time_spacing=zero_dop_spacing,
-            slant_range=az_offset.slant_range[::kx1][::stride1],
-            slant_range_spacing=az_offset.slant_range_spacing * kx1 * stride1,
-            ground_az_spacing=az_offset.ground_az_spacing * ky1 * stride1,
-            ground_range_spacing=az_offset.ground_range_spacing * kx1 * stride1,
-            epoch=az_offset.epoch,
-        )
 
     im, cbar_min, cbar_max = add_magnitude_image_and_quiver_plot_to_axes(
         ax=ax,
@@ -341,39 +315,10 @@ def plot_single_quiver_plot_to_png(
             )
         kwargs["quiver_projection_params"] = quiver_projection_params
 
-    if isinstance(az_offset, nisarqa.GeoRaster):
-        x_coordinates = az_offset.x_coordinates
-        y_coordinates = az_offset.y_coordinates
-        x_coords = x_coordinates[::x_decimation]
-        y_coords = y_coordinates[::y_decimation]
-
-        assert az_off.shape[1] == len(x_coords)
-        assert az_off.shape[0] == len(y_coords)
-
-        x_posting = az_offset.x_posting * x_decimation
-        y_posting = az_offset.y_posting * y_decimation
-
-        kwargs["coord_grid"] = nisarqa.GeoGrid(
-            epsg=az_offset.epsg,
-            x_axis_posting=x_posting,
-            x_coordinates=x_coords,
-            y_axis_posting=y_posting,
-            y_coordinates=y_coords,
-        )
-    else:
-        assert isinstance(az_offset, nisarqa.RadarRaster)
-
-        zero_dop_spacing = az_offset.zero_doppler_time_spacing * y_decimation
-
-        kwargs["coord_grid"] = nisarqa.RadarGrid(
-            zero_doppler_time=az_offset.zero_doppler_time[::y_decimation],
-            zero_doppler_time_spacing=zero_dop_spacing,
-            slant_range=az_offset.slant_range[::x_decimation],
-            slant_range_spacing=az_offset.slant_range_spacing * x_decimation,
-            ground_az_spacing=az_offset.ground_az_spacing * y_decimation,
-            ground_range_spacing=az_offset.ground_range_spacing * x_decimation,
-            epoch=az_offset.epoch,
-        )
+    # Decimate the grid using the same strides used to decimate to size of axes
+    kwargs["coord_grid"] = az_offset.grid.downsample(
+        y_stride=y_decimation, x_stride=x_decimation, mode="decimate"
+    )
 
     # Next, we need to add the background image + quiver plot arrows onto
     # an Axes, and then save this to a PNG with exact pixel dimensions as

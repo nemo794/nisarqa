@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Optional
 
 import h5py
@@ -209,15 +210,19 @@ def plot_unwrapped_phase_image_to_pdf(
     plt.close(fig)
 
 
-def make_unwrapped_phase_png(
+def make_unwrapped_phase_browse(
     product: nisarqa.UnwrappedGroup,
+    *,
     freq: str,
     pol: str,
     params: nisarqa.UNWIgramBrowseParamGroup,
-    png_filepath: str | os.PathLike,
+    out_dir: str | os.Pathlike,
+    browse_filename: str,
+    kml_filename: str,
+    dem_file: str | os.PathLike | None = None,
 ) -> None:
     """
-    Create and save the unwrapped interferogram as a PNG.
+    Create and save the unwrapped interferogram browse products as PNG+KML.
 
     Parameters
     ----------
@@ -228,9 +233,24 @@ def make_unwrapped_phase_png(
         interferogram to save as a PNG.
     params : nisarqa.UNWIgramBrowseParamGroup
         A structure containing the parameters for creating the browse image.
-    png_filepath : path-like
-        Filename (with path) for the image PNG.
+    out_dir : path-like
+        The directory to write the output PNG and KML file(s) to. This
+        directory must already exist.
+    browse_filename : str
+        The basename of the output browse image PNG file. The file will be
+        created in `out_dir`. Example: "BROWSE.png".
+    kml_filename : str
+        The basename of the output browse image KML file. The file will be
+        created in `out_dir`. Example: "BROWSE.kml".
+    dem_file : path-like or None, optional
+        Digital Elevation Model (DEM) file path in a GDAL-compatible raster
+        format. Will be ignored if `params.output_browse_4326`
+        is False or if `product` is a Level-2 Geocoded product.
+        Used for Level-1 products when geocoding the EPSG 4326 browse; if None,
+        a zero-height DEM will be used.
+        Defaults to None.
     """
+    log = nisarqa.get_logger()
 
     with product.get_unwrapped_phase(freq=freq, pol=pol) as igram_r:
         phase, cbar_min_max = get_phase_array(
@@ -239,15 +259,98 @@ def make_unwrapped_phase_png(
             rewrap=params.rewrap,
         )
 
-    plot_2d_array_and_save_to_png(
-        arr=phase,
-        cmap="twilight_shifted",
-        sample_spacing=(igram_r.y_ground_spacing, igram_r.x_ground_spacing),
-        longest_side_max=params.longest_side_max,
-        png_filepath=png_filepath,
-        vmin=cbar_min_max[0],
-        vmax=cbar_min_max[1],
-    )
+        ky, kx = plot_2d_array_and_save_to_png(
+            arr=phase,
+            cmap="twilight_shifted",
+            sample_spacing=(igram_r.y_ground_spacing, igram_r.x_ground_spacing),
+            longest_side_max=params.longest_side_max,
+            png_filepath=Path(out_dir, browse_filename),
+            vmin=cbar_min_max[0],
+            vmax=cbar_min_max[1],
+        )
+
+        browse_grid = igram_r.grid.downsample(
+            y_stride=ky, x_stride=kx, mode="decimate"
+        )
+
+        llq_kwargs = {
+            "output_dir": out_dir,
+            "kml_filename": kml_filename,
+            "png_filename": browse_filename,
+        }
+        if not product.is_geocoded:
+            llq_kwargs["orbit"] = product.get_orbit(ref_or_sec="reference")
+            llq_kwargs["wavelength"] = product.wavelength(freq=freq)
+            llq_kwargs["look_side"] = product.look_direction
+            llq_kwargs["dem_file"] = dem_file
+
+        browse_grid.save_kml(**llq_kwargs)
+
+        if params.output_browse_4326:
+            if product.is_geocoded:
+                # Level-2: Reproject using GDAL
+                geocoded_arr, qa_geogrid_4326 = nisarqa.reproject_geo_raster(
+                    image_array=phase,
+                    fill_value=igram_r.fill_value,
+                    geogrid=browse_grid,
+                    output_epsg=4326,
+                    longest_side_max=params.longest_side_max,
+                    resample=params.resample,
+                )
+            else:
+                # Level-1: Geocode using ISCE3
+                browse_radargrid = browse_grid.get_isce3_radar_grid_parameters(
+                    wavelength=product.wavelength(freq=freq),
+                    look_side=product.look_direction,
+                )
+
+                isce3_geogrid = nisarqa.compute_geogrid(
+                    bounding_polygon=product.bounding_polygon,
+                    epsg=4326,  # lon/lat
+                    longest_side_max=params.longest_side_max,
+                    margin_in_km=params.margin_in_km,
+                )
+
+                geocoded_arr = nisarqa.geocode_radar_raster(
+                    radar_array=phase,
+                    radargrid=browse_radargrid,
+                    orbit=product.get_orbit(ref_or_sec="reference"),
+                    geogrid=isce3_geogrid,
+                    dem_file=dem_file,
+                    resample=params.resample,
+                )
+
+                qa_geogrid_4326 = nisarqa.GeoGrid.from_isce3_geo_grid(
+                    isce3_geogrid=isce3_geogrid
+                )
+
+            # Save EPSG 4326 browse PNG
+            browse_filename_4326 = str(browse_filename).replace(
+                ".png", "_4326.png"
+            )
+            browse_path_4326 = Path(out_dir, browse_filename_4326)
+            plot_2d_array_and_save_to_png(
+                arr=geocoded_arr,
+                cmap="twilight_shifted",
+                sample_spacing=None,  # geocoded_arr already on square pixels
+                longest_side_max=None,  # geocoded_arr already correct shape
+                png_filepath=browse_path_4326,
+                vmin=cbar_min_max[0],
+                vmax=cbar_min_max[1],
+            )
+
+            # Generate EPSG 4326 KML
+            kml_filename_4326 = str(kml_filename).replace(".kml", "_4326.kml")
+            qa_geogrid_4326.save_kml(
+                output_dir=out_dir,
+                kml_filename=kml_filename_4326,
+                png_filename=browse_filename_4326,
+            )
+
+            log.info(f"EPSG 4326 browse PNG saved to {browse_path_4326}")
+            log.info(
+                f"EPSG 4326 browse KML saved to {Path(out_dir, kml_filename_4326)}"
+            )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

@@ -460,24 +460,33 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup, HDF5ParamGroup):
 
 
 @dataclass(frozen=True)
-class RIFGIgramBrowseParamGroup(IgramBrowseParamGroup):
+class RIFGIgramBrowseParamGroup(
+    L1RadarBrowse4326ParamGroup,
+    IgramBrowseParamGroup,
+):
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "rifg", "qa_reports", "browse_png"]
+        return ["runconfig", "groups", "qa", "rifg", "qa_reports", "browse"]
 
 
 @dataclass(frozen=True)
-class RUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
+class RUNWIgramBrowseParamGroup(
+    L1RadarBrowse4326ParamGroup,
+    UNWIgramBrowseParamGroup,
+):
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "runw", "qa_reports", "browse_png"]
+        return ["runconfig", "groups", "qa", "runw", "qa_reports", "browse"]
 
 
 @dataclass(frozen=True)
-class GUNWIgramBrowseParamGroup(UNWIgramBrowseParamGroup):
+class GUNWIgramBrowseParamGroup(
+    L2GeoBrowse4326ParamGroup,
+    UNWIgramBrowseParamGroup,
+):
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "gunw", "qa_reports", "browse_png"]
+        return ["runconfig", "groups", "qa", "gunw", "qa_reports", "browse"]
 
 
 @dataclass(frozen=True)
@@ -1665,8 +1674,6 @@ class RIFGRootParamGroup(RootParamGroup):
         Parameters for correlation surface peak layer plots.
     browse : RIFGIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
-    browse_4326 : L1RadarBrowse4326ParamGroup or None, optional
-        Browse 4326 Group parameters for RIFG QA (EPSG 4326 browse images).
     """
 
     workflows: RIFGWorkflowsParamGroup
@@ -1683,7 +1690,6 @@ class RIFGRootParamGroup(RootParamGroup):
     az_rng_offsets: Optional[RIFGAzAndRangeOffsetsParamGroup] = None
     corr_surface_peak: Optional[RIFGCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[RIFGIgramBrowseParamGroup] = None
-    browse_4326: Optional[L1RadarBrowse4326ParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1744,11 +1750,6 @@ class RIFGRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RIFGIgramBrowseParamGroup,
             ),
-            Grp(
-                flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="browse_4326",
-                param_grp_cls_obj=L1RadarBrowse4326ParamGroup,
-            ),
         )
 
         return grps_to_parse
@@ -1769,7 +1770,6 @@ class RIFGRootParamGroup(RootParamGroup):
             "az_rng_offsets": RIFGAzAndRangeOffsetsParamGroup,
             "corr_surface_peak": RIFGCorrSurfacePeakLayerParamGroup,
             "browse": RIFGIgramBrowseParamGroup,
-            "browse_4326": L1RadarBrowse4326ParamGroup,
         }
 
 
@@ -1815,8 +1815,6 @@ class RUNWRootParamGroup(RootParamGroup):
         Parameters for correlation surface peak layer plots.
     browse : RUNWIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
-    browse_4326 : L1RadarBrowse4326ParamGroup or None, optional
-        Browse 4326 Group parameters for RUNW QA (EPSG 4326 browse images).
     """
 
     # Shared parameters
@@ -1835,7 +1833,6 @@ class RUNWRootParamGroup(RootParamGroup):
     az_rng_offsets: Optional[RUNWAzAndRangeOffsetsParamGroup] = None
     corr_surface_peak: Optional[RUNWCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[RUNWIgramBrowseParamGroup] = None
-    browse_4326: Optional[L1RadarBrowse4326ParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -1911,11 +1908,6 @@ class RUNWRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=RUNWIgramBrowseParamGroup,
             ),
-            Grp(
-                flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="browse_4326",
-                param_grp_cls_obj=L1RadarBrowse4326ParamGroup,
-            ),
         )
 
         return grps_to_parse
@@ -1939,7 +1931,6 @@ class RUNWRootParamGroup(RootParamGroup):
             "az_rng_offsets": RUNWAzAndRangeOffsetsParamGroup,
             "corr_surface_peak": RUNWCorrSurfacePeakLayerParamGroup,
             "browse": RUNWIgramBrowseParamGroup,
-            "browse_4326": L1RadarBrowse4326ParamGroup,
         }
 
 
@@ -1987,8 +1978,6 @@ class GUNWRootParamGroup(RootParamGroup):
         Parameters for correlation surface peak layer plots.
     browse : GUNWIgramBrowseParamGroup or None, optional
         Browse Image Group parameters.
-    browse_4326 : L2GeoBrowse4326ParamGroup or None, optional
-        Browse 4326 Group parameters for GUNW QA (EPSG 4326 browse images).
     """
 
     workflows: GUNWWorkflowsParamGroup
@@ -2008,7 +1997,6 @@ class GUNWRootParamGroup(RootParamGroup):
     az_rng_offsets: Optional[GUNWAzAndRangeOffsetsParamGroup] = None
     corr_surface_peak: Optional[GUNWCorrSurfacePeakLayerParamGroup] = None
     browse: Optional[GUNWIgramBrowseParamGroup] = None
-    browse_4326: Optional[L2GeoBrowse4326ParamGroup] = None
 
     @staticmethod
     def get_mapping_of_workflows2param_grps(workflows):
@@ -2084,11 +2072,6 @@ class GUNWRootParamGroup(RootParamGroup):
                 root_param_grp_attr_name="browse",
                 param_grp_cls_obj=GUNWIgramBrowseParamGroup,
             ),
-            Grp(
-                flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="browse_4326",
-                param_grp_cls_obj=L2GeoBrowse4326ParamGroup,
-            ),
         )
 
         return grps_to_parse
@@ -2112,7 +2095,6 @@ class GUNWRootParamGroup(RootParamGroup):
             "az_rng_offsets": GUNWAzAndRangeOffsetsParamGroup,
             "corr_surface_peak": GUNWCorrSurfacePeakLayerParamGroup,
             "browse": GUNWIgramBrowseParamGroup,
-            "browse_4326": L2GeoBrowse4326ParamGroup,
         }
 
 
