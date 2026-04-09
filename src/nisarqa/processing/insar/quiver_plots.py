@@ -208,7 +208,8 @@ def plot_offsets_quiver_plot_to_pdf(
 def plot_single_quiver_plot_to_png(
     az_offset: nisarqa.RadarRaster,
     rg_offset: nisarqa.RadarRaster,
-    params: nisarqa.QuiverParamGroup,
+    quiver_params: nisarqa.QuiverParamGroup,
+    browse_params: nisarqa.OffsetsBrowseParamGroup,
     png_filepath: str | os.PathLike,
 ) -> tuple[int, int]: ...
 
@@ -217,14 +218,20 @@ def plot_single_quiver_plot_to_png(
 def plot_single_quiver_plot_to_png(
     az_offset: nisarqa.GeoRaster,
     rg_offset: nisarqa.GeoRaster,
-    params: nisarqa.QuiverParamGroup,
+    quiver_params: nisarqa.QuiverParamGroup,
+    browse_params: nisarqa.OffsetsBrowseParamGroup,
     png_filepath: str | os.PathLike,
     quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
 ) -> tuple[int, int]: ...
 
 
 def plot_single_quiver_plot_to_png(
-    az_offset, rg_offset, params, png_filepath, quiver_projection_params=None
+    az_offset,
+    rg_offset,
+    quiver_params,
+    browse_params,
+    png_filepath,
+    quiver_projection_params=None,
 ):
     """
     Process and save a single quiver plot to PDF and (optional) PNG.
@@ -237,8 +244,10 @@ def plot_single_quiver_plot_to_png(
     rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
         Slant range offset layer to be processed. Must correspond to
         `az_offset`.
-    params : nisarqa.QuiverParamGroup
+    quiver_params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
+    browse_params : nisarqa.OffsetsBrowseParamGroup
+        A structure containing the processing parameters for the browse PNG.
     png_filepath : path-like
         Filename (with path) for the image PNG.
     quiver_projection_params : None or ParamsForAzRgOffsetsToProjected, optional
@@ -274,15 +283,17 @@ def plot_single_quiver_plot_to_png(
     nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
 
     # Compute decimation values for the browse image PNG.
-    if (az_offset.freq == "A") and (params.browse_decimation_freqa is not None):
-        y_decimation, x_decimation = params.browse_decimation_freqa
-    elif (az_offset.freq == "B") and (
-        params.browse_decimation_freqb is not None
+    if (az_offset.freq == "A") and (
+        browse_params.browse_decimation_freqa is not None
     ):
-        y_decimation, x_decimation = params.browse_decimation_freqb
+        y_decimation, x_decimation = browse_params.browse_decimation_freqa
+    elif (az_offset.freq == "B") and (
+        browse_params.browse_decimation_freqb is not None
+    ):
+        y_decimation, x_decimation = browse_params.browse_decimation_freqb
     else:
         # Square the pixels. Decimate if needed to stay within longest side max.
-        longest_side_max = params.longest_side_max
+        longest_side_max = browse_params.longest_side_max
 
         if longest_side_max is None:
             # Update to be the longest side of the array. This way no downsizing
@@ -327,7 +338,7 @@ def plot_single_quiver_plot_to_png(
         add_magnitude_image_and_quiver_plot_to_axes,
         az_off=az_off,
         rg_off=rg_off,
-        params=params,
+        params=quiver_params,
         **kwargs,
     )
 

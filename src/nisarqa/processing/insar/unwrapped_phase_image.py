@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, Union
 
 import h5py
 from matplotlib import pyplot as plt
@@ -215,7 +215,7 @@ def make_unwrapped_phase_browse(
     *,
     freq: str,
     pol: str,
-    params: nisarqa.UNWIgramBrowseParamGroup,
+    params: Any,  # will be type-narrowed in the function
     out_dir: str | os.Pathlike,
     browse_filename: str,
     kml_filename: str,
@@ -232,7 +232,11 @@ def make_unwrapped_phase_browse(
         The frequency and polarization (respectively) pair for the unwrapped
         interferogram to save as a PNG.
     params : nisarqa.UNWIgramBrowseParamGroup
-        A structure containing the parameters for creating the browse image.
+            and nisarqa.L1RadarBrowse4326ParamGroup or nisarqa.L2GeoBrowse4326ParamGroup
+        A structure containing the processing parameters for the browse PNG.
+        Must be an instance of UNWIgramBrowseParamGroup
+        and (via multiple inheritance) also an instance of either:
+            L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup
     out_dir : path-like
         The directory to write the output PNG and KML file(s) to. This
         directory must already exist.
@@ -251,6 +255,16 @@ def make_unwrapped_phase_browse(
         Defaults to None.
     """
     log = nisarqa.get_logger()
+
+    # XXX - Should improve the function's type annotation, but there's not
+    # a good syntax for multiple inheritance in combination with a Union.
+    # So, use type narrowing:
+    if not isinstance(params, nisarqa.UNWIgramBrowseParamGroup):
+        raise TypeError(f"{type(params)=}, must be UNWIgramBrowseParamGroup")
+    t = nisarqa.L1RadarBrowse4326ParamGroup | nisarqa.L2GeoBrowse4326ParamGroup
+    if not isinstance(params, t):
+        msg = f"{type(params)=}, must be L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup"
+        raise TypeError(msg)
 
     with product.get_unwrapped_phase(freq=freq, pol=pol) as igram_r:
         phase, cbar_min_max = get_phase_array(

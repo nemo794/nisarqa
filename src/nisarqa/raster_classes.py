@@ -416,7 +416,9 @@ class CoordinateGrid(ABC):
             )
 
         y_post = self.y_posting * y_stride
-        assert np.isclose(y_post, y_coords[1] - y_coords[0])
+        assert np.isclose(
+            y_post, y_coords[1] - y_coords[0]
+        ), f"{y_post=}, {y_coords[1] - y_coords[0]=}"
 
         x_post = self.x_posting * x_stride
         assert np.isclose(x_post, x_coords[1] - x_coords[0])
@@ -1066,7 +1068,7 @@ class GeoGrid(CoordinateGrid):
             epsg=epsg,
             x_axis_posting=isce3_geogrid.spacing_x,
             x_coordinates=x_coords,
-            y_axis_posting=abs(isce3_geogrid.spacing_y),
+            y_axis_posting=isce3_geogrid.spacing_y,
             y_coordinates=y_coords,
         )
 

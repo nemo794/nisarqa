@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import os
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, overload
+from typing import Annotated, Any, Optional, Union, overload
 
 import h5py
 import isce3
@@ -235,33 +236,15 @@ def igram_qa(
         print(msg)
 
 
-@overload
 def save_igram_product_browse(
-    product: nisarqa.WrappedGroup,
-    params: nisarqa.IgramBrowseParamGroup,
+    product: nisarqa.WrappedGroup | nisarqa.UnwrappedGroup,
+    params: Any,  # will be type-narrowed in the function
     *,
     out_dir: str | os.PathLike,
     browse_filename: str,
     kml_filename: str,
     dem_file: str | os.PathLike | None = None,
-) -> None: ...
-
-
-@overload
-def save_igram_product_browse(
-    product: nisarqa.UnwrappedGroup,
-    params: nisarqa.UNWIgramBrowseParamGroup,
-    *,
-    out_dir: str | os.PathLike,
-    browse_filename: str,
-    kml_filename: str,
-    dem_file: str | os.PathLike | None = None,
-) -> None: ...
-
-
-def save_igram_product_browse(
-    product, params, *, out_dir, browse_filename, kml_filename, dem_file=None
-):
+) -> None:
     """
     Save browse PNG and KML for interferogram products (RIFG, RUNW, GUNW).
 
@@ -273,8 +256,13 @@ def save_igram_product_browse(
     ----------
     product : nisarqa.WrappedGroup or nisarqa.UnwrappedGroup
         Input NISAR product. Must be either a RIFG, RUNW, or GUNW product.
-    params : nisarqa.IgramBrowseParamGroup or nisarqa.UNWIgramBrowseParamGroup
+    params : nisarqa.IgramBrowseParamGroup or nisarqa.UNWIgramBrowseParamGroup,
+            and nisarqa.L1RadarBrowse4326ParamGroup or nisarqa.L2GeoBrowse4326ParamGroup
         A structure containing the processing parameters for the browse PNG.
+        Must be an instance of either:
+            IgramBrowseParamGroup or UNWIgramBrowseParamGroup
+        and (via multiple inheritance) also an instance of either:
+            L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup
     out_dir : path-like
         The directory where the browse PNG and KML files will be saved.
     browse_filename : str
@@ -288,13 +276,36 @@ def save_igram_product_browse(
         If None, a zero-height DEM will be used.
         Defaults to None.
     """
-    log = nisarqa.get_logger()
-
     product_type = product.product_type
     if product_type not in ("RIFG", "RUNW", "GUNW"):
         raise ValueError(
             f"{product.product_type=}, must be one of ('RIFG', 'RUNW', 'GUNW')."
         )
+
+    # XXX - Should improve the function's type annotation, but there's not
+    # a good syntax for multiple inheritance in combination with a Union.
+    # So, use type narrowing:
+    t = nisarqa.IgramBrowseParamGroup | nisarqa.UNWIgramBrowseParamGroup
+    if not isinstance(params, t):
+        msg = f"{type(params)=}, must be IgramBrowseParamGroup or UNWIgramBrowseParamGroup"
+        raise TypeError(msg)
+    t = nisarqa.L1RadarBrowse4326ParamGroup | nisarqa.L2GeoBrowse4326ParamGroup
+    if not isinstance(params, t):
+        msg = f"{type(params)=}, must be L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup"
+        raise TypeError(msg)
+
+    if isinstance(product, nisarqa.WrappedGroup):
+        if not isinstance(params, nisarqa.IgramBrowseParamGroup):
+            raise TypeError(
+                f"{type(product)=} which is an instance of WrappedGroup, but"
+                f" {type(params)=} which is not an instance of IgramBrowseParamGroup"
+            )
+    if isinstance(product, nisarqa.UnwrappedGroup):
+        if not isinstance(params, nisarqa.UNWIgramBrowseParamGroup):
+            raise TypeError(
+                f"{type(product)=} which is an instance of UnwrappedGroup, but"
+                f" {type(params)=} which is not an instance of UNWIgramBrowseParamGroup"
+            )
 
     freq, pol = product.get_browse_freq_pol()
 
