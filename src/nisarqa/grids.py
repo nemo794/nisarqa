@@ -1,0 +1,777 @@
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+
+import isce3
+import numpy as np
+from numpy.typing import ArrayLike
+
+import nisarqa
+
+objects_to_skip = nisarqa.get_all(name=__name__)
+
+
+@dataclass
+class CoordinateGrid(ABC):
+    """Abstract Base Class for raster grid dataclasses."""
+
+    @property
+    @abstractmethod
+    def x_posting(self):
+        """
+        Posting in X direction of raster grid.
+
+        Notes
+        -----
+        "Spacing" refers to the (positive-valued) width of a pixel while
+        "posting" refers to the (positive- or negative-valued) stride between
+        points in a grid. (The spacing is the absolute value of the posting.)
+        """
+        pass
+
+    @property
+    def x_spacing(self):
+        """
+        Spacing in X direction of raster grid.
+
+        Notes
+        -----
+        "Spacing" refers to the (positive-valued) width of a pixel while
+        "posting" refers to the (positive- or negative-valued) stride between
+        points in a grid. (The spacing is the absolute value of the posting.)
+        """
+        return abs(self.x_posting)
+
+    @property
+    @abstractmethod
+    def x_pixel_centers(self):
+        """
+        1D vector of the raster grid's pixel center locations in X direction.
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def y_posting(self):
+        """
+        Posting in Y direction of raster grid.
+
+        Notes
+        -----
+        "Spacing" refers to the (positive-valued) width of a pixel while
+        "posting" refers to the (positive- or negative-valued) stride between
+        points in a grid. (The spacing is the absolute value of the posting.)
+
+        For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in QA plots).
+        For NISAR L1 products (i.e. radar grids), the y-coordinate posting
+        is positive (the positive y-axis points down in QA plots).
+        """
+        pass
+
+    @property
+    def y_spacing(self):
+        """
+        Spacing in Y direction of raster grid.
+
+        Notes
+        -----
+        "Spacing" refers to the (positive-valued) width of a pixel while
+        "posting" refers to the (positive- or negative-valued) stride between
+        points in a grid. (The spacing is the absolute value of the posting.)
+        """
+        return abs(self.y_posting)
+
+    @property
+    @abstractmethod
+    def y_pixel_centers(self):
+        """
+        1D vector of the raster grid's pixel center locations in Y direction.
+        """
+        pass
+
+    def _downsample(
+        self, y_stride: int, x_stride: int, mode: str
+    ) -> tuple[np.ndarray, np.ndarray, float, float]:
+        """
+        Downsample this CoordinateGrid's properties by given strides and mode.
+
+        Parameters
+        ----------
+        y_stride, x_stride : int
+            Stride for downsampling along the Y (azimuth) or X (slant range)
+            axis, respectively.
+        mode : str, optional
+            Downsampling algorithm. One of:
+                "decimate" : (default) Pure decimation. For example, if
+                    `y_stride` is 3 and `x_stride` is 4, then rows 0, 3, ...,
+                    and columns 0, 4, ... will be extracted to form
+                    the downsampled grid.
+                "multilook" : Naive, unweighted multilooking. For example, if
+                    `y_stride` is 3 and `x_stride` is 4,
+                    then every 3-by-4 window (12 pixels total) will be averaged
+                    to form the output pixel.
+                    Note that if any of those 12 input pixels is NaN, then the
+                    output pixel will be NaN.
+
+        Returns
+        -------
+        y_coords, x_coords, y_posting, x_posting :
+            Downsampled copies of the instance's properties.
+
+        Notes
+        -----
+        - Coordinates whose index is greater than the largest integer
+        multiple of the Y and X stride (along their respective axis)
+        will be truncated/ignored.
+        """
+        if y_stride < 1:
+            raise ValueError(f"{y_stride=}, must be >= 1.")
+        if x_stride < 1:
+            raise ValueError(f"{x_stride=}, must be >= 1.")
+
+        # Downsample to the correct size along the X and Y directions.
+        if mode == "decimate":
+            y_coords = self.y_pixel_centers[::y_stride]
+            x_coords = self.x_pixel_centers[::x_stride]
+
+        elif mode == "multilook":
+            y_coords = _get_multilooked_center_coordinates(
+                coords=self.y_pixel_centers, nlooks=y_stride
+            )
+            x_coords = _get_multilooked_center_coordinates(
+                coords=self.x_pixel_centers, nlooks=x_stride
+            )
+        else:
+            raise ValueError(
+                f"`{mode=}`, only 'decimate' and 'multilook' supported."
+            )
+
+        y_post = self.y_posting * y_stride
+        assert np.isclose(
+            y_post, y_coords[1] - y_coords[0]
+        ), f"{y_post=}, {y_coords[1] - y_coords[0]=}"
+
+        x_post = self.x_posting * x_stride
+        assert np.isclose(x_post, x_coords[1] - x_coords[0])
+
+        return y_coords, x_coords, y_post, x_post
+
+
+@dataclass
+class RadarGrid(CoordinateGrid):
+    """
+    Uniformly-spaced 2D grid in radar (azimuth time, slant range) coordinates.
+
+    The attributes specified here are based on the needs of the QA code
+    for generating and labeling plots, etc.
+
+    Parameters
+    ----------
+    zero_doppler_time : numpy.ndarray
+        1D vector of zero Doppler azimuth times (in seconds) measured relative
+        to a UTC epoch. These correspond to the center of each pixel
+        of the raster grid in the Y direction.
+    zero_doppler_time_spacing : float
+        Time interval in the along-track direction of the raster, in seconds.
+        This is same as the spacing between consecutive entries in the
+        `zero_doppler_time` array.
+    slant_range : numpy.ndarray
+        1D vector of the slant range values (in meters), corresponding to
+        the center of each pixel of the raster grid in the X direction.
+    slant_range_spacing : float
+        Slant range spacing of grid, in meters. Same as difference between
+        consecutive samples in `slant_range` array.
+    ground_az_spacing : float
+        Scene center azimuth spacing of pixels of the grid, in meters.
+    ground_range_spacing : float
+        Scene center ground range spacing of pixels of the grid, in meters.
+    epoch : str
+        The reference epoch for time coordinates in the grid,
+        in the format 'YYYY-MM-DDTHH:MM:SS'.
+
+    Attributes
+    ----------
+    az_start : float
+        The start time of the radar grid.
+        This corresponds to the upper edge of the top pixels.
+        Units: seconds since epoch
+    az_stop : float
+        The stopping time of the radar grid.
+        This corresponds to the lower side of the bottom pixels.
+        Units: seconds since epoch
+    rng_start : float
+        Start (near) range of the radar grid.
+        This corresponds to the left side of the left-most pixels.
+        Units: meters
+    rng_stop : float
+        End (far) range of the radar grid.
+        This corresponds to the right side of the right-most pixels.
+        Units: meters
+
+    Notes
+    -----
+    Provided initialization parameters will also be stored as attributes.
+    """
+
+    # Attributes of the input array
+    zero_doppler_time: np.ndarray
+    zero_doppler_time_spacing: float
+
+    slant_range: np.ndarray
+    slant_range_spacing: float
+
+    ground_az_spacing: float
+    ground_range_spacing: float
+
+    epoch: str
+
+    az_start: float = field(init=False)
+    az_stop: float = field(init=False)
+    rng_start: float = field(init=False)
+    rng_stop: float = field(init=False)
+
+    def __post_init__(self):
+
+        self.zero_doppler_time_spacing = float(self.zero_doppler_time_spacing)
+        self.slant_range_spacing = float(self.slant_range_spacing)
+        self.ground_az_spacing = float(self.ground_az_spacing)
+        self.ground_range_spacing = float(self.ground_range_spacing)
+
+        # Infer start and stop values
+
+        # For NISAR, radar-domain grids are referenced by the center of the
+        # pixel, so +/- half the distance of the pixel's side to capture
+        # the entire range.
+        self.az_start = (
+            float(self.zero_doppler_time[0])
+            - 0.5 * self.zero_doppler_time_spacing
+        )
+        self.az_stop = (
+            float(self.zero_doppler_time[-1])
+            + 0.5 * self.zero_doppler_time_spacing
+        )
+
+        # For NISAR, radar-domain grids are referenced by the center of the
+        # pixel, so +/- half the distance of the pixel's side to capture
+        # the entire range.
+        self.rng_start = (
+            float(self.slant_range[0]) - 0.5 * self.slant_range_spacing
+        )
+        self.rng_stop = (
+            float(self.slant_range[-1]) + 0.5 * self.slant_range_spacing
+        )
+
+    @property
+    def x_posting(self):
+        return self.slant_range_spacing
+
+    @property
+    def x_pixel_centers(self):
+        return self.slant_range
+
+    @property
+    def y_posting(self):
+        return self.zero_doppler_time_spacing
+
+    @property
+    def y_pixel_centers(self):
+        return self.zero_doppler_time
+
+    def get_isce3_radar_grid_parameters(
+        self,
+        wavelength: float,
+        look_side: isce3.core.LookSide | str,
+    ) -> isce3.product.RadarGridParameters:
+        """
+        Generate ISCE3 RadarGridParameters for this RadarRaster.
+
+        This method constructs an isce3.product.RadarGridParameters object
+        from the radar coordinate information stored in this RadarRaster.
+
+        Parameters
+        ----------
+        wavelength : float
+            The radar central wavelength, in meters.
+        look_side : isce3.core.LookSide or {'left', 'right'}
+            The look direction of the radar (left-looking or right-looking).
+
+        Returns
+        -------
+        isce3.product.RadarGridParameters
+            ISCE3 radar grid parameters object representing this raster's
+            coordinate system.
+        """
+        # Parse the epoch string to create an ISCE3 DateTime object
+        ref_epoch = isce3.core.DateTime(self.epoch)
+
+        # Convert look_side to ISCE3 LookSide enum if it's a string
+        # TODO - check if it is ok to skip conversion and pass the string
+        if isinstance(look_side, str):
+            if look_side.lower() == "left":
+                look_side = isce3.core.LookSide.Left
+            elif look_side.lower() == "right":
+                look_side = isce3.core.LookSide.Right
+            else:
+                raise ValueError(f"Invalid look_side string: {look_side}")
+
+        # Compute PRF from zero doppler time spacing
+        prf = 1.0 / self.zero_doppler_time_spacing
+
+        # Create the RadarGridParameters object
+        radar_grid = isce3.product.RadarGridParameters(
+            sensing_start=float(self.zero_doppler_time[0]),
+            wavelength=float(wavelength),
+            prf=float(prf),
+            starting_range=float(self.slant_range[0]),
+            range_pixel_spacing=float(self.slant_range_spacing),
+            lookside=look_side,
+            length=len(self.zero_doppler_time),
+            width=len(self.slant_range),
+            ref_epoch=ref_epoch,
+        )
+
+        return radar_grid
+
+    def downsample(self, y_stride: int, x_stride: int, mode: str) -> RadarGrid:
+        """
+        Downsample grid by the given strides and mode.
+
+        Parameters
+        ----------
+        y_stride, x_stride : int
+            Stride for downsampling along the Y (azimuth) or X (slant range)
+            axis, respectively.
+        mode : str, optional
+            Downsampling algorithm. One of:
+                "decimate" : (default) Pure decimation. For example, if
+                    `y_stride` is 3 and `x_stride` is 4, then rows 0, 3, ...,
+                    and columns 0, 4, ... will be extracted to form
+                    the downsampled grid.
+                "multilook" : Naive, unweighted multilooking. For example, if
+                    `y_stride` is 3 and `x_stride` is 4,
+                    then every 3-by-4 window (12 pixels total) will be averaged
+                    to form the output pixel.
+                    Note that if any of those 12 input pixels is NaN, then the
+                    output pixel will be NaN.
+
+        Returns
+        -------
+        downsampled_grid : RadarGrid
+            Copy of this RadarGrid instance which has been downsampled.
+
+        Notes
+        -----
+        - Coordinates whose index is greater than the largest integer
+        multiple of the Y and X stride (along their respective axis)
+        will be truncated/ignored.
+        """
+
+        zdt_coords, sr_coords, zdt_spacing, sr_spacing = self._downsample(
+            y_stride=y_stride, x_stride=x_stride, mode=mode
+        )
+
+        grd_az_spacing = self.ground_az_spacing * y_stride
+        grd_rg_spacing = self.ground_range_spacing * x_stride
+
+        return RadarGrid(
+            zero_doppler_time=zdt_coords,
+            zero_doppler_time_spacing=zdt_spacing,
+            slant_range=sr_coords,
+            slant_range_spacing=sr_spacing,
+            ground_az_spacing=grd_az_spacing,
+            ground_range_spacing=grd_rg_spacing,
+            epoch=self.epoch,
+        )
+
+    def get_latlonquad(
+        self, orbit, wavelength, look_side, dem_file
+    ) -> nisarqa.LatLonQuad:
+        """
+        Get the LatLonQuad for this RadarGrid.
+        """
+        return nisarqa.compute_latlonquad_from_radar_coords(
+            slant_range=self.slant_range,
+            zero_doppler_time=self.zero_doppler_time,
+            orbit=orbit,
+            wavelength=wavelength,
+            look_side=look_side,
+            dem_file=dem_file,
+        )
+
+    def save_kml(
+        self,
+        *,
+        orbit,
+        wavelength,
+        look_side,
+        dem_file,
+        output_dir,
+        kml_filename,
+        png_filename,
+    ) -> None:
+        """
+        Save a KML with a lonlatquad corresponding to this RadarGrid.
+        """
+
+        llq = self.get_latlonquad(
+            orbit=orbit,
+            wavelength=wavelength,
+            look_side=look_side,
+            dem_file=dem_file,
+        )
+
+        nisarqa.write_latlonquad_to_kml(
+            llq=llq,
+            output_dir=output_dir,
+            kml_filename=kml_filename,
+            png_filename=png_filename,
+        )
+
+
+@dataclass
+class GeoGrid(CoordinateGrid):
+    """
+    Uniformly-spaced 2D grid in geocoded (e.g. projected) coordinates.
+
+    The attributes specified here are based on the needs of the QA code
+    for generating and labeling plots, etc.
+
+    Parameters
+    ----------
+    epsg : int
+        The EPSG code of the coordinate system.
+    x_axis_posting : float
+        X posting of pixels of the grid, in units matching `x_coordinates`.
+    x_coordinates : numpy.ndarray
+        1D vector of the coordinate values of the center of each pixel
+        of the raster grid in the X direction, in the units of the
+        coordinate reference system represented by `epsg`.
+    y_axis_posting : float
+        Y posting of pixels of the grid, in units matching `y_coordinates`.
+        Note: For NISAR L2 products, the y-coordinate posting of the
+        coordinate grid is negative (the positive y-axis points up in QA plots).
+    y_coordinates : numpy.ndarray
+        1D vector of the coordinate values of the center of each pixel
+        of the raster grid in the Y direction, in the units of the
+        coordinate reference system represented by `epsg`.
+
+    Attributes
+    ----------
+    x_start : float
+        The starting (typically West) X position of the grid.
+        This corresponds to the left side of the left-most pixels.
+    x_stop : float
+        The stopping (typically East) X position of the grid.
+        This corresponds to the right side of the right-most pixels.
+    y_start : float
+        The starting (typically North) Y position of the grid.
+        This corresponds to the upper edge of the top pixels.
+    y_stop : float
+        The stopping (typically South) Y position of the grid.
+        This corresponds to the lower side of the bottom pixels.
+
+    Notes
+    -----
+    Provided initialization parameters will also be stored as attributes.
+    """
+
+    epsg: int
+
+    # Call this `x_axis_posting` instead of simply `x_posting` to avoid
+    # name collisions with the property in the base class.
+    x_axis_posting: float
+    x_coordinates: np.ndarray
+
+    # Call this `y_axis_posting` per reasoning above
+    y_axis_posting: float
+    y_coordinates: np.ndarray
+
+    x_start: float = field(init=False)
+    x_stop: float = field(init=False)
+    y_start: float = field(init=False)
+    y_stop: float = field(init=False)
+
+    def __post_init__(self):
+        self.epsg = int(self.epsg)
+        self.x_axis_posting = float(self.x_axis_posting)
+        self.y_axis_posting = float(self.y_axis_posting)
+
+        # Infer start and stop values
+
+        # For NISAR, geocoded grids are referenced by the center
+        # of the pixel (different from GDAL conventions!). So add half
+        # of the pixels' spacing to get the grid's far edges.
+        # Note: `isce3.product.GeoGridParameters` adopts the GDAL convention
+        # of referencing by the upper-left corner of the pixel, but the
+        # NISAR L2 product writers construct `xCoordinates` and `yCoordinates`
+        # to refer to the location of the center of the pixels.
+        self.x_start = float(self.x_coordinates[0] - 0.5 * self.x_posting)
+        self.x_stop = float(self.x_coordinates[-1] + 0.5 * self.x_posting)
+
+        # Use the posting (not the spacing) to capture the
+        # negative-valued stride of the y-coordinates for NISAR L2 products.
+        self.y_start = float(self.y_coordinates[0] - 0.5 * self.y_posting)
+        self.y_stop = float(self.y_coordinates[-1] + 0.5 * self.y_posting)
+
+    @property
+    def x_posting(self):
+        return self.x_axis_posting
+
+    @property
+    def x_pixel_centers(self):
+        return self.x_coordinates
+
+    @property
+    def y_posting(self):
+        return self.y_axis_posting
+
+    @property
+    def y_pixel_centers(self):
+        return self.y_coordinates
+
+    def to_isce3_geo_grid_parameters(self) -> isce3.product.GeoGridParameters:
+        """
+        Generate ISCE3 GeoGridParameters for this GeoRaster.
+
+        This method constructs an isce3.product.GeoGridParameters object
+        from the geocoded coordinate information stored in this GeoRaster.
+
+        Returns
+        -------
+        isce3.product.GeoGridParameters
+            ISCE3 geo grid parameters object representing this raster's
+            coordinate system.
+
+        Notes
+        -----
+        ISCE3's GeoGridParameters uses the GDAL convention where coordinate
+        values reference the upper-left corner of pixels, while NISAR products
+        reference pixel centers.
+        """
+
+        # ISCE3 GeoGridParameters expects the starting coordinates to represent
+        # the upper-left corner of the first pixel (GDAL convention).
+        geogrid = isce3.product.GeoGridParameters(
+            start_x=self.x_start,
+            start_y=self.y_start,
+            spacing_x=float(self.x_posting),
+            spacing_y=float(self.y_posting),
+            width=len(self.x_coordinates),
+            length=len(self.y_coordinates),
+            epsg=int(self.epsg),
+        )
+
+        return geogrid
+
+    @classmethod
+    def from_isce3_geo_grid(
+        cls, isce3_geogrid: isce3.product.GeoGridParameters
+    ) -> GeoGrid:
+        """
+        Construct a nisarqa.GeoGrid from a ISCE3 GeoGridParameters instance.
+
+        ISCE3 GeoGridParameters uses upper-left corner convention (like GDAL),
+        but nisarqa.GeoGrid uses pixel center convention.
+
+        Parameters
+        ----------
+        isce3_geogrid : isce3.product.GeoGridParameters
+            An ISCE3 GeoGridParameters instance, which uses the upper-left
+            corner convention (like GDAL).
+
+        Returns
+        -------
+        qa_geogrid : nisarqa.GeoGrid
+            A nisarqa GeoGridParameters instance, which uses the pixel center
+            convention.
+        """
+        # Convert from corner to center coordinates:
+        # geogrid.start_x = x-coordinate of upper-left corner of upper-left pixel
+        # geogrid.start_y = y-coordinate of upper-left corner of upper-left pixel
+        # geogrid.spacing_x = pixel width (x spacing)
+        # geogrid.spacing_y = pixel height (y spacing, negative for north-up)
+
+        # Calculate pixel center coordinates
+        x_coords = (
+            isce3_geogrid.start_x
+            + (np.arange(isce3_geogrid.width) + 0.5) * isce3_geogrid.spacing_x
+        )
+        y_coords = (
+            isce3_geogrid.start_y
+            + (np.arange(isce3_geogrid.length) + 0.5) * isce3_geogrid.spacing_y
+        )
+
+        epsg = str(isce3_geogrid.epsg)
+
+        return cls(
+            epsg=epsg,
+            x_axis_posting=isce3_geogrid.spacing_x,
+            x_coordinates=x_coords,
+            y_axis_posting=isce3_geogrid.spacing_y,
+            y_coordinates=y_coords,
+        )
+
+    @classmethod
+    def from_coordinates(
+        cls,
+        x_coords: np.ndarray,
+        y_coords: np.ndarray,
+        epsg: int,
+    ) -> GeoGrid:
+        """
+        Construct a GeoGrid from coordinate vectors.
+
+        The provided arguements should all be consistent with each other for a
+        given raster on a geocoded grid (e.g. NISAR Level-2 products).
+
+        Parameters
+        ----------
+        x_coords : numpy.ndarray
+            1D array of X coordinate values (in units corresponding to `epsg`)
+            for the given raster. Values should correspond to pixel centers.
+        y_coords : numpy.ndarray
+            1D array of Y coordinate values (in units corresponding to `epsg`)
+            for the given raster. Values should correspond to pixel centers.
+        epsg : int
+            The EPSG code of the projected coordinate system for the given raster
+            (e.g., 32610 for UTM Zone 10N, or 3413 for NSIDC Sea Ice Polar
+            Stereographic North).
+
+        Returns
+        -------
+        LatLonQuad
+            A LatLonQuad object for the given raster, with longitude normalization
+            applied for proper antimeridian handling.
+
+        Returns
+        -------
+        qa_geogrid : nisarqa.GeoGrid
+            A nisarqa GeoGridParameters instance, which uses the pixel center
+            convention.
+        """
+
+        return cls(
+            epsg=epsg,
+            x_axis_posting=x_coords[1] - x_coords[0],
+            x_coordinates=x_coords,
+            y_axis_posting=y_coords[1] - y_coords[0],
+            y_coordinates=y_coords,
+        )
+
+    def downsample(self, y_stride: int, x_stride: int, mode: str) -> GeoGrid:
+        """
+        Downsample grid by the given strides and mode.
+
+        Parameters
+        ----------
+        y_stride, x_stride : int
+            Stride for downsampling along the Y (azimuth) or X (slant range)
+            axis, respectively.
+        mode : str, optional
+            Downsampling algorithm. One of:
+                "decimate" : (default) Pure decimation. For example, if
+                    `x_stride` is 3 and `y_stride` is 4, then starting
+                    with and including row 0 and column 0, every 3rd row and
+                    4th column will be extracted to form the downsampled image.
+                "multilook" : Naive, unweighted multilooking. For example, if
+                    `x_stride` is 3 and `y_stride` is 4,
+                    then every 3-by-4 window (12 pixels total) will be averaged
+                    to form the output pixel.
+                    Note that if any of those 12 input pixels is NaN, then the
+                    output pixel will be NaN.
+
+        Returns
+        -------
+        downsampled_grid : GeoGrid
+            Copy of this GeoGrid instance which has been downsampled.
+        """
+
+        y_coords, x_coords, y_posting, x_posting = self._downsample(
+            y_stride=y_stride, x_stride=x_stride, mode=mode
+        )
+
+        return GeoGrid(
+            epsg=self.epsg,
+            x_axis_posting=x_posting,
+            x_coordinates=x_coords,
+            y_axis_posting=y_posting,
+            y_coordinates=y_coords,
+        )
+
+    def get_latlonquad(self) -> nisarqa.LatLonQuad:
+        """
+        Get the LatLonQuad for this Geogrid.
+        """
+        return nisarqa.compute_latlonquad_from_geo_coords(
+            x_coords=self.x_coordinates,
+            y_coords=self.y_coordinates,
+            epsg=self.epsg,
+        )
+
+    def save_kml(
+        self,
+        *,
+        output_dir,
+        kml_filename,
+        png_filename,
+    ) -> None:
+        """
+        Save a KML with a lonlatquad corresponding to this GeoGrid.
+        """
+
+        nisarqa.write_latlonquad_to_kml(
+            llq=self.get_latlonquad(),
+            output_dir=output_dir,
+            kml_filename=kml_filename,
+            png_filename=png_filename,
+        )
+
+
+def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
+    """
+    Get the vector of center coordinates for a multilooked array.
+
+    For odd nlooks, the center falls on a pixel. For even nlooks, the center
+    falls between two pixels and requires interpolation.
+
+    Parameters
+    ----------
+    coords : array_like
+        1D array of coordinate values (e.g., x_coordinates, slant_range)
+        where values correspond to pixel center.
+    nlooks : int
+        Number of looks (multilook window size).
+
+    Returns
+    -------
+    numpy.ndarray
+        Coordinate values at the centers of the multilooked blocks
+    """
+    coords = coords.copy()
+
+    # truncate the coords array
+    truncation_amount = len(coords) % nlooks
+    if truncation_amount > 0:
+        trunc_coords = coords[:-truncation_amount]
+    else:
+        trunc_coords = coords
+
+    if nlooks % 2 == 1:
+        # Odd nlooks: center falls exactly on a pixel
+        center_idx = nlooks // 2
+        decimated = trunc_coords[center_idx::nlooks]
+    else:
+        # Even nlooks: center falls between two pixels, need to interpolate
+        left_idx = nlooks // 2 - 1
+        right_idx = nlooks // 2
+        left_coords = trunc_coords[left_idx::nlooks]
+        right_coords = trunc_coords[right_idx::nlooks]
+        decimated = (left_coords + right_coords) / 2.0
+
+    return decimated
+
+
+__all__ = nisarqa.get_all(__name__, objects_to_skip)
+__all__ = nisarqa.get_all(__name__, objects_to_skip)
