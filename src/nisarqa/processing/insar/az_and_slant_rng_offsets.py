@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, overload
 
 import h5py
-import isce3
 import numpy as np
 import numpy.typing as npt
 from matplotlib import pyplot as plt

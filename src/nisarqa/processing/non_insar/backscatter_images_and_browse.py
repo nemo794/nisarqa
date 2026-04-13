@@ -1,141 +1,19 @@
 from __future__ import annotations
 
-import copy
 import functools
 import os
-from dataclasses import replace
 from pathlib import Path
 
 import h5py
-import isce3
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.ticker import FuncFormatter
-from numpy.typing import ArrayLike
 
 import nisarqa
 
 from ..plotting_utils import apply_image_correction, invert_gamma_correction
 
 objects_to_skip = nisarqa.get_all(name=__name__)
-
-
-# def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
-#     """
-#     Get the vector of center coordinates for a multilooked array.
-
-#     For odd nlooks, the center falls on a pixel. For even nlooks, the center
-#     falls between two pixels and requires interpolation.
-
-#     Parameters
-#     ----------
-#     coords : array_like
-#         1D array of coordinate values (e.g., x_coordinates, slant_range)
-#         where values correspond to pixel center.
-#     nlooks : int
-#         Number of looks (multilook window size).
-
-#     Returns
-#     -------
-#     numpy.ndarray
-#         Coordinate values at the centers of the multilooked blocks
-#     """
-#     coords = coords.copy()
-
-#     # truncate the coords array
-#     truncation_amount = len(coords) % nlooks
-#     if truncation_amount > 0:
-#         trunc_coords = coords[:-truncation_amount]
-#     else:
-#         trunc_coords = coords
-
-#     if nlooks % 2 == 1:
-#         # Odd nlooks: center falls exactly on a pixel
-#         center_idx = nlooks // 2
-#         decimated = trunc_coords[center_idx::nlooks]
-#     else:
-#         # Even nlooks: center falls between two pixels, need to interpolate
-#         left_idx = nlooks // 2 - 1
-#         right_idx = nlooks // 2
-#         left_coords = trunc_coords[left_idx::nlooks]
-#         right_coords = trunc_coords[right_idx::nlooks]
-#         decimated = (left_coords + right_coords) / 2.0
-
-#     return decimated
-
-
-def _compute_browse_raster_metadata(
-    img: nisarqa.RadarRaster | nisarqa.GeoRaster,
-    nlooks: tuple[int, int],
-    wavelength: float | None = None,
-    corrected_img: ArrayLike | None = None,
-) -> dict[str, str | float | ArrayLike]:
-    """
-    Compute browse raster metadata with decimated coordinate vectors.
-
-    This function computes the coordinate vectors for a multilooked/decimated
-    browse image and packages them into a metadata dictionary appropriate for
-    the product type (radar vs geocoded).
-
-    Parameters
-    ----------
-    img : nisarqa.RadarRaster or nisarqa.GeoRaster
-        The original (pre-multilook) raster image.
-    nlooks : tuple of int
-        Number of looks along each axis: (num_looks_rows, num_looks_cols).
-    wavelength : float or None, optional
-        The radar central wavelength, in meters. Required for RadarRasters,
-        ignored for GeoRasters. Defaults to None.
-    corrected_img : array_like or None, optional
-        The multilooked/decimated 2D image array. If provided,
-        verification checks will be performed to ensure the image dimensions
-        match the decimated coordinate vectors. If None, checks are skipped.
-        Defaults to None.
-
-    Returns
-    -------
-    dict
-        Dictionary containing browse raster metadata.
-        For radar products, contains keys: 'slant_range', 'zero_doppler_time',
-        'wavelength', 'epoch'.
-        For geocoded products, contains keys: 'x_coordinates', 'y_coordinates',
-        'epsg', 'fill_value'.
-    """
-    # Get coordinate vectors at the centers of the multilooked blocks
-    decimated_x = _get_multilooked_center_coordinates(
-        img.x_pixel_centers,
-        nlooks[1],
-    )
-
-    decimated_y = _get_multilooked_center_coordinates(
-        img.y_pixel_centers,
-        nlooks[0],
-    )
-
-    # Validate dimensions if corrected_img is provided
-    if corrected_img is not None:
-        msg = f"{corrected_img.shape[1]=}, should equal {len(decimated_x)=}"
-        assert corrected_img.shape[1] == len(decimated_x), msg
-
-        msg = f"{corrected_img.shape[0]=}, should equal {len(decimated_y)=}"
-        assert corrected_img.shape[0] == len(decimated_y), msg
-
-    if isinstance(img, nisarqa.RadarRaster):
-        browse_raster_metadata = {
-            "slant_range": decimated_x,
-            "zero_doppler_time": decimated_y,
-            "wavelength": wavelength,
-            "epoch": img.epoch,
-        }
-    else:  # GeoRaster
-        browse_raster_metadata = {
-            "x_coordinates": decimated_x,
-            "y_coordinates": decimated_y,
-            "epsg": img.epsg,
-            "fill_value": img.fill_value,
-        }
-
-    return browse_raster_metadata
 
 
 def process_backscatter_imgs_and_browse(
