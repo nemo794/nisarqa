@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 import nisarqa
+from nisarqa.utils.typing import CoordinateGridT
 
 objects_to_skip = nisarqa.get_all(name=__name__)
 
@@ -88,6 +89,46 @@ class CoordinateGrid(ABC):
     def y_pixel_centers(self):
         """
         1D vector of the raster grid's pixel center locations in Y direction.
+        """
+        pass
+
+    @abstractmethod
+    def downsample(
+        self, y_stride: int, x_stride: int, mode: str
+    ) -> CoordinateGridT:
+        """
+        Downsample grid by the given strides and mode.
+
+        Parameters
+        ----------
+        y_stride, x_stride : int
+            Stride for downsampling along the Y (azimuth) or X (slant range)
+            axis, respectively.
+        mode : str, optional
+            Downsampling algorithm. One of:
+                "decimate" : (default) Pure decimation. For example, if
+                    `y_stride` is 3 and `x_stride` is 4, then rows 0, 3, ...,
+                    and columns 0, 4, ... will be extracted to form
+                    the downsampled grid.
+                "multilook" : Naive, unweighted multilooking. For example, if
+                    `y_stride` is 3 and `x_stride` is 4,
+                    then every 3-by-4 window (12 pixels total) will be averaged
+                    to form the output pixel.
+                    Note that if any of those 12 input pixels is NaN, then the
+                    output pixel will be NaN.
+
+        Returns
+        -------
+        downsampled_grid : nisarqa.typing.CoordinateGridT:
+            Copy of this instance which has been downsampled.
+            If instance is a RadarGrid, then a RadarGrid will be returned.
+            If instance is a GeoGrid, then a GeoGrid will be returned.
+
+        Notes
+        -----
+        Coordinates whose index is greater than the largest integer
+        multiple of the Y and X stride (along their respective axis)
+        will be truncated/ignored.
         """
         pass
 
@@ -335,38 +376,6 @@ class RadarGrid(CoordinateGrid):
         return radar_grid
 
     def downsample(self, y_stride: int, x_stride: int, mode: str) -> RadarGrid:
-        """
-        Downsample grid by the given strides and mode.
-
-        Parameters
-        ----------
-        y_stride, x_stride : int
-            Stride for downsampling along the Y (azimuth) or X (slant range)
-            axis, respectively.
-        mode : str, optional
-            Downsampling algorithm. One of:
-                "decimate" : (default) Pure decimation. For example, if
-                    `y_stride` is 3 and `x_stride` is 4, then rows 0, 3, ...,
-                    and columns 0, 4, ... will be extracted to form
-                    the downsampled grid.
-                "multilook" : Naive, unweighted multilooking. For example, if
-                    `y_stride` is 3 and `x_stride` is 4,
-                    then every 3-by-4 window (12 pixels total) will be averaged
-                    to form the output pixel.
-                    Note that if any of those 12 input pixels is NaN, then the
-                    output pixel will be NaN.
-
-        Returns
-        -------
-        downsampled_grid : RadarGrid
-            Copy of this RadarGrid instance which has been downsampled.
-
-        Notes
-        -----
-        - Coordinates whose index is greater than the largest integer
-        multiple of the Y and X stride (along their respective axis)
-        will be truncated/ignored.
-        """
 
         zdt_coords, sr_coords, zdt_spacing, sr_spacing = self._downsample(
             y_stride=y_stride, x_stride=x_stride, mode=mode
@@ -661,32 +670,6 @@ class GeoGrid(CoordinateGrid):
         )
 
     def downsample(self, y_stride: int, x_stride: int, mode: str) -> GeoGrid:
-        """
-        Downsample grid by the given strides and mode.
-
-        Parameters
-        ----------
-        y_stride, x_stride : int
-            Stride for downsampling along the Y (azimuth) or X (slant range)
-            axis, respectively.
-        mode : str, optional
-            Downsampling algorithm. One of:
-                "decimate" : (default) Pure decimation. For example, if
-                    `x_stride` is 3 and `y_stride` is 4, then starting
-                    with and including row 0 and column 0, every 3rd row and
-                    4th column will be extracted to form the downsampled image.
-                "multilook" : Naive, unweighted multilooking. For example, if
-                    `x_stride` is 3 and `y_stride` is 4,
-                    then every 3-by-4 window (12 pixels total) will be averaged
-                    to form the output pixel.
-                    Note that if any of those 12 input pixels is NaN, then the
-                    output pixel will be NaN.
-
-        Returns
-        -------
-        downsampled_grid : GeoGrid
-            Copy of this GeoGrid instance which has been downsampled.
-        """
 
         y_coords, x_coords, y_posting, x_posting = self._downsample(
             y_stride=y_stride, x_stride=x_stride, mode=mode
