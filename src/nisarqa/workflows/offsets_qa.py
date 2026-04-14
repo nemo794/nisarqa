@@ -153,9 +153,7 @@ def offsets_qa(
                 params_browse=root_params.browse,
                 report_pdf=report_pdf,
                 stats_h5=stats_h5,
-                out_dir=out_dir,
-                browse_filename=root_params.get_browse_png_filename(),
-                kml_filename=root_params.get_kml_browse_filename(),
+                browse_paths=root_params.get_browse_paths(),
                 dem_file=dem,
             )
 

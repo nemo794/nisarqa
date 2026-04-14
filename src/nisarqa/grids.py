@@ -412,16 +412,33 @@ class RadarGrid(CoordinateGrid):
     def save_kml(
         self,
         *,
+        browse_paths: nisarqa.BrowseOutputPaths,
         orbit,
         wavelength,
         look_side,
         dem_file,
-        output_dir,
-        kml_filename,
-        png_filename,
+        suffix: str | None = None,
     ) -> None:
         """
         Save a KML with a lonlatquad corresponding to this RadarGrid.
+
+        Parameters
+        ----------
+        browse_paths : nisarqa.BrowseOutputPaths
+            Container with output directory and browse/KML filenames.
+        orbit : nisarqa.Orbit
+            Orbit object for radar geometry calculations.
+        wavelength : float
+            Radar wavelength in meters.
+        look_side : str
+            Look direction of the radar ('Left' or 'Right').
+        dem_file : path-like or None
+            Digital Elevation Model file path for geolocation. If None,
+            a zero-height DEM will be used.
+        suffix : str or None, optional
+            If provided, this suffix will be appended to the filenames
+            (e.g., "A_HH" produces "BROWSE_A_HH.png"). If None, use the
+            primary browse/KML filenames. Defaults to None.
         """
 
         llq = self.get_latlonquad(
@@ -433,9 +450,9 @@ class RadarGrid(CoordinateGrid):
 
         nisarqa.write_latlonquad_to_kml(
             llq=llq,
-            output_dir=output_dir,
-            kml_filename=kml_filename,
-            png_filename=png_filename,
+            output_dir=browse_paths.output_dir,
+            kml_filename=browse_paths.get_kml_filename(suffix=suffix),
+            png_filename=browse_paths.get_browse_filename(suffix=suffix),
         )
 
 
@@ -696,19 +713,27 @@ class GeoGrid(CoordinateGrid):
     def save_kml(
         self,
         *,
-        output_dir,
-        kml_filename,
-        png_filename,
+        browse_paths: nisarqa.BrowseOutputPaths,
+        suffix: str | None = None,
     ) -> None:
         """
         Save a KML with a lonlatquad corresponding to this GeoGrid.
+
+        Parameters
+        ----------
+        browse_paths : nisarqa.BrowseOutputPaths
+            Container with output directory and browse/KML filenames.
+        suffix : str or None, optional
+            If provided, this suffix will be appended to the filenames
+            (e.g., "4326" produces "BROWSE_4326.png"). If None, use the
+            primary browse/KML filenames. Defaults to None.
         """
 
         nisarqa.write_latlonquad_to_kml(
             llq=self.get_latlonquad(),
-            output_dir=output_dir,
-            kml_filename=kml_filename,
-            png_filename=png_filename,
+            output_dir=browse_paths.output_dir,
+            kml_filename=browse_paths.get_kml_filename(suffix=suffix),
+            png_filename=browse_paths.get_browse_filename(suffix=suffix),
         )
 
 

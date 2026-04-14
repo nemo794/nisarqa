@@ -139,8 +139,7 @@ class LatLonQuad:
     ----------
     ul, ur, ll, lr : LonLat
         The upper-left, upper-right, lower-left, and lower-right corners,
-        in degrees, for the entire extent of the image (not just for
-        the coordinates at pixel centers).
+        in degrees, for the entire extent of the image.
     normalize_longitudes : bool, optional
         True to modify the longitudes values during post init so the absolute
         difference between any adjacent pair of longitudes is <= 180 degrees.

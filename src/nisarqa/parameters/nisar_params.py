@@ -1797,6 +1797,34 @@ class RootParamGroup(ABC):
 
         return Path("BROWSE.kml")
 
+    def get_browse_paths(self) -> nisarqa.BrowseOutputPaths:
+        """
+        Return a BrowseOutputPaths instance with the configured output paths.
+
+        This factory method creates a BrowseOutputPaths object containing the
+        output directory and browse/KML filenames from this root params group.
+
+        Returns
+        -------
+        nisarqa.BrowseOutputPaths
+            A BrowseOutputPaths instance configured with this param group's
+            output directory, browse PNG filename, and KML filename.
+
+        Examples
+        --------
+        >>> root_params = nisarqa.GCOVRootParamGroup(...)
+        >>> browse_paths = root_params.get_browse_paths()
+        >>> browse_paths.browse_path
+        PosixPath('/output/qa/BROWSE.png')
+        >>> browse_paths.browse_4326_path
+        PosixPath('/output/qa/BROWSE_4326.png')
+        """
+        return nisarqa.BrowseOutputPaths(
+            output_dir=self.get_output_dir(),
+            browse_filename=str(self.get_browse_png_filename()),
+            kml_filename=str(self.get_kml_browse_filename()),
+        )
+
     def get_summary_csv_filename(self) -> Path:
         """Return the Pass/Fail checks summary csv filename as a Path object.
         Does not include the filepath.

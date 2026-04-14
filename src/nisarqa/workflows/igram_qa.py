@@ -158,9 +158,7 @@ def igram_qa(
             save_igram_product_browse(
                 product=product,
                 params=root_params.browse,
-                out_dir=out_dir,
-                browse_filename=root_params.get_browse_png_filename(),
-                kml_filename=root_params.get_kml_browse_filename(),
+                browse_paths=root_params.get_browse_paths(),
                 dem_file=dem,
             )
 
@@ -240,9 +238,7 @@ def save_igram_product_browse(
     product: nisarqa.WrappedGroup | nisarqa.UnwrappedGroup,
     params: Any,  # will be type-narrowed in the function
     *,
-    out_dir: str | os.PathLike,
-    browse_filename: str,
-    kml_filename: str,
+    browse_paths: nisarqa.BrowseOutputPaths,
     dem_file: str | os.PathLike | None = None,
 ) -> None:
     """
@@ -263,12 +259,8 @@ def save_igram_product_browse(
             IgramBrowseParamGroup or UNWIgramBrowseParamGroup
         and (via multiple inheritance) also an instance of either:
             L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup
-    out_dir : path-like
-        The directory where the browse PNG and KML files will be saved.
-    browse_filename : str
-        Filename (without path) for the browse image PNG.
-    kml_filename : str
-        Filename (without path) for the browse image KML.
+    browse_paths : nisarqa.BrowseOutputPaths
+        Container with output directory and browse/KML filenames.
     dem_file : path-like or None, optional
         Path to a Digital Elevation Model (DEM) file in a GDAL-compatible
         raster format which will be used for computing accurate geolocation.
@@ -316,9 +308,7 @@ def save_igram_product_browse(
             freq=freq,
             pol=pol,
             params=params,
-            out_dir=out_dir,
-            browse_filename=browse_filename,
-            kml_filename=kml_filename,
+            browse_paths=browse_paths,
             dem_file=dem_file,
         )
     else:
@@ -327,9 +317,7 @@ def save_igram_product_browse(
             freq=freq,
             pol=pol,
             params=params,
-            out_dir=out_dir,
-            browse_filename=browse_filename,
-            kml_filename=kml_filename,
+            browse_paths=browse_paths,
             dem_file=dem_file,
         )
 

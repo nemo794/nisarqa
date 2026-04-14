@@ -74,9 +74,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
     report_pdf: PdfPages,
     stats_h5: h5py.File,
     *,
-    out_dir: str | os.PathLike,
-    browse_filename: str,
-    kml_filename: str,
+    browse_paths: nisarqa.BrowseOutputPaths,
     dem_file: str | os.PathLike | None = None,
 ):
     """
@@ -115,12 +113,8 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         The output pdf file to append the quiver plot to.
     stats_h5 : h5py.File
         The output file to save QA metrics, etc. to.
-    out_dir : path-like
-        The directory where browse PNG and KML files will be saved.
-    browse_filename : str
-        Filename (without path) for the browse image PNG.
-    kml_filename : str
-        Filename (without path) for the browse image KML.
+    browse_paths : nisarqa.BrowseOutputPaths
+        Container with output directory and browse/KML filenames.
     dem_file : path-like or None, optional
         Path to a DEM file for accurate geolocation. Used for radar products
         when generating KMLs; ignored for geocoded products. If None, a
@@ -163,16 +157,15 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                 )
             )
 
-        browse_png = Path(out_dir, browse_filename)
         y_dec, x_dec = plot_single_quiver_plot_to_png(
             az_offset=az_off,
             rg_offset=rg_off,
             quiver_params=params_quiver,
             browse_params=params_browse,
-            png_filepath=browse_png,
+            png_filepath=browse_paths.browse_path,
             **proj_params,
         )
-        log.info(f"Browse PNG saved to {browse_png}")
+        log.info(f"Browse PNG saved to {browse_paths.browse_path}")
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,
@@ -192,19 +185,18 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         )
 
         # Generate KML with accurate corners for the browse image
-        llq_kwargs = {
-            "output_dir": out_dir,
-            "kml_filename": kml_filename,
-            "png_filename": browse_filename,
-        }
         if not product.is_geocoded:
-            llq_kwargs["orbit"] = product.get_orbit(ref_or_sec="reference")
-            llq_kwargs["wavelength"] = product.wavelength(freq=freq)
-            llq_kwargs["look_side"] = product.look_direction
-            llq_kwargs["dem_file"] = dem_file
+            browse_grid.save_kml(
+                browse_paths=browse_paths,
+                orbit=product.get_orbit(ref_or_sec="reference"),
+                wavelength=product.wavelength(freq=freq),
+                look_side=product.look_direction,
+                dem_file=dem_file,
+            )
+        else:
+            browse_grid.save_kml(browse_paths=browse_paths)
 
-        browse_grid.save_kml(**llq_kwargs)
-        log.info(f"Browse KML saved to {Path(out_dir, kml_filename)}")
+        log.info(f"Browse KML saved to {browse_paths.kml_path}")
 
         # Generate EPSG 4326 browse if requested
         if params_browse.output_browse_4326:
@@ -311,11 +303,6 @@ def process_az_and_slant_rg_offsets_from_offset_product(
             )
 
             # Generate the EPSG 4326 browse PNG
-            browse_filename_4326 = str(browse_filename).replace(
-                ".png", "_4326.png"
-            )
-            browse_png_4326 = Path(out_dir, browse_filename_4326)
-
             # Ensure no further decimation occurs.
             # TODO - ripple effect: docstrings to allow for "longest_side_max=None"
             geocoded_browse_params = replace(
@@ -331,21 +318,15 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                 rg_offset=geocoded_rg_raster,
                 quiver_params=params_quiver,
                 browse_params=geocoded_browse_params,
-                png_filepath=browse_png_4326,
+                png_filepath=browse_paths.browse_4326_path,
                 **proj_params_4326,
             )
-            log.info(f"EPSG 4326 browse PNG saved to {browse_png_4326}")
+            log.info(f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}")
 
             # Generate EPSG 4326 KML
-            kml_filename_4326 = str(kml_filename).replace(".kml", "_4326.kml")
-            qa_geogrid_4326.save_kml(
-                output_dir=out_dir,
-                kml_filename=kml_filename_4326,
-                png_filename=browse_filename_4326,
-            )
-            log.info(
-                f"EPSG 4326 browse KML saved to {Path(out_dir, kml_filename_4326)}"
-            )
+            suffix = nisarqa.LONLAT_SUFFIX
+            qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
+            log.info(f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}")
 
     # Populate PDF with side-by-side plots and quiver plots.
     for freq in product.freqs:

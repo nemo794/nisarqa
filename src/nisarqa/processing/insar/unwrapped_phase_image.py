@@ -216,9 +216,7 @@ def make_unwrapped_phase_browse(
     freq: str,
     pol: str,
     params: Any,  # will be type-narrowed in the function
-    out_dir: str | os.Pathlike,
-    browse_filename: str,
-    kml_filename: str,
+    browse_paths: nisarqa.BrowseOutputPaths,
     dem_file: str | os.PathLike | None = None,
 ) -> None:
     """
@@ -237,15 +235,8 @@ def make_unwrapped_phase_browse(
         Must be an instance of UNWIgramBrowseParamGroup
         and (via multiple inheritance) also an instance of either:
             L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup
-    out_dir : path-like
-        The directory to write the output PNG and KML file(s) to. This
-        directory must already exist.
-    browse_filename : str
-        The basename of the output browse image PNG file. The file will be
-        created in `out_dir`. Example: "BROWSE.png".
-    kml_filename : str
-        The basename of the output browse image KML file. The file will be
-        created in `out_dir`. Example: "BROWSE.kml".
+    browse_paths : nisarqa.BrowseOutputPaths
+        Container with output directory and browse/KML filenames.
     dem_file : path-like or None, optional
         Digital Elevation Model (DEM) file path in a GDAL-compatible raster
         format. Will be ignored if `params.output_browse_4326`
@@ -278,7 +269,7 @@ def make_unwrapped_phase_browse(
             cmap="twilight_shifted",
             sample_spacing=(igram_r.y_ground_spacing, igram_r.x_ground_spacing),
             longest_side_max=params.longest_side_max,
-            png_filepath=Path(out_dir, browse_filename),
+            png_filepath=browse_paths.browse_path,
             vmin=cbar_min_max[0],
             vmax=cbar_min_max[1],
         )
@@ -287,18 +278,16 @@ def make_unwrapped_phase_browse(
             y_stride=ky, x_stride=kx, mode="decimate"
         )
 
-        llq_kwargs = {
-            "output_dir": out_dir,
-            "kml_filename": kml_filename,
-            "png_filename": browse_filename,
-        }
         if not product.is_geocoded:
-            llq_kwargs["orbit"] = product.get_orbit(ref_or_sec="reference")
-            llq_kwargs["wavelength"] = product.wavelength(freq=freq)
-            llq_kwargs["look_side"] = product.look_direction
-            llq_kwargs["dem_file"] = dem_file
-
-        browse_grid.save_kml(**llq_kwargs)
+            browse_grid.save_kml(
+                browse_paths=browse_paths,
+                orbit=product.get_orbit(ref_or_sec="reference"),
+                wavelength=product.wavelength(freq=freq),
+                look_side=product.look_direction,
+                dem_file=dem_file,
+            )
+        else:
+            browse_grid.save_kml(browse_paths=browse_paths)
 
         if params.output_browse_4326:
             if product.is_geocoded:
@@ -339,31 +328,25 @@ def make_unwrapped_phase_browse(
                 )
 
             # Save EPSG 4326 browse PNG
-            browse_filename_4326 = str(browse_filename).replace(
-                ".png", "_4326.png"
-            )
-            browse_path_4326 = Path(out_dir, browse_filename_4326)
             plot_2d_array_and_save_to_png(
                 arr=geocoded_arr,
                 cmap="twilight_shifted",
                 sample_spacing=None,  # geocoded_arr already on square pixels
                 longest_side_max=None,  # geocoded_arr already correct shape
-                png_filepath=browse_path_4326,
+                png_filepath=browse_paths.browse_4326_path,
                 vmin=cbar_min_max[0],
                 vmax=cbar_min_max[1],
             )
 
             # Generate EPSG 4326 KML
-            kml_filename_4326 = str(kml_filename).replace(".kml", "_4326.kml")
-            qa_geogrid_4326.save_kml(
-                output_dir=out_dir,
-                kml_filename=kml_filename_4326,
-                png_filename=browse_filename_4326,
-            )
+            suffix = nisarqa.LONLAT_SUFFIX
+            qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
 
-            log.info(f"EPSG 4326 browse PNG saved to {browse_path_4326}")
             log.info(
-                f"EPSG 4326 browse KML saved to {Path(out_dir, kml_filename_4326)}"
+                f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}"
+            )
+            log.info(
+                f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}"
             )
 
 
