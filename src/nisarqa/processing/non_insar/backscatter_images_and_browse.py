@@ -239,9 +239,15 @@ def process_backscatter_imgs_and_browse(
 
             if product.is_geocoded:
                 # Level-2: Reproject using GDAL
+                # Convert fill_value to float (take real part if complex)
+                fill_val = (
+                    np.real(primary_browse_fill)
+                    if np.iscomplexobj(primary_browse_fill)
+                    else primary_browse_fill
+                )
                 geocoded_arr, qa_geogrid_4326 = nisarqa.reproject_geo_raster(
                     image_array=img_arr,
-                    fill_value=primary_browse_fill,
+                    fill_value=fill_val,
                     geogrid=primary_browse_grid,
                     output_epsg=4326,
                     resample=browse_4326_params.resample,

@@ -277,6 +277,13 @@ def make_wrapped_phase_browse(
             rewrap=None,
         )
 
+        # Ensure fill_value is float (take real part if complex)
+        fill_val = (
+            np.real(igram_r.fill_value)
+            if np.iscomplexobj(igram_r.fill_value)
+            else igram_r.fill_value
+        )
+
         _make_phase_browse(
             phase=phase,
             grid=igram_r.grid,
@@ -292,7 +299,7 @@ def make_wrapped_phase_browse(
             look_side=product.look_direction,
             dem_file=dem_file,
             # Parameters for Level-2; will be ignored for Level-1
-            fill_value=igram_r.fill_value,
+            fill_value=fill_val,
         )
 
 
