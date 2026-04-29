@@ -230,10 +230,13 @@ def geocode_radar_raster(
 
     Warning
     -------
-    This function is not tested for large, full-size NISAR rasters.
-    Recommend only using it to geocode relatively small rasters, such as
-    browse image arrays.
-    To geocode full-size NISAR rasters, suggest using ISCE3 directly.
+    - This function is currently only implemented to geocode to EPSG 4326.
+      As the need arises to geocode to other EPSGs, it can be easily
+      updated.
+    - This function is not tested for large, full-size NISAR rasters.
+      Recommend only using it to geocode relatively small rasters, such as
+      browse image arrays.
+      To geocode full-size NISAR rasters, suggest using ISCE3 directly.
     """
 
     if np.iscomplexobj(radar_array):
@@ -273,29 +276,33 @@ def geocode_radar_raster(
         # Ensure float type
         raster_array = radar_array.astype(np.float64)
 
-        llq = radargrid.get_latlonquad(
-            orbit=orbit,
-            wavelength=wavelength,
-            look_side=look_side,
-            dem_file=dem_filepath,
-        )
+        if epsg == 4326:
+            llq = radargrid.get_latlonquad(
+                orbit=orbit,
+                wavelength=wavelength,
+                look_side=look_side,
+                dem_file=dem_filepath,
+            )
 
-        # Get bounds from the polygon
-        bbox = llq.bounds()  # (minx, miny, maxx, maxy)
-        width_deg = bbox[2] - bbox[0]
-        length_deg = bbox[3] - bbox[1]
+            # Get bounds in lat/lon from the polygon
+            minx, miny, maxx, maxy = llq.bounds()  # (minx, miny, maxx, maxy)
 
-        # Determine resolution based on longest_side_max
-        # (The longest side should have at most longest_side_max pixels)
+            width_deg = maxx - minx  # longitude
+            length_deg = maxy - miny  # latitude
 
-        # TODO -- test with a partial granule in the polar regions, to see
-        # how decent/awful the distortion of the PNG is.
-        longest_extent = max(width_deg, length_deg)
-        resolution = longest_extent / max(np.shape(radar_array))
-
-        if resolution <= 0:
-            raise ValueError(
-                f"Resolution computed is {resolution}, must be greater than 0."
+            # Determine resolution based on the longest side of the array.
+            # Handle width and length independently. For example, in lon/lat
+            # 1 degree of latitude is not equivalent to 1 degree of longitude,
+            # particularly towards the polar regions.
+            resolution_x = width_deg / max(np.shape(radar_array))
+            resolution_y = length_deg / max(np.shape(radar_array))
+        else:
+            # TODO - update this code to compute resolution_x
+            # and resolution_y using (hopefully) logic that is generic to
+            # various EPSGs.
+            raise NotImplementedError(
+                "Function currently only implemented for EPSG 4326."
+                " Please update for geocoding to other coordinate systems."
             )
 
         # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
@@ -327,8 +334,8 @@ def geocode_radar_raster(
         geocode_obj.geogrid(
             x_start=np.nan,  # Will be computed by update_geogrid
             y_start=np.nan,  # Will be computed by update_geogrid
-            x_spacing=resolution,
-            y_spacing=-resolution,
+            x_spacing=resolution_x,
+            y_spacing=-resolution_y,  # Y posting should be negative
             width=0,  # Will be computed by update_geogrid
             length=0,  # Will be computed by update_geogrid
             epsg=epsg,
@@ -471,6 +478,12 @@ def reproject_geo_raster(
         raise ValueError(
             f"image_array is complex-valued. Only real-valued data"
             " currently supported."
+        )
+
+    if np.iscomplexobj(fill_value):
+        raise TypeError(
+            f"fill_value must be real-valued, but received complex: {fill_value}. "
+            "Convert to float (e.g., using np.real()) before calling this function."
         )
 
     # Use scratch directory with temporary files for ISCE3 raster I/O.
