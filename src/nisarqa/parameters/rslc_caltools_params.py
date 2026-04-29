@@ -269,7 +269,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
         Defaults to (1024, 1024).
     output_individual_pngs : bool, optional
         True to output one grayscale PNG+KML pair per raster image layer; these
-        will be generated in addition to the standard browse image PNG+KML.
+        will be generated in addition to the primary browse image PNG+KML.
         The filename of each additional file will include a suffix noting
         that image's frequency and polarization.
         False to have the primary browse image be the only PNG+KML generated.
@@ -420,7 +420,7 @@ class BackscatterImageParamGroup(YamlParamGroup, HDF5ParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="output_individual_pngs",
                 descr="""True to output one grayscale PNG+KML pair per raster image layer; these
-                will be generated in addition to the standard browse image PNG+KML.
+                will be generated in addition to the primary browse image PNG+KML.
                 The filename of each additional file will include a suffix noting
                 that image's frequency and polarization.
                 False to have the primary browse image be the only PNG+KML generated.

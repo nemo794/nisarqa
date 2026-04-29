@@ -995,23 +995,22 @@ class Browse4326ParamGroup(YamlParamGroup):
 
     This corresponds to the `qa_reports: browse_4326` runconfig group.
 
-    This is an abstract base class. Product-specific subclasses should be
-    used: L1RadarBrowse4326ParamGroup for Level-1 radar products or
-    L2GeoBrowse4326ParamGroup for Level-2 geocoded products.
+    This dataclass should be treated as an abstract base class.
+    Product-specific subclasses should be used:
+        L1RadarBrowse4326ParamGroup for Level-1 radar products or
+        L2GeoBrowse4326ParamGroup for Level-2 geocoded products.
 
     Parameters
     ----------
     output_browse_4326 : bool, optional
-        True to generate a version of the standard browse PNG+KML that is
+        True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
-        False to only generate standard browse outputs.
-        The EPSG 4326 PNG+KML version will be in addition to the standard
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
         suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
-        The `longest_side_max` runconfig parameter which determines the shape
-        of the standard browse PNG will be reused for the EPSG 4326 PNG.
         Defaults to False.
     """
 
@@ -1020,16 +1019,14 @@ class Browse4326ParamGroup(YamlParamGroup):
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="output_browse_4326",
-                descr="""True to generate a version of the standard browse PNG+KML that is
+                descr="""True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
-        False to only generate standard browse outputs.
-        The EPSG 4326 PNG+KML version will be in addition to the standard
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
-        The `longest_side_max` runconfig parameter which determines the shape
-        of the standard browse PNG will be reused for the EPSG 4326 PNG.""",
+        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').""",
             )
         },
     )
@@ -1057,27 +1054,20 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
     Parameters
     ----------
     output_browse_4326 : bool, optional
-        True to generate a version of the standard browse PNG+KML that is
+        True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
-        False to only generate standard browse outputs.
-        The EPSG 4326 PNG+KML version will be in addition to the standard
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
         suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
-        The `longest_side_max` runconfig parameter which determines the shape
-        of the standard browse PNG will be reused for the EPSG 4326 PNG.
         Defaults to False.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
         'bicubic', 'nearest', 'biquintic'.
         Ignored if `output_browse_4326` is False.
         Defaults to 'bilinear'.
-    margin_in_km : float, optional
-        Margin in kilometers to add around the bounding polygon to account
-        for topography when geocoding.
-        Ignored if `output_browse_4326` is False.
-        Defaults to 5.0.
     """
 
     resample: str = field(
@@ -1087,18 +1077,6 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
                 name="resample",
                 descr="""Resampling method for ISCE3 geocoding. Options: 'sinc',
                 'bilinear', 'bicubic', 'nearest', 'biquintic'.
-                Ignored if `output_browse_4326` is False.""",
-            )
-        },
-    )
-
-    margin_in_km: float = field(
-        default=5.0,
-        metadata={
-            "yaml_attrs": YamlAttrs(
-                name="margin_in_km",
-                descr="""Margin in kilometers to add around the bounding polygon
-                to account for topography when geocoding.
                 Ignored if `output_browse_4326` is False.""",
             )
         },
@@ -1115,16 +1093,6 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
                 f"`resample` must be one of {valid_resample}: {self.resample}"
             )
 
-        # Validate margin_in_km
-        if not isinstance(self.margin_in_km, (int, float)):
-            raise TypeError(
-                f"`margin_in_km` must be numeric: {self.margin_in_km}"
-            )
-        if self.margin_in_km <= 0:
-            raise ValueError(
-                f"`margin_in_km` must be positive: {self.margin_in_km}"
-            )
-
 
 @dataclass(frozen=True)
 class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
@@ -1137,16 +1105,14 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
     Parameters
     ----------
     output_browse_4326 : bool, optional
-        True to generate a version of the standard browse PNG+KML that is
+        True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
-        False to only generate standard browse outputs.
-        The EPSG 4326 PNG+KML version will be in addition to the standard
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
         suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
-        The `longest_side_max` runconfig parameter which determines the shape
-        of the standard browse PNG will be reused for the EPSG 4326 PNG.
         Defaults to False.
     resample : str, optional
         Resampling algorithm for GDAL reprojection. Options: 'near',
