@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
-from typing import Any, Optional, Union, overload
+from typing import Any, overload
 
 import h5py
 import numpy as np
@@ -15,9 +14,9 @@ from ..plotting_utils import (
     downsample_img_to_size_of_axes,
     format_axes_ticks_and_labels,
     format_cbar_ticks_for_multiples_of_pi,
-    plot_2d_array_and_save_to_png,
 )
 from ..processing_utils import get_phase_array
+from ._utils import _make_phase_browse
 from .histograms import process_two_histograms
 
 objects_to_skip = nisarqa.get_all(name=__name__)
@@ -260,9 +259,8 @@ def make_wrapped_phase_browse(
         a zero-height DEM will be used.
         Defaults to None.
     """
-    log = nisarqa.get_logger()
 
-    # XXX - Should improve the function's type annotation, but there's not
+    # XXX - We should improve the function's type annotation, but there's not
     # a good syntax for multiple inheritance in combination with a Union.
     # So, use type narrowing:
     if not isinstance(params, nisarqa.IgramBrowseParamGroup):
@@ -275,94 +273,27 @@ def make_wrapped_phase_browse(
     with product.get_wrapped_igram(freq=freq, pol=pol) as igram_r:
         phase, cbar_min_max = get_phase_array(
             phs_or_complex_raster=igram_r,
-            make_square_pixels=False,  # we'll do this while downsampling
+            make_square_pixels=False,  # we'll do this below while decimating
             rewrap=None,
         )
 
-        ky, kx = plot_2d_array_and_save_to_png(
-            arr=phase,
-            cmap="twilight_shifted",
+        _make_phase_browse(
+            phase=phase,
+            grid=igram_r.grid,
+            cbar_min_max=cbar_min_max,
             sample_spacing=(igram_r.y_ground_spacing, igram_r.x_ground_spacing),
             longest_side_max=params.longest_side_max,
-            png_filepath=browse_paths.browse_path,
-            vmin=cbar_min_max[0],
-            vmax=cbar_min_max[1],
+            resample=params.resample,
+            browse_paths=browse_paths,
+            save_epsg_4326_browse=params.output_browse_4326,
+            # Parameters for Level-1; will be ignored for Level-2
+            orbit=product.get_orbit(ref_or_sec="reference"),
+            wavelength=product.wavelength(freq=freq),
+            look_side=product.look_direction,
+            dem_file=dem_file,
+            # Parameters for Level-2; will be ignored for Level-1
+            fill_value=igram_r.fill_value,
         )
-
-        browse_grid = igram_r.grid.downsample(
-            y_stride=ky, x_stride=kx, mode="decimate"
-        )
-
-        if not product.is_geocoded:
-            browse_grid.save_kml(
-                browse_paths=browse_paths,
-                orbit=product.get_orbit(ref_or_sec="reference"),
-                wavelength=product.wavelength(freq=freq),
-                look_side=product.look_direction,
-                dem_file=dem_file,
-            )
-        else:
-            browse_grid.save_kml(browse_paths=browse_paths)
-
-        if params.output_browse_4326:
-            if product.is_geocoded:
-                # Level-2: Reproject using GDAL
-                geocoded_arr, qa_geogrid_4326 = nisarqa.reproject_geo_raster(
-                    image_array=phase,
-                    fill_value=igram_r.fill_value,
-                    geogrid=browse_grid,
-                    output_epsg=4326,
-                    longest_side_max=params.longest_side_max,
-                    resample=params.resample,
-                )
-            else:
-                # Level-1: Geocode using ISCE3
-                browse_radargrid = browse_grid.get_isce3_radar_grid_parameters(
-                    wavelength=product.wavelength(freq=freq),
-                    look_side=product.look_direction,
-                )
-
-                isce3_geogrid = nisarqa.compute_geogrid(
-                    bounding_polygon=product.bounding_polygon,
-                    epsg=4326,  # lon/lat
-                    longest_side_max=params.longest_side_max,
-                    margin_in_km=params.margin_in_km,
-                )
-
-                geocoded_arr = nisarqa.geocode_radar_raster(
-                    radar_array=phase,
-                    radargrid=browse_radargrid,
-                    orbit=product.get_orbit(ref_or_sec="reference"),
-                    geogrid=isce3_geogrid,
-                    dem_file=dem_file,
-                    resample=params.resample,
-                )
-
-                qa_geogrid_4326 = nisarqa.GeoGrid.from_isce3_geo_grid(
-                    isce3_geogrid=isce3_geogrid
-                )
-
-            # Save EPSG 4326 browse PNG
-            plot_2d_array_and_save_to_png(
-                arr=geocoded_arr,
-                cmap="twilight_shifted",
-                sample_spacing=None,  # geocoded_arr already on square pixels
-                longest_side_max=None,  # geocoded_arr already correct shape
-                png_filepath=browse_paths.browse_4326_path,
-                vmin=cbar_min_max[0],
-                vmax=cbar_min_max[1],
-            )
-
-            # Generate EPSG 4326 KML
-            suffix = nisarqa.LONLAT_SUFFIX
-            qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
-
-            log.info(
-                f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}"
-            )
-            log.info(
-                f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}"
-            )
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

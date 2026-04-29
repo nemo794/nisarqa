@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
@@ -395,10 +396,36 @@ class RadarGrid(CoordinateGrid):
         )
 
     def get_latlonquad(
-        self, orbit, wavelength, look_side, dem_file
+        self,
+        orbit: isce3.core.Orbit,
+        wavelength: float,
+        look_side: isce3.core.LookSide | str,
+        dem_file: str | os.PathLike | None = None,
+        ellipsoid: isce3.core.Ellipsoid | None = None,
     ) -> nisarqa.LatLonQuad:
         """
         Get the LatLonQuad for this RadarGrid.
+
+        Wrapper around nisarqa.compute_latlonquad_from_radar_coords().
+
+        Parameters
+        ----------
+        orbit : isce3.core.Orbit
+            The trajectory of the radar antenna phase center.
+        wavelength : float
+            The radar central wavelength, in meters.
+        look_side : isce3.core.LookSide or {'left', 'right'}
+            The look direction of the radar (left-looking or right-looking).
+        dem_file : path-like or None, optional
+            Digital Elevation Model (DEM) file path in a GDAL-compatible raster
+            format. If None, a zero-height DEM will be used. Defaults to None.
+        ellipsoid : isce3.core.Ellipsoid, optional
+            The reference ellipsoid. If None, defaults to WGS84.
+
+        Returns
+        -------
+        LatLonQuad
+            A LatLonQuad object for this RadarGrid instance.
         """
         return nisarqa.compute_latlonquad_from_radar_coords(
             slant_range=self.slant_range,
@@ -406,6 +433,7 @@ class RadarGrid(CoordinateGrid):
             orbit=orbit,
             wavelength=wavelength,
             look_side=look_side,
+            ellipsoid=ellipsoid,
             dem_file=dem_file,
         )
 
@@ -413,10 +441,10 @@ class RadarGrid(CoordinateGrid):
         self,
         *,
         browse_paths: nisarqa.BrowseOutputPaths,
-        orbit,
-        wavelength,
-        look_side,
-        dem_file,
+        orbit: isce3.core.Orbit,
+        wavelength: float,
+        look_side: str,
+        dem_file: str,
         suffix: str | None = None,
     ) -> None:
         """
@@ -642,8 +670,8 @@ class GeoGrid(CoordinateGrid):
     @classmethod
     def from_coordinates(
         cls,
-        x_coords: np.ndarray,
-        y_coords: np.ndarray,
+        x_coords: ArrayLike,
+        y_coords: ArrayLike,
         epsg: int,
     ) -> GeoGrid:
         """
@@ -654,10 +682,10 @@ class GeoGrid(CoordinateGrid):
 
         Parameters
         ----------
-        x_coords : numpy.ndarray
+        x_coords : array-like
             1D array of X coordinate values (in units corresponding to `epsg`)
             for the given raster. Values should correspond to pixel centers.
-        y_coords : numpy.ndarray
+        y_coords : array-like
             1D array of Y coordinate values (in units corresponding to `epsg`)
             for the given raster. Values should correspond to pixel centers.
         epsg : int
@@ -677,13 +705,15 @@ class GeoGrid(CoordinateGrid):
             A nisarqa GeoGridParameters instance, which uses the pixel center
             convention.
         """
+        x_coordinates = np.asarray(x_coords)
+        y_coordinates = np.asarray(y_coords)
 
         return cls(
             epsg=epsg,
-            x_axis_posting=x_coords[1] - x_coords[0],
-            x_coordinates=x_coords,
-            y_axis_posting=y_coords[1] - y_coords[0],
-            y_coordinates=y_coords,
+            x_axis_posting=x_coordinates[1] - x_coordinates[0],
+            x_coordinates=x_coordinates,
+            y_axis_posting=y_coordinates[1] - y_coordinates[0],
+            y_coordinates=y_coordinates,
         )
 
     def downsample(self, y_stride: int, x_stride: int, mode: str) -> GeoGrid:
@@ -702,7 +732,9 @@ class GeoGrid(CoordinateGrid):
 
     def get_latlonquad(self) -> nisarqa.LatLonQuad:
         """
-        Get the LatLonQuad for this Geogrid.
+        Get the LatLonQuad for this GeoGrid.
+
+        Wrapper around nisarqa.compute_latlonquad_from_geo_coords().
         """
         return nisarqa.compute_latlonquad_from_geo_coords(
             x_coords=self.x_coordinates,
@@ -735,6 +767,64 @@ class GeoGrid(CoordinateGrid):
             kml_filename=browse_paths.get_kml_filename(suffix=suffix),
             png_filename=browse_paths.get_browse_filename(suffix=suffix),
         )
+
+    @property
+    def crosses_antimeridian(self) -> bool:
+        """
+        True if this GeoGrid crosses the antimeridian (International Date Line).
+
+        Returns
+        -------
+        crosses : bool
+            True if the grid crosses the antimeridian, False otherwise.
+
+        Examples
+        --------
+        A grid with lon_start=-181° and lon_stop=-147° crosses the antimeridian.
+        A grid with corner longitudes [179°, 180°, -179°, -178°] crosses
+        the antimeridian.
+        """
+
+        # Implementation plan:
+        # Step 1: Convert the grid's corner coordinates to EPSG:4326 (lon/lat).
+        # Step 2: Determine if there is an antimeridian crossing by examining:
+        #    1. Whether longitude coordinates extend beyond [-180, 180] degrees
+        #        (i.e., unwrapped coordinates like -181° or 181°)
+        #    2. Whether there are large discontinuous jumps (>180°) between
+        #        corner longitude values, which indicate a dateline crossing
+
+        # Create projection object for this grid's EPSG
+        proj = isce3.core.make_projection(self.epsg)
+
+        # Get corner coordinates in the grid's native projection
+        # Use a dummy z-coordinate of 0 for 2D projections
+        corners = [
+            [self.x_start, self.y_start, 0],  # upper-left
+            [self.x_stop, self.y_start, 0],  # upper-right
+            [self.x_start, self.y_stop, 0],  # lower-left
+            [self.x_stop, self.y_stop, 0],  # lower-right
+        ]
+
+        # Convert corners to lon/lat (EPSG:4326)
+        corner_lons = []
+        for corner in corners:
+            lon_rad, lat_rad, h = proj.inverse(corner)
+            lon_deg = np.rad2deg(lon_rad)
+            corner_lons.append(lon_deg)
+
+        # Check if any longitude extends beyond [-180, 180]
+        for lon in corner_lons:
+            if lon < -180 or lon > 180:
+                return True
+
+        # Check for discontinuous jumps between corner longitudes
+        # A jump > 180° indicates wrapping across the dateline
+        for i in range(len(corner_lons)):
+            for j in range(i + 1, len(corner_lons)):
+                if abs(corner_lons[i] - corner_lons[j]) > 180:
+                    return True
+
+        return False
 
 
 def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):

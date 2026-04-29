@@ -214,7 +214,6 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                     fill_value=az_off.fill_value,
                     geogrid=browse_grid,
                     output_epsg=4326,
-                    longest_side_max=params_browse.longest_side_max,
                     resample=params_browse.resample,
                 )
 
@@ -223,67 +222,39 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                     fill_value=rg_off.fill_value,
                     geogrid=browse_grid,
                     output_epsg=4326,
-                    longest_side_max=params_browse.longest_side_max,
                     resample=params_browse.resample,
                 )
-
-                # For geocoded products, we need projection params for quiver
-                proj_params_4326 = {
-                    "quiver_projection_params": (
-                        nisarqa.ParamsForAzRgOffsetsToProjected(
-                            orbit=product.get_orbit(ref_or_sec="reference"),
-                            wavelength=product.wavelength(freq=freq),
-                            look_side=product.look_direction,
-                        )
-                    )
-                }
 
             else:
                 # Level-1: ROFF - Geocode using ISCE3
-                browse_radargrid = browse_grid.get_isce3_radar_grid_parameters(
+                geocoded_az, qa_geogrid_4326 = nisarqa.geocode_radar_raster(
+                    radar_array=az_off_decimated,
+                    radargrid=browse_grid,
+                    orbit=product.get_orbit(ref_or_sec="reference"),
                     wavelength=product.wavelength(freq=freq),
                     look_side=product.look_direction,
-                )
-
-                isce3_geogrid = nisarqa.compute_geogrid(
-                    bounding_polygon=product.bounding_polygon,
-                    epsg=4326,  # lon/lat
-                    longest_side_max=params_browse.longest_side_max,
-                    margin_in_km=params_browse.margin_in_km,
-                )
-
-                geocoded_az = nisarqa.geocode_radar_raster(
-                    radar_array=az_off_decimated,
-                    radargrid=browse_radargrid,
-                    orbit=product.get_orbit(ref_or_sec="reference"),
-                    geogrid=isce3_geogrid,
+                    epsg=4326,
                     dem_file=dem_file,
                     resample=params_browse.resample,
                 )
 
-                geocoded_rg = nisarqa.geocode_radar_raster(
+                geocoded_rg, _ = nisarqa.geocode_radar_raster(
                     radar_array=rg_off_decimated,
-                    radargrid=browse_radargrid,
+                    radargrid=browse_grid,
                     orbit=product.get_orbit(ref_or_sec="reference"),
-                    geogrid=isce3_geogrid,
+                    wavelength=product.wavelength(freq=freq),
+                    look_side=product.look_direction,
+                    epsg=4326,
                     dem_file=dem_file,
                     resample=params_browse.resample,
                 )
 
-                qa_geogrid_4326 = nisarqa.GeoGrid.from_isce3_geo_grid(
-                    isce3_geogrid=isce3_geogrid
-                )
-
-                # For ROFF, after geocoding to EPSG 4326, we need projection params
-                proj_params_4326 = {
-                    "quiver_projection_params": (
-                        nisarqa.ParamsForAzRgOffsetsToProjected(
-                            orbit=product.get_orbit(ref_or_sec="reference"),
-                            wavelength=product.wavelength(freq=freq),
-                            look_side=product.look_direction,
-                        )
-                    )
-                }
+            # For after geocoding to EPSG 4326, we need projection params
+            proj_params_4326 = nisarqa.ParamsForAzRgOffsetsToProjected(
+                orbit=product.get_orbit(ref_or_sec="reference"),
+                wavelength=product.wavelength(freq=freq),
+                look_side=product.look_direction,
+            )
 
             # Create temporary GeoRaster objects for the geocoded offsets
             # We need these to use plot_single_quiver_plot_to_png
@@ -296,37 +267,52 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                 "grid": qa_geogrid_4326,
             }
             geocoded_az_raster = nisarqa.GeoRaster(
-                data=geocoded_az, name=f"{az_off.name}_4326", **geo_kwargs
+                data=geocoded_az,
+                name=f"{az_off.name}_{nisarqa.LONLAT_SUFFIX}",
+                **geo_kwargs,
             )
             geocoded_rg_raster = nisarqa.GeoRaster(
-                data=geocoded_rg, name=f"{rg_off.name}_4326", **geo_kwargs
+                data=geocoded_rg,
+                name=f"{rg_off.name}_{nisarqa.LONLAT_SUFFIX}",
+                **geo_kwargs,
+            )
+
+            assert np.shape(geocoded_az_raster) == np.shape(
+                geocoded_rg_raster
+            ), print(
+                f"{np.shape(geocoded_az_raster)=} but "
+                f" {np.shape(geocoded_rg_raster)=}, they must be equal."
             )
 
             # Generate the EPSG 4326 browse PNG
             # Ensure no further decimation occurs.
-            # TODO - ripple effect: docstrings to allow for "longest_side_max=None"
             geocoded_browse_params = replace(
                 params_browse,
+                # Use max edge so that no further decimation occurs
                 longest_side_max=max(geocoded_az.shape),
                 browse_decimation_freqa=None,
                 browse_decimation_freqb=None,
             )
 
             # Note: We don't need the decimation strides for this call
-            _ = plot_single_quiver_plot_to_png(
+            plot_single_quiver_plot_to_png(
                 az_offset=geocoded_az_raster,
                 rg_offset=geocoded_rg_raster,
                 quiver_params=params_quiver,
                 browse_params=geocoded_browse_params,
                 png_filepath=browse_paths.browse_4326_path,
-                **proj_params_4326,
+                quiver_projection_params=proj_params_4326,
             )
-            log.info(f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}")
+            log.info(
+                f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}"
+            )
 
             # Generate EPSG 4326 KML
             suffix = nisarqa.LONLAT_SUFFIX
             qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
-            log.info(f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}")
+            log.info(
+                f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}"
+            )
 
     # Populate PDF with side-by-side plots and quiver plots.
     for freq in product.freqs:

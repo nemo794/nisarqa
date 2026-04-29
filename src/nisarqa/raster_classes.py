@@ -630,6 +630,7 @@ def compare_raster_metadata(raster1, raster2, almost_identical=True):
 
 def decimate_raster_array_to_square_pixels(
     raster_obj: RadarRaster | GeoRaster,
+    longest_side_max: int | None = None,
 ) -> np.ndarray:
     """
     Decimate *Raster's data array to approx. square pixels in X and Y direction.
@@ -639,6 +640,10 @@ def decimate_raster_array_to_square_pixels(
     raster_obj : RadarRaster or GeoRaster
         *Raster object whose .data attribute will be read into memory
         and decimated along the first two dimensions to approx. square pixels.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked image.
+        If None, the longest edge of the raster will be used. Defaults to None.
 
     Returns
     -------
@@ -651,11 +656,13 @@ def decimate_raster_array_to_square_pixels(
         arr=np.array(raster_obj.data, copy=True),
         y_axis_spacing=raster_obj.y_ground_spacing,
         x_axis_spacing=raster_obj.x_ground_spacing,
+        longest_side_max=longest_side_max,
     )
 
 
 def decimate_raster_array_to_square_pixels_with_strides(
     raster_obj: RadarRaster | GeoRaster,
+    longest_side_max: int | None = None,
 ) -> tuple[np.ndarray, int, int]:
     """
     Decimate *Raster's data array to square pixels and also return strides.
@@ -667,6 +674,10 @@ def decimate_raster_array_to_square_pixels_with_strides(
     raster_obj : RadarRaster or GeoRaster
         *Raster object whose .data attribute will be read into memory
         and decimated along the first two dimensions to approx. square pixels.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked image.
+        If None, the longest edge of the raster will be used. Defaults to None.
 
     Returns
     -------
@@ -682,11 +693,16 @@ def decimate_raster_array_to_square_pixels_with_strides(
         arr=np.array(raster_obj.data, copy=True),
         y_axis_spacing=raster_obj.y_ground_spacing,
         x_axis_spacing=raster_obj.x_ground_spacing,
+        longest_side_max=longest_side_max,
     )
 
 
 def decimate_array_to_square_pixels(
-    arr: np.ndarray, y_axis_spacing: float, x_axis_spacing: float
+    arr: np.ndarray,
+    *,
+    y_axis_spacing: float,
+    x_axis_spacing: float,
+    longest_side_max: int | None = None,
 ) -> np.ndarray:
     """
     Decimate array to approx. square pixels in X and Y direction.
@@ -702,6 +718,10 @@ def decimate_array_to_square_pixels(
     x_axis_spacing : float
         Pixel Spacing in X direction (range for range-Doppler rasters).
         Must be in same units as `y_axis_spacing`.
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked image. If None, the longest edge of `arr` will be used.
+        Defaults to None.
 
     Returns
     -------
@@ -710,14 +730,21 @@ def decimate_array_to_square_pixels(
         dimensions to have approx. square pixels.
     """
     out, _, _ = decimate_array_to_square_pixels_with_strides(
-        arr=arr, y_axis_spacing=y_axis_spacing, x_axis_spacing=x_axis_spacing
+        arr=arr,
+        y_axis_spacing=y_axis_spacing,
+        x_axis_spacing=x_axis_spacing,
+        longest_side_max=longest_side_max,
     )
 
     return out
 
 
 def decimate_array_to_square_pixels_with_strides(
-    arr: np.ndarray, y_axis_spacing: float, x_axis_spacing: float
+    arr: np.ndarray,
+    *,
+    y_axis_spacing: float,
+    x_axis_spacing: float,
+    longest_side_max: int | None = None,
 ) -> tuple[np.ndarray, int, int]:
     """
     Decimate array to approx. square pixels in X and Y direction.
@@ -733,6 +760,10 @@ def decimate_array_to_square_pixels_with_strides(
     x_axis_spacing : float
         Pixel Spacing in X direction (range for range-Doppler rasters).
         Must be in same units as `y_axis_spacing`.
+    longest_side_max : int or None, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked image. If None, the longest edge of `arr` will be used.
+        Defaults to None.
 
     Returns
     -------
@@ -743,6 +774,9 @@ def decimate_array_to_square_pixels_with_strides(
         The stride used for performing decimation in the Y and X directions,
         respectively.
     """
+    if longest_side_max is None:
+        # Only make square pixels. Use `max()` to not "shrink" the rasters.
+        longest_side_max = max(arr.shape[:2])
 
     ky, kx = nisarqa.compute_square_pixel_nlooks(
         img_shape=arr.shape[:2],
@@ -750,8 +784,7 @@ def decimate_array_to_square_pixels_with_strides(
             y_axis_spacing,
             x_axis_spacing,
         ],
-        # Only make square pixels. Use `max()` to not "shrink" the rasters.
-        longest_side_max=max(arr.shape[:2]),
+        longest_side_max=longest_side_max,
     )
 
     # Decimate to square pixels.

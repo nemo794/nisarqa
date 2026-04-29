@@ -1156,7 +1156,7 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
     """
 
     resample: str = field(
-        default="cubic",
+        default="average",
         metadata={
             "yaml_attrs": YamlAttrs(
                 name="resample",

@@ -112,7 +112,6 @@ def process_backscatter_imgs_and_browse(
 
                 if params.output_individual_pngs:
                     suffix = f"{freq}_{pol}"
-
                     nisarqa.plot_to_grayscale_png(
                         img_arr=corrected_img,
                         filepath=browse_paths.get_browse_path(suffix=suffix),
@@ -212,16 +211,20 @@ def process_backscatter_imgs_and_browse(
                                 dem_file=dem_file,
                             )
                         else:
-                            primary_browse_grid.save_kml(browse_paths=browse_paths)
+                            primary_browse_grid.save_kml(
+                                browse_paths=browse_paths
+                            )
 
-                        # KLUDGE -- Keep these values, in case we make
+                        # XXXX - Keep these values, in case we make
                         # a browse 4326. There's probably a more Pythonic
                         # way to store them.
-                        primary_browse_freq = freq
-                        primary_browse_fill = img.fill_value
+                        primary_browse_freq = freq  # For L1 products
+                        primary_browse_fill = img.fill_value  # For L2 products
 
     # Construct the nominal browse image (in input's native coordinate system)
-    product.save_browse(pol_imgs=pol_imgs_for_browse, filepath=browse_paths.browse_path)
+    product.save_browse(
+        pol_imgs=pol_imgs_for_browse, filepath=browse_paths.browse_path
+    )
 
     log = nisarqa.get_logger()
     log.info(f"Browse image PNG file saved to {browse_paths.browse_path}")
@@ -241,36 +244,19 @@ def process_backscatter_imgs_and_browse(
                     fill_value=primary_browse_fill,
                     geogrid=primary_browse_grid,
                     output_epsg=4326,
-                    longest_side_max=params.longest_side_max,
                     resample=browse_4326_params.resample,
                 )
             else:
                 # Level-1: Geocode using ISCE3
-                browse_radargrid = (
-                    primary_browse_grid.get_isce3_radar_grid_parameters(
-                        wavelength=product.wavelength(freq=primary_browse_freq),
-                        look_side=product.look_direction,
-                    )
-                )
-
-                isce3_geogrid = nisarqa.compute_geogrid(
-                    bounding_polygon=product.bounding_polygon,
-                    epsg=4326,  # lon/lat
-                    longest_side_max=params.longest_side_max,
-                    margin_in_km=browse_4326_params.margin_in_km,
-                )
-
-                geocoded_arr = nisarqa.geocode_radar_raster(
+                geocoded_arr, qa_geogrid_4326 = nisarqa.geocode_radar_raster(
                     radar_array=img_arr,
-                    radargrid=browse_radargrid,
+                    radargrid=primary_browse_grid,
                     orbit=product.get_orbit(),
-                    geogrid=isce3_geogrid,
+                    wavelength=product.wavelength(freq=primary_browse_freq),
+                    look_side=product.look_direction,
+                    epsg=4326,
                     dem_file=dem_file,
                     resample=browse_4326_params.resample,
-                )
-
-                qa_geogrid_4326 = nisarqa.GeoGrid.from_isce3_geo_grid(
-                    isce3_geogrid=isce3_geogrid
                 )
 
             pol_imgs_4326[pol] = geocoded_arr
@@ -284,7 +270,9 @@ def process_backscatter_imgs_and_browse(
         suffix = nisarqa.LONLAT_SUFFIX
         qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
 
-        log.info(f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}")
+        log.info(
+            f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}"
+        )
         log.info(f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}")
 
 

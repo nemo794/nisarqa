@@ -164,6 +164,37 @@ class LatLonQuad:
             object.__setattr__(self, "lr", unwrapped[2])
             object.__setattr__(self, "ll", unwrapped[3])
 
+    def bounds(self) -> tuple[float, float, float, float]:
+        """
+        Get the bounding box of this LatLonQuad.
+
+        Returns
+        -------
+        tuple of float
+            Bounding box as (minx, miny, maxx, maxy), where:
+            - minx: minimum longitude (degrees)
+            - miny: minimum latitude (degrees)
+            - maxx: maximum longitude (degrees)
+            - maxy: maximum latitude (degrees)
+
+        Notes
+        -----
+        For LatLonQuad objects with normalized longitudes (which may extend
+        beyond [-180, 180] to handle antimeridian crossings), this method
+        correctly computes the bounds using the unwrapped longitude values.
+        """
+        # Extract all longitudes and latitudes
+        lons = [self.ul.lon, self.ur.lon, self.ll.lon, self.lr.lon]
+        lats = [self.ul.lat, self.ur.lat, self.ll.lat, self.lr.lat]
+
+        # Compute bounds
+        minx = min(lons)
+        maxx = max(lons)
+        miny = min(lats)
+        maxy = max(lats)
+
+        return minx, miny, maxx, maxy
+
 
 def write_latlonquad_to_kml(
     llq: LatLonQuad,
@@ -230,8 +261,8 @@ def compute_latlonquad_from_radar_coords(
     orbit: isce3.core.Orbit,
     wavelength: float,
     look_side: isce3.core.LookSide | str,
-    ellipsoid: Optional[isce3.core.Ellipsoid] = None,
     dem_file: str | os.PathLike | None = None,
+    ellipsoid: Optional[isce3.core.Ellipsoid] = None,
 ) -> LatLonQuad:
     """
     Compute LatLonQuad for a range-Doppler raster.
@@ -254,11 +285,11 @@ def compute_latlonquad_from_radar_coords(
         The radar central wavelength, in meters.
     look_side : isce3.core.LookSide or {'left', 'right'}
         The look direction of the radar (left-looking or right-looking).
-    ellipsoid : isce3.core.Ellipsoid, optional
-        The reference ellipsoid. If None, defaults to WGS84.
     dem_file : path-like or None, optional
         Digital Elevation Model (DEM) file path in a GDAL-compatible raster
         format. If None, a zero-height DEM will be used. Defaults to None.
+    ellipsoid : isce3.core.Ellipsoid, optional
+        The reference ellipsoid. If None, defaults to WGS84.
 
     Returns
     -------
@@ -274,7 +305,6 @@ def compute_latlonquad_from_radar_coords(
         # Per specification, KML lonlatquads use EPSG 4326
         dem = isce3.geometry.DEMInterpolator(epsg=4326)
     else:
-        # ISCE3 requires a str; it does not understand Path objects.
         dem_raster = isce3.io.Raster(str(dem_file))
         dem = isce3.geometry.DEMInterpolator(dem_raster)
 
