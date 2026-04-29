@@ -695,14 +695,8 @@ class GeoGrid(CoordinateGrid):
 
         Returns
         -------
-        LatLonQuad
-            A LatLonQuad object for the given raster, with longitude normalization
-            applied for proper antimeridian handling.
-
-        Returns
-        -------
         qa_geogrid : nisarqa.GeoGrid
-            A nisarqa GeoGridParameters instance, which uses the pixel center
+            A nisarqa GeoGrid instance, which uses the pixel center
             convention.
         """
         x_coordinates = np.asarray(x_coords)
@@ -871,5 +865,4 @@ def _get_multilooked_center_coordinates(coords: ArrayLike, nlooks: int):
     return decimated
 
 
-__all__ = nisarqa.get_all(__name__, objects_to_skip)
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

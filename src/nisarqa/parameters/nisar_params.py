@@ -1003,7 +1003,7 @@ class Browse4326ParamGroup(YamlParamGroup):
     ----------
     output_browse_4326 : bool, optional
         True to generate a version of the standard browse PNG+KML that is
-        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
         False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard
@@ -1021,7 +1021,7 @@ class Browse4326ParamGroup(YamlParamGroup):
             "yaml_attrs": YamlAttrs(
                 name="output_browse_4326",
                 descr="""True to generate a version of the standard browse PNG+KML that is
-        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
         False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard
@@ -1058,7 +1058,7 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
     ----------
     output_browse_4326 : bool, optional
         True to generate a version of the standard browse PNG+KML that is
-        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
         False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard
@@ -1138,7 +1138,7 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
     ----------
     output_browse_4326 : bool, optional
         True to generate a version of the standard browse PNG+KML that is
-        projected to EPSG 4328 (lon/lat) coordinate system for accurate
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
         False to only generate standard browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the standard

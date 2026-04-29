@@ -215,7 +215,7 @@ def process_backscatter_imgs_and_browse(
                                 browse_paths=browse_paths
                             )
 
-                        # XXXX - Keep these values, in case we make
+                        # XXX - Keep these values, in case we make
                         # a browse 4326. There's probably a more Pythonic
                         # way to store them.
                         primary_browse_freq = freq  # For L1 products

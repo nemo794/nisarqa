@@ -279,7 +279,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
 
             assert np.shape(geocoded_az_raster) == np.shape(
                 geocoded_rg_raster
-            ), print(
+            ), (
                 f"{np.shape(geocoded_az_raster)=} but "
                 f" {np.shape(geocoded_rg_raster)=}, they must be equal."
             )

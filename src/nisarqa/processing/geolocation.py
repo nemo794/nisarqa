@@ -23,7 +23,7 @@ def compute_geogrid(
     epsg: int,
     longest_side_max: int = 2048,
     margin_in_km: int = 5,
-) -> nisarqa.GeoGridParameters:
+) -> nisarqa.GeoGrid:
     """
     Compute the geogrid parameters for a given bounding polygon and image size.
 
