@@ -264,7 +264,9 @@ def geocode_radar_raster(
     look_side : isce3.core.LookSide or {'left', 'right'}
         The look direction of the radar (left-looking or right-looking).
     epsg : int
-        The EPSG for the output geocoded raster.
+        The EPSG code for the output geocoded raster. Supports any valid EPSG
+        (e.g., 4326 for lat/lon, 32610 for UTM Zone 10N, 3413 for polar
+        stereographic).
     dem_file : path-like or None, optional
         Path to a DEM file; required for accurate geolocation of the pixels.
         If None, a temporary zero-height DEM will be used (global coverage
@@ -280,16 +282,16 @@ def geocode_radar_raster(
         2D array of geocoded data. The length of the longest side of
         `geocoded_array` will be no greater than the length of the
         longest side of the input `radar_array`.
+    output_geogrid : nisarqa.GeoGrid
+        GeoGrid object describing the coordinate system and grid of the
+        geocoded array.
 
-    Warning
-    -------
-    - This function is currently only implemented to geocode to EPSG 4326.
-      As the need arises to geocode to other EPSGs, it can be easily
-      updated.
-    - This function is not tested for large, full-size NISAR rasters.
-      Recommend only using it to geocode relatively small rasters, such as
-      browse image arrays.
-      To geocode full-size NISAR rasters, suggest using ISCE3 directly.
+    Warnings
+    --------
+    This function is not tested for large, full-size NISAR rasters.
+    Recommend only using it to geocode relatively small rasters, such as
+    browse image arrays. To geocode full-size NISAR rasters, suggest using
+    ISCE3 directly.
     """
 
     if np.iscomplexobj(radar_array):
@@ -329,34 +331,41 @@ def geocode_radar_raster(
             # Ensure float type
             raster_array = radar_array.astype(np.float64)
 
-            if epsg == 4326:
-                llq = radargrid.get_latlonquad(
-                    orbit=orbit,
-                    wavelength=wavelength,
-                    look_side=look_side,
-                    dem_file=dem_filepath,
-                )
+            # Get lon/lat corners from radar grid
+            llq = radargrid.get_latlonquad(
+                orbit=orbit,
+                wavelength=wavelength,
+                look_side=look_side,
+                dem_file=dem_filepath,
+            )
 
-                # Get bounds in lat/lon from the polygon
-                minx, miny, maxx, maxy = llq.bounds()  # (minx, miny, maxx, maxy)
+            # Transform lon/lat corners to target projection
+            proj = isce3.core.make_projection(epsg)
+            corners_proj = []
+            for corner in [llq.ul, llq.ur, llq.ll, llq.lr]:
+                lon_rad = np.deg2rad(corner.lon)
+                lat_rad = np.deg2rad(corner.lat)
+                # Forward transform: lon/lat -> target projection
+                # Returns coordinates in projection's native units
+                # (degrees for EPSG 4326, meters for UTM, etc.)
+                x, y, z = proj.forward([lon_rad, lat_rad, 0])
+                corners_proj.append((x, y))
 
-                width_deg = maxx - minx  # longitude
-                length_deg = maxy - miny  # latitude
+            # Get bounding box in target projection's native units
+            xs = [c[0] for c in corners_proj]
+            ys = [c[1] for c in corners_proj]
+            minx, maxx = min(xs), max(xs)
+            miny, maxy = min(ys), max(ys)
 
-                # Determine resolution based on the longest side of the array.
-                # Handle width and length independently. For example, in lon/lat
-                # 1 degree of latitude is not equivalent to 1 degree of longitude,
-                # particularly towards the polar regions.
-                resolution_x = width_deg / max(np.shape(radar_array))
-                resolution_y = length_deg / max(np.shape(radar_array))
-            else:
-                # TODO - update this code to compute resolution_x
-                # and resolution_y using (hopefully) logic that is generic to
-                # various EPSGs.
-                raise NotImplementedError(
-                    "Function currently only implemented for EPSG 4326."
-                    " Please update for geocoding to other coordinate systems."
-                )
+            width = maxx - minx
+            height = maxy - miny
+
+            # Determine resolution based on the longest side of the array.
+            # Handle width and height independently. For example, in lon/lat
+            # coordinates, 1 degree of latitude is not equivalent to 1 degree
+            # of longitude, particularly towards the polar regions.
+            resolution_x = width / max(np.shape(radar_array))
+            resolution_y = height / max(np.shape(radar_array))
 
             # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
             isce3_radargrid = radargrid.get_isce3_radar_grid_parameters(
