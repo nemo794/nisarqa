@@ -95,7 +95,7 @@ class CoordinateGrid(ABC):
 
     @abstractmethod
     def downsample(
-        self, y_stride: int, x_stride: int, mode: str
+        self: CoordinateGridT, y_stride: int, x_stride: int, mode: str
     ) -> CoordinateGridT:
         """
         Downsample grid by the given strides and mode.

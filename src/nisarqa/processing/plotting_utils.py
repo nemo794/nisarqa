@@ -29,7 +29,7 @@ def plot_2d_array_and_save_to_png(
     *,
     vmin: float | None = None,
     vmax: float | None = None,
-) -> tuple[int, int]:
+) -> None:
     """
     Plot a 2D raster to square pixels, and save to PNG.
 

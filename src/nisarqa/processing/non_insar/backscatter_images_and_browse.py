@@ -287,8 +287,11 @@ def process_backscatter_imgs_and_browse(
 
 
 def get_multilooked_backscatter_img_with_nlooks(
-    img, params, stats_h5, input_raster_represents_power=False
-):
+    img: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    params: nisarqa.BackscatterImageParamGroup,
+    stats_h5: h5py.File,
+    input_raster_represents_power: bool = False,
+) -> tuple[np.ndarray, tuple[int, int]]:
     """
     Generate the multilooked Backscatter Image array for a single
     polarization image.
@@ -401,12 +404,15 @@ def get_multilooked_backscatter_img_with_nlooks(
     log.debug(f"Final multilooked image shape: {out_img.shape}")
     log.info(f"Multilooking complete for backscatter image {img.name}.")
 
-    return out_img, nlooks
+    return out_img, tuple(nlooks)
 
 
 def get_multilooked_backscatter_img(
-    img, params, stats_h5, input_raster_represents_power=False
-):
+    img: nisarqa.GeoRaster | nisarqa.RadarRaster,
+    params: nisarqa.BackscatterImageParamGroup,
+    stats_h5: h5py.File,
+    input_raster_represents_power: bool = False,
+) -> np.ndarray:
     """
     Generate the multilooked Backscatter Image array for a single
     polarization image.
