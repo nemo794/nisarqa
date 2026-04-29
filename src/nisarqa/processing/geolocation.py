@@ -118,7 +118,7 @@ def compute_geogrid(
 
 @contextmanager
 def dem_file_manager(
-    dem_file: str | os.PathLike | None = None
+    dem_file: str | os.PathLike | None = None,
 ) -> Generator[pathlib.Path, None, None]:
     """
     Context manager for DEM file handling.
@@ -469,7 +469,9 @@ def geocode_radar_raster(
             # Calculate pixel center coordinates
             reproj_height, reproj_width = geocoded_array.shape
 
-            x_coords = output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
+            x_coords = (
+                output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
+            )
             y_coords = (
                 output_gt[3] + (np.arange(reproj_height) + 0.5) * output_gt[5]
             )
@@ -522,18 +524,24 @@ def reproject_geo_raster(
     -------
     reprojected_array : numpy.ndarray
         2D array of reprojected data in the output EPSG.
-        The pixel dimensions of this array match the pixel dimensions
-        of the input `image_array`.
+        The output dimensions will match the input dimensions (height and width
+        in pixels are preserved), which may introduce geometric distortion when
+        reprojecting between coordinate systems with different scale factors.
     output_geogrid : nisarqa.GeoGrid
         GeoGrid object describing the coordinate system and grid of the
         reprojected array. Uses pixel center convention.
 
-    Warning
-    -------
+    Warnings
+    --------
+    This function is designed for visual browse image generation and
+    prioritizes predictable output dimensions and visual appearance.
+    The output dimensions are constrained to match the input dimensions, which
+    may introduce slight distortion when reprojecting between coordinate systems
+    (e.g., from UTM meters to EPSG 4326 degrees, or in regions near the poles).
+
     This function is not optimized for large, full-size NISAR rasters.
-    Recommend only using it to geocode relatively small rasters, such as
+    Recommend only using it to reproject relatively small rasters, such as
     browse image arrays.
-    To geocode full-size NISAR rasters, suggest using ISCE3 directly.
     """
     if np.iscomplexobj(image_array):
         raise ValueError(
@@ -599,16 +607,19 @@ def reproject_geo_raster(
         source_ds.FlushCache()
         source_ds = None  # Close
 
-        # Choose warp options based on whether input crosses antimeridian
+        # Specify warp options; handle antimeridian crossings.
         warp_options = {
             "srcSRS": f"EPSG:{source_epsg}",
             "resampleAlg": resample,
             "format": "GTiff",
             "dstNodata": fill_value,
-            # XXX - using src_height and src_width works well for NISAR L2
-            # products, which use roughly square frames. What about
-            # arrays that are "long rectangles"? Or what about when
-            # warping to EPSGs that are not lon/lat?
+            # Constrain output dimensions to match input dimensions.
+            # This is intentional for browse image generation to ensure
+            # predictable output shapes and improve visual appearance
+            # for the browse products (particularly in polar regions),
+            # regardless of the source and target projections.
+            # This means that the output's x spacing and y spacing will no
+            # longer be approx. equal (i.e. output won't have ~square pixels).
             "height": src_height,
             "width": src_width,
         }
