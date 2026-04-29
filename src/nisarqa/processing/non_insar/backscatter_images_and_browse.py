@@ -223,12 +223,14 @@ def process_backscatter_imgs_and_browse(
 
     # Construct the nominal browse image (in input's native coordinate system)
     product.save_browse(
-        pol_imgs=pol_imgs_for_browse, filepath=browse_paths.browse_path
+        pol_imgs=pol_imgs_for_browse, filepath=browse_paths.primary_browse_path
     )
 
     log = nisarqa.get_logger()
-    log.info(f"Browse image PNG file saved to {browse_paths.browse_path}")
-    log.info(f"Browse image KML file saved to {browse_paths.kml_path}")
+    log.info(
+        f"Browse image PNG file saved to {browse_paths.primary_browse_path}"
+    )
+    log.info(f"Browse image KML file saved to {browse_paths.primary_kml_path}")
 
     # Generate EPSG 4326 browse if requested
     if browse_4326_params is not None and browse_4326_params.output_browse_4326:
@@ -268,18 +270,20 @@ def process_backscatter_imgs_and_browse(
             pol_imgs_4326[pol] = geocoded_arr
 
         # Save EPSG 4326 browse PNG
+        suffix = nisarqa.LONLAT_SUFFIX
+        png_4326_path = browse_paths.get_browse_path(suffix=suffix)
+
         product.save_browse(
-            pol_imgs=pol_imgs_4326, filepath=browse_paths.browse_4326_path
+            pol_imgs=pol_imgs_4326,
+            filepath=png_4326_path,
         )
+        log.info(f"EPSG 4326 browse PNG saved to {png_4326_path}")
 
         # Generate EPSG 4326 KML
-        suffix = nisarqa.LONLAT_SUFFIX
         qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
 
-        log.info(
-            f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}"
-        )
-        log.info(f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}")
+        kml_4326_path = browse_paths.get_kml_path(suffix=suffix)
+        log.info(f"EPSG 4326 browse KML saved to {kml_4326_path}")
 
 
 def get_multilooked_backscatter_img_with_nlooks(

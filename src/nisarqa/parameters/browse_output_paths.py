@@ -38,7 +38,7 @@ class BrowseOutputPaths:
     ...     browse_filename="BROWSE.png",
     ...     kml_filename="BROWSE.kml"
     ... )
-    >>> paths.browse_path
+    >>> paths.primary_browse_path
     PosixPath('/output/qa/BROWSE.png')
     >>> paths.get_browse_filename(suffix="4326")
     'BROWSE_4326.png'
@@ -189,42 +189,14 @@ class BrowseOutputPaths:
         return self.output_dir / self.get_kml_filename(suffix=suffix)
 
     @property
-    def browse_path(self) -> Path:
+    def primary_browse_path(self) -> Path:
         """Return the full path to the primary browse PNG."""
         return self.get_browse_path()
 
     @property
-    def kml_path(self) -> Path:
+    def primary_kml_path(self) -> Path:
         """Return the full path to the primary KML file."""
         return self.get_kml_path()
-
-    @property
-    def browse_4326_filename(self) -> str:
-        """
-        Return the EPSG 4326 browse PNG filename (no path).
-
-        Example: 'BROWSE_4326.png'
-        """
-        return self.get_browse_filename(suffix=nisarqa.LONLAT_SUFFIX)
-
-    @property
-    def kml_4326_filename(self) -> str:
-        """
-        Return the EPSG 4326 KML filename (no path).
-
-        Example: 'BROWSE_4326.kml'
-        """
-        return self.get_kml_filename(suffix=nisarqa.LONLAT_SUFFIX)
-
-    @property
-    def browse_4326_path(self) -> Path:
-        """Return the full path to the EPSG 4326 browse PNG."""
-        return self.get_browse_path(suffix=nisarqa.LONLAT_SUFFIX)
-
-    @property
-    def kml_4326_path(self) -> Path:
-        """Return the full path to the EPSG 4326 KML file."""
-        return self.get_kml_path(suffix=nisarqa.LONLAT_SUFFIX)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

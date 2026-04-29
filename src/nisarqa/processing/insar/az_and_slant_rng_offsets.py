@@ -162,10 +162,10 @@ def process_az_and_slant_rg_offsets_from_offset_product(
             rg_offset=rg_off,
             quiver_params=params_quiver,
             browse_params=params_browse,
-            png_filepath=browse_paths.browse_path,
+            png_filepath=browse_paths.primary_browse_path,
             **proj_params,
         )
-        log.info(f"Browse PNG saved to {browse_paths.browse_path}")
+        log.info(f"Browse PNG saved to {browse_paths.primary_browse_path}")
 
         nisarqa.create_dataset_in_h5group(
             h5_file=stats_h5,
@@ -196,7 +196,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         else:
             browse_grid.save_kml(browse_paths=browse_paths)
 
-        log.info(f"Browse KML saved to {browse_paths.kml_path}")
+        log.info(f"Browse KML saved to {browse_paths.primary_kml_path}")
 
         # Generate EPSG 4326 browse if requested
         if params_browse.output_browse_4326:
@@ -294,25 +294,26 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                 browse_decimation_freqb=None,
             )
 
+            suffix = nisarqa.LONLAT_SUFFIX
+            png_4326_path = browse_paths.get_browse_path(suffix=suffix)
+
             # Note: We don't need the decimation strides for this call
             plot_single_quiver_plot_to_png(
                 az_offset=geocoded_az_raster,
                 rg_offset=geocoded_rg_raster,
                 quiver_params=params_quiver,
                 browse_params=geocoded_browse_params,
-                png_filepath=browse_paths.browse_4326_path,
+                png_filepath=png_4326_path,
                 quiver_projection_params=proj_params_4326,
             )
-            log.info(
-                f"EPSG 4326 browse PNG saved to {browse_paths.browse_4326_path}"
-            )
+
+            log.info(f"EPSG 4326 browse PNG saved to {png_4326_path}")
 
             # Generate EPSG 4326 KML
-            suffix = nisarqa.LONLAT_SUFFIX
             qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
-            log.info(
-                f"EPSG 4326 browse KML saved to {browse_paths.kml_4326_path}"
-            )
+
+            kml_4326_path = browse_paths.get_kml_path(suffix=suffix)
+            log.info(f"EPSG 4326 browse KML saved to {kml_4326_path}")
 
     # Populate PDF with side-by-side plots and quiver plots.
     for freq in product.freqs:

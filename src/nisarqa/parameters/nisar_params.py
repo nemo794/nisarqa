@@ -1814,7 +1814,7 @@ class RootParamGroup(ABC):
         --------
         >>> root_params = nisarqa.GCOVRootParamGroup(...)
         >>> browse_paths = root_params.get_browse_paths()
-        >>> browse_paths.browse_path
+        >>> browse_paths.primary_browse_path
         PosixPath('/output/qa/BROWSE.png')
         >>> browse_paths.browse_4326_path
         PosixPath('/output/qa/BROWSE_4326.png')
