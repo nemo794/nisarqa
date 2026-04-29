@@ -4,7 +4,9 @@ import copy
 import os
 import pathlib
 import warnings
+from contextlib import contextmanager
 from datetime import datetime, timezone
+from typing import Generator
 
 import isce3
 import numpy as np
@@ -114,32 +116,82 @@ def compute_geogrid(
     return geogrid
 
 
-def get_zero_height_dem() -> pathlib.Path:
+@contextmanager
+def dem_file_manager(
+    dem_file: str | os.PathLike | None = None
+) -> Generator[pathlib.Path, None, None]:
     """
-    Generate a zero-height DEM TIF file in the scratch directory.
+    Context manager for DEM file handling.
 
-    Creates a GeoTIFF file containing an array of zeros. DEM will be in
-    EPSG 4326 (lon/lat) with 1 degree resolution, and it will have global
-    coverage.
+    If a DEM file is provided, yields it without cleanup.
+    If None, creates a temporary zero-height DEM (global coverage in EPSG 4326
+    with 1 degree resolution) and automatically cleans it up on exit.
 
-    The file is uniquely named with a timestamp
-    to avoid collisions. This is useful for geocoding operations where
-    a DEM is required but high accuracy is not critical (e.g., for browse
-    image generation).
+    Parameters
+    ----------
+    dem_file : path-like or None, optional
+        Digital Elevation Model (DEM) file path. If None, a temporary
+        zero-height DEM will be created (global coverage in EPSG 4326 with
+        1 degree resolution) and automatically cleaned up when exiting the
+        context manager. Defaults to None.
+
+    Yields
+    ------
+    pathlib.Path
+        Path to the DEM file (either the provided DEM or the temporary
+        zero-height DEM with global coverage in EPSG 4326 with 1 degree
+        resolution).
+
+    Examples
+    --------
+    >>> # Use temporary zero-height DEM (auto-cleanup)
+    >>> with dem_file_manager(dem_file=None) as dem_path:
+    ...     dem = isce3.io.Raster(str(dem_path))
+    ...     # ... use dem ...
+    ...     # Temporary DEM automatically deleted after this block
+
+    >>> # Use provided DEM (no cleanup)
+    >>> with dem_file_manager(dem_file="/path/to/real_dem.tif") as dem_path:
+    ...     dem = isce3.io.Raster(str(dem_path))
+    ...     # ... use dem ...
+    ...     # Provided DEM is NOT deleted
+    """
+    if dem_file is None:
+        # Create temporary zero-height DEM
+        temp_dem_path = _create_zero_height_dem()
+        try:
+            yield temp_dem_path
+        finally:
+            # Cleanup temporary DEM
+            temp_dem_path.unlink(missing_ok=True)
+    else:
+        # Use provided DEM (no cleanup)
+        yield pathlib.Path(dem_file)
+
+
+def _create_zero_height_dem() -> pathlib.Path:
+    """
+    Create a zero-height DEM TIF file in the scratch directory.
+
+    Creates a GeoTIFF file containing an array of zeros with global coverage
+    in EPSG 4326 (lon/lat) with 1 degree resolution.
+
+    The file is uniquely named with a timestamp to avoid collisions. This is
+    useful for geocoding operations where a DEM is required but high accuracy
+    is not critical (e.g., for browse image generation).
 
     Returns
     -------
     pathlib.Path
-        Path to the uniquely-named zero-height global DEM file, located in the
-        nisarqa global scratch directory. EPSG 4326, with 1 degree resolution.
+        Path to the created zero-height DEM file with global coverage
+        in EPSG 4326 with 1 degree resolution, located in the nisarqa
+        global scratch directory.
 
     Notes
     -----
-    The caller is responsible for deleting the returned file when it is
-    no longer needed. Use `file_path.unlink(missing_ok=True)` to safely
-    remove the file.
+    This is a private helper function. The file is NOT automatically cleaned up.
+    Use dem_file_manager() context manager for automatic cleanup.
     """
-
     # Create a uniquely-named file in the scratch directory
     scratch = nisarqa.get_global_scratch_dir()
     utc_now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
@@ -156,7 +208,7 @@ def get_zero_height_dem() -> pathlib.Path:
     # 2. Create the dataset
     driver = gdal.GetDriverByName("GTiff")
     # GDT_Int16 is common for DEMs; use GDT_Float32 for precision
-    ds = driver.Create(dem_file, width, height, 1, gdal.GDT_Int16)
+    ds = driver.Create(str(dem_file), width, height, 1, gdal.GDT_Int16)
 
     # 3. Set GeoTransform:
     #   [Upper Left X, X Resolution, Rotation,
@@ -215,7 +267,8 @@ def geocode_radar_raster(
         The EPSG for the output geocoded raster.
     dem_file : path-like or None, optional
         Path to a DEM file; required for accurate geolocation of the pixels.
-        If None, a zero-height DEM will be used.
+        If None, a temporary zero-height DEM will be used (global coverage
+        in EPSG 4326 with 1 degree resolution).
         Defaults to None.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
@@ -259,175 +312,174 @@ def geocode_radar_raster(
     output_file = scratch / f"output_{utc_now}.tif"
 
     try:
-        # Set up DEM. (If zero-height DEM is created, we'll delete it later.)
-        dem_filepath = get_zero_height_dem() if dem_file is None else dem_file
-        dem = isce3.io.Raster(str(dem_filepath))
+        # Use context manager for DEM (handles both provided and temporary DEM)
+        with dem_file_manager(dem_file) as dem_filepath:
+            dem = isce3.io.Raster(str(dem_filepath))
 
-        # Setup temporary input raster file, so that it can be converted to
-        # the correct format for ISCE3 geocoding
-        input_ds = gdal.GetDriverByName("GTiff").Create(
-            input_file,
-            radar_array.data.shape[1],
-            radar_array.data.shape[0],
-            1,
-            gdal_dtype,
-        )
+            # Setup temporary input raster file, so that it can be converted to
+            # the correct format for ISCE3 geocoding
+            input_ds = gdal.GetDriverByName("GTiff").Create(
+                input_file,
+                radar_array.data.shape[1],
+                radar_array.data.shape[0],
+                1,
+                gdal_dtype,
+            )
 
-        # Ensure float type
-        raster_array = radar_array.astype(np.float64)
+            # Ensure float type
+            raster_array = radar_array.astype(np.float64)
 
-        if epsg == 4326:
-            llq = radargrid.get_latlonquad(
-                orbit=orbit,
+            if epsg == 4326:
+                llq = radargrid.get_latlonquad(
+                    orbit=orbit,
+                    wavelength=wavelength,
+                    look_side=look_side,
+                    dem_file=dem_filepath,
+                )
+
+                # Get bounds in lat/lon from the polygon
+                minx, miny, maxx, maxy = llq.bounds()  # (minx, miny, maxx, maxy)
+
+                width_deg = maxx - minx  # longitude
+                length_deg = maxy - miny  # latitude
+
+                # Determine resolution based on the longest side of the array.
+                # Handle width and length independently. For example, in lon/lat
+                # 1 degree of latitude is not equivalent to 1 degree of longitude,
+                # particularly towards the polar regions.
+                resolution_x = width_deg / max(np.shape(radar_array))
+                resolution_y = length_deg / max(np.shape(radar_array))
+            else:
+                # TODO - update this code to compute resolution_x
+                # and resolution_y using (hopefully) logic that is generic to
+                # various EPSGs.
+                raise NotImplementedError(
+                    "Function currently only implemented for EPSG 4326."
+                    " Please update for geocoding to other coordinate systems."
+                )
+
+            # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
+            isce3_radargrid = radargrid.get_isce3_radar_grid_parameters(
                 wavelength=wavelength,
                 look_side=look_side,
-                dem_file=dem_filepath,
             )
 
-            # Get bounds in lat/lon from the polygon
-            minx, miny, maxx, maxy = llq.bounds()  # (minx, miny, maxx, maxy)
+            input_ds.GetRasterBand(1).WriteArray(raster_array)
+            input_ds.FlushCache()
+            input_ds = None  # Close
+            input_raster = isce3.io.Raster(str(input_file))
 
-            width_deg = maxx - minx  # longitude
-            length_deg = maxy - miny  # latitude
+            # Set up geocoding object
+            geocode_obj = isce3.geocode.GeocodeFloat64()
 
-            # Determine resolution based on the longest side of the array.
-            # Handle width and length independently. For example, in lon/lat
-            # 1 degree of latitude is not equivalent to 1 degree of longitude,
-            # particularly towards the polar regions.
-            resolution_x = width_deg / max(np.shape(radar_array))
-            resolution_y = length_deg / max(np.shape(radar_array))
-        else:
-            # TODO - update this code to compute resolution_x
-            # and resolution_y using (hopefully) logic that is generic to
-            # various EPSGs.
-            raise NotImplementedError(
-                "Function currently only implemented for EPSG 4326."
-                " Please update for geocoding to other coordinate systems."
+            geocode_obj.orbit = orbit
+            geocode_obj.ellipsoid = isce3.core.WGS84_ELLIPSOID
+            geocode_obj.doppler = isce3.core.LUT2d()  # Zero-Doppler for NISAR
+            geocode_obj.threshold_geo2rdr = 1.0e-8
+            geocode_obj.numiter_geo2rdr = 25
+            geocode_obj.data_interpolator = resample
+
+            # Call geogrid() with custom EPSG and pixel spacing, otherwise
+            # update_geogrid() will use the DEM's EPSG and pixel spacing.
+            # (This is not ideal in case e.g. we use the zero-height DEM.)
+            # But, use NaN for start positions and 0 for dimensions to signal
+            # to update_geogrid() that it should compute those values.
+            geocode_obj.geogrid(
+                x_start=np.nan,  # Will be computed by update_geogrid
+                y_start=np.nan,  # Will be computed by update_geogrid
+                x_spacing=resolution_x,
+                y_spacing=-resolution_y,  # Y posting should be negative
+                width=0,  # Will be computed by update_geogrid
+                length=0,  # Will be computed by update_geogrid
+                epsg=epsg,
             )
 
-        # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
-        isce3_radargrid = radargrid.get_isce3_radar_grid_parameters(
-            wavelength=wavelength,
-            look_side=look_side,
-        )
+            # Now call update_geogrid - it will compute bounds, and also
+            # handle any antimeridian crossings
+            geocode_obj.update_geogrid(isce3_radargrid, dem)
 
-        input_ds.GetRasterBand(1).WriteArray(raster_array)
-        input_ds.FlushCache()
-        input_ds = None  # Close
-        input_raster = isce3.io.Raster(str(input_file))
+            # Create temporary output raster file
+            output_ds = gdal.GetDriverByName("GTiff").Create(
+                output_file,
+                geocode_obj.geogrid_width,
+                geocode_obj.geogrid_length,
+                1,
+                gdal_dtype,
+            )
 
-        # Set up geocoding object
-        geocode_obj = isce3.geocode.GeocodeFloat64()
+            # Set output file's projection and geotransform
+            srs = osr.SpatialReference()
+            srs.ImportFromEPSG(epsg)
+            output_ds.SetProjection(srs.ExportToWkt())
 
-        geocode_obj.orbit = orbit
-        geocode_obj.ellipsoid = isce3.core.WGS84_ELLIPSOID
-        geocode_obj.doppler = isce3.core.LUT2d()  # Zero-Doppler for NISAR
-        geocode_obj.threshold_geo2rdr = 1.0e-8
-        geocode_obj.numiter_geo2rdr = 25
-        geocode_obj.data_interpolator = resample
+            output_geotransform = [
+                geocode_obj.geogrid_start_x,
+                geocode_obj.geogrid_spacing_x,
+                0,
+                geocode_obj.geogrid_start_y,
+                0,
+                geocode_obj.geogrid_spacing_y,
+            ]
+            output_ds.SetGeoTransform(output_geotransform)
 
-        # Call geogrid() with custom EPSG and pixel spacing, otherwise
-        # update_geogrid() will use the DEM's EPSG and pixel spacing.
-        # (This is not ideal in case e.g. we use the zero-height DEM.)
-        # But, use NaN for start positions and 0 for dimensions to signal
-        # to update_geogrid() that it should compute those values.
-        geocode_obj.geogrid(
-            x_start=np.nan,  # Will be computed by update_geogrid
-            y_start=np.nan,  # Will be computed by update_geogrid
-            x_spacing=resolution_x,
-            y_spacing=-resolution_y,  # Y posting should be negative
-            width=0,  # Will be computed by update_geogrid
-            length=0,  # Will be computed by update_geogrid
-            epsg=epsg,
-        )
+            output_ds.FlushCache()
+            output_ds = None  # Close
+            output_raster = isce3.io.Raster(str(output_file), update=True)
 
-        # Now call update_geogrid - it will compute bounds, and also
-        # handle any antimeridian crossings
-        geocode_obj.update_geogrid(isce3_radargrid, dem)
+            # Perform geocoding
+            geocode_obj.geocode(
+                radar_grid=isce3_radargrid,
+                input_raster=input_raster,
+                output_raster=output_raster,
+                dem_raster=dem,
+                output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
+            )
 
-        # Create temporary output raster file
-        output_ds = gdal.GetDriverByName("GTiff").Create(
-            output_file,
-            geocode_obj.geogrid_width,
-            geocode_obj.geogrid_length,
-            1,
-            gdal_dtype,
-        )
+            # Explicitly close the ISCE3 Rasters
+            input_raster = None
+            output_raster = None
+            dem = None
 
-        # Set output file's projection and geotransform
-        srs = osr.SpatialReference()
-        srs.ImportFromEPSG(epsg)
-        output_ds.SetProjection(srs.ExportToWkt())
+            # Read geocoded result
+            output_ds = gdal.Open(output_file)
+            geocoded_array = (
+                output_ds.GetRasterBand(1).ReadAsArray().astype(output_dtype)
+            )
+            output_gt = list(output_ds.GetGeoTransform())
+            output_ds = None
 
-        output_geotransform = [
-            geocode_obj.geogrid_start_x,
-            geocode_obj.geogrid_spacing_x,
-            0,
-            geocode_obj.geogrid_start_y,
-            0,
-            geocode_obj.geogrid_spacing_y,
-        ]
-        output_ds.SetGeoTransform(output_geotransform)
+            # Create GeoGrid for the output
+            # GDAL geotransform uses upper-left corner convention,
+            # but nisarqa.GeoGrid uses pixel center convention.
+            # Convert from corner to center coordinates:
+            # GT(0) = x-coordinate of upper-left corner of upper-left pixel
+            # GT(3) = y-coordinate of upper-left corner of upper-left pixel
+            # GT(1) = pixel width (x spacing)
+            # GT(5) = pixel height (y spacing, negative for north-up)
 
-        output_ds.FlushCache()
-        output_ds = None  # Close
-        output_raster = isce3.io.Raster(str(output_file), update=True)
+            # Calculate pixel center coordinates
+            reproj_height, reproj_width = geocoded_array.shape
 
-        # Perform geocoding
-        geocode_obj.geocode(
-            radar_grid=isce3_radargrid,
-            input_raster=input_raster,
-            output_raster=output_raster,
-            dem_raster=dem,
-            output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
-        )
+            x_coords = output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
+            y_coords = (
+                output_gt[3] + (np.arange(reproj_height) + 0.5) * output_gt[5]
+            )
 
-        # Explicitly close the ISCE3 Rasters
-        input_raster = None
-        output_raster = None
-        dem = None
+            output_geogrid = nisarqa.GeoGrid(
+                epsg=epsg,
+                x_axis_posting=output_gt[1],
+                x_coordinates=x_coords,
+                y_axis_posting=output_gt[5],
+                y_coordinates=y_coords,
+            )
 
-        # Read geocoded result
-        output_ds = gdal.Open(output_file)
-        geocoded_array = (
-            output_ds.GetRasterBand(1).ReadAsArray().astype(output_dtype)
-        )
-        output_gt = list(output_ds.GetGeoTransform())
-        output_ds = None
-
-        # Create GeoGrid for the output
-        # GDAL geotransform uses upper-left corner convention,
-        # but nisarqa.GeoGrid uses pixel center convention.
-        # Convert from corner to center coordinates:
-        # GT(0) = x-coordinate of upper-left corner of upper-left pixel
-        # GT(3) = y-coordinate of upper-left corner of upper-left pixel
-        # GT(1) = pixel width (x spacing)
-        # GT(5) = pixel height (y spacing, negative for north-up)
-
-        # Calculate pixel center coordinates
-        reproj_height, reproj_width = geocoded_array.shape
-
-        x_coords = output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
-        y_coords = (
-            output_gt[3] + (np.arange(reproj_height) + 0.5) * output_gt[5]
-        )
-
-        output_geogrid = nisarqa.GeoGrid(
-            epsg=epsg,
-            x_axis_posting=output_gt[1],
-            x_coordinates=x_coords,
-            y_axis_posting=output_gt[5],
-            y_coordinates=y_coords,
-        )
-
+        # DEM context manager has exited - temporary DEM cleaned up if needed
         return geocoded_array, output_geogrid
 
     finally:
-        # Delete temp files (always executes, even if exception occurred)
+        # Delete temp input/output files (always executes, even if exception occurred)
         input_file.unlink(missing_ok=True)
         output_file.unlink(missing_ok=True)
-        if dem_file is None and "dem_filepath" in locals():
-            dem_filepath.unlink(missing_ok=True)
 
 
 def reproject_geo_raster(
