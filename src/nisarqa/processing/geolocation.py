@@ -1,119 +1,19 @@
 from __future__ import annotations
 
-import copy
 import os
 import pathlib
-import warnings
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Generator
 
 import isce3
 import numpy as np
-from nisar.workflows.stage_dem import apply_margin_to_geographic_box
 from numpy.typing import ArrayLike
 from osgeo import gdal, osr
-from shapely.wkt import loads
 
 import nisarqa
 
 objects_to_skip = nisarqa.get_all(__name__)
-
-
-def compute_geogrid(
-    bounding_polygon: str,
-    epsg: int,
-    longest_side_max: int = 2048,
-    margin_in_km: int = 5,
-) -> nisarqa.GeoGrid:
-    """
-    Compute the geogrid parameters for a given bounding polygon and image size.
-
-    Parameters
-    ----------
-    bounding_polygon : str
-        WKT string representing the approximate bounding polygon
-        of the radar swath.
-    epsg : int
-        EPSG of the output geogrid. Example: 4326 for lat/lon.
-    longest_side_max : int, optional
-        Maximum number of pixels allowed for the longest side of the
-        output geogrid. The resolution is determined by dividing the
-        longest extent by this value (default: 2048).
-    margin_in_km : float, optional
-        Margin in kilometers to add around the bounds to account for
-        topography when geocoding (default: 5).
-
-    Returns
-    -------
-    geogrid : nisarqa.GeoGrid
-        Computed geogrid.
-    """
-
-    if longest_side_max <= 0:
-        raise ValueError(f"{longest_side_max=}, must be greater than 0.")
-    if margin_in_km < 0:
-        raise ValueError(f"{margin_in_km=}, must be >=0.")
-
-    # Parse WKT and apply margin
-    poly = loads(bounding_polygon)
-    poly_with_margin = apply_margin_to_geographic_box(
-        poly, margin_in_km=margin_in_km
-    )
-
-    # Get bounds from the polygon
-    bounds = poly_with_margin.bounds  # (minx, miny, maxx, maxy)
-    width_deg = bounds[2] - bounds[0]
-    length_deg = bounds[3] - bounds[1]
-    start_x = bounds[0]
-    start_y = bounds[3]  # Y starts at top
-
-    # Determine resolution based on longest_side_max
-    # (The longest side should have at most longest_side_max pixels)
-    longest_extent = max(width_deg, length_deg)
-    resolution = longest_extent / longest_side_max
-
-    if resolution <= 0:
-        raise ValueError(
-            f"Resolution computed from bounding polygon is {resolution}, must"
-            " be greater than 0."
-        )
-
-    # Calculate dimensions ensuring we don't exceed longest_side_max
-    width = int(np.ceil(width_deg / resolution))
-    length = int(np.ceil(length_deg / resolution))
-
-    # Ensure neither dimension exceeds the max
-    width = min(width, longest_side_max)
-    length = min(length, longest_side_max)
-
-    isce3_geogrid = isce3.product.GeoGridParameters(
-        start_x=start_x,
-        start_y=start_y,
-        spacing_x=resolution,
-        spacing_y=-resolution,
-        width=width,
-        length=length,
-        epsg=epsg,
-    )
-
-    geogrid = nisarqa.GeoGrid.from_isce3_geo_grid(isce3_geogrid)
-
-    if epsg == 4326 and geogrid.crosses_antimeridian:
-
-        # adjust the geogrid to be from [0, 360]
-        geogrid = nisarqa.GeoGrid.from_coordinates(
-            # wrap the longitude coordinates
-            x_coords=list(
-                nisarqa.wrap_to_interval(
-                    geogrid.x_coordinates, start=0, stop=360
-                )
-            ),
-            y_coords=geogrid.y_coordinates,
-            epsg=geogrid.epsg,
-        )
-
-    return geogrid
 
 
 @contextmanager
