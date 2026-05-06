@@ -829,10 +829,14 @@ def get_offset_values_in_projected_coordinates(
                     )
                 elif np.any(arrow_tails_x > 180):
                     # longitude interval is (typically) [0, 360]
-                    x_shift = nisarqa.wrap_to_interval(val=x_shift, start=0, stop=360)
+                    x_shift = nisarqa.wrap_to_interval(
+                        val=x_shift, start=0, stop=360
+                    )
                 elif np.any(arrow_tails_x < -180):
                     # longitude interval is (typically) [-360, 0]
-                    x_shift = nisarqa.wrap_to_interval(val=x_shift, start=-360, stop=0)
+                    x_shift = nisarqa.wrap_to_interval(
+                        val=x_shift, start=-360, stop=0
+                    )
                 else:
                     assert False, "Unreachable code reached"
 
