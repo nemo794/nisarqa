@@ -840,15 +840,6 @@ def get_offset_values_in_projected_coordinates(
                 else:
                     assert False, "Unreachable code reached"
 
-                # # For EPSG 4326, x is longitude. Check for wrap-around.
-                # x_diff = x_shift - x_coord
-                # if x_diff > 180:
-                #     # x_shift wrapped to a large positive value
-                #     x_shift -= 360
-                # elif x_diff < -180:
-                #     # x_shift wrapped to a large negative value
-                #     x_shift += 360
-
             # 6) Compute new offset values in projected coordinates:
             #       (x_1 - x_0, y_1 - y_0)
             arrow_x_offsets[i, j] = x_shift - x_coord
