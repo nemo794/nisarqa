@@ -10,6 +10,7 @@ import isce3
 import matplotlib as mpl
 import matplotlib.colors as colors
 import numpy as np
+from numpy.typing import ArrayLike
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -204,58 +205,37 @@ def plot_offsets_quiver_plot_to_pdf(
     return cbar_min, cbar_max
 
 
-@overload
 def plot_single_quiver_plot_to_png(
-    az_offset: nisarqa.RadarRaster,
-    rg_offset: nisarqa.RadarRaster,
+    az_off: ArrayLike,
+    rg_off: ArrayLike,
+    coord_grid: nisarqa.RadarGrid | nisarqa.GeoGrid,
     quiver_params: nisarqa.QuiverParamGroup,
-    browse_params: nisarqa.OffsetsBrowseParamGroup,
     png_filepath: str | os.PathLike,
-) -> tuple[int, int]: ...
-
-
-@overload
-def plot_single_quiver_plot_to_png(
-    az_offset: nisarqa.GeoRaster,
-    rg_offset: nisarqa.GeoRaster,
-    quiver_params: nisarqa.QuiverParamGroup,
-    browse_params: nisarqa.OffsetsBrowseParamGroup,
-    png_filepath: str | os.PathLike,
-    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected,
-) -> tuple[int, int]: ...
-
-
-def plot_single_quiver_plot_to_png(
-    az_offset,
-    rg_offset,
-    quiver_params,
-    browse_params,
-    png_filepath,
-    quiver_projection_params=None,
+    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected=None,
 ):
     """
-    Process and save a single quiver plot to PDF and (optional) PNG.
+    Process and save a single quiver plot to PNG.
 
     Parameters
     ----------
-    az_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
-        Along track offset layer to be processed. Must correspond to
-        `rg_offset`.
-    rg_offset : nisarqa.RadarRaster or nisarqa.GeoRaster
-        Slant range offset layer to be processed. Must correspond to
-        `az_offset`.
+    az_off : array-like
+        Along track offset array to be processed. Must correspond to
+        `rg_off`.
+    rg_off : array-like
+        Slant range offset array to be processed. Must correspond to
+        `az_off`.
+    coord_grid : nisarqa.RadarGrid or nisarqa.GeoGrid
+        Coordinate grid for `az_off` and `rg_off`.
     quiver_params : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
-    browse_params : nisarqa.OffsetsBrowseParamGroup
-        A structure containing the processing parameters for the browse PNG.
     png_filepath : path-like
-        Filename (with path) for the image PNG.
+        Filename (with path) for the output PNG image.
     quiver_projection_params : None or ParamsForAzRgOffsetsToProjected, optional
         ** Strongly recommend providing parameters for GOFF and GUNW **
-        Set to None if the contents of the offset rasters use the same
+        Set to None if the contents of the offset arrays use the same
         coordinate grid as the raster image (e.g. both are
         azimuth/range grid, such as for ROFF, RIFG, and RUNW).
-        If offsets arrays are nisarqa.GeoRaster and these parameters are
+        If `coord_grid` is nisarqa.GeoRaster and these parameters are
         provided, they will be used to modify the quiver arrows to
         represent displacement direction and relative magnitude in
         projected coordinates. Note: the plotted image (and colorbar) will
@@ -263,73 +243,24 @@ def plot_single_quiver_plot_to_png(
         only the quiver arrows will be projected.
         Defaults to None.
 
-    Returns
-    -------
-    y_dec, x_dec : int
-        The decimation stride value used in the Y axis direction and X axis
-        direction (respectively).
-
     Notes
     -----
     NISAR GOFF and GUNW along track and slant range offsets rasters are
     geocoded to projected coordinates, but their pixel values represent the
     offset in azimuth and slant range directions (respectively).
-    Because of this, if `az_offset` and `rg_offset` come from GOFF or GUNW,
+    Because of this, if `az_off` and `rg_off` come from GOFF or GUNW,
     and if `quiver_projection_params` is set to None, then the quiver arrows
     will not be plotted in the correct direction/magnitude for the projected
     X/Y image grid (i.e. they'll appear to point the wrong direction).
     """
-    # Validate input rasters
-    nisarqa.compare_raster_metadata(az_offset, rg_offset, almost_identical=True)
 
-    # Compute decimation values for the browse image PNG.
-    if (az_offset.freq == "A") and (
-        browse_params.browse_decimation_freqa is not None
-    ):
-        y_decimation, x_decimation = browse_params.browse_decimation_freqa
-    elif (az_offset.freq == "B") and (
-        browse_params.browse_decimation_freqb is not None
-    ):
-        y_decimation, x_decimation = browse_params.browse_decimation_freqb
-    else:
-        # Square the pixels. Decimate if needed to stay within longest side max.
-        longest_side_max = browse_params.longest_side_max
-
-        if longest_side_max is None:
-            # Update to be the longest side of the array. This way no downsizing
-            # of the image will occur, but we can still output square pixels.
-            longest_side_max = max(np.shape(rg_offset.data))
-
-        y_decimation, x_decimation = nisarqa.compute_square_pixel_nlooks(
-            img_shape=np.shape(az_offset.data),
-            sample_spacing=[
-                az_offset.y_ground_spacing,
-                az_offset.x_ground_spacing,
-            ],
-            longest_side_max=longest_side_max,
-        )
-
-    # Grab the datasets into arrays in memory.
-    # While doing this, convert to square pixels and correct pixel dimensions.
-    az_off = az_offset.data[::y_decimation, ::x_decimation]
-    rg_off = rg_offset.data[::y_decimation, ::x_decimation]
-
-    # Construct coordinate grid parameters to match our
-    # freshly-decimated `az_off` and `rg_off`
-    kwargs = {}
     if quiver_projection_params is not None:
-        if isinstance(az_offset, nisarqa.RadarRaster):
+        if isinstance(coord_grid, nisarqa.RadarGrid):
             raise TypeError(
-                "Input az and rg offset rasters are instances of"
-                f" nisarqa.RadarRaster, but {type(quiver_projection_params)=}."
+                "Input coordinate grid is an instance of"
+                f" nisarqa.RadarGrid, but {type(quiver_projection_params)=}."
                 " It should be set to None for rasters on the radar grid."
             )
-        kwargs["quiver_projection_params"] = quiver_projection_params
-
-    # Decimate the grid using the same strides used to decimate to size of axes
-    kwargs["coord_grid"] = az_offset.grid.downsample(
-        y_stride=y_decimation, x_stride=x_decimation, mode="decimate"
-    )
 
     # Next, we need to add the background image + quiver plot arrows onto
     # an Axes, and then save this to a PNG with exact pixel dimensions as
@@ -339,16 +270,15 @@ def plot_single_quiver_plot_to_png(
         az_off=az_off,
         rg_off=rg_off,
         params=quiver_params,
-        **kwargs,
+        coord_grid=coord_grid,
+        quiver_projection_params=quiver_projection_params,
     )
 
     save_mpl_plot_to_png(
         axes_partial_func=quiver_func,
-        raster_shape=az_off.shape,
+        raster_shape=np.shape(az_off),
         png_filepath=png_filepath,
     )
-
-    return y_decimation, x_decimation
 
 
 def add_magnitude_image_and_quiver_plot_to_axes(
