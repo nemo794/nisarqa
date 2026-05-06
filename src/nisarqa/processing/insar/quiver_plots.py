@@ -211,7 +211,9 @@ def plot_single_quiver_plot_to_png(
     coord_grid: nisarqa.RadarGrid | nisarqa.GeoGrid,
     quiver_params: nisarqa.QuiverParamGroup,
     png_filepath: str | os.PathLike,
-    quiver_projection_params: None | nisarqa.ParamsForAzRgOffsetsToProjected=None,
+    quiver_projection_params: (
+        None | nisarqa.ParamsForAzRgOffsetsToProjected
+    ) = None,
 ):
     """
     Process and save a single quiver plot to PNG.
