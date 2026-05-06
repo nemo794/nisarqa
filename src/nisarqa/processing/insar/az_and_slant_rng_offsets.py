@@ -279,8 +279,10 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                     resample=params_browse.resample,
                 )
 
-            # For after geocoding to EPSG 4326, we need projection params
-            proj_params_4326 = nisarqa.ParamsForAzRgOffsetsToProjected(
+            # EPSG 4326 arrays are geocoded, but the pixel values still
+            # represent offsets in az and range, so we need to provide
+            # projection params in order to geocode the quiver arrows too.
+            quiver_proj_params = nisarqa.ParamsForAzRgOffsetsToProjected(
                 orbit=product.get_orbit(ref_or_sec="reference"),
                 wavelength=product.wavelength(freq=freq),
                 look_side=product.look_direction,
@@ -296,7 +298,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
                 coord_grid=qa_geogrid_4326,
                 quiver_params=params_quiver,
                 png_filepath=png_4326_path,
-                quiver_projection_params=proj_params_4326,
+                quiver_projection_params=quiver_proj_params,
             )
 
             log.info(f"EPSG 4326 browse PNG saved to {png_4326_path}")

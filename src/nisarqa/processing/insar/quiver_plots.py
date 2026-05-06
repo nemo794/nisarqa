@@ -811,6 +811,40 @@ def get_offset_values_in_projected_coordinates(
             # object we created above.
             x_shift, y_shift, _ = proj.forward([lon, lat, 0])
 
+            # Handle longitude wrapping for EPSG 4326 (and other geographic CRS).
+            # If the image crosses the antimeridian, the output x_shift from
+            # the coordinate transformations might be in a different 360 degree
+            # period than the input x_coord. For example:
+            # - Input x_coord = 246 degree (using [0, 360] convention)
+            # - Output x_shift = -114 degree (normalized to [-180, 180])
+            # This would cause a spurious ~360 degree offset.
+            # Adjust x_shift to be in the same 360 degree period as x_coord.
+            if epsg == 4326 and geo_grid.crosses_antimeridian:
+                if np.any(arrow_tails_x > 180) and np.any(arrow_tails_x < -180):
+                    raise NotImplementedError(
+                        "Input `geo_grid.x_coordinates` contains longitude"
+                        " values which span an interval that is larger than"
+                        "360 degrees total. Please update code for proper"
+                        "bookkeeping of this scenario."
+                    )
+                elif np.any(arrow_tails_x > 180):
+                    # longitude interval is (typically) [0, 360]
+                    x_shift = nisarqa.wrap_to_interval(val=x_shift, start=0, stop=360)
+                elif np.any(arrow_tails_x < -180):
+                    # longitude interval is (typically) [-360, 0]
+                    x_shift = nisarqa.wrap_to_interval(val=x_shift, start=-360, stop=0)
+                else:
+                    assert False, "Unreachable code reached"
+
+                # # For EPSG 4326, x is longitude. Check for wrap-around.
+                # x_diff = x_shift - x_coord
+                # if x_diff > 180:
+                #     # x_shift wrapped to a large positive value
+                #     x_shift -= 360
+                # elif x_diff < -180:
+                #     # x_shift wrapped to a large negative value
+                #     x_shift += 360
+
             # 6) Compute new offset values in projected coordinates:
             #       (x_1 - x_0, y_1 - y_0)
             arrow_x_offsets[i, j] = x_shift - x_coord
