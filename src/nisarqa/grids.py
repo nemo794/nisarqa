@@ -751,7 +751,7 @@ class GeoGrid(CoordinateGrid):
             Container with output directory and browse/KML filenames.
         suffix : str or None, optional
             If provided, this suffix will be appended to the filenames
-            (e.g., "4326" produces "BROWSE_4326.png"). If None, use the
+            (e.g., "LATLON" produces "BROWSE_LATLON.png"). If None, use the
             primary browse/KML filenames. Defaults to None.
         """
 

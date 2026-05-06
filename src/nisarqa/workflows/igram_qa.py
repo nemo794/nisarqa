@@ -147,7 +147,7 @@ def igram_qa(
             # Save frequency/polarization info to stats file
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
-            # Generate the browse PNG, KML, and optionally EPSG 4326 products
+            # Generate the browse products (PNG+KML)
             log.info("Generating browse products...")
             dem = None
             if (
@@ -245,20 +245,20 @@ def save_igram_product_browse(
     Save browse PNG and KML for interferogram products (RIFG, RUNW, GUNW).
 
     This function generates the browse PNG image and its corresponding KML file
-    with accurate corner coordinates. It also generates EPSG 4326 browse products
-    if configured.
+    with accurate corner coordinates. It also generates EPSG 4326 (lat/lon)
+    browse products if configured.
 
     Parameters
     ----------
     product : nisarqa.WrappedGroup or nisarqa.UnwrappedGroup
         Input NISAR product. Must be either a RIFG, RUNW, or GUNW product.
     params : nisarqa.IgramBrowseParamGroup or nisarqa.UNWIgramBrowseParamGroup,
-            and nisarqa.L1RadarBrowse4326ParamGroup or nisarqa.L2GeoBrowse4326ParamGroup
+            and nisarqa.L1RadarBrowseLatLonParamGroup or nisarqa.L2GeoBrowseLatLonParamGroup
         A structure containing the processing parameters for the browse PNG.
         Must be an instance of either:
             IgramBrowseParamGroup or UNWIgramBrowseParamGroup
         and (via multiple inheritance) also an instance of either:
-            L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup
+            L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup
     browse_paths : nisarqa.BrowseOutputPaths
         Container with output directory and browse/KML filenames.
     dem_file : path-like or None, optional
@@ -274,16 +274,16 @@ def save_igram_product_browse(
             f"{product.product_type=}, must be one of ('RIFG', 'RUNW', 'GUNW')."
         )
 
-    # XXX - Should improve the function's type annotation, but there's not
-    # a good syntax for multiple inheritance in combination with a Union.
-    # So, use type narrowing:
+    # XXX - Python's type annotations do not currently have a good syntax
+    # for multiple inheritance in combination with a Union.
+    # Instead, use type narrowing to assist type checkers:
     t = nisarqa.IgramBrowseParamGroup | nisarqa.UNWIgramBrowseParamGroup
     if not isinstance(params, t):
         msg = f"{type(params)=}, must be IgramBrowseParamGroup or UNWIgramBrowseParamGroup"
         raise TypeError(msg)
-    t = nisarqa.L1RadarBrowse4326ParamGroup | nisarqa.L2GeoBrowse4326ParamGroup
+    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
     if not isinstance(params, t):
-        msg = f"{type(params)=}, must be L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup"
+        msg = f"{type(params)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)
 
     if isinstance(product, nisarqa.WrappedGroup):

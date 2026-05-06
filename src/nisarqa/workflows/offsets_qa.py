@@ -137,7 +137,7 @@ def offsets_qa(
             product.save_qa_metadata_to_h5(stats_h5=stats_h5)
 
             # Generate along track + slant range browse image PNG, KML,
-            # optionally EPSG 4326 products, and quiver plots for PDF
+            # optionally EPSG 4326 (lat/lon) products, and quiver plots for PDF
             log.info("Generating browse products...")
             dem = None
             if (

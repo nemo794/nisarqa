@@ -25,22 +25,20 @@ def dem_file_manager(
 
     If a DEM file is provided, yields it without cleanup.
     If None, creates a temporary zero-height DEM (global coverage in EPSG 4326
-    with 1 degree resolution) and automatically cleans it up on exit.
+    lat/lon with 1 degree resolution) and automatically cleans it up on exit.
 
     Parameters
     ----------
     dem_file : path-like or None, optional
         Digital Elevation Model (DEM) file path. If None, a temporary
-        zero-height DEM will be created (global coverage in EPSG 4326 with
-        1 degree resolution) and automatically cleaned up when exiting the
+        zero-height DEM will be created (global coverage in EPSG 4326 lat/lon
+        with 1 degree resolution) and automatically cleaned up when exiting the
         context manager. Defaults to None.
 
     Yields
     ------
     pathlib.Path
-        Path to the DEM file (either the provided DEM or the temporary
-        zero-height DEM with global coverage in EPSG 4326 with 1 degree
-        resolution).
+        Path to the DEM file, as determined by the input `dem_file`.
 
     Examples
     --------
@@ -84,8 +82,8 @@ def _create_zero_height_dem() -> pathlib.Path:
     -------
     pathlib.Path
         Path to the created zero-height DEM file with global coverage
-        in EPSG 4326 with 1 degree resolution, located in the nisarqa
-        global scratch directory.
+        in EPSG 4326 (lat/lon) with 1 degree resolution, located in the
+        nisarqa global scratch directory.
 
     Notes
     -----
@@ -170,7 +168,7 @@ def geocode_radar_raster(
     dem_file : path-like or None, optional
         Path to a DEM file; required for accurate geolocation of the pixels.
         If None, a temporary zero-height DEM will be used (global coverage
-        in EPSG 4326 with 1 degree resolution).
+        in EPSG 4326 lat/lon with 1 degree resolution).
         Defaults to None.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
@@ -247,7 +245,7 @@ def geocode_radar_raster(
                 lat_rad = np.deg2rad(corner.lat)
                 # Forward transform: lon/lat -> target projection
                 # Returns coordinates in projection's native units
-                # (degrees for EPSG 4326, meters for UTM, etc.)
+                # (degrees for EPSG 4326 lat/lon, meters for UTM, etc.)
                 x, y, z = proj.forward([lon_rad, lat_rad, 0])
                 corners_proj.append((x, y))
 
@@ -436,8 +434,8 @@ def reproject_geo_raster(
     This function is designed for visual browse image generation and
     prioritizes predictable output dimensions and visual appearance.
     The output dimensions are constrained to match the input dimensions, which
-    may introduce slight distortion when reprojecting between coordinate systems
-    (e.g., from UTM meters to EPSG 4326 degrees, or in regions near the poles).
+    may introduce non-square pixels when reprojecting between coordinate systems
+    (e.g., from UTM meters to lat/lon degrees, or in regions near the poles).
 
     This function is not optimized for large, full-size NISAR rasters.
     Recommend only using it to reproject relatively small rasters, such as

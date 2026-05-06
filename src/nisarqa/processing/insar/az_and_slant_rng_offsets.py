@@ -86,7 +86,7 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         * Saves the browse image quiver plot as a PNG with accurate KML.
             - (The specific freq+pol+layer_number to use for the browse image
                is determined by the input `product`.)
-        * Optionally generates EPSG 4326 browse PNG and KML if requested.
+        * Optionally generates EPSG 4326 (lat/lon) browse PNG and KML.
         * Plots them side-by-side and appends this plot to PDF
         * Computes statistics for these layers
         * Plots them as a quiver plot and appends this plot to PDF
@@ -105,11 +105,11 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         A structure containing the parameters for checking the percentage
         of invalid pixels in the azimuth and slant range offsets layers.
     params_browse : nisarqa.OffsetsBrowseParamGroup and
-            nisarqa.L1RadarBrowse4326ParamGroup or nisarqa.L2GeoBrowse4326ParamGroup
+            nisarqa.L1RadarBrowseLatLonParamGroup or nisarqa.L2GeoBrowseLatLonParamGroup
         A structure containing the processing parameters for the browse PNG.
         Must be an instance of OffsetsBrowseParamGroup and (via multiple
         inheritance) also an instance of either:
-            L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup
+            L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup
     report_pdf : matplotlib.backends.backend_pdf.PdfPages
         The output pdf file to append the quiver plot to.
     stats_h5 : h5py.File
@@ -121,15 +121,16 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         when generating KMLs; ignored for geocoded products. If None, a
         zero-height DEM will be used. Defaults to None.
     """
-    # XXX - Should improve the function's type annotation, but there's not
-    # a good syntax for multiple inheritance in combination with a Union.
-    # So, use type narrowing:
+    
+    # XXX - Python's type annotations do not currently have a good syntax
+    # for multiple inheritance in combination with a Union.
+    # Instead, use type narrowing to assist type checkers:
     if not isinstance(params_browse, nisarqa.OffsetsBrowseParamGroup):
         msg = f"{type(params_browse)=}, must be OffsetsBrowseParamGroup"
         raise TypeError(msg)
-    t = nisarqa.L1RadarBrowse4326ParamGroup | nisarqa.L2GeoBrowse4326ParamGroup
+    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
     if not isinstance(params_browse, t):
-        msg = f"{type(params_browse)=}, must be L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup"
+        msg = f"{type(params_browse)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)
 
     # Generate browse quiver plot PNG and KML for the selected layer

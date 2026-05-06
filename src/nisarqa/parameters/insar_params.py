@@ -12,8 +12,8 @@ from .nisar_params import (
     HDF5Attrs,
     HDF5ParamGroup,
     InputFileGroupParamGroup,
-    L1RadarBrowse4326ParamGroup,
-    L2GeoBrowse4326ParamGroup,
+    L1RadarBrowseLatLonParamGroup,
+    L2GeoBrowseLatLonParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
     SoftwareConfigParamGroup,
@@ -461,7 +461,7 @@ class UNWIgramBrowseParamGroup(IgramBrowseParamGroup, HDF5ParamGroup):
 
 @dataclass(frozen=True)
 class RIFGBrowseParamGroup(
-    L1RadarBrowse4326ParamGroup,
+    L1RadarBrowseLatLonParamGroup,
     IgramBrowseParamGroup,
 ):
     @staticmethod
@@ -471,7 +471,7 @@ class RIFGBrowseParamGroup(
 
 @dataclass(frozen=True)
 class RUNWBrowseParamGroup(
-    L1RadarBrowse4326ParamGroup,
+    L1RadarBrowseLatLonParamGroup,
     UNWIgramBrowseParamGroup,
 ):
     @staticmethod
@@ -481,7 +481,7 @@ class RUNWBrowseParamGroup(
 
 @dataclass(frozen=True)
 class GUNWBrowseParamGroup(
-    L2GeoBrowse4326ParamGroup,
+    L2GeoBrowseLatLonParamGroup,
     UNWIgramBrowseParamGroup,
 ):
     @staticmethod
@@ -583,11 +583,11 @@ class OffsetsBrowseParamGroup(YamlParamGroup):
 
 @dataclass(frozen=True)
 class ROFFBrowseParamGroup(
-    L1RadarBrowse4326ParamGroup, OffsetsBrowseParamGroup
+    L1RadarBrowseLatLonParamGroup, OffsetsBrowseParamGroup
 ):
     def __post_init__(self):
         OffsetsBrowseParamGroup.__post_init__(self)
-        L1RadarBrowse4326ParamGroup.__post_init__(self)
+        L1RadarBrowseLatLonParamGroup.__post_init__(self)
 
     @staticmethod
     def get_path_to_group_in_runconfig():
@@ -595,10 +595,10 @@ class ROFFBrowseParamGroup(
 
 
 @dataclass(frozen=True)
-class GOFFBrowseParamGroup(L2GeoBrowse4326ParamGroup, OffsetsBrowseParamGroup):
+class GOFFBrowseParamGroup(L2GeoBrowseLatLonParamGroup, OffsetsBrowseParamGroup):
     def __post_init__(self):
         OffsetsBrowseParamGroup.__post_init__(self)
-        L2GeoBrowse4326ParamGroup.__post_init__(self)
+        L2GeoBrowseLatLonParamGroup.__post_init__(self)
 
     @staticmethod
     def get_path_to_group_in_runconfig():

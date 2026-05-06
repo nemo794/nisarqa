@@ -6,7 +6,7 @@ import nisarqa
 from .caltools_params import PointTargetAnalyzerParamGroup
 from .nisar_params import (
     InputFileGroupParamGroup,
-    L2GeoBrowse4326ParamGroup,
+    L2GeoBrowseLatLonParamGroup,
     NoCacheSoftwareConfigParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
@@ -120,8 +120,8 @@ class GSLCRootParamGroup(RootParamGroup):
         Validation Group parameters for QA
     backscatter_img : BackscatterImageParamGroup or None, optional
         Backscatter Image Group parameters for SLC QA
-    browse_4326 : L2GeoBrowse4326ParamGroup or None, optional
-        Browse 4326 Group parameters for GSLC QA (EPSG 4326 browse images)
+    browse_latlon : L2GeoBrowseLatLonParamGroup or None, optional
+        Browse LatLon Group parameters for GSLC QA (EPSG 4326 browse images)
     histogram : HistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     anc_files : GSLCDynamicAncillaryFileParamGroup or None, optional
@@ -136,7 +136,7 @@ class GSLCRootParamGroup(RootParamGroup):
 
     # QA parameters
     backscatter_img: Optional[BackscatterImageParamGroup] = None
-    browse_4326: Optional[L2GeoBrowse4326ParamGroup] = None
+    browse_latlon: Optional[L2GeoBrowseLatLonParamGroup] = None
     histogram: Optional[HistogramParamGroup] = None
 
     # CalTools parameters
@@ -215,8 +215,8 @@ class GSLCRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="browse_4326",
-                param_grp_cls_obj=L2GeoBrowse4326ParamGroup,
+                root_param_grp_attr_name="browse_latlon",
+                param_grp_cls_obj=L2GeoBrowseLatLonParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
@@ -249,7 +249,7 @@ class GSLCRootParamGroup(RootParamGroup):
             "software_config": NoCacheSoftwareConfigParamGroup,
             "validation": ValidationGroupParamGroup,
             "backscatter_img": BackscatterImageParamGroup,
-            "browse_4326": L2GeoBrowse4326ParamGroup,
+            "browse_latlon": L2GeoBrowseLatLonParamGroup,
             "histogram": HistogramParamGroup,
             "pta": PointTargetAnalyzerParamGroup,
         }

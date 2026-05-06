@@ -157,7 +157,7 @@ def rslc_qa(
                     plot_title_prefix=name_of_backscatter_content,
                     input_raster_represents_power=input_raster_represents_power,
                     browse_paths=root_params.get_browse_paths(),
-                    browse_4326_params=root_params.browse_4326,
+                    browse_latlon_params=root_params.browse_latlon,
                     dem_file=dem,
                 )
                 log.info("Processing of backscatter images complete.")

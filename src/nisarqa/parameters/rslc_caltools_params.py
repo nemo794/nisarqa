@@ -16,7 +16,7 @@ from .nisar_params import (
     HDF5Attrs,
     HDF5ParamGroup,
     InputFileGroupParamGroup,
-    L1RadarBrowse4326ParamGroup,
+    L1RadarBrowseLatLonParamGroup,
     ProductPathGroupParamGroup,
     RootParamGroup,
     SoftwareConfigParamGroup,
@@ -130,8 +130,8 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
     ----------
     dem_file : str or None, optional
         Optional Digital Elevation Model (DEM) file in a GDAL-compatible raster
-        format. Used for geocoding Level-1 radar products to EPSG 4326 for
-        browse image generation, if applicable (i.e. if the browse_4326 feature
+        format. Used for geocoding Level-1 radar products to lat/lon for browse
+        image generation, if applicable (i.e. if the browse_latlon feature
         is enabled). If None (no DEM is supplied), a zero-height DEM will be
         used, which may produce less accurate geolocation results.
         Defaults to None.
@@ -144,8 +144,8 @@ class DynamicAncillaryFileParamGroup(YamlParamGroup):
                 name="dem_file",
                 descr="""Optional Digital Elevation Model (DEM) file in a
                 GDAL-compatible raster format. Used for geocoding Level-1 radar
-                products to EPSG 4326 for browse image generation, if applicable
-                (i.e. if `browse_4326` is enabled). If None (no DEM is supplied),
+                products to lat/lon for browse image generation, if applicable
+                (i.e. if `browse_latlon` is enabled). If None (no DEM is supplied),
                 a zero-height DEM will be used, which may produce less accurate
                 geolocation results.""",
             )
@@ -1084,8 +1084,8 @@ class RSLCRootParamGroup(RootParamGroup):
         Validation Group parameters for QA
     backscatter_img : BackscatterImageParamGroup or None, optional
         Backscatter Image Group parameters for RSLC QA
-    browse_4326 : L1RadarBrowse4326ParamGroup or None, optional
-        Browse 4326 Group parameters for RSLC QA (EPSG 4326 browse images)
+    browse_latlon : L1RadarBrowseLatLonParamGroup or None, optional
+        Browse LatLon Group parameters for RSLC QA (EPSG 4326 browse images)
     histogram : HistogramParamGroup or None, optional
         Histogram Group parameters for RSLC or GSLC QA
     range_spectra : RangeSpectraParamGroup or None, optional
@@ -1105,7 +1105,7 @@ class RSLCRootParamGroup(RootParamGroup):
 
     # QA parameters
     backscatter_img: Optional[BackscatterImageParamGroup] = None
-    browse_4326: Optional[L1RadarBrowse4326ParamGroup] = None
+    browse_latlon: Optional[L1RadarBrowseLatLonParamGroup] = None
     histogram: Optional[HistogramParamGroup] = None
     range_spectra: Optional[RangeSpectraParamGroup] = None
     az_spectra: Optional[AzimuthSpectraParamGroup] = None
@@ -1231,8 +1231,8 @@ class RSLCRootParamGroup(RootParamGroup):
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
-                root_param_grp_attr_name="browse_4326",
-                param_grp_cls_obj=L1RadarBrowse4326ParamGroup,
+                root_param_grp_attr_name="browse_latlon",
+                param_grp_cls_obj=L1RadarBrowseLatLonParamGroup,
             ),
             Grp(
                 flag_param_grp_req=workflows.qa_reports,
@@ -1282,7 +1282,7 @@ class RSLCRootParamGroup(RootParamGroup):
             "software_config": SoftwareConfigParamGroup,
             "validation": ValidationGroupParamGroup,
             "backscatter_img": BackscatterImageParamGroup,
-            "browse_4326": L1RadarBrowse4326ParamGroup,
+            "browse_latlon": L1RadarBrowseLatLonParamGroup,
             "histogram": HistogramParamGroup,
             "range_spectra": RangeSpectraParamGroup,
             "az_spectra": AzimuthSpectraParamGroup,

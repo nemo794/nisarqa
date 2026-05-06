@@ -244,30 +244,30 @@ def make_wrapped_phase_browse(
         The frequency and polarization (respectively) pair for the wrapped
         interferogram to save as a PNG.
     params : nisarqa.IgramBrowseParamGroup and
-            nisarqa.L1RadarBrowse4326ParamGroup or nisarqa.L2GeoBrowse4326ParamGroup
+            nisarqa.L1RadarBrowseLatLonParamGroup or nisarqa.L2GeoBrowseLatLonParamGroup
         A structure containing the processing parameters for the browse PNG.
         Must be an instance of IgramBrowseParamGroup and (via multiple
         inheritance) also an instance of either:
-            L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup
+            L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup
     browse_paths : nisarqa.BrowseOutputPaths
         Container with output directory and browse/KML filenames.
     dem_file : path-like or None, optional
         Digital Elevation Model (DEM) file path in a GDAL-compatible raster
-        format. Will be ignored if `params.output_browse_4326`
+        format. Will be ignored if `params.output_browse_latlon`
         is False or if `product` is a Level-2 Geocoded product.
-        Used for Level-1 products when geocoding the EPSG 4326 browse; if None,
-        a zero-height DEM will be used.
+        Used for Level-1 products when geocoding the EPSG 4326 (lat/lon) browse;
+        if None, a zero-height DEM will be used.
         Defaults to None.
     """
 
-    # XXX - We should improve the function's type annotation, but there's not
-    # a good syntax for multiple inheritance in combination with a Union.
-    # So, use type narrowing:
+    # XXX - Python's type annotations do not currently have a good syntax
+    # for multiple inheritance in combination with a Union.
+    # Instead, use type narrowing to assist type checkers:
     if not isinstance(params, nisarqa.IgramBrowseParamGroup):
         raise TypeError(f"{type(params)=}, must be IgramBrowseParamGroup")
-    t = nisarqa.L1RadarBrowse4326ParamGroup | nisarqa.L2GeoBrowse4326ParamGroup
+    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
     if not isinstance(params, t):
-        msg = f"{type(params)=}, must be L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup"
+        msg = f"{type(params)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)
 
     with product.get_wrapped_igram(freq=freq, pol=pol) as igram_r:
@@ -292,7 +292,7 @@ def make_wrapped_phase_browse(
             longest_side_max=params.longest_side_max,
             resample=params.resample,
             browse_paths=browse_paths,
-            save_epsg_4326_browse=params.output_browse_4326,
+            save_latlon_browse=params.output_browse_latlon,
             # Parameters for Level-1; will be ignored for Level-2
             orbit=product.get_orbit(ref_or_sec="reference"),
             wavelength=product.wavelength(freq=freq),

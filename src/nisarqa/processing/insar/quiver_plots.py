@@ -221,7 +221,7 @@ def process_offsets_quiver_browse(
     This function processes azimuth and slant range offset rasters to create:
     - A primary browse PNG with quiver plot
     - A KML file with accurate corner coordinates
-    - An optional EPSG 4326 browse PNG and KML
+    - An optional EPSG 4326 (lat/lon) browse PNG and KML
     - Saves decimation metadata to stats.h5
 
     Parameters
@@ -229,7 +229,7 @@ def process_offsets_quiver_browse(
     product : nisarqa.OffsetProduct
         Input NISAR offset product (ROFF or GOFF).
     params_browse : nisarqa.OffsetsBrowseParamGroup and
-            nisarqa.L1RadarBrowse4326ParamGroup or nisarqa.L2GeoBrowse4326ParamGroup
+            nisarqa.L1RadarBrowseLatLonParamGroup or nisarqa.L2GeoBrowseLatLonParamGroup
         A structure containing the processing parameters for the browse PNG.
     params_quiver : nisarqa.QuiverParamGroup
         A structure containing processing parameters to generate quiver plots.
@@ -242,15 +242,16 @@ def process_offsets_quiver_browse(
         when generating KMLs; ignored for geocoded products. If None, a
         zero-height DEM will be used. Defaults to None.
     """
-    # XXX - Should improve the function's type annotation, but there's not
-    # a good syntax for multiple inheritance in combination with a Union.
-    # So, use type narrowing:
+
+    # XXX - Python's type annotations do not currently have a good syntax
+    # for multiple inheritance in combination with a Union.
+    # Instead, use type narrowing to assist type checkers:
     if not isinstance(params_browse, nisarqa.OffsetsBrowseParamGroup):
         msg = f"{type(params_browse)=}, must be OffsetsBrowseParamGroup"
         raise TypeError(msg)
-    t = nisarqa.L1RadarBrowse4326ParamGroup | nisarqa.L2GeoBrowse4326ParamGroup
+    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
     if not isinstance(params_browse, t):
-        msg = f"{type(params_browse)=}, must be L1RadarBrowse4326ParamGroup or L2GeoBrowse4326ParamGroup"
+        msg = f"{type(params_browse)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)
 
     # Generate a browse PNG for one layer
@@ -356,8 +357,8 @@ def process_offsets_quiver_browse(
         log.info(f"Browse KML saved to {browse_paths.primary_kml_path}")
 
         # Generate EPSG 4326 browse if requested
-        if params_browse.output_browse_4326:
-            log.info("Generating EPSG 4326 browse for offset product...")
+        if params_browse.output_browse_latlon:
+            log.info("Generating EPSG 4326 (lat/lon) browse...")
 
             if product.is_geocoded:
                 # Level-2: GOFF - Reproject using GDAL
@@ -411,7 +412,7 @@ def process_offsets_quiver_browse(
             )
 
             # Generate the EPSG 4326 browse PNG
-            suffix = nisarqa.LONLAT_SUFFIX
+            suffix = nisarqa.LATLON_SUFFIX
             png_4326_path = browse_paths.get_browse_path(suffix=suffix)
 
             plot_single_quiver_plot_to_png(
@@ -423,13 +424,13 @@ def process_offsets_quiver_browse(
                 quiver_projection_params=quiver_proj_params,
             )
 
-            log.info(f"EPSG 4326 browse PNG saved to {png_4326_path}")
+            log.info(f"EPSG 4326 (lat/lon) browse PNG saved to {png_4326_path}")
 
             # Generate EPSG 4326 KML
             qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
 
             kml_4326_path = browse_paths.get_kml_path(suffix=suffix)
-            log.info(f"EPSG 4326 browse KML saved to {kml_4326_path}")
+            log.info(f"EPSG 4326 (lat/lon) browse KML saved to {kml_4326_path}")
 
 
 def plot_single_quiver_plot_to_png(
@@ -1038,7 +1039,7 @@ def get_offset_values_in_projected_coordinates(
             # object we created above.
             x_shift, y_shift, _ = proj.forward([lon, lat, 0])
 
-            # Handle longitude wrapping for EPSG 4326 (and other geographic CRS).
+            # Handle longitude wrapping for EPSG 4326.
             # If the image crosses the antimeridian, the output x_shift from
             # the coordinate transformations might be in a different 360 degree
             # period than the input x_coord. For example:

@@ -25,7 +25,7 @@ def process_backscatter_imgs_and_browse(
     browse_paths: nisarqa.BrowseOutputPaths,
     input_raster_represents_power: bool = False,
     plot_title_prefix: str = "Backscatter Coefficient",
-    browse_4326_params: nisarqa.Browse4326ParamGroup | None = None,
+    browse_latlon_params: nisarqa.BrowseLatLonParamGroup | None = None,
     dem_file: str | os.PathLike | None = None,
 ) -> None:
     """
@@ -61,16 +61,17 @@ def process_backscatter_imgs_and_browse(
         Suggestions: "RSLC Backscatter Coefficient (beta-0)" or
         "GCOV Backscatter Coefficient (gamma-0)".
         Defaults to "Backscatter Coefficient".
-    browse_4326_params : Browse4326ParamGroup or None, optional
-        Parameters for generating EPSG 4326 browse images. If None or if
-        `output_browse_4326` is False, no EPSG 4326 browse will be generated.
-        Defaults to None.
+    browse_latlon_params : BrowseLatLonParamGroup or None, optional
+        Parameters for generating EPSG 4326 (lat/lon) browse images.
+        If None, or if `browse_latlon_params.output_browse_latlon` is False,
+        no EPSG 4326 browse is generated. Defaults to None.
     dem_file : path-like or None, optional
         Digital Elevation Model (DEM) file path in a GDAL-compatible raster
-        format. Will be ignored if `browse_4326_params.output_browse_4326`
-        is False or if `product` is a Level-2 Geocoded product.
-        Used for Level-1 products when geocoding the EPSG 4326 browse; if None,
-        a zero-height DEM will be used.
+        format.
+        Used for Level-1 products when geocoding the EPSG 4326 (lat/lon) browse;
+        if None, a zero-height DEM will be used.
+        Will be ignored if lat/lon browse products are not generated
+        or if `product` is a Level-2 Geocoded product.
         Defaults to None.
     """
 
@@ -215,9 +216,7 @@ def process_backscatter_imgs_and_browse(
                                 browse_paths=browse_paths
                             )
 
-                        # XXX - Keep these values, in case we make
-                        # a browse 4326. There's probably a more Pythonic
-                        # way to store them.
+                        # XXX - Keep these, in case we make lat/lon browse below
                         primary_browse_freq = freq  # For L1 products
                         primary_browse_fill = img.fill_value  # For L2 products
 
@@ -233,7 +232,7 @@ def process_backscatter_imgs_and_browse(
     log.info(f"Browse image KML file saved to {browse_paths.primary_kml_path}")
 
     # Generate EPSG 4326 browse if requested
-    if browse_4326_params is not None and browse_4326_params.output_browse_4326:
+    if browse_latlon_params is not None and browse_latlon_params.output_browse_latlon:
         log.info("Generating EPSG 4326 browse...")
         pol_imgs_4326 = {}
 
@@ -252,7 +251,7 @@ def process_backscatter_imgs_and_browse(
                     fill_value=fill_val,
                     geogrid=primary_browse_grid,
                     output_epsg=4326,
-                    resample=browse_4326_params.resample,
+                    resample=browse_latlon_params.resample,
                 )
             else:
                 # Level-1: Geocode using ISCE3
@@ -264,26 +263,26 @@ def process_backscatter_imgs_and_browse(
                     look_side=product.look_direction,
                     epsg=4326,
                     dem_file=dem_file,
-                    resample=browse_4326_params.resample,
+                    resample=browse_latlon_params.resample,
                 )
 
             pol_imgs_4326[pol] = geocoded_arr
 
         # Save EPSG 4326 browse PNG
-        suffix = nisarqa.LONLAT_SUFFIX
+        suffix = nisarqa.LATLON_SUFFIX
         png_4326_path = browse_paths.get_browse_path(suffix=suffix)
 
         product.save_browse(
             pol_imgs=pol_imgs_4326,
             filepath=png_4326_path,
         )
-        log.info(f"EPSG 4326 browse PNG saved to {png_4326_path}")
+        log.info(f"EPSG 4326 (lat/lon) browse PNG saved to {png_4326_path}")
 
         # Generate EPSG 4326 KML
         qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
 
         kml_4326_path = browse_paths.get_kml_path(suffix=suffix)
-        log.info(f"EPSG 4326 browse KML saved to {kml_4326_path}")
+        log.info(f"EPSG 4326 (lat/lon) browse KML saved to {kml_4326_path}")
 
 
 def get_multilooked_backscatter_img_with_nlooks(

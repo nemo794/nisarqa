@@ -23,7 +23,7 @@ def _make_phase_browse(
     longest_side_max: int | None,
     resample: str,
     browse_paths: nisarqa.BrowseOutputPaths,
-    save_epsg_4326_browse: bool,
+    save_latlon_browse: bool,
     orbit: isce3.core.Orbit,
     wavelength: float,
     look_side: isce3.core.LookSide | str,
@@ -41,7 +41,7 @@ def _make_phase_browse(
     longest_side_max: int | None,
     resample: str,
     browse_paths: nisarqa.BrowseOutputPaths,
-    save_epsg_4326_browse: bool,
+    save_latlon_browse: bool,
     fill_value: float,
 ) -> None: ...
 
@@ -55,7 +55,7 @@ def _make_phase_browse(
     longest_side_max: int | None,
     resample: str,
     browse_paths: nisarqa.BrowseOutputPaths,
-    save_epsg_4326_browse: bool,
+    save_latlon_browse: bool,
     # Level-1 (RadarGrid) parameters:
     orbit: Any | None = None,
     wavelength: float | None = None,
@@ -69,7 +69,8 @@ def _make_phase_browse(
 
     This function handles both Level-1 (radar coordinates) and Level-2 (geocoded)
     phase arrays. It decimates the input phase array to square pixels, saves
-    the primary browse PNG+KML, and optionally creates an EPSG 4326 version.
+    the primary browse PNG+KML, and optionally creates an EPSG 4326 lat/lon
+    version of the browse products.
 
     Parameters
     ----------
@@ -94,14 +95,15 @@ def _make_phase_browse(
         Maximum number of pixels for the longest side of the decimated array.
         If None, no maximum is enforced.
     resample : str
-        Resampling method for EPSG 4326 browse generation.
+        Resampling method for EPSG 4326 (lat/lon) browse generation.
         Common options: 'bilinear', 'cubic', 'nearest', etc.
     browse_paths : nisarqa.BrowseOutputPaths
         Container with output directory and browse/KML filenames.
-    save_epsg_4326_browse : bool
+    save_latlon_browse : bool
         If False, only save the primary browse PNG+KML in the input phase
         array's native grid.
-        If True, additionally save a version of the browse PNG+KML in EPSG 4326.
+        If True, additionally save a version of the browse PNG+KML in
+        EPSG 4326 (lat/lon).
     orbit : isce3.core.Orbit or None, optional
         **Required for Level-1 (RadarGrid). Ignored for Level-2.**
         The trajectory of the radar antenna phase center.
@@ -118,7 +120,7 @@ def _make_phase_browse(
     dem_file : str, os.PathLike, or None, optional
         **Required for Level-1 (RadarGrid). Ignored for Level-2.**
         Digital Elevation Model (DEM) file path in a GDAL-compatible raster
-        format. Used when geocoding the EPSG 4326 browse.
+        format. Used when geocoding the EPSG 4326 (lat/lon) browse.
         If None, a zero-height DEM will be used.
         Defaults to None.
     fill_value : float or None, optional
@@ -179,7 +181,7 @@ def _make_phase_browse(
         )
 
     # Optionally create EPSG 4326 browse PNG and KML
-    if save_epsg_4326_browse:
+    if save_latlon_browse:
         if isinstance(grid, nisarqa.GeoGrid):
             # Level-2: Reproject using GDAL
             geocoded_arr, qa_geogrid_4326 = nisarqa.reproject_geo_raster(
@@ -203,7 +205,7 @@ def _make_phase_browse(
             )
 
         # Save EPSG 4326 browse PNG
-        suffix = nisarqa.LONLAT_SUFFIX
+        suffix = nisarqa.LATLON_SUFFIX
         png_4326_path = browse_paths.get_browse_path(suffix=suffix)
 
         plot_2d_array_and_save_to_png(
@@ -213,13 +215,13 @@ def _make_phase_browse(
             vmin=cbar_min_max[0],
             vmax=cbar_min_max[1],
         )
-        log.info(f"EPSG 4326 browse PNG saved to {png_4326_path}")
+        log.info(f"EPSG 4326 (lat/lon) browse PNG saved to {png_4326_path}")
 
         # Save EPSG 4326 KML
         qa_geogrid_4326.save_kml(browse_paths=browse_paths, suffix=suffix)
 
         kml_4326_path = browse_paths.get_kml_path(suffix=suffix)
-        log.info(f"EPSG 4326 browse KML saved to {kml_4326_path}")
+        log.info(f"EPSG 4326 (lat/lon) browse KML saved to {kml_4326_path}")
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

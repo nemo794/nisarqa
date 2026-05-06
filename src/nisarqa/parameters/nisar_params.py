@@ -989,20 +989,20 @@ class WorkflowsParamGroup(YamlParamGroup):
 
 
 @dataclass(frozen=True)
-class Browse4326ParamGroup(YamlParamGroup):
+class BrowseLatLonParamGroup(YamlParamGroup):
     """
     Parameters for generating EPSG 4326 (lat/lon) version of browse products.
 
-    This corresponds to the `qa_reports: browse_4326` runconfig group.
+    This corresponds to the `qa_reports: browse_latlon` runconfig group.
 
     This dataclass should be treated as an abstract base class.
     Product-specific subclasses should be used:
-        L1RadarBrowse4326ParamGroup for Level-1 radar products or
-        L2GeoBrowse4326ParamGroup for Level-2 geocoded products.
+        L1RadarBrowseLatLonParamGroup for Level-1 radar products or
+        L2GeoBrowseLatLonParamGroup for Level-2 geocoded products.
 
     Parameters
     ----------
-    output_browse_4326 : bool, optional
+    output_browse_latlon : bool, optional
         True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
@@ -1010,50 +1010,50 @@ class Browse4326ParamGroup(YamlParamGroup):
         The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        primary browse filename suffixed with '_' + f'{nisarqa.LATLON_SUFFIX}'.
         Defaults to False.
     """
 
-    output_browse_4326: bool = field(
+    output_browse_latlon: bool = field(
         default=False,
         metadata={
             "yaml_attrs": YamlAttrs(
-                name="output_browse_4326",
-                descr="""True to generate a version of the primary browse PNG+KML that is
+                name="output_browse_latlon",
+                descr=f"""True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
         False to only generate primary browse outputs.
         The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').""",
+        suffix '_{nisarqa.LATLON_SUFFIX}' (e.g., 'BROWSE_{nisarqa.LATLON_SUFFIX}.png' and 'BROWSE_{nisarqa.LATLON_SUFFIX}.kml').""",
             )
         },
     )
 
     def __post_init__(self):
-        # Validate output_browse_4326
-        if not isinstance(self.output_browse_4326, bool):
+        # Validate output_browse_latlon
+        if not isinstance(self.output_browse_latlon, bool):
             raise TypeError(
-                f"`output_browse_4326` must be bool: {self.output_browse_4326}"
+                f"`output_browse_latlon` must be bool: {self.output_browse_latlon}"
             )
 
     @staticmethod
     def get_path_to_group_in_runconfig():
-        return ["runconfig", "groups", "qa", "qa_reports", "browse_4326"]
+        return ["runconfig", "groups", "qa", "qa_reports", "browse_latlon"]
 
 
 @dataclass(frozen=True)
-class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
+class L1RadarBrowseLatLonParamGroup(BrowseLatLonParamGroup):
     """
-    Parameters for generating EPSG 4326 version of browse products for L1.
+    Parameters for generating EPSG 4326 (lat/lon) browse products for L1.
 
-    Extends Browse4326ParamGroup with Level-1 specific parameters for
+    Extends BrowseLatLonParamGroup with Level-1 specific parameters for
     ISCE3 geocoding (RSLC, RIFG, RUNW, ROFF).
 
     Parameters
     ----------
-    output_browse_4326 : bool, optional
+    output_browse_latlon : bool, optional
         True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
@@ -1061,12 +1061,12 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
         The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        primary browse filename suffixed with '_' + f'{nisarqa.LATLON_SUFFIX}'.
         Defaults to False.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
         'bicubic', 'nearest', 'biquintic'.
-        Ignored if `output_browse_4326` is False.
+        Ignored if `output_browse_latlon` is False.
         Defaults to 'bilinear'.
     """
 
@@ -1077,7 +1077,7 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
                 name="resample",
                 descr="""Resampling method for ISCE3 geocoding. Options: 'sinc',
                 'bilinear', 'bicubic', 'nearest', 'biquintic'.
-                Ignored if `output_browse_4326` is False.""",
+                Ignored if `output_browse_latlon` is False.""",
             )
         },
     )
@@ -1095,16 +1095,16 @@ class L1RadarBrowse4326ParamGroup(Browse4326ParamGroup):
 
 
 @dataclass(frozen=True)
-class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
+class L2GeoBrowseLatLonParamGroup(BrowseLatLonParamGroup):
     """
-    Parameters for generating EPSG 4326 version of browse products for L2.
+    Parameters for generating EPSG 4326 (lat/lon) browse products for L2.
 
-    Extends Browse4326ParamGroup with Level-2 specific parameters for
+    Extends BrowseLatLonParamGroup with Level-2 specific parameters for
     GDAL reprojection (GSLC, GCOV, GUNW, GOFF).
 
     Parameters
     ----------
-    output_browse_4326 : bool, optional
+    output_browse_latlon : bool, optional
         True to generate a version of the primary browse PNG+KML that is
         projected to EPSG 4326 (lon/lat) coordinate system for accurate
         geolocation in GIS software.
@@ -1112,12 +1112,12 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
         The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        suffix '_4326' (e.g., 'BROWSE_4326.png' and 'BROWSE_4326.kml').
+        primary browse filename suffixed with '_' + f'{nisarqa.LATLON_SUFFIX}'.
         Defaults to False.
     resample : str, optional
         Resampling algorithm for GDAL reprojection. Options: 'near',
         'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
-        Ignored if `output_browse_4326` is False.
+        Ignored if `output_browse_latlon` is False.
         Defaults to 'cubic'.
     """
 
@@ -1128,7 +1128,7 @@ class L2GeoBrowse4326ParamGroup(Browse4326ParamGroup):
                 name="resample",
                 descr="""Resampling algorithm for GDAL reprojection. Options: 'near',
                 'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
-                Ignored if `output_browse_4326` is False.""",
+                Ignored if `output_browse_latlon` is False.""",
             )
         },
     )
@@ -1782,8 +1782,8 @@ class RootParamGroup(ABC):
         >>> browse_paths = root_params.get_browse_paths()
         >>> browse_paths.primary_browse_path
         PosixPath('/output/qa/BROWSE.png')
-        >>> browse_paths.browse_4326_path
-        PosixPath('/output/qa/BROWSE_4326.png')
+        >>> browse_paths.browse_latlon_path
+        PosixPath('/output/qa/BROWSE_LATLON.png')
         """
         return nisarqa.BrowseOutputPaths(
             output_dir=self.get_output_dir(),
