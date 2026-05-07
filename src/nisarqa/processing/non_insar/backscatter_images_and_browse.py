@@ -232,7 +232,10 @@ def process_backscatter_imgs_and_browse(
     log.info(f"Browse image KML file saved to {browse_paths.primary_kml_path}")
 
     # Generate EPSG 4326 browse if requested
-    if browse_latlon_params is not None and browse_latlon_params.output_browse_latlon:
+    if (
+        browse_latlon_params is not None
+        and browse_latlon_params.output_browse_latlon
+    ):
         log.info("Generating EPSG 4326 browse...")
         pol_imgs_4326 = {}
 

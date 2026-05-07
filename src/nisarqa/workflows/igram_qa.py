@@ -281,7 +281,10 @@ def save_igram_product_browse(
     if not isinstance(params, t):
         msg = f"{type(params)=}, must be IgramBrowseParamGroup or UNWIgramBrowseParamGroup"
         raise TypeError(msg)
-    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
+    t = (
+        nisarqa.L1RadarBrowseLatLonParamGroup
+        | nisarqa.L2GeoBrowseLatLonParamGroup
+    )
     if not isinstance(params, t):
         msg = f"{type(params)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)

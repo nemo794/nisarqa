@@ -249,7 +249,10 @@ def process_offsets_quiver_browse(
     if not isinstance(params_browse, nisarqa.OffsetsBrowseParamGroup):
         msg = f"{type(params_browse)=}, must be OffsetsBrowseParamGroup"
         raise TypeError(msg)
-    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
+    t = (
+        nisarqa.L1RadarBrowseLatLonParamGroup
+        | nisarqa.L2GeoBrowseLatLonParamGroup
+    )
     if not isinstance(params_browse, t):
         msg = f"{type(params_browse)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)

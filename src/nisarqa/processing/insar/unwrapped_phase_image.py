@@ -250,7 +250,10 @@ def make_unwrapped_phase_browse(
     # Instead, use type narrowing to assist type checkers:
     if not isinstance(params, nisarqa.UNWIgramBrowseParamGroup):
         raise TypeError(f"{type(params)=}, must be UNWIgramBrowseParamGroup")
-    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
+    t = (
+        nisarqa.L1RadarBrowseLatLonParamGroup
+        | nisarqa.L2GeoBrowseLatLonParamGroup
+    )
     if not isinstance(params, t):
         msg = f"{type(params)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)

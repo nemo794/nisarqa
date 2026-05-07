@@ -121,14 +121,17 @@ def process_az_and_slant_rg_offsets_from_offset_product(
         when generating KMLs; ignored for geocoded products. If None, a
         zero-height DEM will be used. Defaults to None.
     """
-    
+
     # XXX - Python's type annotations do not currently have a good syntax
     # for multiple inheritance in combination with a Union.
     # Instead, use type narrowing to assist type checkers:
     if not isinstance(params_browse, nisarqa.OffsetsBrowseParamGroup):
         msg = f"{type(params_browse)=}, must be OffsetsBrowseParamGroup"
         raise TypeError(msg)
-    t = nisarqa.L1RadarBrowseLatLonParamGroup | nisarqa.L2GeoBrowseLatLonParamGroup
+    t = (
+        nisarqa.L1RadarBrowseLatLonParamGroup
+        | nisarqa.L2GeoBrowseLatLonParamGroup
+    )
     if not isinstance(params_browse, t):
         msg = f"{type(params_browse)=}, must be L1RadarBrowseLatLonParamGroup or L2GeoBrowseLatLonParamGroup"
         raise TypeError(msg)

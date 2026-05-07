@@ -595,7 +595,9 @@ class ROFFBrowseParamGroup(
 
 
 @dataclass(frozen=True)
-class GOFFBrowseParamGroup(L2GeoBrowseLatLonParamGroup, OffsetsBrowseParamGroup):
+class GOFFBrowseParamGroup(
+    L2GeoBrowseLatLonParamGroup, OffsetsBrowseParamGroup
+):
     def __post_init__(self):
         OffsetsBrowseParamGroup.__post_init__(self)
         L2GeoBrowseLatLonParamGroup.__post_init__(self)
