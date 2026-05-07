@@ -323,7 +323,9 @@ def make_phase_browse(
     )
 
     # Downsample the grid to match the decimated phase array
-    browse_grid = raster.grid.downsample(y_stride=ky, x_stride=kx, mode="decimate")
+    browse_grid = raster.grid.downsample(
+        y_stride=ky, x_stride=kx, mode="decimate"
+    )
 
     # Assert grid and phase have matching dimensions
     assert (
