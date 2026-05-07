@@ -14,8 +14,7 @@ from ..plotting_utils import (
     format_axes_ticks_and_labels,
     format_cbar_ticks_for_multiples_of_pi,
 )
-from ..processing_utils import get_phase_array
-from ._utils import _make_phase_browse
+from ._utils import get_phase_array, make_phase_browse
 from .histograms import process_single_histogram
 
 objects_to_skip = nisarqa.get_all(name=__name__)
@@ -259,17 +258,9 @@ def make_unwrapped_phase_browse(
         raise TypeError(msg)
 
     with product.get_unwrapped_phase(freq=freq, pol=pol) as igram_r:
-        phase, cbar_min_max = get_phase_array(
-            phs_or_complex_raster=igram_r,
-            make_square_pixels=False,  # we'll do this while downsampling
+        make_phase_browse(
+            raster=igram_r,
             rewrap=params.rewrap,
-        )
-
-        _make_phase_browse(
-            phase=phase,
-            grid=igram_r.grid,
-            cbar_min_max=cbar_min_max,
-            sample_spacing=(igram_r.y_ground_spacing, igram_r.x_ground_spacing),
             longest_side_max=params.longest_side_max,
             resample=params.resample,
             browse_paths=browse_paths,
@@ -279,8 +270,6 @@ def make_unwrapped_phase_browse(
             wavelength=product.wavelength(freq=freq),
             look_side=product.look_direction,
             dem_file=dem_file,
-            # Parameters for Level-2; will be ignored for Level-1
-            fill_value=igram_r.fill_value,
         )
 
 
