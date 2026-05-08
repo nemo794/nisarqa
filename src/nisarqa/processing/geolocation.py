@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import os
 import pathlib
+import tempfile
 from contextlib import contextmanager
-from datetime import datetime, timezone
 from typing import Generator
 
 import isce3
@@ -92,9 +93,9 @@ def _create_zero_height_dem() -> pathlib.Path:
     """
     # Create a uniquely-named file in the scratch directory
     scratch = nisarqa.get_global_scratch_dir()
-    utc_now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-
-    dem_file = scratch / f"zero_height_dem_{utc_now}.tif"
+    _, dem_file = tempfile.mkstemp(
+        prefix="zero_height_dem_", suffix=".tif", dir=scratch
+    )
 
     # 1. Define resolution
     res = 1.0  # 1 degree resolution
@@ -106,7 +107,7 @@ def _create_zero_height_dem() -> pathlib.Path:
     # 2. Create the dataset
     driver = gdal.GetDriverByName("GTiff")
     # GDT_Int16 is common for DEMs; use GDT_Float32 for precision
-    ds = driver.Create(str(dem_file), width, height, 1, gdal.GDT_Int16)
+    ds = driver.Create(dem_file, width, height, 1, gdal.GDT_Int16)
 
     # 3. Set GeoTransform:
     #   [Upper Left X, X Resolution, Rotation,
@@ -128,7 +129,7 @@ def _create_zero_height_dem() -> pathlib.Path:
     band.FlushCache()
     ds = None
 
-    return dem_file
+    return pathlib.Path(dem_file)
 
 
 def geocode_radar_raster(
@@ -204,191 +205,193 @@ def geocode_radar_raster(
 
     gdal_dtype = gdal.GDT_Float64
     output_dtype = np.float64
-    # Create a uniquely-named string for filenaming
-    utc_now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
 
-    # Setup temporary file paths
-    input_file = scratch / f"input_{utc_now}.tif"
-    output_file = scratch / f"output_{utc_now}.tif"
+    with (
+        dem_file_manager(dem_file) as dem_filepath,
+        tempfile.NamedTemporaryFile(
+            prefix="browse4326_in_", suffix=".tif", dir=scratch, delete=True
+        ) as input_temp,
+        tempfile.NamedTemporaryFile(
+            prefix="browse4326_out_", suffix=".tif", dir=scratch, delete=True
+        ) as output_temp,
+    ):
+        input_file = input_temp.name
+        output_file = output_temp.name
 
-    try:
-        # Use context manager for DEM (handles both provided and temporary DEM)
-        with dem_file_manager(dem_file) as dem_filepath:
-            dem = isce3.io.Raster(str(dem_filepath))
+        # Note: Keep input_temp and output_temp file handles open throughout.
+        # On Unix systems, GDAL can work with files that have open handles.
+        dem = isce3.io.Raster(str(dem_filepath))
 
-            # Setup temporary input raster file, so that it can be converted to
-            # the correct format for ISCE3 geocoding
-            input_ds = gdal.GetDriverByName("GTiff").Create(
-                input_file,
-                radar_array.data.shape[1],
-                radar_array.data.shape[0],
-                1,
-                gdal_dtype,
-            )
+        # Setup temporary input raster file, so that it can be converted to
+        # the correct format for ISCE3 geocoding
+        input_ds = gdal.GetDriverByName("GTiff").Create(
+            input_file,
+            radar_array.data.shape[1],
+            radar_array.data.shape[0],
+            1,
+            gdal_dtype,
+        )
 
-            # Ensure float type
-            raster_array = radar_array.astype(np.float64)
+        # Ensure float type
+        raster_array = radar_array.astype(np.float64)
 
-            # Get lon/lat corners from radar grid
-            llq = radargrid.get_latlonquad(
-                orbit=orbit,
-                wavelength=wavelength,
-                look_side=look_side,
-                dem_file=dem_filepath,
-            )
+        # Get lon/lat corners from radar grid
+        llq = radargrid.get_latlonquad(
+            orbit=orbit,
+            wavelength=wavelength,
+            look_side=look_side,
+            dem_file=dem_filepath,
+        )
 
-            # Transform lon/lat corners to target projection
-            proj = isce3.core.make_projection(epsg)
-            corners_proj = []
-            for corner in [llq.ul, llq.ur, llq.ll, llq.lr]:
-                lon_rad = np.deg2rad(corner.lon)
-                lat_rad = np.deg2rad(corner.lat)
-                # Forward transform: lon/lat -> target projection
-                # Returns coordinates in projection's native units
-                # (degrees for EPSG 4326 lat/lon, meters for UTM, etc.)
-                x, y, z = proj.forward([lon_rad, lat_rad, 0])
-                corners_proj.append((x, y))
+        # Transform lon/lat corners to target projection
+        proj = isce3.core.make_projection(epsg)
+        corners_proj = []
+        for corner in [llq.ul, llq.ur, llq.ll, llq.lr]:
+            lon_rad = np.deg2rad(corner.lon)
+            lat_rad = np.deg2rad(corner.lat)
+            # Forward transform: lon/lat -> target projection
+            # Returns coordinates in projection's native units
+            # (degrees for EPSG 4326 lat/lon, meters for UTM, etc.)
+            x, y, z = proj.forward([lon_rad, lat_rad, 0])
+            corners_proj.append((x, y))
 
-            # Get bounding box in target projection's native units
-            xs = [c[0] for c in corners_proj]
-            ys = [c[1] for c in corners_proj]
-            minx, maxx = min(xs), max(xs)
-            miny, maxy = min(ys), max(ys)
+        # Get bounding box in target projection's native units
+        xs = [c[0] for c in corners_proj]
+        ys = [c[1] for c in corners_proj]
+        minx, maxx = min(xs), max(xs)
+        miny, maxy = min(ys), max(ys)
 
-            width = maxx - minx
-            height = maxy - miny
+        width = maxx - minx
+        height = maxy - miny
 
-            # Determine resolution based on the longest side of the array.
-            # Handle width and height independently. For example, in lon/lat
-            # coordinates, 1 degree of latitude is not equivalent to 1 degree
-            # of longitude, particularly towards the polar regions.
-            resolution_x = width / max(np.shape(radar_array))
-            resolution_y = height / max(np.shape(radar_array))
+        # Determine resolution based on the longest side of the array.
+        # Handle width and height independently. For example, in lon/lat
+        # coordinates, 1 degree of latitude is not equivalent to 1 degree
+        # of longitude, particularly towards the polar regions.
+        resolution_x = width / max(np.shape(radar_array))
+        resolution_y = height / max(np.shape(radar_array))
 
-            # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
-            isce3_radargrid = radargrid.get_isce3_radar_grid_parameters(
-                wavelength=wavelength,
-                look_side=look_side,
-            )
+        # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
+        isce3_radargrid = radargrid.get_isce3_radar_grid_parameters(
+            wavelength=wavelength,
+            look_side=look_side,
+        )
 
-            input_ds.GetRasterBand(1).WriteArray(raster_array)
-            input_ds.FlushCache()
-            input_ds = None  # Close
-            input_raster = isce3.io.Raster(str(input_file))
+        input_ds.GetRasterBand(1).WriteArray(raster_array)
+        input_ds.FlushCache()
+        input_ds = None  # Close
+        input_raster = isce3.io.Raster(str(input_file))
 
-            # Set up geocoding object
-            geocode_obj = isce3.geocode.GeocodeFloat64()
+        # Set up geocoding object
+        geocode_obj = isce3.geocode.GeocodeFloat64()
 
-            geocode_obj.orbit = orbit
-            geocode_obj.ellipsoid = isce3.core.WGS84_ELLIPSOID
-            geocode_obj.doppler = isce3.core.LUT2d()  # Zero-Doppler for NISAR
-            geocode_obj.threshold_geo2rdr = 1.0e-8
-            geocode_obj.numiter_geo2rdr = 25
-            geocode_obj.data_interpolator = resample
+        geocode_obj.orbit = orbit
+        geocode_obj.ellipsoid = isce3.core.WGS84_ELLIPSOID
+        geocode_obj.doppler = isce3.core.LUT2d()  # Zero-Doppler for NISAR
+        geocode_obj.threshold_geo2rdr = 1.0e-8
+        geocode_obj.numiter_geo2rdr = 25
+        geocode_obj.data_interpolator = resample
 
-            # Call geogrid() with custom EPSG and pixel spacing, otherwise
-            # update_geogrid() will use the DEM's EPSG and pixel spacing.
-            # (This is not ideal in case e.g. we use the zero-height DEM.)
-            # But, use NaN for start positions and 0 for dimensions to signal
-            # to update_geogrid() that it should compute those values.
-            geocode_obj.geogrid(
-                x_start=np.nan,  # Will be computed by update_geogrid
-                y_start=np.nan,  # Will be computed by update_geogrid
-                x_spacing=resolution_x,
-                y_spacing=-resolution_y,  # Y posting should be negative
-                width=0,  # Will be computed by update_geogrid
-                length=0,  # Will be computed by update_geogrid
-                epsg=epsg,
-            )
+        # Call geogrid() with custom EPSG and pixel spacing, otherwise
+        # update_geogrid() will use the DEM's EPSG and pixel spacing.
+        # (This is not ideal in case e.g. we use the zero-height DEM.)
+        # But, use NaN for start positions and 0 for dimensions to signal
+        # to update_geogrid() that it should compute those values.
+        geocode_obj.geogrid(
+            x_start=np.nan,  # Will be computed by update_geogrid
+            y_start=np.nan,  # Will be computed by update_geogrid
+            x_spacing=resolution_x,
+            y_spacing=-resolution_y,  # Y posting should be negative
+            width=0,  # Will be computed by update_geogrid
+            length=0,  # Will be computed by update_geogrid
+            epsg=epsg,
+        )
 
-            # Now call update_geogrid - it will compute bounds, and also
-            # handle any antimeridian crossings
-            geocode_obj.update_geogrid(isce3_radargrid, dem)
+        # Now call update_geogrid - it will compute bounds, and also
+        # handle any antimeridian crossings
+        geocode_obj.update_geogrid(isce3_radargrid, dem)
 
-            # Create temporary output raster file
-            output_ds = gdal.GetDriverByName("GTiff").Create(
-                output_file,
-                geocode_obj.geogrid_width,
-                geocode_obj.geogrid_length,
-                1,
-                gdal_dtype,
-            )
+        # Create temporary output raster file
+        output_ds = gdal.GetDriverByName("GTiff").Create(
+            output_file,
+            geocode_obj.geogrid_width,
+            geocode_obj.geogrid_length,
+            1,
+            gdal_dtype,
+        )
 
-            # Set output file's projection and geotransform
-            srs = osr.SpatialReference()
-            srs.ImportFromEPSG(epsg)
-            output_ds.SetProjection(srs.ExportToWkt())
+        # Set output file's projection and geotransform
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(epsg)
+        output_ds.SetProjection(srs.ExportToWkt())
 
-            output_geotransform = [
-                geocode_obj.geogrid_start_x,
-                geocode_obj.geogrid_spacing_x,
-                0,
-                geocode_obj.geogrid_start_y,
-                0,
-                geocode_obj.geogrid_spacing_y,
-            ]
-            output_ds.SetGeoTransform(output_geotransform)
+        output_geotransform = [
+            geocode_obj.geogrid_start_x,
+            geocode_obj.geogrid_spacing_x,
+            0,
+            geocode_obj.geogrid_start_y,
+            0,
+            geocode_obj.geogrid_spacing_y,
+        ]
+        output_ds.SetGeoTransform(output_geotransform)
 
-            output_ds.FlushCache()
-            output_ds = None  # Close
-            output_raster = isce3.io.Raster(str(output_file), update=True)
+        output_ds.FlushCache()
+        output_ds = None  # Close
+        output_raster = isce3.io.Raster(str(output_file), update=True)
 
-            # Perform geocoding
-            geocode_obj.geocode(
-                radar_grid=isce3_radargrid,
-                input_raster=input_raster,
-                output_raster=output_raster,
-                dem_raster=dem,
-                output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
-            )
+        # Perform geocoding
+        geocode_obj.geocode(
+            radar_grid=isce3_radargrid,
+            input_raster=input_raster,
+            output_raster=output_raster,
+            dem_raster=dem,
+            output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
+        )
 
-            # Explicitly close the ISCE3 Rasters
-            input_raster = None
-            output_raster = None
-            dem = None
+        # Explicitly close the ISCE3 Rasters
+        input_raster.close_dataset()
+        input_raster = None
+        output_raster.close_dataset()
+        output_raster = None
+        dem = None
 
-            # Read geocoded result
-            output_ds = gdal.Open(output_file)
-            geocoded_array = (
-                output_ds.GetRasterBand(1).ReadAsArray().astype(output_dtype)
-            )
-            output_gt = list(output_ds.GetGeoTransform())
-            output_ds = None
+        # Read geocoded result
+        output_ds = gdal.Open(output_file)
+        geocoded_array = (
+            output_ds.GetRasterBand(1).ReadAsArray().astype(output_dtype)
+        )
+        output_gt = list(output_ds.GetGeoTransform())
+        output_ds = None
 
-            # Create GeoGrid for the output
-            # GDAL geotransform uses upper-left corner convention,
-            # but nisarqa.GeoGrid uses pixel center convention.
-            # Convert from corner to center coordinates:
-            # GT(0) = x-coordinate of upper-left corner of upper-left pixel
-            # GT(3) = y-coordinate of upper-left corner of upper-left pixel
-            # GT(1) = pixel width (x spacing)
-            # GT(5) = pixel height (y spacing, negative for north-up)
+        # Create GeoGrid for the output
+        # GDAL geotransform uses upper-left corner convention,
+        # but nisarqa.GeoGrid uses pixel center convention.
+        # Convert from corner to center coordinates:
+        # GT(0) = x-coordinate of upper-left corner of upper-left pixel
+        # GT(3) = y-coordinate of upper-left corner of upper-left pixel
+        # GT(1) = pixel width (x spacing)
+        # GT(5) = pixel height (y spacing, negative for north-up)
 
-            # Calculate pixel center coordinates
-            reproj_height, reproj_width = geocoded_array.shape
+        # Calculate pixel center coordinates
+        reproj_height, reproj_width = geocoded_array.shape
 
-            x_coords = (
-                output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
-            )
-            y_coords = (
-                output_gt[3] + (np.arange(reproj_height) + 0.5) * output_gt[5]
-            )
+        x_coords = (
+            output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
+        )
+        y_coords = (
+            output_gt[3] + (np.arange(reproj_height) + 0.5) * output_gt[5]
+        )
 
-            output_geogrid = nisarqa.GeoGrid(
-                epsg=epsg,
-                x_axis_posting=output_gt[1],
-                x_coordinates=x_coords,
-                y_axis_posting=output_gt[5],
-                y_coordinates=y_coords,
-            )
+        output_geogrid = nisarqa.GeoGrid(
+            epsg=epsg,
+            x_axis_posting=output_gt[1],
+            x_coordinates=x_coords,
+            y_axis_posting=output_gt[5],
+            y_coordinates=y_coords,
+        )
 
-        # DEM context manager has exited - temporary DEM cleaned up if needed
+        # All context managers exit here - temp files and DEM cleaned up automatically
         return geocoded_array, output_geogrid
-
-    finally:
-        # Delete temp input/output files (always executes, even if exception occurred)
-        input_file.unlink(missing_ok=True)
-        output_file.unlink(missing_ok=True)
 
 
 def reproject_geo_raster(
@@ -456,8 +459,6 @@ def reproject_geo_raster(
     # Use scratch directory with temporary files for ISCE3 raster I/O.
     # GDAL's in-memory option has potential security issues.
     scratch = nisarqa.get_global_scratch_dir()
-    # Create a uniquely-named string for filenaming
-    utc_now = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
 
     # Ensure float type
     raster_array = image_array.astype(np.float64)
@@ -476,11 +477,21 @@ def reproject_geo_raster(
         geogrid.y_axis_posting,
     ]
 
-    # Setup temporary file paths
-    source_file = scratch / f"input_{utc_now}.tif"
-    reprojected_file = scratch / f"reprojected_{utc_now}.tif"
+    # Use nested context managers for temporary TIF files
+    with (
+        tempfile.NamedTemporaryFile(
+            prefix="browse4326_in_", suffix=".tif", dir=scratch, delete=True
+        ) as source_temp,
+        tempfile.NamedTemporaryFile(
+            prefix="browse4326_reproj_", suffix=".tif", dir=scratch, delete=True
+        ) as reproj_temp,
+    ):
+        source_file = source_temp.name
+        reprojected_file = reproj_temp.name
 
-    try:
+        # Note: Keep source_temp and reproj_temp file handles open throughout.
+        # On Unix systems, GDAL can work with files that have open handles.
+
         # Create temporary input source GeoTIFF
         driver = gdal.GetDriverByName("GTiff")
         src_height, src_width = raster_array.shape
@@ -570,12 +581,8 @@ def reproject_geo_raster(
             y_coordinates=y_coords,
         )
 
+        # All context managers exit here - temp files cleaned up automatically
         return reproj_data, output_geogrid
-
-    finally:
-        # Delete temp files (always executes, even if exception occurred)
-        source_file.unlink(missing_ok=True)
-        reprojected_file.unlink(missing_ok=True)
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)
