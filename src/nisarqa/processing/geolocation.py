@@ -235,7 +235,7 @@ def geocode_radar_raster(
         # Ensure float type
         raster_array = radar_array.astype(np.float64)
 
-        # Get lon/lat corners from radar grid. 
+        # Get lon/lat corners from radar grid.
         # Note: The returned lat/lon quad was generated with longitude
         # normalization applied for proper antimeridian handling. This means
         # that longitude coordinates will not jump from e.g. -179.5 to 179.5;
@@ -383,9 +383,7 @@ def geocode_radar_raster(
         # Calculate pixel center coordinates
         reproj_height, reproj_width = geocoded_array.shape
 
-        x_coords = (
-            output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
-        )
+        x_coords = output_gt[0] + (np.arange(reproj_width) + 0.5) * output_gt[1]
         y_coords = (
             output_gt[3] + (np.arange(reproj_height) + 0.5) * output_gt[5]
         )
