@@ -153,8 +153,8 @@ def geocode_radar_raster(
     radar_array : array-like
         Input range-Doppler image array (e.g. NISAR Level-1) to be geocoded.
         Must be real-valued (float).
-    radargrid : isce3.product.RadarGridParameters
-        ISCE3 radargrid parameters specifying the range-Doppler grid associated
+    radargrid : nisarqa.RadarGrid
+        Radar grid parameters specifying the range-Doppler grid associated
         with the input `radar_array`.
     orbit : isce3.core.Orbit
         The trajectory of the radar antenna phase center.
