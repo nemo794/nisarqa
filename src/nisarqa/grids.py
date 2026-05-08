@@ -425,7 +425,8 @@ class RadarGrid(CoordinateGrid):
         Returns
         -------
         LatLonQuad
-            A LatLonQuad object for this RadarGrid instance.
+            A LatLonQuad object for this RadarGrid instance, with longitude
+            normalization applied for proper antimeridian handling.
         """
         return nisarqa.compute_latlonquad_from_radar_coords(
             slant_range=self.slant_range,
@@ -729,6 +730,12 @@ class GeoGrid(CoordinateGrid):
         Get the LatLonQuad for this GeoGrid.
 
         Wrapper around nisarqa.compute_latlonquad_from_geo_coords().
+
+        Returns
+        -------
+        LatLonQuad
+            A LatLonQuad object for this GeoGrid instance, with longitude
+            normalization applied for proper antimeridian handling.
         """
         return nisarqa.compute_latlonquad_from_geo_coords(
             x_coords=self.x_coordinates,

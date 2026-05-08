@@ -235,7 +235,12 @@ def geocode_radar_raster(
         # Ensure float type
         raster_array = radar_array.astype(np.float64)
 
-        # Get lon/lat corners from radar grid
+        # Get lon/lat corners from radar grid. 
+        # Note: The returned lat/lon quad was generated with longitude
+        # normalization applied for proper antimeridian handling. This means
+        # that longitude coordinates will not jump from e.g. -179.5 to 179.5;
+        # instead, they would be returned as e.g. -179.5 to -180.5, or
+        # 180.5 to 179.5.
         llq = radargrid.get_latlonquad(
             orbit=orbit,
             wavelength=wavelength,
@@ -252,6 +257,7 @@ def geocode_radar_raster(
             # Forward transform: lon/lat -> target projection
             # Returns coordinates in projection's native units
             # (degrees for EPSG 4326 lat/lon, meters for UTM, etc.)
+            # Note: for EPSG 4326, will not re-wrap longitudes to [-180, 180].
             x, y, z = proj.forward([lon_rad, lat_rad, 0])
             corners_proj.append((x, y))
 
@@ -261,6 +267,8 @@ def geocode_radar_raster(
         minx, maxx = min(xs), max(xs)
         miny, maxy = min(ys), max(ys)
 
+        # Because longitude values were normalized, `width = maxx - minx`
+        # works correctly for all frames, including antimeridian crossings.
         width = maxx - minx
         height = maxy - miny
 
