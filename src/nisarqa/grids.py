@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import isce3
 import numpy as np
 from numpy.typing import ArrayLike
+from osgeo import osr
+
 
 import nisarqa
 from nisarqa.utils.typing import CoordinateGridT
@@ -769,10 +771,31 @@ class GeoGrid(CoordinateGrid):
             png_filename=browse_paths.get_browse_filename(suffix=suffix),
         )
 
+
+    @property
+    def is_geographic(self) -> bool:
+        """
+        True if this GeoGrid's SRS is a geographic coordinate system.
+
+        Returns
+        -------
+        is_geographic : bool
+            True if this GeoGrid's SRS is a geographic coordinate system
+            (e.g. EPSG 4326 lat/lon), False otherwise.
+        """
+
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(self.epsg)
+        return bool(srs.IsGeographic())
+
+
     @property
     def crosses_antimeridian(self) -> bool:
         """
-        True if this GeoGrid crosses the antimeridian (International Date Line).
+        True if this GeoGrid crosses the EPSG 4326 antimeridian.
+
+        This geogrid's extents will be converted to EPSG 4326 to determine
+        whether it crosses the antimeridian.
 
         Returns
         -------
@@ -781,8 +804,8 @@ class GeoGrid(CoordinateGrid):
 
         Examples
         --------
-        A grid with lon_start=-181° and lon_stop=-147° crosses the antimeridian.
-        A grid with corner longitudes [179°, 180°, -179°, -178°] crosses
+        A grid with lon_start=-181 and lon_stop=-147 crosses the antimeridian.
+        A grid with corner longitudes [179, 180, -179, -178] crosses
         the antimeridian.
         """
 
@@ -790,8 +813,8 @@ class GeoGrid(CoordinateGrid):
         # Step 1: Convert the grid's corner coordinates to EPSG:4326 (lon/lat).
         # Step 2: Determine if there is an antimeridian crossing by examining:
         #    1. Whether longitude coordinates extend beyond [-180, 180] degrees
-        #        (i.e., unwrapped coordinates like -181° or 181°)
-        #    2. Whether there are large discontinuous jumps (>180°) between
+        #        (i.e., unwrapped coordinates like -181 or 181 degrees)
+        #    2. Whether there are large discontinuous jumps (>180) between
         #        corner longitude values, which indicate a dateline crossing
 
         # Create projection object for this grid's EPSG
@@ -819,7 +842,7 @@ class GeoGrid(CoordinateGrid):
                 return True
 
         # Check for discontinuous jumps between corner longitudes
-        # A jump > 180° indicates wrapping across the dateline
+        # A jump > 180 indicates wrapping across the dateline
         for i in range(len(corner_lons)):
             for j in range(i + 1, len(corner_lons)):
                 if abs(corner_lons[i] - corner_lons[j]) > 180:

@@ -1050,7 +1050,7 @@ def get_offset_values_in_projected_coordinates(
             # - Output x_shift = -114 degree (normalized to [-180, 180])
             # This would cause a spurious ~360 degree offset.
             # Adjust x_shift to be in the same 360 degree period as x_coord.
-            if epsg == 4326 and geo_grid.crosses_antimeridian:
+            if geo_grid.is_geographic and geo_grid.crosses_antimeridian:
                 if np.any(arrow_tails_x > 180) and np.any(arrow_tails_x < -180):
                     raise NotImplementedError(
                         "Input `geo_grid.x_coordinates` contains longitude"

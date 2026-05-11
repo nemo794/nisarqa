@@ -539,11 +539,11 @@ def reproject_geo_raster(
             "width": src_width,
         }
 
-        if output_epsg == 4326 and geogrid.crosses_antimeridian:
+        if geogrid.is_geographic and geogrid.crosses_antimeridian:
             # For antimeridian crossing, use +lon_wrap=180 to shift the
-            # coordinate system center to 180° (dateline) instead of 0°
-            # (prime meridian).
-            # This avoids the discontinuity at -180°/+180° and allows GDAL to
+            # coordinate system center to 180 degrees (dateline) instead
+            # of 0 degrees (prime meridian).
+            # This avoids the discontinuity at -180/+180 and allows GDAL to
             # properly handle data that spans the dateline.
             warp_options["dstSRS"] = "+proj=longlat +datum=WGS84 +lon_wrap=180"
         else:
