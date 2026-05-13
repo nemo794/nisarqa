@@ -235,6 +235,20 @@ def geocode_radar_raster(
         # Ensure float type
         raster_array = radar_array.astype(np.float64)
 
+        # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
+        isce3_radargrid = radargrid.get_isce3_radar_grid_parameters(
+            wavelength=wavelength,
+            look_side=look_side,
+        )
+
+        input_ds.GetRasterBand(1).WriteArray(raster_array)
+        input_ds.FlushCache()
+        input_ds = None  # Close
+        input_raster = isce3.io.Raster(str(input_file))
+
+        # Next, setup temporary output raster file, which the input raster
+        # file will be geocoded to.
+
         # Get lon/lat corners from radar grid.
         # Note: The returned lat/lon quad was generated with longitude
         # normalization applied for proper antimeridian handling. This means
@@ -272,52 +286,95 @@ def geocode_radar_raster(
         width = maxx - minx
         height = maxy - miny
 
-        # Determine resolution based on the longest side of the array.
-        # Handle width and height independently. For example, in lon/lat
-        # coordinates, 1 degree of latitude is not equivalent to 1 degree
-        # of longitude, particularly towards the polar regions.
-        resolution_x = width / max(np.shape(radar_array))
-        resolution_y = height / max(np.shape(radar_array))
+        # Determine resolution to preserve aspect ratio and enforce size
+        # constraint.
+        # Goal: output image size <= max(input dimensions) along each axis,
+        # while maintaining similar spatial resolution as input.
+        maxdim = max(radar_array.shape)
 
-        # Convert nisarqa.RadarGrid to isce3.product.RadarGridParameters
-        isce3_radargrid = radargrid.get_isce3_radar_grid_parameters(
-            wavelength=wavelength,
-            look_side=look_side,
-        )
+        # Earth Equatorial Radius (Semi-major Axis) in meters (WGS 84)
+        a = 6378137.0
 
-        input_ds.GetRasterBand(1).WriteArray(raster_array)
-        input_ds.FlushCache()
-        input_ds = None  # Close
-        input_raster = isce3.io.Raster(str(input_file))
+        # Create a SpatialReference object to check output projection type
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(epsg)
 
-        # Set up geocoding object
-        geocode_obj = isce3.geocode.GeocodeFloat64()
+        # ISCE3's update_geogrid() dynamically adds a margin when determining
+        # the geogrid to ensure that the swath's corners are all contained.
+        # To compensate and meet the maxdim constraint, use binary search to
+        # find the smallest margin that produces output dimensions < maxdim.
+        # As margin increases, target_dim decreases, resolution increases,
+        # and output dimensions should decrease (monotonic relationship).
 
-        geocode_obj.orbit = orbit
-        geocode_obj.ellipsoid = isce3.core.WGS84_ELLIPSOID
-        geocode_obj.doppler = isce3.core.LUT2d()  # Zero-Doppler for NISAR
-        geocode_obj.threshold_geo2rdr = 1.0e-8
-        geocode_obj.numiter_geo2rdr = 25
-        geocode_obj.data_interpolator = resample
+        def compute_geogrid_dimensions(margin):
+            """Helper to compute geogrid dimensions for a given margin."""
+            target_dim = maxdim - 2 * margin
 
-        # Call geogrid() with custom EPSG and pixel spacing, otherwise
-        # update_geogrid() will use the DEM's EPSG and pixel spacing.
-        # (This is not ideal in case e.g. we use the zero-height DEM.)
-        # But, use NaN for start positions and 0 for dimensions to signal
-        # to update_geogrid() that it should compute those values.
-        geocode_obj.geogrid(
-            x_start=np.nan,  # Will be computed by update_geogrid
-            y_start=np.nan,  # Will be computed by update_geogrid
-            x_spacing=resolution_x,
-            y_spacing=-resolution_y,  # Y posting should be negative
-            width=0,  # Will be computed by update_geogrid
-            length=0,  # Will be computed by update_geogrid
-            epsg=epsg,
-        )
+            if srs.IsGeographic():
+                # For lat/lon (EPSG 4326), spacing varies by latitude
+                avg_lat = (miny + maxy) / 2
+                radius_at_lat = a * np.cos(np.deg2rad(avg_lat))
+                lon_distance_meters = (width / 360) * 2 * np.pi * radius_at_lat
+                dx_meters = lon_distance_meters / target_dim
+                lat_distance_meters = (height / 360) * 2 * np.pi * a
+                dy_meters = lat_distance_meters / target_dim
+                spacing_m = max(dx_meters, dy_meters)
+                res_x = np.rad2deg(spacing_m / radius_at_lat)
+                res_y = np.rad2deg(spacing_m / a)
+            else:
+                # Assume dx/dy ≈ 1 (polar stereo or UTM with spacing in meters)
+                dx = width / target_dim
+                dy = height / target_dim
+                res_x = res_y = max(dx, dy)
 
-        # Now call update_geogrid - it will compute bounds, and also
-        # handle any antimeridian crossings
-        geocode_obj.update_geogrid(isce3_radargrid, dem)
+            # Set up geocoding object
+            geo_obj = isce3.geocode.GeocodeFloat64()
+            geo_obj.orbit = orbit
+            geo_obj.ellipsoid = isce3.core.WGS84_ELLIPSOID
+            geo_obj.doppler = isce3.core.LUT2d()  # Zero-Doppler for NISAR
+            geo_obj.threshold_geo2rdr = 1.0e-8
+            geo_obj.numiter_geo2rdr = 25
+            geo_obj.data_interpolator = resample
+
+            geo_obj.geogrid(
+                x_start=np.nan,
+                y_start=np.nan,
+                x_spacing=res_x,
+                y_spacing=-res_y,
+                width=0,
+                length=0,
+                epsg=epsg,
+            )
+            geo_obj.update_geogrid(isce3_radargrid, dem)
+
+            return geo_obj
+
+        # Binary search for optimal margin (range: 0 to 200 pixels)
+        left, right = 0, 200
+        geocode_obj = None
+
+        while left <= right:
+            margin = (left + right) // 2
+            test_geocode_obj = compute_geogrid_dimensions(margin)
+
+            # Check if dimensions satisfy constraint
+            if (test_geocode_obj.geogrid_length <= maxdim and
+                test_geocode_obj.geogrid_width <= maxdim):
+                # This margin works; try smaller margin to get closer to maxdim
+                geocode_obj = test_geocode_obj
+                right = margin - 1
+            else:
+                # Output too large; need more margin
+                left = margin + 1
+
+        # If no valid margin found, then the margin is over 200 pixels,
+        # which was never seen during testing. Default to 200.
+        if geocode_obj is None:
+            nisarqa.get_logger().warning(
+                "Could not determine best margin to pad the swath for the"
+                 " geocoded raster. Defaulting to a margin of 200 pixels."
+            )
+            geocode_obj = compute_geogrid_dimensions(200)
 
         # Create temporary output raster file
         output_ds = gdal.GetDriverByName("GTiff").Create(
@@ -341,6 +398,7 @@ def geocode_radar_raster(
             0,
             geocode_obj.geogrid_spacing_y,
         ]
+
         output_ds.SetGeoTransform(output_geotransform)
 
         output_ds.FlushCache()
