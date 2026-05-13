@@ -548,7 +548,7 @@ class RUNWBrowseParamGroup(
         Ignored if `output_browse_latlon` is False.
         Defaults to 'bilinear'.
     """
-    
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "runw", "qa_reports", "browse"]
@@ -588,7 +588,7 @@ class GUNWBrowseParamGroup(
         Ignored if `output_browse_latlon` is False.
         Defaults to 'average'.
     """
-    
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "browse"]
@@ -770,7 +770,7 @@ class GOFFBrowseParamGroup(
         Ignored if `output_browse_latlon` is False.
         Defaults to 'average'.
     """
-    
+
     def __post_init__(self):
         OffsetsBrowseParamGroup.__post_init__(self)
         L2GeoBrowseLatLonParamGroup.__post_init__(self)
