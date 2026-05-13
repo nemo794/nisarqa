@@ -1010,7 +1010,7 @@ class BrowseLatLonParamGroup(YamlParamGroup):
         The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        primary browse filename suffixed with '_' + f'{nisarqa.LATLON_SUFFIX}'.
+        primary browse filename suffixed with '_LATLON'.
         Defaults to False.
     """
 
@@ -1061,7 +1061,7 @@ class L1RadarBrowseLatLonParamGroup(BrowseLatLonParamGroup):
         The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        primary browse filename suffixed with '_' + f'{nisarqa.LATLON_SUFFIX}'.
+        primary browse filename suffixed with '_LATLON'.
         Defaults to False.
     resample : str, optional
         Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
@@ -1112,13 +1112,13 @@ class L2GeoBrowseLatLonParamGroup(BrowseLatLonParamGroup):
         The EPSG 4326 PNG+KML version will be in addition to the primary
         browse PNG+KML outputs (where the PNG reflects the input product's
         native coordinate system). The EPSG 4326 outputs will use the
-        primary browse filename suffixed with '_' + f'{nisarqa.LATLON_SUFFIX}'.
+        primary browse filename suffixed with '_LATLON'.
         Defaults to False.
     resample : str, optional
         Resampling algorithm for GDAL reprojection. Options: 'near',
         'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
         Ignored if `output_browse_latlon` is False.
-        Defaults to 'cubic'.
+        Defaults to 'average'.
     """
 
     resample: str = field(

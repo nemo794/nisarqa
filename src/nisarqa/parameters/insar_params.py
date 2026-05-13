@@ -464,6 +464,51 @@ class RIFGBrowseParamGroup(
     L1RadarBrowseLatLonParamGroup,
     IgramBrowseParamGroup,
 ):
+    """
+    Parameters for RIFG browse image generation.
+
+    Overrides the default resample method to 'nearest' for RIFG products
+    because interferograms contain phase jumps that should not be interpolated.
+
+    Parameters
+    ----------
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image. Defaults to 2048 pixels.
+    output_browse_latlon : bool, optional
+        True to generate a version of the primary browse PNG+KML that is
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        primary browse filename suffixed with '_LATLON'.
+        Defaults to False.
+    resample : str, optional
+        Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
+        'bicubic', 'nearest', 'biquintic'.
+        Ignored if `output_browse_latlon` is False.
+        Strongly recommend 'nearest' for RIFG due to artifacting at
+        phase discontinuities with other interpolation methods.
+        Defaults to 'nearest'.
+    """
+
+    # Override resample default for RIFG (phase jumps require nearest neighbor)
+    resample: str = field(
+        default="nearest",
+        metadata={
+            "yaml_attrs": YamlAttrs(
+                name="resample",
+                descr="""Resampling method for ISCE3 geocoding. Options: 'sinc',
+                'bilinear', 'bicubic', 'nearest', 'biquintic'.
+                Ignored if `output_browse_latlon` is False.
+                Strongly recommend 'nearest' for RIFG due to artifacting at
+                phase discontinuities with other interpolation methods.""",
+            )
+        },
+    )
+
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "rifg", "qa_reports", "browse"]
@@ -474,6 +519,36 @@ class RUNWBrowseParamGroup(
     L1RadarBrowseLatLonParamGroup,
     UNWIgramBrowseParamGroup,
 ):
+    """
+    Parameters for RUNW browse image generation.
+
+    Parameters
+    ----------
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image. Defaults to 2048 pixels.
+    rewrap : float or None, optional
+        The multiple of pi to rewrap the unwrapped phase image when generating
+        the browse PNG. If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+        Defaults to 7.
+    output_browse_latlon : bool, optional
+        True to generate a version of the primary browse PNG+KML that is
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        primary browse filename suffixed with '_LATLON'.
+        Defaults to False.
+    resample : str, optional
+        Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
+        'bicubic', 'nearest', 'biquintic'.
+        Ignored if `output_browse_latlon` is False.
+        Defaults to 'bilinear'.
+    """
+    
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "runw", "qa_reports", "browse"]
@@ -484,6 +559,36 @@ class GUNWBrowseParamGroup(
     L2GeoBrowseLatLonParamGroup,
     UNWIgramBrowseParamGroup,
 ):
+    """
+    Parameters for GUNW browse image generation.
+
+    Parameters
+    ----------
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image. Defaults to 2048 pixels.
+    rewrap : float or None, optional
+        The multiple of pi to rewrap the unwrapped phase image when generating
+        the browse PNG. If None, no rewrapping will occur.
+        Ex: If 3 is provided, the image is rewrapped to the interval [0, 3pi).
+        Defaults to 7.
+    output_browse_latlon : bool, optional
+        True to generate a version of the primary browse PNG+KML that is
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        primary browse filename suffixed with '_LATLON'.
+        Defaults to False.
+    resample : str, optional
+        Resampling algorithm for GDAL reprojection. Options: 'near',
+        'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
+        Ignored if `output_browse_latlon` is False.
+        Defaults to 'average'.
+    """
+    
     @staticmethod
     def get_path_to_group_in_runconfig():
         return ["runconfig", "groups", "qa", "gunw", "qa_reports", "browse"]
@@ -585,6 +690,40 @@ class OffsetsBrowseParamGroup(YamlParamGroup):
 class ROFFBrowseParamGroup(
     L1RadarBrowseLatLonParamGroup, OffsetsBrowseParamGroup
 ):
+    """
+    Parameters to generate browse products (PNG+KML) for ROFF products.
+
+    Parameters
+    ----------
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image PNG. Defaults to 2048 pixels.
+    browse_decimation_freqa, browse_decimation_freqb : pair of int or None, optional
+        Stride along each axis of the Frequency A (or Frequency B)
+        image arrays for decimating the raster for the browse PNG.
+        This takes precedence over `longest_side_max`.
+        Format: [<num_rows>, <num_cols>]
+        Example: [6,7]
+        If None, the QA code computes the strides values per `longest_side_max`
+        and decimating the raster such that the pixels are roughly square.
+        Defaults to None.
+    output_browse_latlon : bool, optional
+        True to generate a version of the primary browse PNG+KML that is
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        primary browse filename suffixed with '_LATLON'.
+        Defaults to False.
+    resample : str, optional
+        Resampling method for ISCE3 geocoding. Options: 'sinc', 'bilinear',
+        'bicubic', 'nearest', 'biquintic'.
+        Ignored if `output_browse_latlon` is False.
+        Defaults to 'bilinear'.
+    """
+
     def __post_init__(self):
         OffsetsBrowseParamGroup.__post_init__(self)
         L1RadarBrowseLatLonParamGroup.__post_init__(self)
@@ -598,6 +737,40 @@ class ROFFBrowseParamGroup(
 class GOFFBrowseParamGroup(
     L2GeoBrowseLatLonParamGroup, OffsetsBrowseParamGroup
 ):
+    """
+    Parameters to generate browse products (PNG+KML) for ROFF products.
+
+    Parameters
+    ----------
+    longest_side_max : int, optional
+        The maximum number of pixels allowed for the longest side of the final
+        2D multilooked browse image PNG. Defaults to 2048 pixels.
+    browse_decimation_freqa, browse_decimation_freqb : pair of int or None, optional
+        Stride along each axis of the Frequency A (or Frequency B)
+        image arrays for decimating the raster for the browse PNG.
+        This takes precedence over `longest_side_max`.
+        Format: [<num_rows>, <num_cols>]
+        Example: [6,7]
+        If None, the QA code computes the strides values per `longest_side_max`
+        and decimating the raster such that the pixels are roughly square.
+        Defaults to None.
+    output_browse_latlon : bool, optional
+        True to generate a version of the primary browse PNG+KML that is
+        projected to EPSG 4326 (lon/lat) coordinate system for accurate
+        geolocation in GIS software.
+        False to only generate primary browse outputs.
+        The EPSG 4326 PNG+KML version will be in addition to the primary
+        browse PNG+KML outputs (where the PNG reflects the input product's
+        native coordinate system). The EPSG 4326 outputs will use the
+        primary browse filename suffixed with '_LATLON'.
+        Defaults to False.
+    resample : str, optional
+        Resampling algorithm for GDAL reprojection. Options: 'near',
+        'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'mode'.
+        Ignored if `output_browse_latlon` is False.
+        Defaults to 'average'.
+    """
+    
     def __post_init__(self):
         OffsetsBrowseParamGroup.__post_init__(self)
         L2GeoBrowseLatLonParamGroup.__post_init__(self)
