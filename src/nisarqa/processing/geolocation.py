@@ -358,8 +358,10 @@ def geocode_radar_raster(
             test_geocode_obj = compute_geogrid_dimensions(margin)
 
             # Check if dimensions satisfy constraint
-            if (test_geocode_obj.geogrid_length <= maxdim and
-                test_geocode_obj.geogrid_width <= maxdim):
+            if (
+                test_geocode_obj.geogrid_length <= maxdim
+                and test_geocode_obj.geogrid_width <= maxdim
+            ):
                 # This margin works; try smaller margin to get closer to maxdim
                 geocode_obj = test_geocode_obj
                 right = margin - 1
@@ -372,7 +374,7 @@ def geocode_radar_raster(
         if geocode_obj is None:
             nisarqa.get_logger().warning(
                 "Could not determine best margin to pad the swath for the"
-                 " geocoded raster. Defaulting to a margin of 200 pixels."
+                " geocoded raster. Defaulting to a margin of 200 pixels."
             )
             geocode_obj = compute_geogrid_dimensions(200)
 
@@ -416,7 +418,7 @@ def geocode_radar_raster(
 
         # Explicitly close the ISCE3 Rasters
         # ISCE3's Raster class wraps around GDAL datasets. So, we need to:
-        #   1) close_dataset() to explicitly flush caches and close file handle 
+        #   1) close_dataset() to explicitly flush caches and close file handle
         #   2) set to None to remove the Python reference
         input_raster.close_dataset()
         input_raster = None

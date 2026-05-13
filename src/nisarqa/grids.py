@@ -771,7 +771,6 @@ class GeoGrid(CoordinateGrid):
             png_filename=browse_paths.get_browse_filename(suffix=suffix),
         )
 
-
     @property
     def is_geographic(self) -> bool:
         """
@@ -787,7 +786,6 @@ class GeoGrid(CoordinateGrid):
         srs = osr.SpatialReference()
         srs.ImportFromEPSG(self.epsg)
         return bool(srs.IsGeographic())
-
 
     @property
     def crosses_antimeridian(self) -> bool:
