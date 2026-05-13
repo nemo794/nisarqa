@@ -354,7 +354,8 @@ def compute_latlonquad_from_radar_coords(
 
     if dem_file is not None:
         # Explicitly close the ISCE3 Rasters
-        dem = None
+        dem.close_dataset()  # Explicitly flush caches and close file handle
+        dem = None           # Then remove the Python reference
 
     # Create and return LatLonQuad with longitude normalization
     return LatLonQuad(

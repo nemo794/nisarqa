@@ -215,11 +215,11 @@ def geocode_radar_raster(
             prefix="browse4326_out_", suffix=".tif", dir=scratch, delete=True
         ) as output_temp,
     ):
+        # Note: Keep input_temp and output_temp file handles open throughout.
+        # On Unix systems, GDAL can work with files that have open handles.
         input_file = input_temp.name
         output_file = output_temp.name
 
-        # Note: Keep input_temp and output_temp file handles open throughout.
-        # On Unix systems, GDAL can work with files that have open handles.
         dem = isce3.io.Raster(str(dem_filepath))
 
         # Setup temporary input raster file, so that it can be converted to
@@ -415,10 +415,14 @@ def geocode_radar_raster(
         )
 
         # Explicitly close the ISCE3 Rasters
+        # ISCE3's Raster class wraps around GDAL datasets. So, we need to:
+        #   1) close_dataset() to explicitly flush caches and close file handle 
+        #   2) set to None to remove the Python reference
         input_raster.close_dataset()
         input_raster = None
         output_raster.close_dataset()
         output_raster = None
+        dem.close_dataset()
         dem = None
 
         # Read geocoded result
