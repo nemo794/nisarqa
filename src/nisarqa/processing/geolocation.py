@@ -680,7 +680,10 @@ def reproject_geo_raster(
             "dstNodata": fill_value,
         }
 
-        if geogrid.crosses_antimeridian:
+        srs_out = osr.SpatialReference()
+        srs_out.ImportFromEPSG(output_epsg)
+
+        if srs_out.IsGeographic() and geogrid.crosses_antimeridian:
             # For antimeridian crossing, use +lon_wrap=180 to shift the
             # coordinate system center to 180 degrees (dateline) instead
             # of 0 degrees (prime meridian).
@@ -714,8 +717,6 @@ def reproject_geo_raster(
 
         # Calculate aspect ratio, taking care of dy/dx=cos(lat) for longlat.
         # Assume other projections have dy/dx=1.
-        srs_out = osr.SpatialReference()
-        srs_out.ImportFromEPSG(output_epsg)
         if srs_out.IsGeographic():
             cos_lat = np.cos(np.deg2rad((top + bottom) / 2))
             aspect_ratio = x_extent * cos_lat / y_extent
