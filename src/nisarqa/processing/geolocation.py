@@ -220,14 +220,12 @@ def geocode_radar_raster(
         input_file = input_temp.name
         output_file = output_temp.name
 
-        dem = isce3.io.Raster(str(dem_filepath))
-
         # Setup temporary input raster file, so that it can be converted to
         # the correct format for ISCE3 geocoding
         input_ds = gdal.GetDriverByName("GTiff").Create(
             input_file,
-            radar_array.data.shape[1],
-            radar_array.data.shape[0],
+            radar_array.shape[1],
+            radar_array.shape[0],
             1,
             gdal_dtype,
         )
@@ -272,7 +270,7 @@ def geocode_radar_raster(
             # Returns coordinates in projection's native units
             # (degrees for EPSG 4326 lat/lon, meters for UTM, etc.)
             # Note: for EPSG 4326, will not re-wrap longitudes to [-180, 180].
-            x, y, z = proj.forward([lon_rad, lat_rad, 0])
+            x, y, _ = proj.forward([lon_rad, lat_rad, 0])
             corners_proj.append((x, y))
 
         # Get bounding box in target projection's native units
@@ -301,33 +299,83 @@ def geocode_radar_raster(
 
         # ISCE3's update_geogrid() dynamically adds a margin when determining
         # the geogrid to ensure that the swath's corners are all contained.
-        # To compensate and meet the maxdim constraint, use binary search to
-        # find the smallest margin that produces output dimensions < maxdim.
-        # As margin increases, target_dim decreases, resolution increases,
-        # and output dimensions should decrease (monotonic relationship).
+        # To compensate and meet the maxdim constraint, use a two-step approach:
+        # 1. Initial geogrid call to determine actual bounds (including margin)
+        # 2. Create fresh geocode object with refined resolution based on actual bounds
 
-        def compute_geogrid_dimensions(margin):
-            """Helper to compute geogrid dimensions for a given margin."""
-            target_dim = maxdim - 2 * margin
+        def compute_resolution(
+            span_width: float,
+            span_height: float,
+            target_dim: int,
+            avg_latitude: float | None = None,
+        ) -> tuple[float, float]:
+            """
+            Compute x and y resolution for geocoding.
 
+            Parameters
+            ----------
+            span_width : float
+                Width span in native projection units (degrees for EPSG 4326,
+                meters for UTM/polar stereo).
+            span_height : float
+                Height span in native projection units.
+            target_dim : int
+                Target dimension in pixels to constrain output size.
+            avg_latitude : float or None, optional
+                Average latitude in degrees. Required for geographic
+                projections only; will be ignored otherwise.
+                Defaults to None (for non-geographic projections).
+
+            Returns
+            -------
+            resolution_x, resolution_y : float, float
+                Pixel spacing in native projection units.
+            """
             if srs.IsGeographic():
+                if not isinstance(avg_latitude, (float, int)):
+                    raise ValueError(f"{avg_latitude=}, must be a float.")
+
                 # For lat/lon (EPSG 4326), spacing varies by latitude
-                avg_lat = (miny + maxy) / 2
-                radius_at_lat = a * np.cos(np.deg2rad(avg_lat))
-                lon_distance_meters = (width / 360) * 2 * np.pi * radius_at_lat
+                radius_at_lat = a * np.cos(np.deg2rad(avg_latitude))
+                lon_distance_meters = (span_width / 360) * 2 * np.pi * radius_at_lat
                 dx_meters = lon_distance_meters / target_dim
-                lat_distance_meters = (height / 360) * 2 * np.pi * a
+                lat_distance_meters = (span_height / 360) * 2 * np.pi * a
                 dy_meters = lat_distance_meters / target_dim
                 spacing_m = max(dx_meters, dy_meters)
                 res_x = np.rad2deg(spacing_m / radius_at_lat)
                 res_y = np.rad2deg(spacing_m / a)
             else:
                 # Assume dx/dy ≈ 1 (polar stereo or UTM with spacing in meters)
-                dx = width / target_dim
-                dy = height / target_dim
+                dx = span_width / target_dim
+                dy = span_height / target_dim
                 res_x = res_y = max(dx, dy)
+            return res_x, res_y
 
-            # Set up geocoding object
+        def create_geocode_obj(
+            res_x: float,
+            res_y: float,
+            x_start: float | None = None,
+            y_start: float | None = None,
+            grid_width: int | None = None,
+            grid_length: int | None = None,
+        ) -> isce3.geocode.GeocodeFloat64:
+            """
+            Create and configure a fresh GeocodeFloat64 object.
+
+            Parameters
+            ----------
+            res_x, res_y : float
+                Pixel spacing in x and y directions.
+            x_start, y_start : float or None, optional
+                Starting coordinates. If None, will be computed by update_geogrid.
+            grid_width, grid_length : int or None, optional
+                Grid dimensions in pixels. If None, will be computed by update_geogrid.
+
+            Returns
+            -------
+            isce3.geocode.GeocodeFloat64
+                Configured geocode object with geogrid set.
+            """
             geo_obj = isce3.geocode.GeocodeFloat64()
             geo_obj.orbit = orbit
             geo_obj.ellipsoid = isce3.core.WGS84_ELLIPSOID
@@ -337,52 +385,84 @@ def geocode_radar_raster(
             geo_obj.data_interpolator = resample
 
             geo_obj.geogrid(
-                x_start=np.nan,
-                y_start=np.nan,
+                x_start=x_start if x_start is not None else np.nan,
+                y_start=y_start if y_start is not None else np.nan,
                 x_spacing=res_x,
                 y_spacing=-res_y,
-                width=0,
-                length=0,
+                width=grid_width if grid_width is not None else 0,
+                length=grid_length if grid_length is not None else 0,
                 epsg=epsg,
             )
-            geo_obj.update_geogrid(isce3_radargrid, dem)
 
             return geo_obj
 
-        # Binary search for optimal margin (range: 0 to 200 pixels)
-        left, right = 0, 200
-        geocode_obj = None
+        # Step 1: Compute initial resolution based on estimated bounds
+        avg_lat = (miny + maxy) / 2
+        resolution_x, resolution_y = compute_resolution(
+            width, height, maxdim, avg_lat
+        )
 
-        while left <= right:
-            margin = (left + right) // 2
-            test_geocode_obj = compute_geogrid_dimensions(margin)
+        # Create initial geocode object to determine actual bounds with margin
+        geocode_obj_initial = create_geocode_obj(resolution_x, resolution_y)
 
-            # Check if dimensions satisfy constraint
-            if (
-                test_geocode_obj.geogrid_length <= maxdim
-                and test_geocode_obj.geogrid_width <= maxdim
-            ):
-                # This margin works; try smaller margin to get closer to maxdim
-                geocode_obj = test_geocode_obj
-                right = margin - 1
-            else:
-                # Output too large; need more margin
-                left = margin + 1
+        # Create DEM fresh for update_geogrid to avoid corruption issues with VRT files.
+        # The DEM raster object can become corrupted when used across multiple
+        # ISCE3/GDAL operations, so we create it fresh for each use and close
+        # it immediately after.
+        dem_for_update = isce3.io.Raster(str(dem_filepath))
+        geocode_obj_initial.update_geogrid(isce3_radargrid, dem_for_update)
+        dem_for_update.close_dataset()
+        dem_for_update = None
 
-        # If no valid margin found, then the margin is over 200 pixels,
-        # which was never seen during testing. Default to 200.
-        if geocode_obj is None:
-            nisarqa.get_logger().warning(
-                "Could not determine best margin to pad the swath for the"
-                " geocoded raster. Defaulting to a margin of 200 pixels."
-            )
-            geocode_obj = compute_geogrid_dimensions(200)
+        # Step 2: Recompute resolution using actual bounds from update_geogrid
+        # to ensure output dimensions <= maxdim
+
+        # Get start coordinates
+        final_x_start = geocode_obj_initial.geogrid_start_x
+        final_y_start = geocode_obj_initial.geogrid_start_y
+
+        # Compute end coordinates from initial grid
+        final_x_end = final_x_start + (
+            geocode_obj_initial.geogrid_width * geocode_obj_initial.geogrid_spacing_x
+        )
+        final_y_end = final_y_start + (
+            geocode_obj_initial.geogrid_length * geocode_obj_initial.geogrid_spacing_y
+        )
+
+        # Compute spans
+        final_width_span = abs(final_x_end - final_x_start)
+        final_height_span = abs(final_y_end - final_y_start)
+
+        # Compute final center latitude from actual bounds
+        final_miny = min(final_y_start, final_y_end)
+        final_maxy = max(final_y_start, final_y_end)
+        avg_lat_final = (final_miny + final_maxy) / 2
+
+        # Recompute resolution with actual bounds
+        final_resolution_x, final_resolution_y = compute_resolution(
+            final_width_span, final_height_span, maxdim, avg_lat_final
+        )
+
+        # Compute final dimensions based on new resolution and actual bounds
+        final_width = int(np.round(final_width_span / final_resolution_x))
+        final_length = int(np.round(final_height_span / final_resolution_y))
+
+        # Create fresh geocode object with refined resolution and explicit bounds.
+        # Pass ALL parameters - do NOT call update_geogrid() again.
+        final_geocode_obj = create_geocode_obj(
+            final_resolution_x,
+            final_resolution_y,
+            x_start=final_x_start,
+            y_start=final_y_start,
+            grid_width=final_width,
+            grid_length=final_length,
+        )
 
         # Create temporary output raster file
         output_ds = gdal.GetDriverByName("GTiff").Create(
             output_file,
-            geocode_obj.geogrid_width,
-            geocode_obj.geogrid_length,
+            final_geocode_obj.geogrid_width,
+            final_geocode_obj.geogrid_length,
             1,
             gdal_dtype,
         )
@@ -393,12 +473,12 @@ def geocode_radar_raster(
         output_ds.SetProjection(srs.ExportToWkt())
 
         output_geotransform = [
-            geocode_obj.geogrid_start_x,
-            geocode_obj.geogrid_spacing_x,
+            final_geocode_obj.geogrid_start_x,
+            final_geocode_obj.geogrid_spacing_x,
             0,
-            geocode_obj.geogrid_start_y,
+            final_geocode_obj.geogrid_start_y,
             0,
-            geocode_obj.geogrid_spacing_y,
+            final_geocode_obj.geogrid_spacing_y,
         ]
 
         output_ds.SetGeoTransform(output_geotransform)
@@ -407,12 +487,15 @@ def geocode_radar_raster(
         output_ds = None  # Close
         output_raster = isce3.io.Raster(str(output_file), update=True)
 
+        # Create DEM fresh for geocode to avoid corruption issues with VRT files
+        dem_for_geocode = isce3.io.Raster(str(dem_filepath))
+
         # Perform geocoding
-        geocode_obj.geocode(
+        final_geocode_obj.geocode(
             radar_grid=isce3_radargrid,
             input_raster=input_raster,
             output_raster=output_raster,
-            dem_raster=dem,
+            dem_raster=dem_for_geocode,
             output_mode=isce3.geocode.GeocodeOutputMode.INTERP,
         )
 
@@ -424,8 +507,8 @@ def geocode_radar_raster(
         input_raster = None
         output_raster.close_dataset()
         output_raster = None
-        dem.close_dataset()
-        dem = None
+        dem_for_geocode.close_dataset()
+        dem_for_geocode = None
 
         # Read geocoded result
         output_ds = gdal.Open(output_file)

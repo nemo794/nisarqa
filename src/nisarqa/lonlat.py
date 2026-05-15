@@ -353,9 +353,9 @@ def compute_latlonquad_from_radar_coords(
         corners_lonlat[corner_name] = LonLat(lon=lon_deg, lat=lat_deg)
 
     if dem_file is not None:
-        # Explicitly close the ISCE3 Rasters
-        dem.close_dataset()  # Explicitly flush caches and close file handle
-        dem = None  # Then remove the Python reference
+        # Explicitly close the ISCE3 Raster
+        dem_raster.close_dataset()  # Explicitly flush caches and close file handle
+        dem_raster = None  # Then remove the Python reference
 
     # Create and return LatLonQuad with longitude normalization
     return LatLonQuad(
