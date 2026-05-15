@@ -337,7 +337,9 @@ def geocode_radar_raster(
 
                 # For lat/lon (EPSG 4326), spacing varies by latitude
                 radius_at_lat = a * np.cos(np.deg2rad(avg_latitude))
-                lon_distance_meters = (span_width / 360) * 2 * np.pi * radius_at_lat
+                lon_distance_meters = (
+                    (span_width / 360) * 2 * np.pi * radius_at_lat
+                )
                 dx_meters = lon_distance_meters / target_dim
                 lat_distance_meters = (span_height / 360) * 2 * np.pi * a
                 dy_meters = lat_distance_meters / target_dim
@@ -423,10 +425,12 @@ def geocode_radar_raster(
 
         # Compute end coordinates from initial grid
         final_x_end = final_x_start + (
-            geocode_obj_initial.geogrid_width * geocode_obj_initial.geogrid_spacing_x
+            geocode_obj_initial.geogrid_width
+            * geocode_obj_initial.geogrid_spacing_x
         )
         final_y_end = final_y_start + (
-            geocode_obj_initial.geogrid_length * geocode_obj_initial.geogrid_spacing_y
+            geocode_obj_initial.geogrid_length
+            * geocode_obj_initial.geogrid_spacing_y
         )
 
         # Compute spans
