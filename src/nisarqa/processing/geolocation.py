@@ -690,7 +690,7 @@ def reproject_geo_raster(
             "width": src_width,
         }
 
-        if geogrid.is_geographic and geogrid.crosses_antimeridian:
+        if geogrid.crosses_antimeridian:
             # For antimeridian crossing, use +lon_wrap=180 to shift the
             # coordinate system center to 180 degrees (dateline) instead
             # of 0 degrees (prime meridian).
