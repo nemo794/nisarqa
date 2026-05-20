@@ -694,9 +694,9 @@ def reproject_geo_raster(
             # Standard reprojection for non-dateline-crossing data
             warp_options["dstSRS"] = f"EPSG:{output_epsg}"
 
-        # Do one warp in memory to get extent.  Then we can calculate the
-        # sizes/spacings that will give square-ish pixels while obeying the
-        # max size constraint.
+        # Do initial warp to get extent; use a VRT to avoid warping each pixel.
+        # Then we can calculate the sizes/spacings that will give 
+        # square-ish pixels while obeying the max size constraint.
         maxdim = max(src_height, src_width)
         vrt = gdal.Warp(
             '',
@@ -718,8 +718,10 @@ def reproject_geo_raster(
         # Calculate aspect ratio, taking care of dy/dx=cos(lat) for longlat.
         # Assume other projections have dy/dx=1.
         if srs_out.IsGeographic():
-            cos_lat = np.cos(np.deg2rad((top + bottom) / 2))
-            aspect_ratio = x_extent * cos_lat / y_extent
+            # Compute the ratio of ground distance (per degree of longitude)
+            # at this raster's average latitude vs. at the equator
+            longitude_scale_factor = np.cos(np.deg2rad((top + bottom) / 2))
+            aspect_ratio = x_extent * longitude_scale_factor / y_extent
         else:
             aspect_ratio = x_extent / y_extent
 
