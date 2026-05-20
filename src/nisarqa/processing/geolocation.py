@@ -640,11 +640,15 @@ def reproject_geo_raster(
             prefix="browse4326_in_", suffix=".tif", dir=scratch, delete=True
         ) as source_temp,
         tempfile.NamedTemporaryFile(
+            prefix="browse4326_vrt_", suffix=".vrt", dir=scratch, delete=True
+        ) as temporary_vrt,
+        tempfile.NamedTemporaryFile(
             prefix="browse4326_reproj_", suffix=".tif", dir=scratch, delete=True
         ) as reproj_temp,
     ):
         source_file = source_temp.name
         reprojected_file = reproj_temp.name
+        temp_vrt = temporary_vrt.name
 
         # Note: Keep source_temp and reproj_temp file handles open throughout.
         # On Unix systems, GDAL can work with files that have open handles.
@@ -699,7 +703,7 @@ def reproject_geo_raster(
         # square-ish pixels while obeying the max size constraint.
         maxdim = max(src_height, src_width)
         vrt = gdal.Warp(
-            '',
+            temp_vrt,
             source_file,
             format="VRT",
             height=maxdim,
