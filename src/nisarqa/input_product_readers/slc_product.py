@@ -42,12 +42,12 @@ class SLCProduct(NonInsarProduct):
         which handles the final greyscale or color channel assignments.
 
         See `Notes` for details on possible NISAR modes and assigned channels
-        for LSAR band.
+        for L-Band.
         Prioritization order to select the freq/pol to use:
             For frequency: Freq A then Freq B.
             For polarization: 'HH', then 'VV', then first polarization found.
 
-        SSAR is currently only minimally supported, so only a grayscale image
+        S-Band is currently only minimally supported, so only a grayscale image
         will be created.
 
         Returns
@@ -106,7 +106,7 @@ class SLCProduct(NonInsarProduct):
         freq = self.science_freq
         science_pols = self.get_pols(freq=freq)
 
-        # SSAR is not fully supported by QA, so just make a simple grayscale
+        # S-Band is not fully supported by QA, so just make a simple grayscale
         if self.band == "S":
             # Prioritize Co-Pol
             if "HH" in science_pols:
@@ -311,8 +311,9 @@ class SLCProduct(NonInsarProduct):
             # either there is only one image provided (e.g. single pol),
             # or the images provided are not one of the expected cases.
             # Either way, WLOG plot one of the image(s) in `pol_imgs`.
-            gray_img = pol_imgs.popitem()[1]
-            nisarqa.plot_to_grayscale_png(img_arr=gray_img, filepath=filepath)
+            nisarqa.plot_to_grayscale_png(
+                img_arr=arbitrary_img, filepath=filepath
+            )
 
             # This `else` is a catch-all clause. Return early, so that
             # we do not try to plot to RGB

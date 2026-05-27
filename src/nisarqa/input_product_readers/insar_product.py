@@ -41,7 +41,7 @@ class InsarProduct(NisarProduct):
 
     def _get_raster_name(self, raster_path: str) -> str:
         """
-        Return a name for the raster, e.g. 'RSLC_LSAR_A_HH'.
+        Return a name for the raster, e.g. 'RSLC_L_A_HH'.
 
         Parameters
         ----------
@@ -175,11 +175,11 @@ class InsarProduct(NisarProduct):
 
         If the input file contains Frequency A, then this dataset will
         be created in `stats_h5`:
-            /science/<band>/QA/data/frequencyA/listOfPolarizations
+            /science/<instrument>/QA/data/frequencyA/listOfPolarizations
 
         If the input file contains Frequency B, then this dataset will
         be created in `stats_h5`:
-            /science/<band>/QA/data/frequencyB/listOfPolarizations
+            /science/<instrument>/QA/data/frequencyB/listOfPolarizations
 
         * Note: The paths are pulled from nisarqa.STATS_H5_QA_FREQ_GROUP.
         If the value of that global changes, then the path for the
@@ -254,7 +254,9 @@ class InsarProduct(NisarProduct):
 
     def center_freq(self, freq: str) -> float:
         """
-        The center frequency for input product's Frequency `freq`.
+        The processed center frequency for input product's Frequency `freq`.
+
+        For InSAR products, this is read from the `centerFrequency` dataset.
 
         Parameters
         ----------
@@ -264,34 +266,14 @@ class InsarProduct(NisarProduct):
         Returns
         -------
         center_freq : float
-            The center frequency for input product's Frequency `freq`, in hertz.
+            The processed center frequency for input product's Frequency `freq`,
+            in hertz.
         """
         center_freq_path = f"{self.get_freq_path(freq=freq)}/centerFrequency"
         with h5py.File(self.filepath, "r") as f:
             center_freq = f[center_freq_path][...]
 
         return center_freq
-
-    def wavelength(self, freq: str) -> float:
-        """
-        The wavelength for input product's Frequency `freq`.
-
-        Parameters
-        ----------
-        freq : str
-            Must be either "A" or "B".
-
-        Returns
-        -------
-        wavelength : float
-            The wavelength for input product's Frequency `freq`, in meters.
-        """
-        # Wavelength can be inferred from the centerFrequency dataset
-        # centerFrequency is in units of hertz
-        center_freq = self.center_freq(freq=freq)
-
-        # wavelength = <speed of light> / centerFrequency
-        return isce3.core.speed_of_light / center_freq
 
 
 __all__ = nisarqa.get_all(__name__, objects_to_skip)

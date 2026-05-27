@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+
 import nisarqa
 
 from .non_insar_geo_product import NonInsarGeoProduct
